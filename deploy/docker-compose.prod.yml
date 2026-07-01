@@ -1,0 +1,63 @@
+# Production stack on Hetzner. Front it with the host nginx (deploy/nginx-agradex.conf)
+# terminating TLS for agradex.com and proxying /api → api:8000, everything else → web:3000.
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: ../services
+    restart: unless-stopped
+    env_file: ../.env
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./storage:/srv/storage        # uploaded photos (local storage driver)
+    ports:
+      - "127.0.0.1:8000:8000"
+
+  web:
+    build: ../app
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_BASE: ""        # same-origin; nginx routes /api to api
+    depends_on:
+      - api
+    ports:
+      - "127.0.0.1:3000:3000"
+
+  n8n:
+    image: n8nio/n8n:latest
+    restart: unless-stopped
+    profiles: ["orchestration"]
+    environment:
+      GENERIC_TIMEZONE: Asia/Baku
+      N8N_HOST: agradex.com
+    volumes:
+      - ./n8n_data:/home/node/.n8n
+    ports:
+      - "127.0.0.1:5678:5678"
+
+  # TiTiler for XYZ raster index tiles (spec §10.5). Enabled when tile export lands.
+  titiler:
+    image: ghcr.io/developmentseed/titiler:latest
+    restart: unless-stopped
+    profiles: ["tiles"]
+    environment:
+      GDAL_DISABLE_READDIR_ON_OPEN: EMPTY_DIR
+      CPL_VSIL_CURL_ALLOWED_EXTENSIONS: .tif
+    ports:
+      - "127.0.0.1:8001:8000"
