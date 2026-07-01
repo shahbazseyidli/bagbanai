@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: bagban_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-bagban}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      POSTGRES_DB: ${POSTGRES_DB:-bagban}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bagban} -d ${POSTGRES_DB:-bagban}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # n8n orchestration (cron + dispatch). Enabled from Phase 2; safe to run now.
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: bagban_n8n
+    restart: unless-stopped
+    profiles: ["orchestration"]
+    ports:
+      - "5678:5678"
+    environment:
+      N8N_HOST: localhost
+      N8N_PORT: 5678
+      GENERIC_TIMEZONE: Asia/Baku
+    volumes:
+      - ./n8n_data:/home/node/.n8n
+    depends_on:
+      db:
+        condition: service_healthy
