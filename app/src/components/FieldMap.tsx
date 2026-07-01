@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
-import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import type { Polygon } from "@/lib/types";
 
 const OSM_STYLE: maplibregl.StyleSpecification = {
@@ -19,64 +18,7 @@ const OSM_STYLE: maplibregl.StyleSpecification = {
 };
 
 const AZ_CENTER: [number, number] = [47.5, 40.3];
-
-// MapLibre-compatible draw theme. The stock @mapbox/mapbox-gl-draw theme uses a
-// `line-dasharray` expression that newer MapLibre rejects (addLayer throws → blank map),
-// so we supply the full layer set with solid lines + our green palette.
 const G = "#16a34a";
-const DRAW_STYLES: object[] = [
-  { id: "gl-draw-polygon-fill-inactive", type: "fill",
-    filter: ["all", ["==", "active", "false"], ["==", "$type", "Polygon"], ["!=", "mode", "static"]],
-    paint: { "fill-color": G, "fill-outline-color": G, "fill-opacity": 0.1 } },
-  { id: "gl-draw-polygon-fill-active", type: "fill",
-    filter: ["all", ["==", "active", "true"], ["==", "$type", "Polygon"]],
-    paint: { "fill-color": G, "fill-outline-color": G, "fill-opacity": 0.15 } },
-  { id: "gl-draw-polygon-midpoint", type: "circle",
-    filter: ["all", ["==", "$type", "Point"], ["==", "meta", "midpoint"]],
-    paint: { "circle-radius": 3, "circle-color": G } },
-  { id: "gl-draw-polygon-stroke-inactive", type: "line",
-    filter: ["all", ["==", "active", "false"], ["==", "$type", "Polygon"], ["!=", "mode", "static"]],
-    layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": G, "line-width": 2 } },
-  { id: "gl-draw-polygon-stroke-active", type: "line",
-    filter: ["all", ["==", "active", "true"], ["==", "$type", "Polygon"]],
-    layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": G, "line-width": 2 } },
-  { id: "gl-draw-line-inactive", type: "line",
-    filter: ["all", ["==", "active", "false"], ["==", "$type", "LineString"], ["!=", "mode", "static"]],
-    layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": G, "line-width": 2 } },
-  { id: "gl-draw-line-active", type: "line",
-    filter: ["all", ["==", "$type", "LineString"], ["==", "active", "true"]],
-    layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": G, "line-width": 2 } },
-  { id: "gl-draw-polygon-and-line-vertex-stroke-inactive", type: "circle",
-    filter: ["all", ["==", "meta", "vertex"], ["==", "$type", "Point"], ["!=", "mode", "static"]],
-    paint: { "circle-radius": 5, "circle-color": "#fff" } },
-  { id: "gl-draw-polygon-and-line-vertex-inactive", type: "circle",
-    filter: ["all", ["==", "meta", "vertex"], ["==", "$type", "Point"], ["!=", "mode", "static"]],
-    paint: { "circle-radius": 3, "circle-color": G } },
-  { id: "gl-draw-point-point-stroke-inactive", type: "circle",
-    filter: ["all", ["==", "active", "false"], ["==", "$type", "Point"], ["==", "meta", "feature"], ["!=", "mode", "static"]],
-    paint: { "circle-radius": 5, "circle-color": "#fff" } },
-  { id: "gl-draw-point-inactive", type: "circle",
-    filter: ["all", ["==", "active", "false"], ["==", "$type", "Point"], ["==", "meta", "feature"], ["!=", "mode", "static"]],
-    paint: { "circle-radius": 3, "circle-color": G } },
-  { id: "gl-draw-point-stroke-active", type: "circle",
-    filter: ["all", ["==", "$type", "Point"], ["==", "active", "true"], ["!=", "meta", "midpoint"]],
-    paint: { "circle-radius": 6, "circle-color": "#fff" } },
-  { id: "gl-draw-point-active", type: "circle",
-    filter: ["all", ["==", "$type", "Point"], ["!=", "meta", "midpoint"], ["==", "active", "true"]],
-    paint: { "circle-radius": 4, "circle-color": G } },
-  { id: "gl-draw-polygon-fill-static", type: "fill",
-    filter: ["all", ["==", "mode", "static"], ["==", "$type", "Polygon"]],
-    paint: { "fill-color": "#404040", "fill-outline-color": "#404040", "fill-opacity": 0.1 } },
-  { id: "gl-draw-polygon-stroke-static", type: "line",
-    filter: ["all", ["==", "mode", "static"], ["==", "$type", "Polygon"]],
-    layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#404040", "line-width": 2 } },
-  { id: "gl-draw-line-static", type: "line",
-    filter: ["all", ["==", "mode", "static"], ["==", "$type", "LineString"]],
-    layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": "#404040", "line-width": 2 } },
-  { id: "gl-draw-point-static", type: "circle",
-    filter: ["all", ["==", "mode", "static"], ["==", "$type", "Point"]],
-    paint: { "circle-radius": 5, "circle-color": "#404040" } },
-];
 
 interface DrawMapProps {
   /** Called whenever the drawn polygon changes (or is cleared). */
@@ -85,13 +27,17 @@ interface DrawMapProps {
   polygon?: Polygon | null;
 }
 
-// Editable drawing map used on field creation.
+// Editable drawing map — MapLibre-native click-to-draw (no mapbox-gl-draw, which is
+// incompatible with this MapLibre version). Click the map to add polygon vertices;
+// the ring closes automatically once there are ≥3 points.
 export function DrawMap({ onPolygon }: DrawMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
-  const drawRef = useRef<MapboxDraw | null>(null);
+  const ptsRef = useRef<[number, number][]>([]);
+  const renderRef = useRef<() => void>(() => {});
   const cbRef = useRef(onPolygon);
   cbRef.current = onPolygon;
+  const [count, setCount] = useState(0);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -103,56 +49,72 @@ export function DrawMap({ onPolygon }: DrawMapProps) {
       zoom: 7,
     });
     mapRef.current = map;
-
-    // mapbox-gl-draw expects a couple of globals/methods present on maplibre.
-    // maplibre-gl is API-compatible enough for Draw to work.
-    const draw = new MapboxDraw({
-      displayControlsDefault: false,
-      controls: { polygon: true, trash: true },
-      styles: DRAW_STYLES,
-    });
-    drawRef.current = draw;
-
-    // Cast: types expect a mapbox-gl control; maplibre control shape matches.
-    map.addControl(draw as unknown as maplibregl.IControl, "top-right");
     map.addControl(new maplibregl.NavigationControl(), "top-right");
+    map.doubleClickZoom.disable();
 
-    function emit() {
-      const data = draw.getAll();
-      const feat = data.features.find((f) => f.geometry.type === "Polygon");
-      if (feat && feat.geometry.type === "Polygon") {
-        cbRef.current(feat.geometry as Polygon);
-      } else {
-        cbRef.current(null);
-      }
+    function render() {
+      const pts = ptsRef.current;
+      const ring = pts.length >= 3 ? [...pts, pts[0]] : pts;
+      const shape =
+        pts.length >= 3
+          ? { type: "Feature", geometry: { type: "Polygon", coordinates: [ring] }, properties: {} }
+          : pts.length >= 2
+            ? { type: "Feature", geometry: { type: "LineString", coordinates: pts }, properties: {} }
+            : { type: "FeatureCollection", features: [] };
+      const src = map.getSource("draw") as maplibregl.GeoJSONSource | undefined;
+      const psrc = map.getSource("draw-pts") as maplibregl.GeoJSONSource | undefined;
+      src?.setData(shape as GeoJSON.GeoJSON);
+      psrc?.setData({
+        type: "FeatureCollection",
+        features: pts.map((p) => ({
+          type: "Feature",
+          geometry: { type: "Point", coordinates: p },
+          properties: {},
+        })),
+      } as GeoJSON.GeoJSON);
+      cbRef.current(pts.length >= 3 ? ({ type: "Polygon", coordinates: [ring] } as Polygon) : null);
+      setCount(pts.length);
     }
+    renderRef.current = render;
 
-    // Keep only the most recent polygon.
-    function onCreate() {
-      const data = draw.getAll();
-      const polys = data.features.filter((f) => f.geometry.type === "Polygon");
-      if (polys.length > 1) {
-        polys.slice(0, -1).forEach((f) => f.id && draw.delete(String(f.id)));
-      }
-      emit();
-    }
+    map.on("load", () => {
+      map.addSource("draw", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addLayer({ id: "draw-fill", type: "fill", source: "draw", filter: ["==", "$type", "Polygon"], paint: { "fill-color": G, "fill-opacity": 0.2 } });
+      map.addLayer({ id: "draw-line", type: "line", source: "draw", paint: { "line-color": G, "line-width": 2 } });
+      map.addSource("draw-pts", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addLayer({ id: "draw-pts", type: "circle", source: "draw-pts", paint: { "circle-radius": 5, "circle-color": G, "circle-stroke-width": 2, "circle-stroke-color": "#fff" } });
+    });
 
-    map.on("draw.create", onCreate);
-    map.on("draw.update", emit);
-    map.on("draw.delete", emit);
+    map.on("click", (e) => {
+      ptsRef.current = [...ptsRef.current, [e.lngLat.lng, e.lngLat.lat]];
+      render();
+    });
 
     return () => {
       map.remove();
       mapRef.current = null;
-      drawRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  function clearPts() {
+    ptsRef.current = [];
+    renderRef.current();
+  }
+  function undoPt() {
+    ptsRef.current = ptsRef.current.slice(0, -1);
+    renderRef.current();
+  }
+
   return (
-    <div
-      ref={containerRef}
-      className="h-80 w-full overflow-hidden rounded-lg border border-slate-200"
-    />
+    <div className="relative">
+      <div ref={containerRef} className="h-80 w-full overflow-hidden rounded-lg border border-slate-200" />
+      <div className="absolute left-2 top-2 z-10 flex items-center gap-2 rounded-md bg-white/90 px-2 py-1 text-xs text-slate-700 shadow">
+        <span>Xəritəyə klikləyin — təpə: {count}</span>
+        <button type="button" onClick={undoPt} className="rounded border border-slate-300 px-2 py-0.5 hover:bg-slate-50">Geri</button>
+        <button type="button" onClick={clearPts} className="rounded bg-emerald-600 px-2 py-0.5 text-white hover:bg-emerald-700">Təmizlə</button>
+      </div>
+    </div>
   );
 }
 
