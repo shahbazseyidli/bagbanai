@@ -81,7 +81,11 @@ Backend/DB/pipeline/deploy: DONE & committed. Frontend (`app/`): built by a back
 
 ## Deployment (LIVE — https://agradex.com ✅)
 - Hetzner server **bagban-ai** (CPX22, Helsinki), public IPv4 **95.216.208.82** (Primary IP kept across recreate), project AGRADEX-TEST.
-- DNS: agradex.com A @ + A www → 95.216.208.82 (Cloudflare, **proxied**; SSL mode **Flexible** = edge HTTPS → origin HTTP :80, deploy/nginx-agradex-http.conf).
+- DNS: agradex.com A @ + A www → 95.216.208.82 (Cloudflare, **proxied**).
+- **SSL:** **Let's Encrypt** cert installed on origin (`/etc/letsencrypt/live/agradex.com/`, auto-renew via certbot). Live nginx vhost serves **:80 (no forced redirect — loop-safe under CF Flexible) + :443 (LE cert)**; works under any CF SSL mode. Cloudflare SSL mode currently **Flexible**; TODO flip to **Full (Strict)** for end-to-end encryption (origin :443 ready) — CF dashboard was unresponsive during setup, pending retry (Overview → Configure → Full (Strict)).
+- **HLS geo worker:** `services/Dockerfile.geo` image built on server; self-check "geo worker ready" passes (rasterio/rioxarray/earthaccess import OK). Needs libexpat1/libgomp1 (in Dockerfile). Earthdata: EARTHDATA_USERNAME set in server .env; PASSWORD to be added by user. Run: `bash deploy/run-hls.sh` (needs a field with a polygon).
+- **Versioning:** git tag `v1.0.0` pushed; CHANGELOG.md.
+- **Repo visibility:** still PRIVATE → make public (user) so cloud-init `git clone` self-deploy works; until then redeploy = rsync + bootstrap over SSH.
 - Containers (deploy/docker-compose.prod.yml): db (PostGIS, healthy) + api (FastAPI :8000) + web (Next.js :3000), fronted by host nginx.
 - **SSH:** operator Mac key (`macbookpro`, ~/.ssh/id_ed25519) authorized on root — added early in deploy/cloud-init.sh.
 
