@@ -89,11 +89,10 @@ Backend/DB/pipeline/deploy: DONE & committed. Frontend (`app/`): built by a back
 - Containers (deploy/docker-compose.prod.yml): db (PostGIS, healthy) + api (FastAPI :8000) + web (Next.js :3000), fronted by host nginx.
 - **SSH:** operator Mac key (`macbookpro`, ~/.ssh/id_ed25519) authorized on root — added early in deploy/cloud-init.sh.
 
-### Deploy method + private-repo caveat (IMPORTANT)
-- GitHub repo `shahbazseyidli/bagbanai` is **PRIVATE** → server cannot `git clone` anonymously, so cloud-init's clone step fails. First two cloud-init deploys stalled for this reason.
-- **Current live deploy was done by pushing code from the Mac via rsync** then running bootstrap.sh over SSH:
-  `rsync -az --exclude .git --exclude node_modules --exclude .next --exclude pgdata --exclude storage --exclude .env ./ root@95.216.208.82:/opt/bagbanai/`
-  then `ssh root@95.216.208.82 'cd /opt/bagbanai && bash deploy/bootstrap.sh && <nginx vhost swap>'`.
-- **To make cloud-init self-deploy work on future rebuilds:** either make the repo public, OR add a GitHub deploy token/SSH deploy key to the clone step. Until then, redeploy = rsync + bootstrap over SSH (repeatable).
-- Verified live: /api/health ok; home title "Bağban AI"; /api/subsidy/rates = 117; calculate hazelnut 3ha = 9000 AZN.
-- Follow-ups: Earthdata ~/.netrc for HLS pipeline; SSL hardening to Full(Strict)+Origin cert.
+### Deploy method (git-based)
+- Repo `shahbazseyidli/bagbanai` is now **PUBLIC**. `/opt/bagbanai` on the server is a **git checkout** tracking `origin/main` (`git config safe.directory /opt/bagbanai` set for root).
+- **Redeploy:** push to GitHub, then on server `cd /opt/bagbanai && bash deploy/update.sh` (git pull → **source .env** → `docker compose up -d --build api web` → nginx reload). update.sh MUST source .env or the api gets a blank DATABASE_URL and crash-loops (same trap as run-hls.sh; both source .env). Backup of secrets: `/root/agradex.env.bak`.
+- History: first deploys used rsync + bootstrap.sh (repo was private then).
+- **Daily HLS cron** (root crontab, PATH set): `0 3 * * * cd /opt/bagbanai && bash deploy/run-hls.sh 30 >> /var/log/bagban-hls.log 2>&1` — auto-pulls new HLS scenes; validated under cron env.
+- Verified live: /api/health ok; home "Bağban AI"; /api/subsidy/rates = 117; hazelnut 3ha = 9000 AZN; HLS demo field 17 scenes/153 indices.
+- Follow-ups: Cloudflare Full(Strict) (dashboard was unresponsive); Earthdata token expires 2026-08-30.
