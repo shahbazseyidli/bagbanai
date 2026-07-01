@@ -3,6 +3,22 @@
 Bütün əhəmiyyətli dəyişikliklər burada qeyd olunur. Format [Keep a Changelog](https://keepachangelog.com/),
 versiyalar [SemVer](https://semver.org/).
 
+## [1.0.1] — 2026-07-01
+
+### Added
+- **HLS peyk boru xətti CANLI (real data):** Earthdata **bearer token** (EARTHDATA_TOKEN) ilə
+  GDAL `/vsicurl` COG oxumaları autentifikasiya olunur; geo worker Docker image (Dockerfile.geo,
+  libexpat1/libgomp1). Demo Zaqatala fındıq sahəsi üçün 17 səhnə / 153 index_stats, NDVI ~0.73.
+  `deploy/run-hls.sh` (cron üçün) + compose `geo` profili.
+- **SSL:** origin-də Let's Encrypt sertifikatı (avto-yenilənmə); nginx :80 (loop-safe) + :443.
+
+### Fixed
+- Deploy repo private olduğundan cloud-init `git clone` alınmırdı → rsync + bootstrap ilə deploy.
+- Cloudflare Flexible + certbot redirect loop → nginx :80 no-redirect + :443.
+
+### Pending
+- Cloudflare SSL mode Flexible → Full (Strict) (CF paneli yüklənmirdi); repo public (istifadəçi).
+
 ## [1.0.0] — 2026-07-01 — Faza 1 (canlı: https://agradex.com)
 
 İlk istehsalat buraxılışı. Peyk + hava + AI əsaslı əkin monitorinqi platformasının təməli.
