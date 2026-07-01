@@ -61,11 +61,20 @@ bagbanai/
 - [x] Step 0 — skeleton + conventions
 - [x] Step 1 — DB migrations (§7/§8/§30)
 - [x] Step 2 — seeds (crop_thresholds, subsidy — 117 rates, coef×200 verified)
-- [ ] Step 3 — FastAPI skeleton + auth + gating
-- [ ] Step 4 — auth + onboarding + hierarchy (FR-9/10)
-- [ ] Step 5 — field creation (FR-1)
-- [ ] Step 6 — field metadata (FR-5)
-- [ ] Step 7 — HLS pipeline + FREE indices + time series (FR-2)
-- [ ] Step 8 — scouting / tasks / operations / yields (§14–16)
-- [ ] Step 9 — subsidy calculator (§30, FR-21)
-- [ ] Step 10 — Phase 1 DoD + deploy (agradex.com)
+- [x] Step 3 — FastAPI skeleton + auth + gating
+- [x] Step 4 — org/farm hierarchy + invites (backend); onboarding UI (frontend)
+- [x] Step 5 — field creation backend (PostGIS validation); MapLibre+Draw UI (frontend)
+- [x] Step 6 — field metadata backend; metadata form UI (frontend)
+- [x] Step 7 — HLS pipeline + FREE index endpoints (runtime needs Earthdata .netrc on server)
+- [x] Step 8 — scouting / tasks / operations / yields backend + uploads
+- [x] Step 9 — subsidy engine + API (14 tests pass); calculator UI (frontend)
+- [x] Step 10 — deploy config (Hetzner compose + nginx agradex.com)
+
+Backend/DB/pipeline/deploy: DONE & committed. Frontend (`app/`): built by a background agent
+(auth, onboarding, field map, metadata, scouting/tasks/ops/yields, subsidy calculator).
+
+## Phase 2+ (deferred, per roadmap §28 + user notes)
+- Weather (Open-Meteo) + weather models (GDD/spray/frost/drought) — `/api/internal/weather/run` stub exists.
+- Rule engine → notifications (PAID, multi-channel Telegram/WhatsApp) — `/api/internal/rules/run` stub.
+- AI advice + AI chat (provider-agnostic). Reports (PDF/Excel). TiTiler tiles + baseline/anomaly/phenology.
+- Billing (Stripe/PSP) — tables + gating present, integration skipped (no payment yet).
