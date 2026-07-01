@@ -78,3 +78,8 @@ Backend/DB/pipeline/deploy: DONE & committed. Frontend (`app/`): built by a back
 - Rule engine → notifications (PAID, multi-channel Telegram/WhatsApp) — `/api/internal/rules/run` stub.
 - AI advice + AI chat (provider-agnostic). Reports (PDF/Excel). TiTiler tiles + baseline/anomaly/phenology.
 - Billing (Stripe/PSP) — tables + gating present, integration skipped (no payment yet).
+
+## Deployment (live)
+- Hetzner server **bagban-ai** (CPX22, Helsinki), public IPv4 **95.216.208.82**, project AGRADEX-TEST.
+- Self-deployed via cloud-init (deploy/cloud-init.sh) → bootstrap.sh. TLS at Cloudflare edge (origin HTTP :80, deploy/nginx-agradex-http.conf).
+- DNS: agradex.com A @ + A www → 95.216.208.82 (Cloudflare, proxied; SSL mode Flexible).
