@@ -14,15 +14,23 @@
 | `persist.py` | idempotent upsert of scenes + index stats (psycopg) |
 | `pipeline.py` | `run_field(field_id)` orchestration + CLI |
 
-## Run
+## Run (production — geo worker container)
+The pipeline runs in its own image (`services/Dockerfile.geo`, compose profile `geo`),
+not the API image. Earthdata auth is via env (`EARTHDATA_USERNAME`/`EARTHDATA_PASSWORD`
+in `.env`), falling back to `~/.netrc`.
+
 ```bash
-pip install -r ../requirements-geo.txt
-# Earthdata auth: ~/.netrc  (machine urs.earthdata.nasa.gov login <user> password <pass>)
-export DATABASE_URL=postgresql://bagban:...@localhost:5432/bagban
-python -m geo_pipeline.pipeline <field_id> 120
+# one field
+docker compose -f deploy/docker-compose.prod.yml --profile geo run --rm geo \
+  python -m geo_pipeline.pipeline <field_id> 120
+
+# all fields (cron-friendly)
+bash deploy/run-hls.sh 120        # add to crontab for daily hls_scene_check
 ```
-Triggered in production by n8n (`hls_scene_check`, daily) or the API's
-`POST /api/internal/pipeline/run` when geo deps are present.
+
+Local dev (no Docker): `pip install -r services/requirements-geo.txt` then
+`DATABASE_URL=... python -m geo_pipeline.pipeline <field_id>`.
+Also callable via the API's `POST /api/internal/pipeline/run` where geo deps are present.
 
 ## Flagged / deferred
 - **Earthdata account** required (`.netrc`) — validate collection/asset naming against

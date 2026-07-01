@@ -29,7 +29,12 @@ class Granule:
 
 
 def login() -> None:
-    earthaccess.login(strategy="netrc", persist=True)
+    """Earthdata auth: prefer EARTHDATA_USERNAME/PASSWORD env (set in .env), else ~/.netrc."""
+    import os
+    if os.environ.get("EARTHDATA_USERNAME") and os.environ.get("EARTHDATA_PASSWORD"):
+        earthaccess.login(strategy="environment", persist=False)
+    else:
+        earthaccess.login(strategy="netrc", persist=True)
 
 
 def _parse_granule(sensor: str, g) -> Granule:

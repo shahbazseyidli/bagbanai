@@ -1,5 +1,5 @@
 # Geo pipeline deps (Step 7). Heavier; kept separate so the API image stays light.
--r requirements.txt
+# Used by the `geo` worker image (services/Dockerfile.geo), NOT the API image.
 earthaccess==0.12.0
 pystac-client==0.8.5
 rioxarray==0.18.2
@@ -8,5 +8,6 @@ xarray==2025.1.1
 numpy==2.2.1
 shapely==2.0.6
 geopandas==1.0.1
-titiler.core==0.19.2
+pyproj==3.7.0
 mgrs==1.5.0
+psycopg[binary]==3.2.3
