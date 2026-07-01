@@ -1,0 +1,366 @@
+// Azerbaijani (az) UI dictionary. Default and only locale for now.
+// All user-facing strings live here. Keys are English identifiers.
+
+export const az = {
+  // brand / nav
+  "brand": "Bağban AI",
+  "nav.dashboard": "İdarə paneli",
+  "nav.subsidy": "Subsidiya kalkulyatoru",
+  "nav.team": "Komanda",
+  "nav.logout": "Çıxış",
+  "nav.login": "Daxil ol",
+  "nav.signup": "Qeydiyyat",
+
+  // common
+  "common.loading": "Yüklənir...",
+  "common.save": "Yadda saxla",
+  "common.saving": "Saxlanılır...",
+  "common.cancel": "Ləğv et",
+  "common.create": "Yarat",
+  "common.add": "Əlavə et",
+  "common.remove": "Sil",
+  "common.back": "Geri",
+  "common.next": "Növbəti",
+  "common.finish": "Tamamla",
+  "common.optional": "(istəyə bağlı)",
+  "common.required": "Vacib",
+  "common.none": "Yoxdur",
+  "common.error": "Xəta baş verdi",
+  "common.retry": "Yenidən cəhd et",
+  "common.search": "Axtar",
+  "common.select": "Seçin",
+  "common.yes": "Bəli",
+  "common.no": "Xeyr",
+
+  // auth
+  "auth.email": "E-poçt",
+  "auth.password": "Parol",
+  "auth.fullName": "Ad, soyad",
+  "auth.loginTitle": "Hesaba daxil ol",
+  "auth.signupTitle": "Yeni hesab yarat",
+  "auth.loginCta": "Daxil ol",
+  "auth.signupCta": "Qeydiyyatdan keç",
+  "auth.toSignup": "Hesabınız yoxdur? Qeydiyyatdan keçin",
+  "auth.toLogin": "Artıq hesabınız var? Daxil olun",
+  "auth.err.email_taken": "Bu e-poçt artıq qeydiyyatdadır",
+  "auth.err.invalid_credentials": "E-poçt və ya parol yanlışdır",
+
+  // landing
+  "landing.title": "Peyk, hava və süni intellekt ilə əkin sahələrinizi idarə edin",
+  "landing.subtitle":
+    "Bağban AI Azərbaycanlı fermerlər üçün peyk indeksləri, hava proqnozu və AI köməkçisi ilə məhsul monitorinqi platformasıdır.",
+  "landing.ctaSignup": "Pulsuz qeydiyyatdan keç",
+  "landing.ctaSubsidy": "Pulsuz subsidiya kalkulyatoru",
+  "landing.feat1.title": "Peyk indeksləri",
+  "landing.feat1.body": "NDVI, NDMI və daha çox indeks ilə bitkilərin sağlamlığını izləyin.",
+  "landing.feat2.title": "Subsidiya hesablanması",
+  "landing.feat2.body": "2026-cı il dövlət subsidiyalarını sürətlə hesablayın.",
+  "landing.feat3.title": "Sahə idarəetməsi",
+  "landing.feat3.body": "Skautinq, tapşırıqlar, əməliyyatlar və məhsuldarlıq bir yerdə.",
+
+  // dashboard
+  "dash.title": "İdarə paneli",
+  "dash.orgs": "Təşkilatlar",
+  "dash.selectOrg": "Təşkilat seçin",
+  "dash.newOrg": "Yeni təşkilat",
+  "dash.farms": "Fermalar",
+  "dash.newFarm": "Yeni ferma",
+  "dash.fields": "Sahələr",
+  "dash.newField": "Yeni sahə",
+  "dash.noFarms": "Bu təşkilatda hələ ferma yoxdur.",
+  "dash.noFields": "Bu fermada hələ sahə yoxdur.",
+  "dash.tariff": "Tarif: Pulsuz",
+  "dash.orgName": "Təşkilatın adı",
+  "dash.farmName": "Fermanın adı",
+  "dash.farmRegion": "Region",
+  "dash.role": "Rol",
+
+  // onboarding
+  "onb.title": "Başlanğıc quraşdırması",
+  "onb.step1": "1. Təşkilat yaradın",
+  "onb.step2": "2. Ferma yaradın",
+  "onb.step3": "3. İlk sahənizi əlavə edin",
+  "onb.intro": "Platformadan istifadəyə başlamaq üçün bir neçə addım.",
+
+  // field creation
+  "field.new": "Yeni sahə",
+  "field.name": "Sahənin adı",
+  "field.mode.draw": "Xəritədə çək",
+  "field.mode.coords": "Koordinatları daxil et",
+  "field.drawHint": "Xəritədə çoxbucaqlı çəkmək üçün yuxarı sağdakı alətdən istifadə edin.",
+  "field.coordsHint": "Hər sətirdə bir nöqtə: uzunluq,en (lon,lat). Ən azı 3 nöqtə.",
+  "field.area": "Sahə",
+  "field.ha": "ha",
+  "field.err.minVertices": "Ən azı 3 nöqtə lazımdır.",
+  "field.err.selfIntersect": "Çoxbucaqlı özü ilə kəsişir. Nöqtələri düzəldin.",
+  "field.err.parse": "Koordinatları oxumaq mümkün olmadı. Format: lon,lat",
+  "field.err.noPolygon": "Əvvəlcə sahəni çəkin və ya koordinat daxil edin.",
+  "field.saved": "Sahə yadda saxlanıldı",
+
+  // field detail tabs
+  "field.tab.overview": "İcmal",
+  "field.tab.metadata": "Metadata",
+  "field.tab.scouting": "Skautinq",
+  "field.tab.tasks": "Tapşırıqlar",
+  "field.tab.operations": "Əməliyyatlar",
+  "field.tab.yields": "Məhsuldarlıq",
+  "field.mgrs": "MGRS xanaları",
+
+  // indices
+  "idx.title": "Peyk indeksləri",
+  "idx.select": "İndeks seçin",
+  "idx.noData": "Bu sahə üçün hələ peyk məlumatı yoxdur",
+  "idx.latest": "Son ölçmə",
+  "idx.timeseries": "Zaman seriyası",
+
+  // metadata
+  "meta.title": "Sahə metadatası",
+  "meta.crop_type": "Bitki növü",
+  "meta.variety": "Sort",
+  "meta.planting_date": "Əkin tarixi",
+  "meta.expected_harvest": "Gözlənilən yığım",
+  "meta.soil_type": "Torpaq növü",
+  "meta.soil_ph": "Torpaq pH",
+  "meta.irrigation_method": "Suvarma üsulu",
+  "meta.irrigation_available": "Suvarma mövcuddur",
+  "meta.previous_crop": "Əvvəlki bitki",
+  "meta.seeding_density": "Səpin sıxlığı",
+  "meta.growth_stage": "İnkişaf mərhələsi",
+  "meta.elevation_m": "Yüksəklik (m)",
+  "meta.slope_deg": "Meyllik (°)",
+  "meta.aspect_deg": "İstiqamət (°)",
+  "meta.tillage_practice": "Torpaq becərmə",
+  "meta.target_yield": "Hədəf məhsuldarlıq",
+  "meta.notes": "Qeydlər",
+  "meta.difficulties": "Çətinliklər",
+  "meta.rotation_history": "Növbəli əkin tarixçəsi",
+  "meta.fertilizer_history": "Gübrələmə tarixçəsi",
+  "meta.prior_yields": "Əvvəlki məhsuldarlıqlar",
+  "meta.pest_history": "Zərərverici tarixçəsi",
+  "meta.saved": "Metadata yadda saxlanıldı",
+  "meta.cropRequired": "Bitki növü vacibdir",
+  "meta.f.year": "İl",
+  "meta.f.crop": "Bitki",
+  "meta.f.type": "Növ",
+  "meta.f.product": "Məhsul",
+  "meta.f.amount": "Miqdar",
+  "meta.f.value": "Dəyər",
+  "meta.f.severity": "Şiddət",
+  "meta.f.note": "Qeyd",
+  "meta.f.date": "Tarix",
+
+  // scouting
+  "scout.title": "Skautinq qeydləri",
+  "scout.add": "Yeni qeyd",
+  "scout.category": "Kateqoriya",
+  "scout.severity": "Şiddət (1-5)",
+  "scout.note": "Qeyd",
+  "scout.photo": "Şəkil",
+  "scout.geo": "Cari yeri əlavə et",
+  "scout.geoErr": "Yer məlumatı alınmadı",
+  "scout.empty": "Hələ skautinq qeydi yoxdur.",
+  "scout.cat.pest": "Zərərverici",
+  "scout.cat.disease": "Xəstəlik",
+  "scout.cat.weed": "Alaq otu",
+  "scout.cat.nutrient": "Qida çatışmazlığı",
+  "scout.cat.water": "Su stresi",
+  "scout.cat.damage": "Zədə",
+  "scout.cat.other": "Digər",
+
+  // tasks
+  "task.title": "Tapşırıqlar",
+  "task.add": "Yeni tapşırıq",
+  "task.name": "Başlıq",
+  "task.type": "Növ",
+  "task.due": "Son tarix",
+  "task.priority": "Prioritet",
+  "task.notes": "Qeydlər",
+  "task.status": "Status",
+  "task.empty": "Hələ tapşırıq yoxdur.",
+  "task.status.open": "Açıq",
+  "task.status.in_progress": "İcrada",
+  "task.status.done": "Tamamlandı",
+  "task.pri.low": "Aşağı",
+  "task.pri.medium": "Orta",
+  "task.pri.high": "Yüksək",
+
+  // operations
+  "op.title": "Əməliyyat jurnalı",
+  "op.add": "Yeni əməliyyat",
+  "op.type": "Əməliyyat növü",
+  "op.performed_on": "Tarix",
+  "op.inputs": "İstifadə olunanlar",
+  "op.cost": "Xərc",
+  "op.currency": "Valyuta",
+  "op.notes": "Qeydlər",
+  "op.empty": "Hələ əməliyyat qeydi yoxdur.",
+
+  // yields
+  "yield.title": "Məhsuldarlıq",
+  "yield.add": "Yeni qeyd",
+  "yield.season": "Mövsüm (il)",
+  "yield.crop": "Bitki",
+  "yield.value": "Məhsuldarlıq",
+  "yield.unit": "Vahid",
+  "yield.area": "Sahə (ha)",
+  "yield.notes": "Qeydlər",
+  "yield.empty": "Hələ məhsuldarlıq qeydi yoxdur.",
+  "yield.chartTitle": "İllər üzrə məhsuldarlıq",
+
+  // subsidy
+  "sub.title": "Subsidiya kalkulyatoru",
+  "sub.subtitle": "2026-cı il dövlət subsidiyalarını addım-addım hesablayın.",
+  "sub.step.type": "Subsidiya növü",
+  "sub.step.group": "Bitki qrupu",
+  "sub.step.crop": "Bitki",
+  "sub.step.dims": "Parametrlər",
+  "sub.step.qty": "Miqdar",
+  "sub.step.mods": "Əlavələr",
+  "sub.intensity": "İntensivlik",
+  "sub.region_category": "Ərazi kateqoriyası",
+  "sub.region_rayon": "Rayon",
+  "sub.irrigation": "Suvarma",
+  "sub.planting_period": "Əkin dövrü",
+  "sub.qtyHa": "Sahə (ha)",
+  "sub.qtyTon": "Miqdar (ton)",
+  "sub.mod.boyuk_qayidis": "Böyük Qayıdış",
+  "sub.mod.certified_seed": "Sertifikatlı toxum",
+  "sub.mod.soil_analysis": "Torpaq analizi",
+  "sub.calc": "Hesabla",
+  "sub.calculating": "Hesablanır...",
+  "sub.result": "Nəticə",
+  "sub.total": "Ümumi subsidiya",
+  "sub.coefficient": "Əmsal",
+  "sub.perUnit": "Vahid dəyəri",
+  "sub.quantity": "Miqdar",
+  "sub.modsApplied": "Tətbiq olunan əlavələr",
+  "sub.warnings": "Xəbərdarlıqlar",
+  "sub.eligible": "Uyğundur",
+  "sub.notEligible": "Şərtlərə uyğun deyil",
+  "sub.noRate": "Bu parametrlər üçün tarif tapılmadı.",
+  "sub.source": "Mənbə: agro.gov.az",
+  "sub.disclaimer":
+    "Bu hesablama qeyri-rəsmidir və yalnız məlumat məqsədi daşıyır. Rəsmi məbləğ üçün aidiyyəti dövlət qurumuna müraciət edin.",
+  "sub.fullTable": "Tam cədvələ bax",
+  "sub.hideTable": "Cədvəli gizlət",
+  "sub.save": "Yadda saxla",
+  "sub.saved": "Yadda saxlanıldı",
+  "sub.fromField": "Sahədən doldur",
+  "sub.tableSearch": "Cədvəldə axtar...",
+
+  // team
+  "team.title": "Komanda",
+  "team.members": "Üzvlər",
+  "team.invite": "Dəvət et",
+  "team.inviteEmail": "Dəvət ediləcək e-poçt",
+  "team.inviteRole": "Rol",
+  "team.inviteLink": "Dəvət linki (paylaşın):",
+  "team.changeRole": "Rolu dəyiş",
+  "team.forbidden": "Bu əməliyyat üçün icazəniz yoxdur.",
+  "team.status": "Status",
+  "team.role.owner": "Sahib",
+  "team.role.admin": "Administrator",
+  "team.role.member": "Üzv",
+  "team.role.viewer": "İzləyici",
+} as const;
+
+export type I18nKey = keyof typeof az;
+
+export function t(key: I18nKey): string {
+  return az[key] ?? (key as string);
+}
+
+// ---- Code → AZ label maps for subsidy wizard ----
+
+export const subsidyTypeLabels: Record<string, string> = {
+  planting: "Əkin subsidiyası",
+  product: "Məhsul subsidiyası",
+  fallow: "Dincə qoyulmuş torpaq",
+};
+
+export const regionCategoryLabels: Record<string, string> = {
+  liberated: "İşğaldan azad edilmiş ərazilər",
+  nakhchivan: "Naxçıvan MR",
+  other: "Digər ərazilər",
+  all: "Bütün ərazilər",
+};
+
+export const irrigationLabels: Record<string, string> = {
+  modern: "Müasir suvarma",
+  non_modern: "Suvarmasız",
+  drip: "Damcı suvarma",
+  rainfed: "Dəmyə",
+};
+
+export const plantingPeriodLabels: Record<string, string> = {
+  new_2025_2026: "Yeni salınan (2025-09…2026-05)",
+  from_2021: "2021-09-01-dən",
+  before_2021: "2021-09-01-dən əvvəl",
+  from_2019: "2019-dan",
+  before_2019: "2019-dan əvvəl",
+  from_2022: "2022-dən",
+};
+
+export const intensityLabels: Record<string, string> = {
+  intensive: "İntensiv",
+  super_intensive: "Super-intensiv",
+  other: "Digər",
+  main: "Əsas əkin",
+  repeat: "Təkrar əkin",
+};
+
+export const cropGroupLabels: Record<string, string> = {
+  cereals: "Taxıl",
+  grain: "Dənli bitkilər",
+  fruit: "Meyvə",
+  fruit_intensive: "İntensiv meyvə",
+  fruit_super_intensive: "Super-intensiv meyvə",
+  vegetable: "Tərəvəz",
+  vegetables: "Tərəvəz",
+  berry: "Giləmeyvə",
+  industrial: "Texniki bitkilər",
+  legumes: "Paxlalılar",
+  fodder: "Yem bitkiləri",
+  nuts: "Qərzəkli meyvələr",
+  grape: "Üzüm",
+  citrus: "Sitrus",
+};
+
+export const cropLabels: Record<string, string> = {
+  rice: "Çəltik",
+  corn: "Qarğıdalı",
+  maize: "Qarğıdalı",
+  wheat: "Buğda",
+  barley: "Arpa",
+  grape: "Üzüm",
+  hazelnut: "Fındıq",
+  pomegranate: "Nar",
+  apple: "Alma",
+  cotton: "Pambıq",
+  fruit_intensive: "İntensiv meyvə",
+  fruit_super_intensive: "Super-intensiv meyvə",
+  berry: "Giləmeyvə",
+  vegetable: "Tərəvəz",
+  potato: "Kartof",
+  tomato: "Pomidor",
+  cucumber: "Xiyar",
+  sugar_beet: "Şəkər çuğunduru",
+  tobacco: "Tütün",
+  tea: "Çay",
+  sunflower: "Günəbaxan",
+  olive: "Zeytun",
+  walnut: "Qoz",
+  almond: "Badam",
+  peach: "Şaftalı",
+  cherry: "Gilas",
+  fig: "Əncir",
+  hay: "Ot",
+  soy: "Soya",
+  lentil: "Mərci",
+  chickpea: "Noxud",
+};
+
+export function labelFor(map: Record<string, string>, code: string | null | undefined): string {
+  if (!code) return "";
+  return map[code] ?? code;
+}
