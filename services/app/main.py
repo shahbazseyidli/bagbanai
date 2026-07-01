@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .db import close_pool, init_pool
-from .routers import auth, farms, fields, health, orgs
+from .routers import auth, farms, fields, health, orgs, subsidy
 
 
 @asynccontextmanager
@@ -32,7 +32,7 @@ def create_app() -> FastAPI:
     app.include_router(orgs.router)
     app.include_router(farms.router)
     app.include_router(fields.router)
-    # subsidy router registered in Step 9.
+    app.include_router(subsidy.router)
     return app
 
 

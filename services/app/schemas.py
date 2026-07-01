@@ -109,3 +109,25 @@ class FieldMetadataIn(BaseModel):
     prior_yields: list[Any] = []
     pest_history: list[Any] = []
     notes: Optional[str] = None
+
+
+# ---- subsidy (§30) ----
+class SubsidyCalcIn(BaseModel):
+    year: int = 2026
+    subsidy_type: str
+    crop_group: str
+    crop: str
+    intensity: Optional[str] = None
+    region_category: Optional[str] = None
+    region_rayon: Optional[str] = None
+    irrigation: Optional[str] = None
+    planting_period: Optional[str] = None
+    quantity_ha: Optional[float] = None
+    tons: Optional[float] = None
+    modifiers: dict[str, Any] = {}
+    field_id: Optional[str] = None
+    as_of_date: Optional[str] = None   # ISO date; drives the apple/peach cutoff
+
+
+class SubsidySaveIn(SubsidyCalcIn):
+    org_id: Optional[str] = None
