@@ -40,6 +40,11 @@ def login() -> None:
     else:
         auth = earthaccess.login(strategy="netrc", persist=True)
 
+    if not getattr(auth, "authenticated", False):
+        raise RuntimeError(
+            "Earthdata authentication FAILED — URS rejected the credentials. "
+            "Check EARTHDATA_USERNAME (exact URS username) and EARTHDATA_PASSWORD in .env.")
+
     token = None
     try:
         tok = getattr(auth, "token", None)
