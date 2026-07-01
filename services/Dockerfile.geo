@@ -9,7 +9,10 @@ ENV PYTHONUNBUFFERED=1 \
     GDAL_DISABLE_READDIR_ON_OPEN=EMPTY_DIR \
     CPL_VSIL_CURL_ALLOWED_EXTENSIONS=.tif
 
-# rasterio/rioxarray/pyproj ship manylinux wheels with GDAL/PROJ bundled — no apt GDAL needed.
+# rasterio/rioxarray/pyproj ship manylinux wheels with GDAL/PROJ bundled — no apt GDAL needed,
+# but the wheels still link a few base shared libs missing from slim (libexpat, etc.).
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      libexpat1 libgomp1 && rm -rf /var/lib/apt/lists/*
 COPY requirements-geo.txt .
 RUN pip install -r requirements-geo.txt
 
