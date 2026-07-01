@@ -3,6 +3,17 @@
 Self-hosted, no Supabase. Postgres+PostGIS, FastAPI (api), Next.js (web), optional n8n +
 TiTiler — all via Docker Compose, fronted by the host nginx with Let's Encrypt TLS.
 
+## Quick start (one command)
+On a fresh Ubuntu host with Docker + the compose plugin installed:
+```bash
+sudo apt-get update && sudo apt-get install -y nginx certbot python3-certbot-nginx
+git clone https://github.com/shahbazseyidli/bagbanai.git /opt/bagbanai
+cd /opt/bagbanai
+bash deploy/bootstrap.sh      # generates .env secrets, migrates, seeds, builds, starts api+web
+```
+Then point DNS at the server and run the nginx + certbot lines the script prints.
+The manual steps below are the same thing broken out.
+
 ## 1. Server prep
 ```bash
 # Docker + compose plugin + nginx + certbot already installed on the host

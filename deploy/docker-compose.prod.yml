@@ -20,6 +20,9 @@ services:
     build: ../services
     restart: unless-stopped
     env_file: ../.env
+    environment:
+      # containers reach Postgres at host "db" (overrides the localhost value in .env)
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
     depends_on:
       db:
         condition: service_healthy
@@ -27,6 +30,21 @@ services:
       - ./storage:/srv/storage        # uploaded photos (local storage driver)
     ports:
       - "127.0.0.1:8000:8000"
+
+  # One-off runner for migrations + seeds (has the repo mounted, on the db network).
+  tools:
+    image: python:3.11-slim
+    profiles: ["tools"]
+    working_dir: /repo
+    env_file: ../.env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    volumes:
+      - ..:/repo
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["bash", "-lc"]
 
   web:
     build: ../app
