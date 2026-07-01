@@ -5,6 +5,15 @@
 set -eux
 export DEBIAN_FRONTEND=noninteractive
 
+# 2 GB swap so the Next.js Docker build is safe on a 4 GB (CX22) box
+if [ ! -f /swapfile ]; then
+  fallocate -l 2G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=2048
+  chmod 600 /swapfile
+  mkswap /swapfile
+  swapon /swapfile
+  echo '/swapfile none swap sw 0 0' >> /etc/fstab
+fi
+
 apt-get update
 apt-get install -y git nginx curl ca-certificates
 curl -fsSL https://get.docker.com | sh
