@@ -5,6 +5,13 @@
 set -eux
 export DEBIAN_FRONTEND=noninteractive
 
+# Authorize the operator's SSH key first, so the box is reachable even if a later
+# build step fails (useful for debugging). Public key only — safe to store.
+mkdir -p /root/.ssh && chmod 700 /root/.ssh
+grep -q 'macbookpro' /root/.ssh/authorized_keys 2>/dev/null || \
+  echo 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMjeGrLTovCGB+ZECcF0DC46gb25CiCp5zCilWJjn/+x macbookpro' >> /root/.ssh/authorized_keys
+chmod 600 /root/.ssh/authorized_keys
+
 # 2 GB swap so the Next.js Docker build is safe on a 4 GB (CX22) box
 if [ ! -f /swapfile ]; then
   fallocate -l 2G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=2048
