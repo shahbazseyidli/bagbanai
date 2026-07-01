@@ -29,36 +29,45 @@ class Granule:
 
 
 def login() -> None:
-    """Earthdata auth: prefer EARTHDATA_USERNAME/PASSWORD env (set in .env), else ~/.netrc.
+    """Earthdata auth for protected COG reads (LP DAAC).
 
-    Also hands the Earthdata bearer token to GDAL so /vsicurl COG reads authenticate
-    against the LP DAAC protected endpoint (otherwise GDAL gets the login HTML and
-    reports 'not recognized as being in a supported file format')."""
+    Preferred: an EDL **bearer token** in EARTHDATA_TOKEN — handed to GDAL via
+    GDAL_HTTP_HEADERS ('Authorization: Bearer <token>'), which is exactly how NASA EDL
+    expects token access. Falls back to EARTHDATA_USERNAME/PASSWORD or ~/.netrc.
+    (CMR/STAC scene *search* is public and works without auth; only the /vsicurl COG
+    reads need the token, otherwise GDAL gets login HTML → 'not recognized as ... format'.)"""
     import os
-    if os.environ.get("EARTHDATA_USERNAME") and os.environ.get("EARTHDATA_PASSWORD"):
-        auth = earthaccess.login(strategy="environment", persist=False)
-    else:
-        auth = earthaccess.login(strategy="netrc", persist=True)
 
-    if not getattr(auth, "authenticated", False):
-        raise RuntimeError(
-            "Earthdata authentication FAILED — URS rejected the credentials. "
-            "Check EARTHDATA_USERNAME (exact URS username) and EARTHDATA_PASSWORD in .env.")
+    token = (os.environ.get("EARTHDATA_TOKEN") or "").strip()
+    user = os.environ.get("EARTHDATA_USERNAME")
+    pw = os.environ.get("EARTHDATA_PASSWORD")
 
-    token = None
+    # Best-effort earthaccess session (search still works even if this doesn't fully auth).
+    auth = None
     try:
+        if user and pw:
+            auth = earthaccess.login(strategy="environment", persist=False)
+        else:
+            auth = earthaccess.login(strategy="netrc", persist=True)
+    except Exception:  # noqa: BLE001
+        auth = None
+
+    # Resolve a bearer token for GDAL: explicit EARTHDATA_TOKEN wins, else the session's.
+    if not token and auth is not None:
         tok = getattr(auth, "token", None)
         if isinstance(tok, dict):
-            token = tok.get("access_token")
+            token = tok.get("access_token") or ""
         elif isinstance(tok, str):
             token = tok
-    except Exception:  # noqa: BLE001
-        token = None
-    if token:
-        os.environ["GDAL_HTTP_HEADERS"] = f"Authorization: Bearer {token}"
-        # follow the URS redirect and keep cookies as a fallback
-        os.environ.setdefault("GDAL_HTTP_COOKIEFILE", "/tmp/gdal_cookies.txt")
-        os.environ.setdefault("GDAL_HTTP_COOKIEJAR", "/tmp/gdal_cookies.txt")
+
+    if not token:
+        raise RuntimeError(
+            "No Earthdata credentials — set EARTHDATA_TOKEN (bearer) or "
+            "EARTHDATA_USERNAME/PASSWORD in .env.")
+
+    os.environ["GDAL_HTTP_HEADERS"] = f"Authorization: Bearer {token}"
+    os.environ.setdefault("GDAL_HTTP_COOKIEFILE", "/tmp/gdal_cookies.txt")
+    os.environ.setdefault("GDAL_HTTP_COOKIEJAR", "/tmp/gdal_cookies.txt")
 
 
 def _parse_granule(sensor: str, g) -> Granule:
