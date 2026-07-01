@@ -59,8 +59,8 @@ bagbanai/
 
 ## Faza 1 vəziyyəti (yenilə)
 - [x] Step 0 — skeleton + conventions
-- [ ] Step 1 — DB migrations (§7/§8/§30)
-- [ ] Step 2 — seeds (crop_thresholds, subsidy)
+- [x] Step 1 — DB migrations (§7/§8/§30)
+- [x] Step 2 — seeds (crop_thresholds, subsidy — 117 rates, coef×200 verified)
 - [ ] Step 3 — FastAPI skeleton + auth + gating
 - [ ] Step 4 — auth + onboarding + hierarchy (FR-9/10)
 - [ ] Step 5 — field creation (FR-1)
