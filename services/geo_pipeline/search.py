@@ -29,12 +29,31 @@ class Granule:
 
 
 def login() -> None:
-    """Earthdata auth: prefer EARTHDATA_USERNAME/PASSWORD env (set in .env), else ~/.netrc."""
+    """Earthdata auth: prefer EARTHDATA_USERNAME/PASSWORD env (set in .env), else ~/.netrc.
+
+    Also hands the Earthdata bearer token to GDAL so /vsicurl COG reads authenticate
+    against the LP DAAC protected endpoint (otherwise GDAL gets the login HTML and
+    reports 'not recognized as being in a supported file format')."""
     import os
     if os.environ.get("EARTHDATA_USERNAME") and os.environ.get("EARTHDATA_PASSWORD"):
-        earthaccess.login(strategy="environment", persist=False)
+        auth = earthaccess.login(strategy="environment", persist=False)
     else:
-        earthaccess.login(strategy="netrc", persist=True)
+        auth = earthaccess.login(strategy="netrc", persist=True)
+
+    token = None
+    try:
+        tok = getattr(auth, "token", None)
+        if isinstance(tok, dict):
+            token = tok.get("access_token")
+        elif isinstance(tok, str):
+            token = tok
+    except Exception:  # noqa: BLE001
+        token = None
+    if token:
+        os.environ["GDAL_HTTP_HEADERS"] = f"Authorization: Bearer {token}"
+        # follow the URS redirect and keep cookies as a fallback
+        os.environ.setdefault("GDAL_HTTP_COOKIEFILE", "/tmp/gdal_cookies.txt")
+        os.environ.setdefault("GDAL_HTTP_COOKIEJAR", "/tmp/gdal_cookies.txt")
 
 
 def _parse_granule(sensor: str, g) -> Granule:
