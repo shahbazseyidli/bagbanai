@@ -79,7 +79,17 @@ Backend/DB/pipeline/deploy: DONE & committed. Frontend (`app/`): built by a back
 - AI advice + AI chat (provider-agnostic). Reports (PDF/Excel). TiTiler tiles + baseline/anomaly/phenology.
 - Billing (Stripe/PSP) — tables + gating present, integration skipped (no payment yet).
 
-## Deployment (live)
-- Hetzner server **bagban-ai** (CPX22, Helsinki), public IPv4 **95.216.208.82**, project AGRADEX-TEST.
-- Self-deployed via cloud-init (deploy/cloud-init.sh) → bootstrap.sh. TLS at Cloudflare edge (origin HTTP :80, deploy/nginx-agradex-http.conf).
-- DNS: agradex.com A @ + A www → 95.216.208.82 (Cloudflare, proxied; SSL mode Flexible).
+## Deployment (LIVE — https://agradex.com ✅)
+- Hetzner server **bagban-ai** (CPX22, Helsinki), public IPv4 **95.216.208.82** (Primary IP kept across recreate), project AGRADEX-TEST.
+- DNS: agradex.com A @ + A www → 95.216.208.82 (Cloudflare, **proxied**; SSL mode **Flexible** = edge HTTPS → origin HTTP :80, deploy/nginx-agradex-http.conf).
+- Containers (deploy/docker-compose.prod.yml): db (PostGIS, healthy) + api (FastAPI :8000) + web (Next.js :3000), fronted by host nginx.
+- **SSH:** operator Mac key (`macbookpro`, ~/.ssh/id_ed25519) authorized on root — added early in deploy/cloud-init.sh.
+
+### Deploy method + private-repo caveat (IMPORTANT)
+- GitHub repo `shahbazseyidli/bagbanai` is **PRIVATE** → server cannot `git clone` anonymously, so cloud-init's clone step fails. First two cloud-init deploys stalled for this reason.
+- **Current live deploy was done by pushing code from the Mac via rsync** then running bootstrap.sh over SSH:
+  `rsync -az --exclude .git --exclude node_modules --exclude .next --exclude pgdata --exclude storage --exclude .env ./ root@95.216.208.82:/opt/bagbanai/`
+  then `ssh root@95.216.208.82 'cd /opt/bagbanai && bash deploy/bootstrap.sh && <nginx vhost swap>'`.
+- **To make cloud-init self-deploy work on future rebuilds:** either make the repo public, OR add a GitHub deploy token/SSH deploy key to the clone step. Until then, redeploy = rsync + bootstrap over SSH (repeatable).
+- Verified live: /api/health ok; home title "Bağban AI"; /api/subsidy/rates = 117; calculate hazelnut 3ha = 9000 AZN.
+- Follow-ups: Earthdata ~/.netrc for HLS pipeline; SSL hardening to Full(Strict)+Origin cert.
