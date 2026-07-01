@@ -6,7 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .db import close_pool, init_pool
-from .routers import auth, farms, fields, health, orgs, subsidy
+from .routers import (auth, farms, fields, health, mgmt, orgs, scouting,
+                      subsidy, uploads)
 
 
 @asynccontextmanager
@@ -33,6 +34,9 @@ def create_app() -> FastAPI:
     app.include_router(farms.router)
     app.include_router(fields.router)
     app.include_router(subsidy.router)
+    app.include_router(scouting.router)
+    app.include_router(mgmt.router)
+    app.include_router(uploads.router)
     return app
 
 

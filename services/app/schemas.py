@@ -131,3 +131,50 @@ class SubsidyCalcIn(BaseModel):
 
 class SubsidySaveIn(SubsidyCalcIn):
     org_id: Optional[str] = None
+
+
+# ---- scouting / tasks / operations / yields (§14–16) ----
+class ScoutingIn(BaseModel):
+    field_id: str
+    category: str                       # pest|disease|weed|nutrient|water|damage|other
+    severity: Optional[str] = None      # low|medium|high
+    note: Optional[str] = None
+    lon: Optional[float] = None
+    lat: Optional[float] = None
+    photos: list[str] = []              # storage paths (from /api/uploads)
+
+
+class TaskIn(BaseModel):
+    org_id: str
+    title: str
+    type: Optional[str] = None
+    farm_id: Optional[str] = None
+    field_id: Optional[str] = None
+    assigned_to: Optional[str] = None
+    due_date: Optional[str] = None
+    priority: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class TaskStatusIn(BaseModel):
+    status: str                         # todo|in_progress|done|cancelled
+
+
+class OperationIn(BaseModel):
+    field_id: str
+    type: str                           # planting|spraying|fertilizing|irrigation|harvest|tillage|other
+    performed_on: str
+    inputs: list[Any] = []              # [{product,rate,unit}]
+    cost: Optional[float] = None
+    currency: str = "AZN"
+    notes: Optional[str] = None
+
+
+class YieldIn(BaseModel):
+    field_id: str
+    season_year: int
+    crop_type: Optional[str] = None
+    yield_value: Optional[float] = None
+    yield_unit: Optional[str] = None    # t_ha|kg|t
+    area_ha: Optional[float] = None
+    notes: Optional[str] = None
