@@ -99,4 +99,4 @@ services:
     volumes:
       - ./data/rasters:/data/rasters:ro                 # read the COGs (same path as geo)
     ports:
-      - "127.0.0.1:8001:8000"
+      - "127.0.0.1:8001:80"                             # titiler image serves on :80
