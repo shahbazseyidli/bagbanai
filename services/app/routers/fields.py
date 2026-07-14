@@ -139,7 +139,7 @@ async def put_metadata(field_id: str, body: FieldMetadataIn, user_id: str = Depe
                   rotation_history, fertilizer_history, seeding_density, growth_stage, elevation_m,
                   slope_deg, aspect_deg, tillage_practice, target_yield, prior_yields, pest_history, notes,
                   crop_cycle, region, economic_region)
-               values ($1::uuid,$2,$3,$4::date,$5::date,$6::jsonb,$7,$8,$9,$10,$11,$12::jsonb,$13::jsonb,
+               values ($1::uuid,$2,$3,$4::text::date,$5::text::date,$6::jsonb,$7,$8,$9,$10,$11,$12::jsonb,$13::jsonb,
                        $14,$15,$16,$17,$18,$19,$20,$21::jsonb,$22::jsonb,$23,$24,$25,$26)
                on conflict (field_id) do update set
                  crop_type=excluded.crop_type, variety=excluded.variety, planting_date=excluded.planting_date,
