@@ -155,6 +155,7 @@ They return **empty results (not 404)** when the pipeline hasn't run yet. Nine i
 | `GET /api/fields/{field_id}/indices/latest` | Latest value per index (mean/min/max/std/p10/p50/p90 + `acquired_at`) | Member | Returns `{indices:{...}, available_indices:[9]}`. |
 | `GET /api/fields/{field_id}/indices?index=&from=&to=` | Time series for one index (mean + p10/p50/p90 band) | Member | Query `index`(=`NDVI`), `from?`, `to?` (ISO dates). Returns `{index, series:[{date,mean,p10,p50,p90}]}`. |
 | `GET /api/fields/{field_id}/scenes?index=` | Per-scene TiTiler tile-URL templates for the raster overlay (one scene/date, least-cloudy, newest first) | Member | Query `index`(=`NDVI`). Returns `{index, colormap, rescale, scenes:[{scene_id, date, cloud_pct, tile_url}]}`. |
+| `GET /api/fields/{field_id}/indices/benchmark?index=` | Weekly regional/peer average for the index (P1-4) — averages **other** fields of the same crop (or all fields if none), for the "your field vs benchmark" line | Member | Query `index`(=`NDVI`). Returns `{index, scope:"crop"\|"all", crop_type, series:[{date(week Monday), mean, n}]}`. Empty series when no peer fields. Backed by `SECURITY DEFINER public.index_benchmark(index,crop,exclude)` (migration `0010`) so a normal RLS-scoped connection reads only cross-tenant **aggregates**. |
 
 **Scene tile URLs** point at nginx `/titiler/` and already include the WebMercatorQuad
 TileMatrixSet and colormap/rescale per index family: water indices (`NDMI/NDWI`) use `rdbu`

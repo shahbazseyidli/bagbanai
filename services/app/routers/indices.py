@@ -85,6 +85,37 @@ async def scenes(field_id: str, index: str = Query("NDVI"),
     return {"index": index, "colormap": cmap, "rescale": rescale, "scenes": scenes_out}
 
 
+@router.get("/{field_id}/indices/benchmark")
+async def benchmark(field_id: str, index: str = Query("NDVI"),
+                    user_id: str = Depends(get_current_user_id)):
+    """Weekly regional/peer benchmark for `index` — the average across OTHER fields with the
+    same crop (or, if none, across all other fields). Lets a farmer compare their field to a
+    baseline (FarmerApp §3.1.6). Returns an empty series when there are no peer fields yet."""
+    async with connection(user_id) as conn:
+        org_id = await _org_of_field(conn, field_id)
+        await require_member(conn, user_id, org_id)
+        crop = await conn.fetchval(
+            "select crop_type from public.field_metadata where field_id=$1::uuid", field_id)
+        scope = "crop"
+        rows = await conn.fetch(
+            "select week, mean_avg, n from public.index_benchmark($1, $2, $3::uuid)",
+            index, crop, field_id)
+        if not rows:  # no same-crop peers → fall back to all other fields (national avg)
+            scope = "all"
+            rows = await conn.fetch(
+                "select week, mean_avg, n from public.index_benchmark($1, $2, $3::uuid)",
+                index, None, field_id)
+    return {
+        "index": index,
+        "scope": scope,
+        "crop_type": crop,
+        "series": [
+            {"date": r["week"].isoformat(), "mean": round(float(r["mean_avg"]), 4), "n": int(r["n"])}
+            for r in rows
+        ],
+    }
+
+
 @router.get("/{field_id}/indices")
 async def series(field_id: str, index: str = Query("NDVI"),
                  from_: Optional[str] = Query(None, alias="from"),

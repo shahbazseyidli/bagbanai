@@ -3,6 +3,31 @@
 Bütün əhəmiyyətli dəyişikliklər burada qeyd olunur. Format [Keep a Changelog](https://keepachangelog.com/),
 versiyalar [SemVer](https://semver.org/).
 
+## [1.0.7] — 2026-07-14 — İnfrastruktur Sprint 3 (xəritə alətləri) + bölgə benchmark
+
+### Added
+- **Relyef kölgəsi (hillshade):** pulsuz/açarsız AWS Terrain Tiles DEM (Terrarium) əsasında
+  relyef kölgələmə; basemap panelində keçid, `localStorage`-da yadda qalır (`lib/basemaps.ts`).
+- **Yer axtarışı (geocoding):** xəritədə axtarış qutusu — OSM **Nominatim** (Azərbaycanla məhdud,
+  ≤1 sorğu/san siyasətinə uyğun submit-də axtarır), nəticəyə `flyTo`.
+- **İki tarix müqayisə (swipe):** eyni indeksin iki səhnə tarixinin rasterlərini sürüşən
+  bölücü ilə tutuşdurma — sinxronlaşdırılmış iki MapLibre xəritəsi, sağ xəritə clip olunur
+  (`CompareMap`). Tarix seçiciləri İcmal-da. FarmerApp §3.1.7 paritesi.
+- **Bulud filtri:** səhnə timeline-ında **maks. bulud %** slider-i — buludlu tarixləri gizlədir
+  (data artıq `/scenes`-də var, UI-only). FarmerApp §3.1.8.
+- **Ölçmə aləti:** İcmal xəritəsində məsafə (km) + sahə (ha) ölçmə (turf), kliklə nöqtə əlavə.
+- **Sahə idxal/ixrac:** sahə yaradarkən **GeoJSON/KML** fayldan poliqon yükləmə + cari poliqonun
+  GeoJSON/KML ixracı (asılılıqsız — `lib/geoio.ts`).
+- **Bölgə/peer NDVI benchmark:** qrafikə üçüncü xətt — eyni bitkili (yoxdursa bütün) **digər**
+  sahələrin həftəlik ortası ("sənin NDVI 0.7 vs bölgə 0.6"). `SECURITY DEFINER`
+  `public.index_benchmark(index, crop, exclude)` funksiyası RLS-i keçir, yalnız aqreqat qaytarır
+  (fərdi sahə sətri sızmır). API `GET /fields/{id}/indices/benchmark?index=`. FarmerApp §3.1.6.
+
+### Ops
+- **nginx:** `sites-enabled/`-dəki köhnə `agradex.com.bak.*` dublikatı `/root/nginx-backups/`-ə
+  köçürüldü — "conflicting server_name" xəbərdarlıqları həll olundu.
+- **Migration `0010`** (`index_benchmark` funksiyası).
+
 ## [1.0.6] — 2026-07-14 — AI aqronom məsləhəti + chatbot
 
 ### Added

@@ -125,6 +125,19 @@ export interface IndexSeries {
   series: IndexPoint[];
 }
 
+// Response of GET /api/fields/{id}/indices/benchmark — weekly regional average.
+export interface IndexBenchmarkPoint {
+  date: string; // Monday of the ISO week
+  mean: number;
+  n?: number;
+}
+export interface IndexBenchmark {
+  index: string;
+  scope: string; // "crop" | "all"
+  crop_type?: string | null;
+  series: IndexBenchmarkPoint[];
+}
+
 export interface Scouting {
   id: string;
   field_id: string;

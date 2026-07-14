@@ -60,6 +60,7 @@ export const BASEMAPS: Basemap[] = [
 
 export const DEFAULT_BASEMAP_ID = "hybrid";
 const STORAGE_KEY = "bagban.basemap";
+const HILLSHADE_KEY = "bagban.hillshade";
 
 export function getSavedBasemap(): Basemap {
   let id = DEFAULT_BASEMAP_ID;
@@ -71,6 +72,15 @@ export function getSavedBasemap(): Basemap {
 
 export function saveBasemap(id: string) {
   if (typeof window !== "undefined") window.localStorage.setItem(STORAGE_KEY, id);
+}
+
+export function getSavedHillshade(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.localStorage.getItem(HILLSHADE_KEY) === "1";
+}
+
+export function saveHillshade(on: boolean) {
+  if (typeof window !== "undefined") window.localStorage.setItem(HILLSHADE_KEY, on ? "1" : "0");
 }
 
 // A blank valid style — the basemap is applied imperatively so we can swap it without
@@ -106,5 +116,41 @@ export function applyBasemap(map: maplibregl.Map, bm: Basemap, beforeId?: string
       maxzoom: 19,
     });
     map.addLayer({ id: "basemap-labels", type: "raster", source: "basemap-labels-src" }, beforeId);
+  }
+}
+
+// Free, keyless DEM (AWS Terrain Tiles, Terrarium encoding) for a relief/hillshade overlay.
+const HILLSHADE_DEM = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
+
+// Toggle a hillshade (relief shading) layer. Kept under `beforeId` so it sits below the
+// field/draw layers but above the basemap imagery.
+export function applyHillshade(map: maplibregl.Map, on: boolean, beforeId?: string) {
+  const SRC = "hillshade-dem";
+  const LYR = "hillshade";
+  if (!on) {
+    if (map.getLayer(LYR)) map.removeLayer(LYR);
+    if (map.getSource(SRC)) map.removeSource(SRC);
+    return;
+  }
+  if (!map.getSource(SRC)) {
+    map.addSource(SRC, {
+      type: "raster-dem",
+      tiles: [HILLSHADE_DEM],
+      tileSize: 256,
+      encoding: "terrarium",
+      maxzoom: 14,
+      attribution: "Elevation — AWS Terrain Tiles / Mapzen",
+    });
+  }
+  if (!map.getLayer(LYR)) {
+    map.addLayer(
+      {
+        id: LYR,
+        type: "hillshade",
+        source: SRC,
+        paint: { "hillshade-exaggeration": 0.45 },
+      },
+      beforeId,
+    );
   }
 }
