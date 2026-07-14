@@ -58,18 +58,23 @@ async def scenes(field_id: str, index: str = Query("NDVI"),
     async with connection(user_id) as conn:
         org_id = await _org_of_field(conn, field_id)
         await require_member(conn, user_id, org_id)
+        # One scene per date (least-cloudy), newest first — a clean timeline for the UI.
         rows = await conn.fetch(
-            """select r.storage_path, r.acquired_at, r.scene_id, s.cloud_pct
-               from public.index_rasters r
-               join public.scenes s on s.id = r.scene_id
-               where r.field_id=$1::uuid and r.index_name=$2
-               order by r.acquired_at desc""", field_id, index)
+            """select storage_path, acquired_at, scene_id, cloud_pct from (
+                 select distinct on (r.acquired_at)
+                        r.storage_path, r.acquired_at, r.scene_id, s.cloud_pct
+                 from public.index_rasters r
+                 join public.scenes s on s.id = r.scene_id
+                 where r.field_id=$1::uuid and r.index_name=$2
+                 order by r.acquired_at, s.cloud_pct asc nulls last
+               ) t order by acquired_at desc""", field_id, index)
     cmap, rescale = _raster_style(index)
     base = settings.titiler_public_base
     scenes_out = []
     for r in rows:
         url_param = quote(r["storage_path"], safe="")
-        tile_url = (f"{base}/cog/tiles/{{z}}/{{x}}/{{y}}.png"
+        # TiTiler needs the TileMatrixSet id (WebMercatorQuad) in the tile path.
+        tile_url = (f"{base}/cog/tiles/WebMercatorQuad/{{z}}/{{x}}/{{y}}.png"
                     f"?url={url_param}&colormap_name={cmap}&rescale={rescale}")
         scenes_out.append({
             "scene_id": str(r["scene_id"]),
