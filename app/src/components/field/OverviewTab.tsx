@@ -38,6 +38,39 @@ const INDEX_LABELS: Record<string, string> = {
   TVI: "Bitki örtüyü (TVI)",
 };
 
+// One-line plain-language explanation shown under the selector.
+const INDEX_INFO: Record<string, string> = {
+  NDVI: "Bitkinin yaşıllığı və ümumi sağlamlığı. Yüksək = sağlam, sıx bitki örtüyü.",
+  EVI: "NDVI-yə bənzər, sıx örtükdə daha həssas. Yüksək = güclü bitki.",
+  SAVI: "Seyrək örtükdə torpağın təsirini azaldır. Cavan/seyrək əkin üçün yaxşıdır.",
+  MSAVI: "Torpaq-düzəlişli indeksin təkmilləşdirilmiş variantı (çox seyrək örtük).",
+  NDMI: "Bitkidəki su miqdarı. Yüksək = nəm, aşağı = su stresi (susuzluq).",
+  NDWI: "Səthdə su/rütubət. Yüksək = su var (sulanma, gölməçə).",
+  NBR: "Yanğın/quru sahə göstəricisi. Aşağı dəyər yanmış və ya quru ərazini göstərir.",
+  NBR2: "Yanğın göstəricisinin ikinci variantı (bitki quruluğuna həssas).",
+  TVI: "Bitki örtüyünün sıxlığı (transformasiya olunmuş NDVI).",
+};
+
+// Legend gradient + labels per index family (must match the TiTiler colormap on the map).
+const INDEX_LEGEND: Record<string, { grad: string; low: string; mid: string; high: string }> = {
+  veg: {
+    grad: "linear-gradient(90deg,#d73027,#fee08b,#1a9850)",
+    low: "Zəif",
+    mid: "Orta",
+    high: "Sağlam",
+  },
+  water: {
+    grad: "linear-gradient(90deg,#b2182b,#f7f7f7,#2166ac)",
+    low: "Quru",
+    mid: "Orta",
+    high: "Nəm",
+  },
+};
+
+function legendFor(index: string) {
+  return index === "NDMI" || index === "NDWI" ? INDEX_LEGEND.water : INDEX_LEGEND.veg;
+}
+
 function etaText(seconds: number | null | undefined): string {
   if (seconds == null || seconds <= 0) return "az qaldı";
   if (seconds < 90) return `~${Math.max(1, Math.round(seconds))} saniyə`;
@@ -70,15 +103,16 @@ function PreparingBanner({ status }: { status: FieldDataStatus }) {
   );
 }
 
-// Simple color legend for the active index (red→yellow→green ⇒ zəif→orta→yüksək).
-function IndexLegend() {
+// Color legend matching the map raster colormap for the active index.
+function IndexLegend({ index }: { index: string }) {
+  const lg = legendFor(index);
   return (
     <div className="mt-3">
-      <div className="h-3 w-full rounded" style={{ background: "linear-gradient(90deg,#d73027,#fee08b,#1a9850)" }} />
+      <div className="h-3 w-full rounded" style={{ background: lg.grad }} />
       <div className="mt-1 flex justify-between text-[11px] text-slate-500">
-        <span>Zəif</span>
-        <span>Orta</span>
-        <span>Yüksək</span>
+        <span>{lg.low}</span>
+        <span>{lg.mid}</span>
+        <span>{lg.high}</span>
       </div>
     </div>
   );
@@ -163,13 +197,16 @@ export default function OverviewTab({ field }: { field: FieldDetail }) {
         <div className="card">
           <h3 className="mb-3 font-semibold text-slate-800">{t("idx.title")}</h3>
           <label className="label">{t("idx.select")}</label>
-          <select className="input mb-4" value={index} onChange={(e) => setIndex(e.target.value)}>
+          <select className="input" value={index} onChange={(e) => setIndex(e.target.value)}>
             {INDICES.map((ix) => (
               <option key={ix} value={ix}>
                 {INDEX_LABELS[ix] ?? ix}
               </option>
             ))}
           </select>
+          {INDEX_INFO[index] && (
+            <p className="mb-4 mt-2 text-xs text-slate-500">{INDEX_INFO[index]}</p>
+          )}
 
           {loading ? (
             <Spinner />
@@ -197,6 +234,14 @@ export default function OverviewTab({ field }: { field: FieldDetail }) {
                   <Line type="monotone" dataKey="mean" name={index} stroke="#059669" strokeWidth={2} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
+              <div className="mt-1 flex items-center gap-4 text-[11px] text-slate-500">
+                <span className="inline-flex items-center gap-1">
+                  <span className="inline-block h-0.5 w-4 bg-emerald-600" /> Sahə ortası
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="inline-block h-0.5 w-4" style={{ background: "#a7f3d0" }} /> Sahədaxili min–maks
+                </span>
+              </div>
             </div>
           )}
         </div>
@@ -217,12 +262,14 @@ export default function OverviewTab({ field }: { field: FieldDetail }) {
 
           {scenes.length > 0 ? (
             <>
-              <IndexLegend />
-              <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+              <IndexLegend index={index} />
+              <p className="mt-3 text-xs text-slate-500">Peyk tarixi seçin:</p>
+              <div className="mt-1 flex gap-2 overflow-x-auto pb-1">
                 {scenes.map((s, i) => (
                   <button
                     key={s.scene_id}
                     type="button"
+                    title={s.cloud_pct != null ? `${s.date} · bulud ${s.cloud_pct.toFixed(0)}%` : s.date}
                     onClick={() => setSceneIdx(i)}
                     className={`shrink-0 rounded-md border px-2 py-1 text-xs ${
                       i === sceneIdx
@@ -232,7 +279,7 @@ export default function OverviewTab({ field }: { field: FieldDetail }) {
                   >
                     {s.date.slice(5)}
                     {s.cloud_pct != null && (
-                      <span className="ml-1 text-slate-400">☁{s.cloud_pct.toFixed(0)}</span>
+                      <span className="ml-1 text-slate-400">☁{s.cloud_pct.toFixed(0)}%</span>
                     )}
                   </button>
                 ))}
