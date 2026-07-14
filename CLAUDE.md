@@ -1,98 +1,127 @@
 # Bağban AI — Claude Code iş konteksti (CLAUDE.md)
 
-> Bu fayl gələcək sessiyalar üçün konteksti saxlayır. Hər fazadan/qərardan sonra yenilə.
+> Gələcək sessiyalar üçün işlək kontekst. Detal `docs/` altındadır (aşağıda "Sənəd xəritəsi").
+
+> Bu fayl gələcək sessiyalar üçün **iş konteksti** və qərarları saxlayır (tam spesifikasiya deyil — bax `docs/`). Hər fazadan/qərardan/sprintdən sonra yenilə.
 
 ## Nədir
-Peyk (NASA HLS) + hava (Open-Meteo) + AI əsaslı əkin monitorinqi və təsərrüfat idarəetmə platforması. Hədəf: Azərbaycan/Qafqaz fermerləri, kooperativləri, aqronomları.
+Peyk (NASA HLS) + hava (Open-Meteo) + AI əsaslı əkin monitorinqi və təsərrüfat idarəetmə platforması. Hədəf: Azərbaycan/Qafqaz fermerləri, kooperativləri, aqronomları. **CANLI:** https://agradex.com.
 
 ## Tək həqiqət mənbəyi (SSoT)
 - `docs/Bagban_AI_Platforma_Spesifikasiya_AZ.md` — əsas platforma spesifikasiyası (§1–§29).
 - `docs/Bagban_AI_Subsidiya_Kalkulyatoru_Modul.md` — §30 subsidiya kalkulyatoru + 2026 seed.
 Spesifikasiyadan kənara çıxma. Tələb dəyişsə, əvvəl soruş, razılaşdıqdan sonra bu faylı və sənədi yenilə.
 
+## Sənəd xəritəsi (docs/ — burada işlə konteksti, orada detal)
+Bu CLAUDE.md **qısa iş konteksti**; dərin detal ayrı sənədlərdədir:
+- `docs/Bagban_AI_Platforma_Spesifikasiya_AZ.md` + `docs/Bagban_AI_Subsidiya_Kalkulyatoru_Modul.md` — SSoT (yuxarıda).
+- `docs/Infrastruktur_Layer_Tekmillesdirme.md` — Azercosmos FarmerApp benchmark + pulsuz/self-hosted təkmilləşdirmə planı (Sprint 1/2 mənbəyi; §6 qalan işlər). **Üzərinə yazma.**
+- `docs/ARCHITECTURE.md` — sistem memarlığı (frontend/backend/geo/DB/TiTiler/AI axını).
+- `docs/API_REFERENCE.md` — endpoint-lərin siyahısı və müqavilələri.
+- `docs/OPERATIONS.md` — deploy, cron, redeploy, secrets, monitorinq əməliyyatları.
+- `docs/ROADMAP.md` — görülənlər + Faza 2+ və açıq işlər.
+- `docs/DECISIONS.md` — memarlıq qərarları (nə üçün Supabase yox, TiTiler seçimi, native-draw və s.).
+
 ## Dil qaydası
 - Bütün UI mətnləri **Azərbaycan dilində** (i18n; default `az`, sonra `ru`, `tr`).
 - Bütün kod, identifikator, SQL, sxem, commit mesajları **İngilis dilində**.
 
 ## Texnoloji stack (sabit)
-- **Frontend:** Next.js (App Router, TypeScript) + BFF route handlers, MapLibre GL + Draw, turf.js, Recharts, i18n, PWA.
-- **Backend:** Python 3.11+ (FastAPI), Hetzner VPS. Geo: earthaccess, pystac-client, rioxarray, rasterio, xarray, numpy, shapely, geopandas. Tile: TiTiler/rio-tiler.
-- **DB:** Postgres 16 + PostGIS (self-hosted, Docker).
-- **AI:** provayder-agnostik adapter (LiteLLM üslubu) + pydantic strukturlaşdırılmış çıxış. Provayder env-dən (`LLM_PROVIDER`/`LLM_MODEL`/`LLM_API_KEY`).
-- **Orkestr:** n8n (cron + Telegram/WhatsApp/email).
-- **Pulsuz data:** NASA HLS (Earthdata `~/.netrc`), Open-Meteo.
+- **Frontend:** Next.js 15 (App Router, TypeScript) `app/`-də. **MapLibre GL v4** (native kliklə-çək; `@mapbox/mapbox-gl-draw` DEYİL — uyğunsuz idi, xəritəni tam pozurdu). Recharts, Tailwind, i18n (`app/src/lib/i18n.ts`, default `az`). Same-origin `/api` (nginx → FastAPI proxy).
+- **Backend:** FastAPI (Python 3.11) `services/app/`-də. asyncpg pool (`db.py` `connection()` → `SET LOCAL app.user_id`). Öz JWT auth (`public.users` + bcrypt + PyJWT httpOnly cookie, `security.py`). RLS defense-in-depth: session GUC `current_setting('app.user_id')` üzərindən `public.current_user_id()` (Supabase `auth.uid()` əvəzinə); **ƏSAS icra server-tərəfli gating** `deps.py` (`require_member`/`require_role`/`require_internal`, `is_org_member`/`org_is_paid`).
+- **Geo pipeline:** `services/geo_pipeline/` (earthaccess, pystac, rioxarray, rasterio, shapely). NASA Earthdata auth **EARTHDATA_TOKEN** bearer ilə — GDAL-a `Authorization: Bearer` header kimi verilir (/vsicurl COG oxumaları; user/pass 401 verirdi). Axın (§10): `HLSS30_VI`/`HLSL30_VI` axtarışı → pəncərəli COG oxuma → Fmask bulud/kölgə maskası → zonal stats → PostGIS; 9 indeks NDVI/EVI/SAVI/MSAVI/NDMI/NDWI/NBR/NBR2/TVI. **Bu sessiyada əlavə:** hər səhnə+indeks üçün clipped, sahə-maskalanmış **index COG** `/data/rasters`-ə yazılır (`read.write_cog`: COG driver, GTiff fallback), `public.index_rasters`-də qeyd olunur — TiTiler üçün.
+- **DB:** Postgres 16 + PostGIS (Docker). Sıralı miqrasiyalar `db/migrations/0001..0009` (`public.schema_migrations`-də izlənir, `db/migrate.sh`). Seed `db/seeds` (2026 subsidiya: 117 dərəcə, `amount = coef×200`).
+- **TiTiler:** `ghcr.io/developmentseed/titiler:latest` — clipped index COG-ları rəngləyib servis edir. Image **PORT 80-də dinləyir** (compose `127.0.0.1:8001:80`). nginx `/titiler/` → `127.0.0.1:8001`. Tile URL **TileMatrixSet id daxil olmalıdır**: `/titiler/cog/tiles/WebMercatorQuad/{z}/{x}/{y}.png?url=<cog-path>&colormap_name=rdylgn&rescale=-0.1,0.9` (çılpaq `/cog/tiles/{z}/{x}/{y}` route 404 verir).
+- **AI:** provayder-agnostik adapter `services/app/ai/` (`llm.py` default Claude via AsyncAnthropic + `messages.parse` strukturlu çıxış, model `claude-opus-4-8`; `context.py` sahə konteksti; `advice.py`; `chat.py`; `notify.py` SMTP email). `LLM_API_KEY` (Claude) `.env`-də lazımdır — **hazırda BOŞ**, ona görə bütün AI endpoint-ləri səliqəli deqradasiya edir (advice `null`/`configured:false`, generate/chat → 503). `anthropic>=0.69`.
+- **Orkestr:** n8n (agent.agradex.com, ayrı box); server crons Hetzner root crontab-da.
 
 ## Yerləşdirmə hədəfi
 - Domain: **agradex.com** (apex/root — subdomain yox).
-- Host: istifadəçinin **Hetzner** serveri, nginx + Let's Encrypt (findix.az deploy nümunəsinə bənzər).
+- Host: **Hetzner** serveri, nginx + Let's Encrypt.
+- Git remote **origin = SSH** `git@github.com:shahbazseyidli/bagbanai.git` (HTTPS push bu sessiyada asılıb qalırdı; SSH işləyir).
 
 ## Spesifikasiyadan KƏNARLAŞMALAR (istifadəçi qərarları — SSoT bunlarla oxunur)
-Spesifikasiya Supabase-i fərz edir; istifadəçi **hər şeyin öz Hetzner hostinqində** olmasını istəyir:
-1. **Supabase yoxdur.**
-   - DB: self-hosted **Postgres 16 + PostGIS** (Supabase Postgres əvəzinə).
-   - Auth: **öz JWT auth-umuz** (`public.users` cədvəli + bcrypt + `jose`/httpOnly cookie). Sxemdəki hər `references auth.users(id)` → `references public.users(id)`.
-   - RLS: **defense-in-depth** kimi saxlanır; `auth.uid()` əvəzinə session GUC `current_setting('app.user_id')::uuid` istifadə olunur (backend hər sorğuda `SET LOCAL app.user_id`). **Əsas icra server-tərəfli** FastAPI gating-dədir (§8/§22).
-   - Storage (skautinq foto, COG, hesabat): indi **lokal Hetzner volume** (`OBJECT_STORAGE_*`); sonra S3-uyğun.
-2. **Ödəniş hələ yoxdur.** `org_subscriptions` cədvəli + `org_is_paid()` gating **saxlanır** (PAID funksiyalar düzgün qapansın), amma Stripe/PSP inteqrasiyası **təxirə salınıb**. Yeni təşkilat default `free`; dev üçün əl ilə `pro`-ya keçirmə yolu var.
+1. **Supabase yoxdur.** DB self-hosted **Postgres 16 + PostGIS**; auth **öz JWT-miz** (`public.users` + bcrypt + PyJWT httpOnly cookie); RLS `auth.uid()` əvəzinə `current_user_id()` session GUC (backend hər sorğuda `SET LOCAL app.user_id`), əsas icra server-tərəfli gating; storage **lokal Hetzner volume**.
+2. **Ödəniş hələ yoxdur.** `org_subscriptions` + `org_is_paid()` gating **saxlanır** (PAID funksiyalar düzgün qapansın), amma Stripe/PSP təxirə salınıb; yeni org default `free`.
 3. **Domain agradex.com root.**
 
 ## İş prinsipləri (MÜTLƏQ)
-- Fazalı gedişat (§28): Faza 1 → Faza 4. Növbəti fazaya keçməzdən əvvəl DoD yoxla/göstər.
-- Hər tamamlanmış atomik dəyişikliydən sonra təsviri commit (`feat(scope): ...`) + push.
+- Fazalı gedişat (§28). Növbəti fazaya keçməzdən əvvəl DoD yoxla/göstər.
+- Hər atomik dəyişiklikdən sonra təsviri commit (`feat(scope): ...`) + push (SSH origin).
 - Multi-tenancy: hər cədvəldə `org_id`; giriş zənciri `field → farm → organization → membership`.
-- Təhlükəsizlik: gating həm RLS, həm server-tərəfli. Heç bir sirr commit olunmur (`.env`). Miqrasiyalar `db/migrations/`-də.
+- Təhlükəsizlik: gating həm RLS, həm server-tərəfli. Heç bir sirr commit olunmur (`.env`). Miqrasiyalar `db/migrations/`.
 - Keyfiyyət: tipli/təmiz kod, xəta idarəetməsi, idempotent pipeline/bildiriş, pəncərəli COG oxuma + keş.
 
 ## Layihə strukturu
 ```
 bagbanai/
-├─ app/              # Next.js (frontend + BFF route handlers)
-├─ services/         # FastAPI: geo_pipeline, weather, rule_engine, advice_engine, reports, tiles
-├─ db/migrations/    # ordered SQL DDL (§7, §8, §30)
+├─ app/              # Next.js 15 (frontend + BFF route handlers)
+├─ services/app/     # FastAPI (auth, gating, orgs/farms/fields, ai/, internal triggers)
+├─ services/geo_pipeline/  # HLS: search→COG→Fmask→zonal stats→PostGIS + clipped COG yazımı
+├─ db/migrations/    # sıralı SQL DDL 0001..0009 (§7/§8/§30)
 ├─ db/seeds/         # crop_thresholds, subsidy seed loader
-├─ n8n/workflows/    # cron + dispatch
-├─ knowledge_base/   # RAG source + crop calendars (AZ)
-├─ i18n/             # az (default), ru, tr
-├─ deploy/           # nginx, systemd, deploy scripts
-└─ docs/             # the two spec documents (SSoT)
+├─ deploy/           # docker-compose.prod.yml, nginx, update.sh, run-hls.sh, process-queue.sh
+└─ docs/             # SSoT spesifikasiyaları + memarlıq/əməliyyat sənədləri
 ```
 
-## Faza 1 vəziyyəti (yenilə)
-- [x] Step 0 — skeleton + conventions
-- [x] Step 1 — DB migrations (§7/§8/§30)
-- [x] Step 2 — seeds (crop_thresholds, subsidy — 117 rates, coef×200 verified)
-- [x] Step 3 — FastAPI skeleton + auth + gating
-- [x] Step 4 — org/farm hierarchy + invites (backend); onboarding UI (frontend)
-- [x] Step 5 — field creation backend (PostGIS validation); MapLibre+Draw UI (frontend)
-- [x] Step 6 — field metadata backend; metadata form UI (frontend)
-- [x] Step 7 — HLS pipeline + FREE index endpoints (runtime needs Earthdata .netrc on server)
-- [x] Step 8 — scouting / tasks / operations / yields backend + uploads
-- [x] Step 9 — subsidy engine + API (14 tests pass); calculator UI (frontend)
-- [x] Step 10 — deploy config (Hetzner compose + nginx agradex.com)
+## Faza 1 vəziyyəti — CANLI + bu sessiyanın yenilikləri
+**Faza 1 istehsalatda** (https://agradex.com): DB/backend/geo pipeline/subsidiya/frontend/deploy hamısı hazır və commit olunub. Bu sessiyada üstünə əlavə edilənlər:
 
-Backend/DB/pipeline/deploy: DONE & committed. Frontend (`app/`): built by a background agent
-(auth, onboarding, field map, metadata, scouting/tasks/ops/yields, subsidy calculator).
+### İnfrastruktur Sprint 1 — Basemap qalereyası (v1.0.4)
+- Keçidli basemap-lar (`app/src/lib/basemaps.ts`, `FieldMap.tsx` refaktoru): **Hibrid** (Esri World Imagery + Esri reference labels), **Peyk** (Esri World Imagery), **Sentinel-2 buludsuz** (EOX s2cloudless), **Küçə** (OSM), **Topo** (OpenTopoMap) — hamısı pulsuz/açarsız + attribution; seçim `localStorage`-da; canlı lon/lat oxunuşu + geolokasiya/naviqasiya kontrolları. Native-draw qorunub; sahə sərhədi sarı.
 
-## Phase 2+ (deferred, per roadmap §28 + user notes)
-- Weather (Open-Meteo) + weather models (GDD/spray/frost/drought) — `/api/internal/weather/run` stub exists.
-- Rule engine → notifications (PAID, multi-channel Telegram/WhatsApp) — `/api/internal/rules/run` stub.
-- AI advice + AI chat (provider-agnostic). Reports (PDF/Excel). TiTiler tiles + baseline/anomaly/phenology.
-- Billing (Stripe/PSP) — tables + gating present, integration skipped (no payment yet).
+### İnfrastruktur Sprint 2 — TiTiler peyk raster analizi + asinxron emal (v1.0.5)
+- **Asinxron pipeline:** sahə yaradılanda `data_status='queued'`; cron worker `deploy/process-queue.sh` (hər 2 dəq) geo pipeline-ı **ən-yeni-səhnə-əvvəl** işlədir, clipped index COG-ları `/data/rasters`-ə yazır, proqres/ETA yeniləyir, "data hazır" bildirişi göndərir. Günlük cron sakitcə yeniləyir (`track=0`).
+- **Frontend:** "Peyk məlumatı hazırlanır…" banneri (proqres bar + dürüst ETA) `GET /api/fields/{id}/data-status`-ı poll edir; OverviewTab seçilən indeksi sahə üzərində **piksel-səviyyəli TiTiler rasteri** kimi overlay edir, indeks-adaptiv legend (Zəif/Orta/Sağlam bitki üçün; Quru/Orta/Nəm su indeksləri üçün), səhnə timeline-ı (tarix + bulud %, gün üzrə ən-az-buludlu səhnəyə dedup), Azərbaycanca indeks adları + təsvirlər.
+
+### AI aqronom məsləhəti + chatbot (Claude) (v1.0.6)
+- **Provayder-agnostik LLM adapter** (`services/app/ai/llm.py`) — default Claude; `complete_structured` = AsyncAnthropic `messages.parse` + Pydantic sxem; `complete_text` = chat; `is_configured()` hər şeyi gate edir (açar yoxdursa səliqəli "qoşulmayıb"). Model/provayder/açar env-dən, heç vaxt hard-code deyil.
+- **Advice** (`advice.py`): sahə konteksti (`context.py` = NASA indeks trendləri son/4-həftə-əvvəl/90g min-max + məhsul metadatası + son skautinq/əməliyyat/açıq tapşırıq/məhsuldarlıq + əvvəlki məsləhət xülasəsi) → Claude → strukturlu `{summary, risks[{title, severity aşağı|orta|yüksək, detail}], recommendations, next_steps}` (Azərbaycanca) → `public.advice`. Hər yeni peyk səhnəsindən sonra **avtomatik**: geo pipeline `POST /api/internal/advice/run` (X-Internal-Token) çağırır ki, LLM açarını saxlayan **API** generasiya etsin. Yeni məsləhətin risk/tövsiyə imzası əvvəlkindən fərqlənəndə → in-app bildiriş + org sahibinə email (best-effort SMTP).
+- **Chatbot** (`chat.py`): kontekst = sahə datası + son məsləhət + son 12 söhbət növbəsi; hər növbə `public.ai_chat_messages`-də saxlanır.
+- **Frontend "AI Məsləhət" tab** (`app/src/components/field/AiTab.tsx`): məsləhət kartı (risk şiddət nişanları, tövsiyələr, növbəti addımlar, disclaimer, "Yenidən analiz et") + canlı söhbət.
+- **STATUS:** tam qurulub, deploy olunub, açarsız rejimdə doğrulanıb. **Aktivləşdirmək üçün** `/opt/bagbanai/.env`-ə `LLM_PROVIDER=anthropic`, `LLM_MODEL=claude-opus-4-8` (və ya ucuz üçün `claude-sonnet-5`), `LLM_API_KEY=sk-ant-...` əlavə et, sonra `api`-ni yenidən başlat.
+
+## Data modeli (bax `db/migrations`)
+`users, organizations, organization_members, organization_invites, farms, fields` (0009: `data_status` [none|queued|processing|ready|failed], `data_progress_done/total`, `data_started_at`, `data_ready_at`, `data_eta_seconds`, `data_message` — asinxron "hazırlanır" UX üçün), `field_metadata, scenes, index_stats, index_rasters` (`storage_path` per scene+index), `weather_cache, scouting_observations, tasks, field_operations, yields, reports, advice` (`summary`, `findings` jsonb = `{risks,recommendations,next_steps}`, `input_snapshot`, `model_provider/name`, `disclaimer`), `ai_chat_messages` (role, content, context_snapshot), `notifications` (source, type, severity, title, body, delivered_channels, read_at), `org_subscriptions, crop_thresholds, subsidy_rates/modifiers/regions`. Giriş zənciri `field → farm → organization → membership`; `org_id` çox cədvəldə denormalizasiya. RLS helper `current_user_id()`.
 
 ## Deployment (LIVE — https://agradex.com ✅)
-- Hetzner server **bagban-ai** (CPX22, Helsinki), public IPv4 **95.216.208.82** (Primary IP kept across recreate), project AGRADEX-TEST.
+- Hetzner server **bagban-ai** (CPX22, Helsinki), public IPv4 **95.216.208.82** (Primary IP recreate boyu qorunur), project AGRADEX-TEST. Operator Mac SSH açarı (`~/.ssh/id_ed25519`, comment `macbookpro`) `root@95.216.208.82`-də authorized (deploy/cloud-init.sh-də erkən əlavə edilib).
 - DNS: agradex.com A @ + A www → 95.216.208.82 (Cloudflare, **proxied**).
-- **SSL:** **Let's Encrypt** cert installed on origin (`/etc/letsencrypt/live/agradex.com/`, auto-renew via certbot). Live nginx vhost serves **:80 (no forced redirect — loop-safe under CF Flexible) + :443 (LE cert)**; works under any CF SSL mode. Cloudflare SSL mode currently **Flexible**; TODO flip to **Full (Strict)** for end-to-end encryption (origin :443 ready) — CF dashboard was unresponsive during setup, pending retry (Overview → Configure → Full (Strict)).
-- **HLS geo worker — LIVE with real data ✅:** `services/Dockerfile.geo` (needs libexpat1/libgomp1). Earthdata auth via **EARTHDATA_TOKEN** (EDL bearer token in .env) → set on GDAL as `Authorization: Bearer` header for /vsicurl COG reads (username/password was rejected 401; token works). Token expires 2026-08-30 → regenerate at urs.earthdata.nasa.gov. Verified: demo Zaqatala hazelnut field (id 4a08ee8a…) → 17 scenes, 153 index_stats; NDVI ~0.73 (May). Run: `bash deploy/run-hls.sh 120` (cron for daily). Demo login: demo@agradex.com / AgradexDemo2026.
-- **Versioning:** git tag `v1.0.0` pushed; CHANGELOG.md.
-- **Repo visibility:** still PRIVATE → make public (user) so cloud-init `git clone` self-deploy works; until then redeploy = rsync + bootstrap over SSH.
-- Containers (deploy/docker-compose.prod.yml): db (PostGIS, healthy) + api (FastAPI :8000) + web (Next.js :3000), fronted by host nginx.
-- **SSH:** operator Mac key (`macbookpro`, ~/.ssh/id_ed25519) authorized on root — added early in deploy/cloud-init.sh.
+- **SSL:** origin-də Let's Encrypt (`/etc/letsencrypt/live/agradex.com/`, certbot auto-renew). nginx `/etc/nginx/sites-enabled/agradex.com`: iki server bloku — **:80** (məcburi redirect yox, CF Flexible altında loop-safe) + **:443** (LE cert). Hər blokda location-lar: `/titiler/` → `127.0.0.1:8001/`, `/api/` → `127.0.0.1:8000`, `/` → `127.0.0.1:3000`. Cloudflare SSL mode hazırda **Flexible** → **TODO Full (Strict)**-ə keçir (origin :443 hazır). Repo nüsxələri `deploy/nginx-agradex.conf`, `deploy/nginx-agradex-http.conf`. (Leftover dublikat blokdan "conflicting server_name" xəbərdarlığı — təmizlik gözləyir.)
 
-### Deploy method (git-based)
-- Repo `shahbazseyidli/bagbanai` is now **PUBLIC**. `/opt/bagbanai` on the server is a **git checkout** tracking `origin/main` (`git config safe.directory /opt/bagbanai` set for root).
-- **Redeploy:** push to GitHub, then on server `cd /opt/bagbanai && bash deploy/update.sh` (git pull → **source .env** → `docker compose up -d --build api web` → nginx reload). update.sh MUST source .env or the api gets a blank DATABASE_URL and crash-loops (same trap as run-hls.sh; both source .env). Backup of secrets: `/root/agradex.env.bak`.
-- History: first deploys used rsync + bootstrap.sh (repo was private then).
-- **Daily HLS cron** (root crontab, PATH set): `0 3 * * * cd /opt/bagbanai && bash deploy/run-hls.sh 30 >> /var/log/bagban-hls.log 2>&1` — auto-pulls new HLS scenes; validated under cron env.
-- Verified live: /api/health ok; home "Bağban AI"; /api/subsidy/rates = 117; hazelnut 3ha = 9000 AZN; HLS demo field 17 scenes/153 indices.
-- Follow-ups: Cloudflare Full(Strict) (dashboard was unresponsive); Earthdata token expires 2026-08-30.
+### Konteynerlər (`deploy/docker-compose.prod.yml`)
+- `db` (PostGIS, healthcheck), `api` (FastAPI, 127.0.0.1:8000), `web` (Next.js, 127.0.0.1:3000), **`titiler`** (127.0.0.1:8001→80, `./data/rasters` ro mount), `geo` (profile `geo`, tələbə görə, `./data/rasters` rw + canlı geo_pipeline kodu mount), `tools` (profile `tools`, miqrasiyalar), `n8n` (profile `orchestration`). Bütün app portları `127.0.0.1`-ə bağlı, host nginx qabaqda.
+
+### Redeploy (git əsaslı, SSH remote)
+- `/opt/bagbanai` `origin/main`-i izləyən git checkout-dur (public repo; `git config safe.directory` set). Push et, sonra serverdə:
+  `cd /opt/bagbanai && bash deploy/update.sh` (git pull --ff-only → **source .env** → `docker compose -f deploy/docker-compose.prod.yml up -d --build api web titiler` → `nginx -t && reload`).
+- **update.sh MUTLƏQ `.env` source etməlidir**, yoxsa api/web boş `DATABASE_URL` alıb crash-loop-a düşür.
+
+### Cron-lar (root crontab, PATH set)
+- `0 3 * * * cd /opt/bagbanai && bash deploy/run-hls.sh 30 >> /var/log/bagban-hls.log 2>&1` — **günlük sakit refresh** (`track=0` ötürür → yeni səhnə/raster yazır, amma `data_status`-u sıfırlamır və yenidən bildiriş etmir).
+- `*/2 * * * * cd /opt/bagbanai && flock -n /tmp/bagban-queue.lock bash deploy/process-queue.sh >> /var/log/bagban-queue.log 2>&1` — **hər 2 dəq queue worker** (`data_status='queued'` sahələri → geo pipeline `days_back=60`, `track=1`).
+
+### Secrets (`/opt/bagbanai/.env`, backup `/root/agradex.env.bak`)
+`POSTGRES_USER/PASSWORD/DB`, `JWT_SECRET`, `INTERNAL_API_TOKEN`, **`EARTHDATA_TOKEN`** (EDL bearer, **EXPIRES 2026-08-30** → urs.earthdata.nasa.gov-da regenerate), **`LLM_PROVIDER/LLM_MODEL/LLM_API_KEY`** (boş — AI aktivləşdirmək üçün əlavə et), **`SMTP_HOST/PORT/USER/PASSWORD/FROM`** (boş — email bildirişləri üçün; web/in-app bildirişlər onsuz işləyir).
+
+### Doğrulanmış canlı
+/api/health ok; home "Bağban AI"; /api/subsidy/rates = 117; hazelnut 3ha = 9000 AZN; HLS demo sahələr işləyir; AI endpoint-ləri açarsız rejimdə səliqəli deqradasiya (configured:false / 503); TiTiler raster overlay + basemap qalereyası canlı.
+
+## Phase 2+ (təxirə salınıb — spec §28 + `docs/ROADMAP.md`)
+- Hava (Open-Meteo) + modellər (GDD/spray/frost/drought), qayda mühərriki → çox-kanallı bildirişlər, hesabatlar (PDF/DOCX), baza/anomaliya/fenologiya, billing (Stripe/PSP; cədvəllər + gating hazır, inteqrasiya yox).
+- `docs/Infrastruktur_Layer_Tekmillesdirme.md` §6 qalan işlər: bulud-örtük filtri UI, iki-tarix compare/swipe, ölkə/rayon NDVI benchmark, PDF/DOCX hesabatlar, rəsmi kadastr layı, geokodlama axtarışı, hillshade/terrain.
+
+## Açıq işlər / TODO (növbəti sessiya)
+1. **AI-ı aktivləşdir:** `LLM_API_KEY` (+ `LLM_PROVIDER=anthropic`, `LLM_MODEL=claude-opus-4-8`) `.env`-ə → `api` restart.
+2. **Cloudflare SSL Full (Strict)** toggle (origin :443 hazır).
+3. **nginx dublikat server_name** təmizliyi.
+4. **EARTHDATA_TOKEN** 2026-08-30-da bitir → regenerate et.
+5. Sprint-2 qalan maddələri (yuxarıda) + Faza 2 (spec §28).
+
+## İstinad sahələr (canlı test üçün)
+- **"test lecet"** id `860891bd-912c-4ec3-9235-b7d4d0193190` (tam emal olunub: ~962 index_stats sətri + clipped COG-lar).
+- Demo **"Findiq sahesi 1"** `4a08ee8a-4123-4fe5-a07f-ed24c69c5604`, **"Xudat fındıq sahəsi"** `8e046b22-cbbf-4e54-b201-7e973d9106b9`.
+- Login: demo@agradex.com / AgradexDemo2026 (sahib hesabı seyidlimirshahbaz@gmail.com — parol bcrypt hash DB-də sıfırlanıb, fayllarda parol saxlanmır).
+
+## Versiyalar
+`CHANGELOG.md` [1.0.0]..[1.0.6]; git tag-lar v1.0.0..v1.0.4 (tag vs changelog nömrələnməsi tarixən ayrılıb — tag nömrələrinə çox güvənmə). Ən son commit 69d0d91.
