@@ -8,7 +8,7 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
-from . import llm, notify
+from . import llm, notify, usage as ai_usage
 from .context import build_field_context
 
 DISCLAIMER = ("Bu məsləhətlər peyk və sahə məlumatlarına əsaslanan avtomatik təhlildir; "
@@ -72,7 +72,7 @@ async def generate_and_store(conn, field_id: str) -> Optional[dict]:
             + "\n\nBu sahə üçün xülasə, risklər, məsləhətlər və növbəti addımları çıxar.")
 
     try:
-        result = await llm.complete_structured(SYSTEM, user, AdviceResult)
+        result, usage = await llm.complete_structured(SYSTEM, user, AdviceResult)
     except llm.LLMUnavailable:
         return None
 
@@ -100,6 +100,17 @@ async def generate_and_store(conn, field_id: str) -> Optional[dict]:
            values ($1::uuid,$2::uuid,$3,$4,$5::jsonb,$6,$7::jsonb,$8)""",
         field_id, org_id, provider, model, json.dumps(ctx),
         result.summary, json.dumps(findings), DISCLAIMER)
+
+    # Record token usage / cost, attributed to the org owner (best-effort).
+    try:
+        owner_id = await conn.fetchval(
+            "select owner_id from public.organizations where id=$1::uuid", org_id)
+        await ai_usage.record_usage(
+            conn, kind="advice", provider=usage["provider"], model=usage["model"],
+            input_tokens=usage["input_tokens"], output_tokens=usage["output_tokens"],
+            org_id=org_id, user_id=str(owner_id) if owner_id else None, field_id=field_id)
+    except Exception:
+        pass
 
     changed = prev_sig is not None and prev_sig != new_sig
     is_first = prev_sig is None

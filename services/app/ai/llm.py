@@ -1,8 +1,11 @@
 """Provider-agnostic LLM adapter (default: Claude / Anthropic).
 
 Two entry points:
-  - complete_structured(system, user, schema) -> validated Pydantic model  (advice)
-  - complete_text(system, messages) -> str                                  (chat)
+  - complete_structured(system, user, schema) -> (validated Pydantic model, usage)  (advice)
+  - complete_text(system, messages) -> (str, usage)                                  (chat)
+
+`usage` is a dict {"provider", "model", "input_tokens", "output_tokens"} so callers
+can record token consumption / cost in the AI usage ledger.
 
 The provider is chosen by settings.llm_provider; the API key comes from the
 environment (LLM_API_KEY / ANTHROPIC_API_KEY), added to .env by the operator —
@@ -40,9 +43,19 @@ def _anthropic_client():
     return AsyncAnthropic(api_key=_api_key())
 
 
+def _usage(provider: str, model: str, resp) -> dict:
+    """Build a usage dict from an Anthropic response object."""
+    return {
+        "provider": provider,
+        "model": model,
+        "input_tokens": int(resp.usage.input_tokens),
+        "output_tokens": int(resp.usage.output_tokens),
+    }
+
+
 async def complete_structured(system: str, user: str, schema: Type[T],
-                              max_tokens: int = 3000) -> T:
-    """Return a validated instance of `schema`. Anthropic path uses messages.parse
+                              max_tokens: int = 3000) -> tuple[T, dict]:
+    """Return (validated instance of `schema`, usage). Anthropic path uses messages.parse
     (structured outputs); other providers can be added behind the same interface."""
     if not is_configured():
         raise LLMUnavailable("no LLM key configured")
@@ -50,9 +63,10 @@ async def complete_structured(system: str, user: str, schema: Type[T],
     if provider != "anthropic":
         # Provider-agnostic by design; only Claude is wired today (chosen provider).
         raise LLMUnavailable(f"provider {provider} not wired yet")
+    model = settings.llm_model or "claude-opus-4-8"
     client = _anthropic_client()
     resp = await client.messages.parse(
-        model=settings.llm_model or "claude-opus-4-8",
+        model=model,
         max_tokens=max_tokens,
         system=system,
         messages=[{"role": "user", "content": user}],
@@ -60,25 +74,28 @@ async def complete_structured(system: str, user: str, schema: Type[T],
     )
     if resp.parsed_output is None:
         raise LLMUnavailable("model returned no structured output")
-    return resp.parsed_output
+    return resp.parsed_output, _usage(provider, model, resp)
 
 
-async def complete_text(system: str, messages: list[dict], max_tokens: int = 1500) -> str:
-    """Free-form chat completion. `messages` is a list of {role, content}."""
+async def complete_text(system: str, messages: list[dict],
+                        max_tokens: int = 1500) -> tuple[str, dict]:
+    """Free-form chat completion. `messages` is a list of {role, content}.
+    Returns (text, usage)."""
     if not is_configured():
         raise LLMUnavailable("no LLM key configured")
     provider = (settings.llm_provider or "anthropic").lower()
     if provider != "anthropic":
         raise LLMUnavailable(f"provider {provider} not wired yet")
+    model = settings.llm_model or "claude-opus-4-8"
     client = _anthropic_client()
     resp = await client.messages.create(
-        model=settings.llm_model or "claude-opus-4-8",
+        model=model,
         max_tokens=max_tokens,
         system=system,
         messages=messages,
     )
     parts = [b.text for b in resp.content if getattr(b, "type", None) == "text"]
-    return "\n".join(parts).strip()
+    return "\n".join(parts).strip(), _usage(provider, model, resp)
 
 
 def model_info() -> tuple[str, str]:

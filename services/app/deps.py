@@ -68,6 +68,13 @@ async def require_paid(conn: asyncpg.Connection, org_id: str) -> None:
         raise HTTPException(status_code=402, detail="paid_feature")
 
 
+async def require_platform_admin(conn: asyncpg.Connection, user_id: str) -> None:
+    """Platform (super) admin gate for /api/admin/* — checks users.is_admin."""
+    ok = await conn.fetchval("select is_admin from public.users where id=$1::uuid", user_id)
+    if not ok:
+        raise HTTPException(status_code=403, detail="admin_only")
+
+
 # convenience role groups (spec §8 matrix)
 ROLES_WRITE = [OrgRole.owner, OrgRole.admin, OrgRole.agronomist]
 ROLES_WORKER = [OrgRole.owner, OrgRole.admin, OrgRole.agronomist, OrgRole.worker]

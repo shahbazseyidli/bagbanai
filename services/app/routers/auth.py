@@ -38,12 +38,13 @@ async def signup(body: SignupIn, response: Response):
 async def login(body: LoginIn, response: Response):
     async with connection() as conn:
         row = await conn.fetchrow(
-            "select id, email, password_hash, full_name, locale from public.users where lower(email)=lower($1)",
+            "select id, email, password_hash, full_name, locale, is_admin from public.users where lower(email)=lower($1)",
             body.email)
     if not row or not verify_password(body.password, row["password_hash"]):
         raise HTTPException(status_code=401, detail="invalid_credentials")
     _set_cookie(response, create_token(str(row["id"])))
-    return UserOut(id=str(row["id"]), email=row["email"], full_name=row["full_name"], locale=row["locale"])
+    return UserOut(id=str(row["id"]), email=row["email"], full_name=row["full_name"],
+                   locale=row["locale"], is_admin=row["is_admin"])
 
 
 @router.post("/logout")
@@ -56,7 +57,8 @@ async def logout(response: Response):
 async def me(user_id: str = Depends(get_current_user_id)):
     async with connection(user_id) as conn:
         row = await conn.fetchrow(
-            "select id, email, full_name, locale from public.users where id=$1::uuid", user_id)
+            "select id, email, full_name, locale, is_admin from public.users where id=$1::uuid", user_id)
     if not row:
         raise HTTPException(status_code=401, detail="unauthorized")
-    return UserOut(id=str(row["id"]), email=row["email"], full_name=row["full_name"], locale=row["locale"])
+    return UserOut(id=str(row["id"]), email=row["email"], full_name=row["full_name"],
+                   locale=row["locale"], is_admin=row["is_admin"])

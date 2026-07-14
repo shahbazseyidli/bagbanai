@@ -31,6 +31,7 @@ class UserOut(BaseModel):
     email: EmailStr
     full_name: Optional[str] = None
     locale: str = "az"
+    is_admin: bool = False
 
 
 # ---- organizations / membership ----

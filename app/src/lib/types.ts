@@ -5,6 +5,7 @@ export interface User {
   email: string;
   full_name?: string | null;
   locale?: string | null;
+  is_admin?: boolean;
 }
 
 export type Role = "owner" | "admin" | "member" | "viewer";
@@ -238,4 +239,82 @@ export interface SubsidyRate {
   unit?: string;
   label_az?: string;
   [key: string]: unknown;
+}
+
+// ---- Admin panel ----
+
+// GET /api/admin/overview
+export interface AdminOverview {
+  users: number;
+  orgs: number;
+  farms: number;
+  fields: number;
+  advice_count: number;
+  chat_count: number;
+  ai_calls: number;
+  input_tokens: number;
+  output_tokens: number;
+  cost_usd: number;
+  cost_usd_month: number;
+  provider: string;
+  model: string;
+  ai_configured: boolean;
+}
+
+// GET /api/admin/users -> { users: AdminUser[] }
+export interface AdminUser {
+  id: string;
+  email: string;
+  full_name?: string | null;
+  locale?: string | null;
+  is_admin: boolean;
+  created_at: string;
+  org_name?: string | null;
+  role?: string | null;
+  ai_calls: number;
+  input_tokens: number;
+  output_tokens: number;
+  cost_usd: number;
+  last_active?: string | null;
+}
+
+// GET /api/admin/activity -> { activity: AdminActivityItem[] }
+export interface AdminActivityItem {
+  at: string;
+  user_email?: string | null;
+  type: string;
+  detail: string;
+}
+
+// GET /api/admin/usage -> { group: string, rows: AdminUsageRow[] }
+// rows carry the fields relevant to the requested grouping (user_id/email, model, or day).
+export interface AdminUsageRow {
+  user_id?: string;
+  email?: string;
+  model?: string;
+  day?: string;
+  ai_calls: number;
+  input_tokens: number;
+  output_tokens: number;
+  cost_usd: number;
+}
+
+// GET /api/admin/billing
+export interface AdminBillingOrg {
+  org_id: string;
+  org_name: string;
+  plan: string;
+  ai_calls: number;
+  input_tokens: number;
+  output_tokens: number;
+  cost_usd: number;
+  suggested_charge_usd: number;
+}
+
+export interface AdminBilling {
+  markup_x: number;
+  orgs: AdminBillingOrg[];
+  total_cost_usd: number;
+  total_suggested_usd: number;
+  month_cost_usd: number;
 }

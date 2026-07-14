@@ -6,7 +6,7 @@ from __future__ import annotations
 import json
 from typing import Optional
 
-from . import llm
+from . import llm, usage as ai_usage
 from .context import build_field_context
 
 SYSTEM = (
@@ -60,7 +60,7 @@ async def answer(conn, field_id: str, user_id: str, message: str) -> Optional[st
     msgs.append({"role": "user", "content": message})
 
     try:
-        reply = await llm.complete_text(system, msgs)
+        reply, usage = await llm.complete_text(system, msgs)
     except llm.LLMUnavailable:
         return None
 
@@ -73,4 +73,14 @@ async def answer(conn, field_id: str, user_id: str, message: str) -> Optional[st
         """insert into public.ai_chat_messages (org_id, field_id, user_id, role, content)
            values ($1::uuid,$2::uuid,$3::uuid,'assistant',$4)""",
         org_id, field_id, user_id, reply)
+
+    # Record token usage / cost for this chat turn (best-effort).
+    try:
+        await ai_usage.record_usage(
+            conn, kind="chat", provider=usage["provider"], model=usage["model"],
+            input_tokens=usage["input_tokens"], output_tokens=usage["output_tokens"],
+            org_id=org_id, user_id=user_id, field_id=field_id)
+    except Exception:
+        pass
+
     return reply

@@ -3,6 +3,27 @@
 Bütün əhəmiyyətli dəyişikliklər burada qeyd olunur. Format [Keep a Changelog](https://keepachangelog.com/),
 versiyalar [SemVer](https://semver.org/).
 
+## [1.0.8] — 2026-07-14 — Admin panel + AI token/xərc izləmə + billing
+
+### Added
+- **AI token/xərc izləmə:** hər AI çağırışı (məsləhət + chatbot) üçün giriş/çıxış token-ləri və
+  model qiymətinə əsasən **xərc (USD)** `public.ai_usage` ledger-ində saxlanır. `ai/llm.py` indi
+  `usage` qaytarır; `ai/pricing.py` (model → \$/1M qiymət) + `ai/usage.py` (`record_usage`). Məsləhət
+  istifadəsi org sahibinə, chat istifadəsi sual verən user-ə aid edilir (best-effort, AI-ı bloklamır).
+- **Platform admin paneli (`/admin`, yalnız `users.is_admin`):**
+  - **Ümumi** — user/org/farm/sahə sayı, AI çağırışları, token-lər, ümumi + bu ayın xərci, AI status.
+  - **İstifadəçilər** — hər user: org, rol, qoşulma, AI çağırışı, token (giriş/çıxış), xərc, son aktivlik.
+  - **Aktivlik** — bütün platforma üzrə son hadisələr (qeydiyyat, sahə, AI məsləhət, chat, skautinq, tapşırıq).
+  - **Xərc / Billing** — org üzrə AI xərci + **təklif olunan hesab (xərc × 3 markup)**, günlük xərc
+    qrafiki (Recharts), model üzrə bölgü, cəmi.
+- **API:** `GET /api/admin/{overview,users,activity,usage,billing}` (platform-admin qapısı
+  `require_platform_admin`). `GET /api/auth/me` və `login` indi `is_admin` qaytarır; Nav-da admin linki
+  yalnız admin-ə görünür.
+- **Migration `0011`:** `users.is_admin` (owner admin təyin olunur) + `ai_usage` ledger + indекслər.
+
+### Notes
+- Token/xərc rəqəmləri yalnız AI aktivləşəndən sonra (`LLM_API_KEY` .env-də) dolur.
+
 ## [1.0.7] — 2026-07-14 — İnfrastruktur Sprint 3 (xəritə alətləri) + bölgə benchmark
 
 ### Added
