@@ -58,6 +58,25 @@ def process_granule(field_geojson: dict, granule: Granule) -> dict[str, dict]:
 AVG_SEC_PER_SCENE = 6
 
 
+def _trigger_advice(field_id: str) -> None:
+    """Best-effort: ask the API to regenerate AI advice after new scenes. The API
+    (not the geo worker) holds the LLM client + key. Reaches it at api:8000 on the
+    compose network. Silently skips if unreachable or the token is missing."""
+    import json as _json
+    import urllib.request
+
+    token = (os.environ.get("INTERNAL_API_TOKEN") or "").strip()
+    base = os.environ.get("API_INTERNAL_URL", "http://api:8000")
+    url = f"{base}/api/internal/advice/run?field_id={field_id}"
+    try:
+        req = urllib.request.Request(url, method="POST",
+                                     headers={"X-Internal-Token": token})
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            print(f"  advice trigger: {_json.loads(resp.read() or b'{}')}")
+    except Exception as exc:  # noqa: BLE001
+        print(f"  advice trigger skipped: {exc}", file=sys.stderr)
+
+
 def run_field(field_id: str, days_back: int = 120, max_cloud: int = 70,
               write_rasters: bool = True, track_status: bool = True) -> dict:
     field = persist.get_field(field_id)
@@ -114,6 +133,10 @@ def run_field(field_id: str, days_back: int = 120, max_cloud: int = 70,
                     field_id, field["org_id"], field.get("name") or "Sahə")
             except Exception as exc:  # noqa: BLE001
                 print(f"notification skipped: {exc}", file=sys.stderr)
+
+        # New satellite data → regenerate AI advice (the API holds the LLM + key).
+        if scenes_written > 0:
+            _trigger_advice(field_id)
         return {"ok": True, "granules_found": total, "scenes_written": scenes_written}
     except Exception as exc:  # noqa: BLE001 — surface failure to the UI, then re-raise
         if track_status:

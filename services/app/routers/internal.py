@@ -7,9 +7,23 @@ import asyncio
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from ..db import connection
 from ..deps import require_internal
 
 router = APIRouter(prefix="/api/internal", tags=["internal"], dependencies=[Depends(require_internal)])
+
+
+@router.post("/advice/run")
+async def run_advice(field_id: str):
+    """Regenerate AI advice for a field (called by the geo pipeline after new scenes,
+    or by n8n). Notifies the farmer on material change. No-op if AI isn't configured."""
+    from ..ai import advice as advice_svc
+    from ..ai import llm
+    if not llm.is_configured():
+        return {"ok": False, "reason": "ai_not_configured"}
+    async with connection(None) as conn:
+        result = await advice_svc.generate_and_store(conn, field_id)
+    return {"ok": result is not None}
 
 
 @router.post("/pipeline/run")

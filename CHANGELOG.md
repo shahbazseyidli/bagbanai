@@ -3,6 +3,22 @@
 Bütün əhəmiyyətli dəyişikliklər burada qeyd olunur. Format [Keep a Changelog](https://keepachangelog.com/),
 versiyalar [SemVer](https://semver.org/).
 
+## [1.0.6] — 2026-07-14 — AI aqronom məsləhəti + chatbot
+
+### Added
+- **AI məsləhət (Claude):** NASA peyk indeks trendləri + məhsul metadatası + görülmüş işlər →
+  **xülasə + risklər + məsləhətlər + növbəti addımlar** (Azərbaycanca, strukturlu çıxış).
+  Hər yeni peyk səhnəsindən sonra **avtomatik** yenilənir (pipeline → `/api/internal/advice/run`),
+  `public.advice`-də saxlanır. Məsləhət **dəyişəndə** fermerə **bildiriş** (in-app + email).
+- **Sahə üzrə chatbot:** kontekst = həmin sahənin datası + son məsləhət + söhbət tarixçəsi;
+  hər mesaj `public.ai_chat_messages`-də saxlanır, növbəti cavablar tarixçəyə baxır.
+- Frontend **“AI Məsləhət” tab**-ı: məsləhət kartı (risk şiddət nişanları) + canlı söhbət.
+- **Provider-agnostik adapter** (`app/ai/llm.py`) — default Claude (`claude-opus-4-8`), env-dən
+  dəyişilir (`LLM_PROVIDER/LLM_MODEL/LLM_API_KEY`). Açar yoxdursa endpoint-lər səliqəli
+  “qoşulmayıb” rejiminə düşür. Email: SMTP (opsional).
+- API: `GET/POST /fields/{id}/advice(/generate)`, `GET/POST /fields/{id}/chat`,
+  `GET /notifications`, `POST /notifications/read`.
+
 ## [1.0.5] — 2026-07-14 — İnfrastruktur Sprint 2 (peyk raster analizi)
 
 ### Added

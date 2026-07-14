@@ -20,9 +20,17 @@ class Settings(BaseSettings):
     # Satellite / weather / AI / storage (used in later steps)
     stac_url: str = "https://cmr.earthdata.nasa.gov/stac/LPCLOUD"
     open_meteo_base: str = "https://api.open-meteo.com/v1"
-    llm_provider: str = ""
-    llm_model: str = ""
+    # AI advice + chat (provider-agnostic; default Claude). Key added to .env by the user.
+    llm_provider: str = "anthropic"
+    llm_model: str = "claude-opus-4-8"
     llm_api_key: str = ""
+
+    # Email notifications (optional; web/in-app work without these). SMTP or an API relay.
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = "Bağban AI <no-reply@agradex.com>"
     object_storage_driver: str = "local"
     object_storage_root: str = "./storage"
     tile_server_base: str = "http://localhost:8000/api/tiles"

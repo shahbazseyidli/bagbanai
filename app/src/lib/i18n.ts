@@ -101,6 +101,7 @@ export const az = {
 
   // field detail tabs
   "field.tab.overview": "İcmal",
+  "field.tab.ai": "AI Məsləhət",
   "field.tab.metadata": "Metadata",
   "field.tab.scouting": "Skautinq",
   "field.tab.tasks": "Tapşırıqlar",
