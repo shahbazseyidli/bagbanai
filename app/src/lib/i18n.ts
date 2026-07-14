@@ -102,7 +102,7 @@ export const az = {
   // field detail tabs
   "field.tab.overview": "İcmal",
   "field.tab.ai": "AI Məsləhət",
-  "field.tab.metadata": "Metadata",
+  "field.tab.metadata": "Sahə haqqında məlumat",
   "field.tab.scouting": "Skautinq",
   "field.tab.tasks": "Tapşırıqlar",
   "field.tab.operations": "Əməliyyatlar",
@@ -117,7 +117,7 @@ export const az = {
   "idx.timeseries": "Zaman seriyası",
 
   // metadata
-  "meta.title": "Sahə metadatası",
+  "meta.title": "Sahə haqqında məlumat",
   "meta.crop_type": "Bitki növü",
   "meta.variety": "Sort",
   "meta.planting_date": "Əkin tarixi",
@@ -140,7 +140,7 @@ export const az = {
   "meta.fertilizer_history": "Gübrələmə tarixçəsi",
   "meta.prior_yields": "Əvvəlki məhsuldarlıqlar",
   "meta.pest_history": "Zərərverici tarixçəsi",
-  "meta.saved": "Metadata yadda saxlanıldı",
+  "meta.saved": "Məlumat yadda saxlanıldı",
   "meta.cropRequired": "Bitki növü vacibdir",
   "meta.f.year": "İl",
   "meta.f.crop": "Bitki",

@@ -110,6 +110,19 @@ export interface FieldMetadata {
   prior_yields?: Array<Record<string, unknown>>;
   pest_history?: Array<Record<string, unknown>>;
   notes?: string;
+  crop_cycle?: string | null;
+  region?: string | null;
+  economic_region?: string | null;
+}
+
+// GET /api/geo/site?lat=&lon= — best-effort terrain + reverse-geocode.
+export interface GeoSite {
+  elevation_m: number | null;
+  slope_deg: number | null;
+  aspect_deg: number | null;
+  aspect_label: string | null;
+  region: string | null;
+  economic_region: string | null;
 }
 
 export interface IndexPoint {

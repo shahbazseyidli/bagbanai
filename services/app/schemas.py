@@ -89,6 +89,9 @@ class FieldOut(BaseModel):
 
 class FieldMetadataIn(BaseModel):
     crop_type: str
+    crop_cycle: Optional[str] = None
+    region: Optional[str] = None
+    economic_region: Optional[str] = None
     variety: Optional[str] = None
     planting_date: Optional[str] = None
     expected_harvest: Optional[str] = None

@@ -1,0 +1,678 @@
+"use client";
+
+// FieldOnboarding — a click-first, 4-step wizard that replaces the single-screen
+// FieldCreator. Step 1 draws/imports the boundary and kicks off a best-effort
+// terrain + reverse-geocode lookup; steps 2–3 collect "Sahə haqqında məlumat"
+// with almost no typing; step 4 confirms and submits (POST field → PUT metadata).
+
+import { useMemo, useRef, useState } from "react";
+import { Upload, MapPin, Mountain, Compass, TriangleRight } from "lucide-react";
+import { api } from "@/lib/api";
+import { t } from "@/lib/i18n";
+import { DrawMap } from "@/components/FieldMap";
+import { ErrorNote, Field as FormField } from "@/components/ui";
+import { parseCoordinates, polygonFromRing, validatePolygon } from "@/lib/geo";
+import { parseGeoImport } from "@/lib/geoio";
+import type { Field, GeoSite, Polygon } from "@/lib/types";
+import {
+  type Opt,
+  CROP_OPTIONS,
+  SOIL_TYPE_OPTIONS,
+  IRRIGATION_METHOD_OPTIONS,
+  GROWTH_STAGE_OPTIONS,
+  TILLAGE_OPTIONS,
+} from "@/lib/metadataOptions";
+import { useFieldInfo } from "./info/useFieldInfo";
+import CycleCards from "./info/CycleCards";
+import CropGrid from "./info/CropGrid";
+import VarietyChips from "./info/VarietyChips";
+import ChoiceChips from "./info/ChoiceChips";
+import ClickDate from "./info/ClickDate";
+import PhPicker from "./info/PhPicker";
+import NumberSlider from "./info/NumberSlider";
+import AutoField from "./info/AutoField";
+import YesNo from "./info/YesNo";
+import { ARRAY_DEFS, RepeatableRows, type Row, fromRows } from "./repeatableRows";
+
+interface Props {
+  farmId: string;
+  onCreated: (field: Field) => void;
+}
+
+type Mode = "draw" | "coords";
+
+/** Coerce a stored numeric-or-string metadata value into a number|null. */
+function toNum(v: number | string | null | undefined): number | null {
+  if (v == null || v === "") return null;
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Map a canonical value to its Azerbaijani label (falls back to the raw value). */
+function labelOf(options: Opt[], value: string | null | undefined): string {
+  if (!value) return "—";
+  return options.find((o) => o.value === value)?.label ?? value;
+}
+
+/** Average of the boundary ring vertices — good enough for a point lookup. */
+function centroidOf(poly: Polygon): { lat: number; lon: number } {
+  const ring = poly.coordinates[0] ?? [];
+  const closed =
+    ring.length > 1 &&
+    ring[0][0] === ring[ring.length - 1][0] &&
+    ring[0][1] === ring[ring.length - 1][1];
+  const pts = closed ? ring.slice(0, -1) : ring;
+  let sx = 0;
+  let sy = 0;
+  for (const [lon, lat] of pts) {
+    sx += lon;
+    sy += lat;
+  }
+  const n = pts.length || 1;
+  return { lon: sx / n, lat: sy / n };
+}
+
+const STEP_TITLES = [
+  "Xəritədə sahəni seçin",
+  "Sahə haqqında məlumat",
+  "Ətraflı məlumat (istəyə bağlı)",
+  "Təsdiq",
+];
+
+export default function FieldOnboarding({ farmId, onCreated }: Props) {
+  const [step, setStep] = useState(1);
+
+  // --- Step 1: boundary ---
+  const [name, setName] = useState("");
+  const [mode, setMode] = useState<Mode>("draw");
+  const [drawnPolygon, setDrawnPolygon] = useState<Polygon | null>(null);
+  const [coordsText, setCoordsText] = useState("");
+  const [importedPolygon, setImportedPolygon] = useState<Polygon | null>(null);
+  const [importSeq, setImportSeq] = useState(0);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  // --- Terrain / reverse-geocode ---
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [aspectLabel, setAspectLabel] = useState<string | null>(null);
+  const lastGeoKey = useRef<string>("");
+
+  // --- Field info state ---
+  const info = useFieldInfo();
+  const { data, set, setMany, toPayload } = info;
+  const [rowsMap, setRowsMap] = useState<Record<string, Row[]>>({});
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [treeSpacing, setTreeSpacing] = useState<number | null>(null);
+  const [orchardAge, setOrchardAge] = useState<number | null>(null);
+
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const cycle = data.crop_cycle ?? null;
+  const isPerennial = cycle === "perennial";
+
+  // The active polygon depends on the mode.
+  const polygon: Polygon | null = useMemo(() => {
+    if (mode === "draw") return drawnPolygon;
+    try {
+      return polygonFromRing(parseCoordinates(coordsText));
+    } catch {
+      return null;
+    }
+  }, [mode, drawnPolygon, coordsText]);
+
+  const validation = useMemo(() => validatePolygon(polygon), [polygon]);
+  const areaHa = validation.ok ? validation.areaHa ?? 0 : null;
+
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    setError("");
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const poly = parseGeoImport(text, file.name);
+      if (!poly) {
+        setError("Faylda poliqon tapılmadı (GeoJSON/KML gözlənilir).");
+        return;
+      }
+      setMode("draw");
+      setImportedPolygon(poly);
+      setImportSeq((s) => s + 1);
+      setDrawnPolygon(poly);
+    } catch {
+      setError("Fayl oxunmadı.");
+    } finally {
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  async function fetchGeo(poly: Polygon) {
+    const { lat, lon } = centroidOf(poly);
+    const key = `${lat.toFixed(4)},${lon.toFixed(4)}`;
+    if (key === lastGeoKey.current) return;
+    lastGeoKey.current = key;
+    setGeoLoading(true);
+    setAspectLabel(null);
+    try {
+      const site = await api.get<GeoSite>(`/api/geo/site?lat=${lat}&lon=${lon}`);
+      setMany({
+        elevation_m: site.elevation_m ?? undefined,
+        slope_deg: site.slope_deg ?? undefined,
+        aspect_deg: site.aspect_deg ?? undefined,
+        region: site.region ?? undefined,
+        economic_region: site.economic_region ?? undefined,
+      });
+      setAspectLabel(site.aspect_label);
+    } catch {
+      // Best-effort only — leave terrain fields blank on failure.
+    } finally {
+      setGeoLoading(false);
+    }
+  }
+
+  function validateBoundary(): Polygon | null {
+    if (mode === "coords") {
+      try {
+        parseCoordinates(coordsText);
+      } catch (err) {
+        setError((err as Error).message === "min" ? t("field.err.minVertices") : t("field.err.parse"));
+        return null;
+      }
+    }
+    if (!polygon) {
+      setError(t("field.err.noPolygon"));
+      return null;
+    }
+    const v = validatePolygon(polygon);
+    if (!v.ok) {
+      setError(v.errorKey ? t(v.errorKey) : t("common.error"));
+      return null;
+    }
+    return polygon;
+  }
+
+  function next() {
+    setError("");
+    if (step === 1) {
+      if (!name.trim()) {
+        setError("Sahənin adını daxil edin.");
+        return;
+      }
+      const poly = validateBoundary();
+      if (!poly) return;
+      void fetchGeo(poly);
+    }
+    if (step === 2 && !(data.crop_type && data.crop_type.trim())) {
+      setError(t("meta.cropRequired"));
+      return;
+    }
+    setStep((s) => Math.min(4, s + 1));
+  }
+
+  function back() {
+    setError("");
+    setStep((s) => Math.max(1, s - 1));
+  }
+
+  async function submit() {
+    setError("");
+    const poly = validateBoundary();
+    if (!poly) {
+      setStep(1);
+      return;
+    }
+    if (!name.trim()) {
+      setStep(1);
+      setError(t("field.err.noPolygon"));
+      return;
+    }
+    if (!(data.crop_type && data.crop_type.trim())) {
+      setStep(2);
+      setError(t("meta.cropRequired"));
+      return;
+    }
+
+    setBusy(true);
+    try {
+      const field = await api.post<Field>("/api/fields", {
+        farm_id: farmId,
+        name,
+        geometry: poly,
+      });
+
+      // Build the metadata payload: base state + repeatable arrays + folded extras.
+      const payload = toPayload();
+      for (const def of ARRAY_DEFS) {
+        payload[def.key as string] = fromRows(rowsMap[def.key as string] ?? [], def);
+      }
+      let notes = (data.notes ?? "").trim();
+      if (isPerennial && orchardAge != null) {
+        notes = `${notes ? `${notes}\n` : ""}Bağın yaşı: ${orchardAge} il`;
+      }
+      if (isPerennial && treeSpacing != null) {
+        notes = `${notes ? `${notes}\n` : ""}Ağac aralığı: ${treeSpacing} m`;
+      }
+      payload.notes = notes || null;
+
+      try {
+        await api.put(`/api/fields/${field.id}/metadata`, payload);
+      } catch {
+        // Field is created; metadata is best-effort and editable later.
+      }
+      onCreated(field);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("common.error"));
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Progress header */}
+      <div className="flex items-center gap-2">
+        {STEP_TITLES.map((title, i) => {
+          const n = i + 1;
+          const done = n < step;
+          const active = n === step;
+          return (
+            <div key={title} className="flex flex-1 items-center gap-2">
+              <div
+                className={
+                  active
+                    ? "flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-sm font-semibold text-white"
+                    : done
+                      ? "flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm font-semibold text-emerald-700"
+                      : "flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-400"
+                }
+              >
+                {n}
+              </div>
+              {i < STEP_TITLES.length - 1 && (
+                <div className={done ? "h-0.5 flex-1 bg-emerald-300" : "h-0.5 flex-1 bg-slate-200"} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <h2 className="text-lg font-semibold text-slate-800">{STEP_TITLES[step - 1]}</h2>
+
+      {/* STEP 1 — boundary */}
+      {step === 1 && (
+        <div className="space-y-4">
+          <FormField label={t("field.name")} required>
+            <input className="input" value={name} onChange={(e) => setName(e.target.value)} />
+          </FormField>
+
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className={mode === "draw" ? "btn-primary" : "btn-secondary"}
+              onClick={() => setMode("draw")}
+            >
+              {t("field.mode.draw")}
+            </button>
+            <button
+              type="button"
+              className={mode === "coords" ? "btn-primary" : "btn-secondary"}
+              onClick={() => setMode("coords")}
+            >
+              {t("field.mode.coords")}
+            </button>
+          </div>
+
+          {mode === "draw" ? (
+            <div className="space-y-2">
+              <p className="text-sm text-slate-500">{t("field.drawHint")}</p>
+              <DrawMap onPolygon={setDrawnPolygon} importedPolygon={importedPolygon} importSeq={importSeq} />
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept=".geojson,.json,.kml,application/geo+json,application/vnd.google-earth.kml+xml"
+                  onChange={onFile}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  className="inline-flex items-center gap-1 rounded border border-slate-300 px-2 py-1 text-slate-600 hover:bg-slate-50"
+                >
+                  <Upload className="h-3.5 w-3.5" /> İdxal (GeoJSON/KML)
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-sm text-slate-500">{t("field.coordsHint")}</p>
+              <textarea
+                className="input h-40 font-mono"
+                placeholder={"47.50,40.30\n47.52,40.30\n47.52,40.32"}
+                value={coordsText}
+                onChange={(e) => setCoordsText(e.target.value)}
+              />
+            </div>
+          )}
+
+          <div className="flex items-center justify-between rounded-lg bg-emerald-50 px-4 py-2 text-sm">
+            <span className="text-slate-600">{t("field.area")}</span>
+            <span className="font-semibold text-emerald-700">
+              {areaHa !== null ? `${areaHa.toFixed(3)} ${t("field.ha")}` : "—"}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* STEP 2 — essential info */}
+      {step === 2 && (
+        <div className="space-y-6">
+          <FormField label="Əkin növü" required>
+            <CycleCards value={cycle} onChange={(v) => set("crop_cycle", v)} />
+          </FormField>
+
+          <FormField label={t("meta.crop_type")} required>
+            <CropGrid
+              cycle={cycle}
+              value={data.crop_type || null}
+              onChange={(v) => {
+                set("crop_type", v ?? "");
+                set("variety", undefined);
+              }}
+            />
+          </FormField>
+
+          <FormField label={t("meta.variety")}>
+            <VarietyChips
+              crop={data.crop_type || null}
+              value={data.variety ?? null}
+              onChange={(v) => set("variety", v ?? undefined)}
+            />
+          </FormField>
+
+          <FormField label={isPerennial ? "Əkilmə ili" : "Səpin tarixi"}>
+            <ClickDate
+              mode={isPerennial ? "year" : "date"}
+              value={data.planting_date ?? null}
+              onChange={(v) => set("planting_date", v ?? undefined)}
+            />
+          </FormField>
+
+          <FormField label={t("meta.irrigation_method")}>
+            <ChoiceChips
+              options={IRRIGATION_METHOD_OPTIONS}
+              value={data.irrigation_method ?? null}
+              onChange={(v) => set("irrigation_method", v ?? undefined)}
+              allowOther
+              allowUnknown
+            />
+          </FormField>
+
+          <FormField label={t("meta.irrigation_available")}>
+            <YesNo
+              value={data.irrigation_available ?? null}
+              onChange={(v) => set("irrigation_available", v ?? undefined)}
+            />
+          </FormField>
+
+          <div className="grid gap-4 rounded-xl border border-slate-100 bg-slate-50/60 p-4 sm:grid-cols-2">
+            <AutoField
+              label="Rayon"
+              value={data.region ?? null}
+              loading={geoLoading}
+              onChange={(v) => set("region", v)}
+            />
+            <AutoField
+              label={t("meta.elevation_m")}
+              value={toNum(data.elevation_m)}
+              unit="m"
+              loading={geoLoading}
+              onChange={(v) => set("elevation_m", v)}
+            />
+            <AutoField
+              label={t("meta.slope_deg")}
+              value={toNum(data.slope_deg)}
+              unit="°"
+              loading={geoLoading}
+              onChange={(v) => set("slope_deg", v)}
+            />
+            <AutoField
+              label="İstiqamət"
+              value={aspectLabel ?? toNum(data.aspect_deg)}
+              loading={geoLoading}
+              readOnly
+            />
+          </div>
+        </div>
+      )}
+
+      {/* STEP 3 — optional details */}
+      {step === 3 && (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-500">
+            Bu addım tamamilə istəyə bağlıdır — istədiyiniz sahələri doldurun, qalanlarını buraxın.
+          </p>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={() => setShowAdvanced((s) => !s)}
+          >
+            {showAdvanced ? "Ətraflı sahələri gizlət" : "Ətraflı sahələri göstər"}
+          </button>
+
+          {showAdvanced && (
+            <div className="space-y-6">
+              <FormField label={t("meta.soil_type")}>
+                <ChoiceChips
+                  options={SOIL_TYPE_OPTIONS}
+                  value={data.soil_type ?? null}
+                  onChange={(v) => set("soil_type", v ?? undefined)}
+                  allowOther
+                  allowUnknown
+                />
+              </FormField>
+
+              <FormField label={t("meta.soil_ph")}>
+                <PhPicker
+                  value={toNum(data.soil_ph)}
+                  onChange={(v) => set("soil_ph", v ?? undefined)}
+                />
+              </FormField>
+
+              <FormField label={t("meta.growth_stage")}>
+                <ChoiceChips
+                  options={GROWTH_STAGE_OPTIONS}
+                  value={data.growth_stage ?? null}
+                  onChange={(v) => set("growth_stage", v ?? undefined)}
+                  allowUnknown
+                />
+              </FormField>
+
+              <FormField label={t("meta.tillage_practice")}>
+                <ChoiceChips
+                  options={TILLAGE_OPTIONS}
+                  value={data.tillage_practice ?? null}
+                  onChange={(v) => set("tillage_practice", v ?? undefined)}
+                  allowUnknown
+                />
+              </FormField>
+
+              <FormField label={t("meta.expected_harvest")}>
+                <ClickDate
+                  mode="date"
+                  value={data.expected_harvest ?? null}
+                  onChange={(v) => set("expected_harvest", v ?? undefined)}
+                />
+              </FormField>
+
+              <FormField label={t("meta.target_yield")}>
+                <NumberSlider
+                  value={toNum(data.target_yield)}
+                  onChange={(v) => set("target_yield", v ?? undefined)}
+                  min={0}
+                  max={100}
+                  step={0.5}
+                  unit="t/ha"
+                />
+              </FormField>
+
+              {isPerennial ? (
+                <>
+                  <FormField label="Ağac aralığı">
+                    <NumberSlider
+                      value={treeSpacing}
+                      onChange={setTreeSpacing}
+                      min={1}
+                      max={12}
+                      step={0.5}
+                      unit="m"
+                    />
+                  </FormField>
+                  <FormField label="Bağın yaşı">
+                    <NumberSlider
+                      value={orchardAge}
+                      onChange={setOrchardAge}
+                      min={0}
+                      max={60}
+                      step={1}
+                      unit="il"
+                    />
+                  </FormField>
+                </>
+              ) : (
+                <>
+                  <FormField label={t("meta.seeding_density")}>
+                    <NumberSlider
+                      value={toNum(data.seeding_density)}
+                      onChange={(v) => set("seeding_density", v ?? undefined)}
+                      min={0}
+                      max={500}
+                      step={1}
+                      unit="kg/ha"
+                    />
+                  </FormField>
+                  <FormField label={t("meta.previous_crop")}>
+                    <CropGrid
+                      cycle={null}
+                      value={data.previous_crop ?? null}
+                      onChange={(v) => set("previous_crop", v ?? undefined)}
+                    />
+                  </FormField>
+                </>
+              )}
+
+              <div className="space-y-4 border-t border-slate-100 pt-4">
+                {ARRAY_DEFS.map((def) => (
+                  <RepeatableRows
+                    key={def.key as string}
+                    def={def}
+                    rows={rowsMap[def.key as string] ?? []}
+                    onChange={(rows) =>
+                      setRowsMap((prev) => ({ ...prev, [def.key as string]: rows }))
+                    }
+                  />
+                ))}
+              </div>
+
+              <FormField label={t("meta.notes")}>
+                <textarea
+                  className="input h-24"
+                  value={data.notes ?? ""}
+                  onChange={(e) => set("notes", e.target.value)}
+                />
+              </FormField>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* STEP 4 — confirm */}
+      {step === 4 && (
+        <div className="space-y-4">
+          <div className="rounded-xl border border-slate-200 p-4">
+            <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+              <SummaryItem label={t("field.name")} value={name || "—"} />
+              <SummaryItem
+                label={t("field.area")}
+                value={areaHa !== null ? `${areaHa.toFixed(3)} ${t("field.ha")}` : "—"}
+              />
+              <SummaryItem label={t("meta.crop_type")} value={labelOf(CROP_OPTIONS, data.crop_type)} />
+              <SummaryItem label={t("meta.variety")} value={data.variety || "—"} />
+              <SummaryItem
+                label={isPerennial ? "Əkilmə ili" : "Səpin tarixi"}
+                value={data.planting_date || "—"}
+              />
+              <SummaryItem
+                label={t("meta.irrigation_method")}
+                value={labelOf(IRRIGATION_METHOD_OPTIONS, data.irrigation_method)}
+              />
+              <SummaryItem
+                label="Rayon"
+                value={data.region || "—"}
+                icon={<MapPin className="h-4 w-4 text-slate-400" />}
+              />
+              <SummaryItem
+                label={t("meta.elevation_m")}
+                value={toNum(data.elevation_m) != null ? `${toNum(data.elevation_m)} m` : "—"}
+                icon={<Mountain className="h-4 w-4 text-slate-400" />}
+              />
+              <SummaryItem
+                label={t("meta.slope_deg")}
+                value={toNum(data.slope_deg) != null ? `${toNum(data.slope_deg)}°` : "—"}
+                icon={<TriangleRight className="h-4 w-4 text-slate-400" />}
+              />
+              <SummaryItem
+                label="İstiqamət"
+                value={aspectLabel || "—"}
+                icon={<Compass className="h-4 w-4 text-slate-400" />}
+              />
+            </dl>
+          </div>
+          <p className="text-sm text-slate-500">
+            Sahə yaradıldıqdan sonra peyk məlumatları avtomatik növbəyə alınacaq.
+          </p>
+        </div>
+      )}
+
+      <ErrorNote message={error} />
+
+      {/* Navigation */}
+      <div className="flex items-center justify-between border-t border-slate-100 pt-4">
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={back}
+          disabled={step === 1 || busy}
+        >
+          {t("common.back")}
+        </button>
+        {step < 4 ? (
+          <button type="button" className="btn-primary" onClick={next}>
+            {t("common.next")}
+          </button>
+        ) : (
+          <button type="button" className="btn-primary" onClick={submit} disabled={busy}>
+            {busy ? t("common.saving") : "Sahəni yarat"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SummaryItem({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value: string;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <div>
+      <dt className="text-xs font-medium text-slate-400">{label}</dt>
+      <dd className="mt-0.5 flex items-center gap-1.5 text-sm text-slate-800">
+        {icon}
+        {value}
+      </dd>
+    </div>
+  );
+}

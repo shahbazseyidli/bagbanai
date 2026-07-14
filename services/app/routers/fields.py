@@ -137,9 +137,10 @@ async def put_metadata(field_id: str, body: FieldMetadataIn, user_id: str = Depe
                  (field_id, crop_type, variety, planting_date, expected_harvest, difficulties,
                   soil_type, soil_ph, irrigation_method, irrigation_available, previous_crop,
                   rotation_history, fertilizer_history, seeding_density, growth_stage, elevation_m,
-                  slope_deg, aspect_deg, tillage_practice, target_yield, prior_yields, pest_history, notes)
+                  slope_deg, aspect_deg, tillage_practice, target_yield, prior_yields, pest_history, notes,
+                  crop_cycle, region, economic_region)
                values ($1::uuid,$2,$3,$4::date,$5::date,$6::jsonb,$7,$8,$9,$10,$11,$12::jsonb,$13::jsonb,
-                       $14,$15,$16,$17,$18,$19,$20,$21::jsonb,$22::jsonb,$23)
+                       $14,$15,$16,$17,$18,$19,$20,$21::jsonb,$22::jsonb,$23,$24,$25,$26)
                on conflict (field_id) do update set
                  crop_type=excluded.crop_type, variety=excluded.variety, planting_date=excluded.planting_date,
                  expected_harvest=excluded.expected_harvest, difficulties=excluded.difficulties,
@@ -150,11 +151,13 @@ async def put_metadata(field_id: str, body: FieldMetadataIn, user_id: str = Depe
                  elevation_m=excluded.elevation_m, slope_deg=excluded.slope_deg, aspect_deg=excluded.aspect_deg,
                  tillage_practice=excluded.tillage_practice, target_yield=excluded.target_yield,
                  prior_yields=excluded.prior_yields, pest_history=excluded.pest_history, notes=excluded.notes,
-                 updated_at=now()""",
+                 crop_cycle=excluded.crop_cycle, region=excluded.region,
+                 economic_region=excluded.economic_region, updated_at=now()""",
             field_id, body.crop_type, body.variety, body.planting_date, body.expected_harvest,
             json.dumps(body.difficulties), body.soil_type, body.soil_ph, body.irrigation_method,
             body.irrigation_available, body.previous_crop, json.dumps(body.rotation_history),
             json.dumps(body.fertilizer_history), body.seeding_density, body.growth_stage, body.elevation_m,
             body.slope_deg, body.aspect_deg, body.tillage_practice, body.target_yield,
-            json.dumps(body.prior_yields), json.dumps(body.pest_history), body.notes)
+            json.dumps(body.prior_yields), json.dumps(body.pest_history), body.notes,
+            body.crop_cycle, body.region, body.economic_region)
     return {"ok": True}

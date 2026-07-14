@@ -3,6 +3,26 @@
 Bütün əhəmiyyətli dəyişikliklər burada qeyd olunur. Format [Keep a Changelog](https://keepachangelog.com/),
 versiyalar [SemVer](https://semver.org/).
 
+## [1.0.9] — 2026-07-14 — Sahə əlavəetmə sihirbazı (click-first, adaptiv) + "Sahə haqqında məlumat"
+
+### Added
+- **4-addımlı sahə onboarding sihirbazı** (`FieldOnboarding`, köhnə tək-ekran `FieldCreator` əvəzinə):
+  (1) xəritədə sahəni seç, (2) **Sahə haqqında məlumat** (əsas, kliklə, **adaptiv** — çoxillik/birillik
+  seçiminə görə suallar dəyişir), (3) ətraflı (istəyə bağlı, "Bilmirəm" ilə keçilir), (4) təsdiq → sahə
+  yaradılır və peyk datası **məlumatdan sonra** yüklənməyə başlayır.
+- **Klaviatura demək olar ki, lazım deyil:** klik-kartlar (növ), bitki/sort çipləri, klik-təqvim (əkilmə
+  ili / səpin tarixi), **torpaq pH** (kateqoriya düymələri + slider + Bilmirəm), rəqəmlər üçün slider-lər.
+- **Avtomatik relyef + rayon:** yeni `GET /api/geo/site` — xəritədə seçilən yerə görə **yüksəklik/meyllik/
+  istiqamət** (Open-Meteo elevation DEM) və **rayon/iqtisadi bölgə** (Nominatim reverse → `subsidy_regions`)
+  avtomatik doldurulur (redaktə oluna bilər). Açar tələb etmir.
+- **`crop_cycle` (çoxillik/birillik/ikiillik)** + `region`/`economic_region` bazada saxlanılır
+  (migration `0012`); subsidiya/AI konteksti üçün.
+- Yeni click-first komponentlər (`components/field/info/`) + `useFieldInfo` hook; **`MetadataTab` yenidən
+  yazıldı** eyni komponentlərlə (adaptiv, click-first), uzun-quyruq massiv alt-formaları qorunub.
+
+### Changed
+- "Metadata" istifadəçi-üzü etiketi → **"Sahə haqqında məlumat"** (tab + başlıq + toast).
+
 ## [1.0.8] — 2026-07-14 — Admin panel + AI token/xərc izləmə + billing
 
 ### Added

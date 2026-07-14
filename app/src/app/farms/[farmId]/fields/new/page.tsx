@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import FieldCreator from "@/components/FieldCreator";
+import FieldOnboarding from "@/components/field/FieldOnboarding";
 import { useAuth } from "@/lib/auth";
 import { t } from "@/lib/i18n";
 import { Spinner } from "@/components/ui";
@@ -26,7 +26,7 @@ export default function NewFieldPage() {
     <div className="mx-auto max-w-2xl space-y-4">
       <h1 className="text-2xl font-bold text-slate-900">{t("field.new")}</h1>
       <div className="card">
-        <FieldCreator farmId={params.farmId} onCreated={onCreated} />
+        <FieldOnboarding farmId={params.farmId} onCreated={onCreated} />
       </div>
     </div>
   );

@@ -8,6 +8,81 @@ export interface Opt {
   label: string;
 }
 
+// Crop cycle — chosen first in the wizard to soft-filter the crop grid.
+export const CYCLE_OPTIONS: Opt[] = [
+  { value: "perennial", label: "Çoxillik əkmə (bağ/plantasiya)" },
+  { value: "annual", label: "Birillik əkin" },
+  { value: "biennial", label: "İkiillik" },
+];
+
+// Crop value → its typical cycle. Used as a soft filter in CropGrid (the user
+// can always "Hamısını göstər" to see every crop regardless of cycle).
+export const CROP_CYCLE: Record<string, "perennial" | "annual"> = {
+  hazelnut: "perennial",
+  walnut: "perennial",
+  almond: "perennial",
+  chestnut: "perennial",
+  pistachio: "perennial",
+  apple: "perennial",
+  pear: "perennial",
+  peach_apricot: "perennial",
+  cherry: "perennial",
+  persimmon: "perennial",
+  fig: "perennial",
+  pomegranate: "perennial",
+  grape: "perennial",
+  olive: "perennial",
+  kiwi: "perennial",
+  lemon_kumquat: "perennial",
+  mandarin_orange: "perennial",
+  blackberry: "perennial",
+  raspberry: "perennial",
+  currant: "perennial",
+  blueberry_soil: "perennial",
+  blueberry_pot: "perennial",
+  berry_other: "perennial",
+  fruit_other: "perennial",
+  tea: "perennial",
+  alfalfa: "perennial",
+  windbreak: "perennial",
+  wheat: "annual",
+  barley: "annual",
+  corn: "annual",
+  rice: "annual",
+  millet: "annual",
+  sorghum: "annual",
+  cereals_legumes: "annual",
+  cotton: "annual",
+  sunflower: "annual",
+  sugar_beet: "annual",
+  soy: "annual",
+  groundnut: "annual",
+  tobacco_virginia: "annual",
+  tobacco_other: "annual",
+  saffron: "annual",
+  potato: "annual",
+  vegetable: "annual",
+  melon: "annual",
+  other_crops: "annual",
+};
+
+// A pickable soil-pH category. `ph` is the representative value stored when the
+// band is clicked; `hint` is the human range shown on the button.
+export interface PhBand {
+  value: string;
+  label: string;
+  ph: number;
+  hint: string;
+}
+
+export const PH_BANDS: PhBand[] = [
+  { value: "very_acidic", label: "Çox turş", ph: 5.0, hint: "pH < 5.5" },
+  { value: "acidic", label: "Turş", ph: 6.0, hint: "5.5–6.5" },
+  { value: "neutral", label: "Neytral", ph: 7.0, hint: "6.5–7.5" },
+  { value: "alkaline", label: "Qələvi", ph: 8.0, hint: "7.5–8.5" },
+  { value: "very_alkaline", label: "Çox qələvi", ph: 9.0, hint: "pH > 8.5" },
+];
+
 // All crops present in the 2026 subsidy seed + a few common extras, grouped
 // loosely (cereals → industrial → vegetables → nuts → fruit → citrus → berry).
 export const CROP_OPTIONS: Opt[] = [
