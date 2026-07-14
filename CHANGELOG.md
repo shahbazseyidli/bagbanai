@@ -3,7 +3,21 @@
 Bütün əhəmiyyətli dəyişikliklər burada qeyd olunur. Format [Keep a Changelog](https://keepachangelog.com/),
 versiyalar [SemVer](https://semver.org/).
 
-## [1.0.4] — 2026-07-14 — İnfrastruktur Sprint 1 (basemap qalereyası)
+## [1.0.5] — 2026-07-14 — İnfrastruktur Sprint 2 (peyk raster analizi)
+
+### Added
+- **Xəritədə peyk indeks raster overlay** (FarmerApp "Bitki sağlamlığı" paritesi): sahə İcmal
+  xəritəsində seçilən indeksin piksel-səviyyəli rəngli rasteri (TiTiler + clipped HLS COG-ları),
+  legend (Zəif/Orta/Yüksək), **səhnə timeline-ı** (tarix + bulud %) ilə tarix keçidi.
+- **Asinxron sahə emalı + UX:** yeni sahə əlavə olunanda arxa planda NASA-dan data çəkilir;
+  "Peyk məlumatı hazırlanır…" banneri **proqres + ETA** ilə (poll), hazır olanda **bildiriş**.
+  `data_status` (queued→processing→ready), queue worker cron (~2 dəq), ən-yeni-əvvəl emal.
+- **Saxlanan raster (hibrid):** pipeline hər səhnə/indeks üçün clipped COG-u `/data/rasters`-də
+  saxlayır; günlük cron yeni səhnələri sakitcə əlavə edir (status/bildiriş sıfırlanmır).
+- İndeks seçici Azərbaycanca adlarla (Bitki sağlamlığı/nəmliyi/su/yanğın…).
+- API: `GET /fields/{id}/data-status`, `GET /fields/{id}/scenes?index=`; nginx `/titiler/`.
+
+
 
 ### Added
 - **Basemap qalereyası + keçid** (FarmerApp "Xəritə növləri" paritesi): **Hibrid (peyk+adlar)**,

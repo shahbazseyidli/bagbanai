@@ -51,9 +51,39 @@ export interface Polygon {
   coordinates: number[][][];
 }
 
+export type DataStatus = "none" | "queued" | "processing" | "ready" | "failed";
+
 export interface FieldDetail extends Field {
   geom?: Polygon | null;
   centroid?: { type: "Point"; coordinates: [number, number] } | null;
+  data_status?: DataStatus;
+  data_progress_done?: number;
+  data_progress_total?: number;
+  data_eta_seconds?: number | null;
+}
+
+// GET /api/fields/{id}/data-status
+export interface FieldDataStatus {
+  status: DataStatus;
+  done: number;
+  total: number;
+  eta_seconds: number | null;
+  ready_at: string | null;
+}
+
+// One satellite scene with a rendered raster (GET /api/fields/{id}/scenes)
+export interface RasterScene {
+  scene_id: string;
+  date: string;
+  cloud_pct: number | null;
+  tile_url: string;
+}
+
+export interface RasterScenes {
+  index: string;
+  colormap: string;
+  rescale: string;
+  scenes: RasterScene[];
 }
 
 export interface FieldMetadata {

@@ -190,10 +190,33 @@ export function DrawMap({ onPolygon }: DrawMapProps) {
   );
 }
 
-// Read-only display of a single polygon (field detail overview).
-export function DisplayMap({ polygon }: { polygon: Polygon | null | undefined }) {
+function polygonBounds(polygon: Polygon): [number, number, number, number] | null {
+  const coords = polygon.coordinates[0];
+  if (!coords || !coords.length) return null;
+  let w = coords[0][0], s = coords[0][1], e = coords[0][0], n = coords[0][1];
+  for (const [lng, lat] of coords) {
+    w = Math.min(w, lng); e = Math.max(e, lng);
+    s = Math.min(s, lat); n = Math.max(n, lat);
+  }
+  return [w, s, e, n];
+}
+
+// Read-only display of a single polygon (field detail overview). Optionally overlays a
+// satellite index raster (TiTiler XYZ template) under the field outline.
+export function DisplayMap({
+  polygon,
+  rasterUrl,
+  rasterOpacity = 0.85,
+  heightClass = "h-64",
+}: {
+  polygon: Polygon | null | undefined;
+  rasterUrl?: string | null;
+  rasterOpacity?: number;
+  heightClass?: string;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
+  const loadedRef = useRef(false);
   const [basemap, setBasemap] = useState<Basemap>(() => getSavedBasemap());
   const basemapRef = useRef(basemap);
   basemapRef.current = basemap;
@@ -217,51 +240,93 @@ export function DisplayMap({ polygon }: { polygon: Polygon | null | undefined })
 
     map.on("load", () => {
       applyBasemap(map, basemapRef.current);
-      if (!polygon) return;
-      map.addSource("field", {
-        type: "geojson",
-        data: { type: "Feature", geometry: polygon, properties: {} },
-      });
-      map.addLayer({
-        id: "field-fill",
-        type: "fill",
-        source: "field",
-        paint: { "fill-color": "#059669", "fill-opacity": 0.25 },
-      });
-      map.addLayer({
-        id: "field-line",
-        type: "line",
-        source: "field",
-        paint: { "line-color": "#facc15", "line-width": 2.5 },
-      });
+      if (polygon) {
+        map.addSource("field", {
+          type: "geojson",
+          data: { type: "Feature", geometry: polygon, properties: {} },
+        });
+        map.addLayer({
+          id: "field-fill",
+          type: "fill",
+          source: "field",
+          paint: { "fill-color": "#059669", "fill-opacity": 0.15 },
+        });
+        map.addLayer({
+          id: "field-line",
+          type: "line",
+          source: "field",
+          paint: { "line-color": "#facc15", "line-width": 2.5 },
+        });
 
-      // Fit to the polygon bounds.
-      const coords = polygon.coordinates[0];
-      if (coords && coords.length) {
-        const bounds = coords.reduce(
-          (b, c) => b.extend([c[0], c[1]] as [number, number]),
-          new maplibregl.LngLatBounds(
-            [coords[0][0], coords[0][1]],
-            [coords[0][0], coords[0][1]],
-          ),
-        );
-        map.fitBounds(bounds, { padding: 40, maxZoom: 16 });
+        const coords = polygon.coordinates[0];
+        if (coords && coords.length) {
+          const bounds = coords.reduce(
+            (b, c) => b.extend([c[0], c[1]] as [number, number]),
+            new maplibregl.LngLatBounds(
+              [coords[0][0], coords[0][1]],
+              [coords[0][0], coords[0][1]],
+            ),
+          );
+          map.fitBounds(bounds, { padding: 40, maxZoom: 16 });
+        }
       }
+      loadedRef.current = true;
+      applyRaster(rasterUrl ?? null);
     });
 
     return () => {
       map.remove();
       mapRef.current = null;
+      loadedRef.current = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Add/update/remove the index raster overlay (below the field outline).
+  function applyRaster(url: string | null) {
+    const map = mapRef.current;
+    if (!map || !loadedRef.current) return;
+    if (!url) {
+      if (map.getLayer("index-overlay")) map.removeLayer("index-overlay");
+      if (map.getSource("index-overlay")) map.removeSource("index-overlay");
+      return;
+    }
+    const bounds = polygon ? polygonBounds(polygon) : null;
+    const existing = map.getSource("index-overlay") as maplibregl.RasterTileSource | undefined;
+    if (existing) {
+      existing.setTiles([url]);
+    } else {
+      map.addSource("index-overlay", {
+        type: "raster",
+        tiles: [url],
+        tileSize: 256,
+        minzoom: 8,
+        maxzoom: 20,
+        ...(bounds ? { bounds } : {}),
+      });
+      const before = map.getLayer("field-line") ? "field-line" : undefined;
+      map.addLayer(
+        {
+          id: "index-overlay",
+          type: "raster",
+          source: "index-overlay",
+          paint: { "raster-opacity": rasterOpacity },
+        },
+        before,
+      );
+    }
+  }
+
+  useEffect(() => {
+    applyRaster(rasterUrl ?? null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rasterUrl]);
 
   function changeBasemap(bm: Basemap) {
     setBasemap(bm);
     saveBasemap(bm.id);
     const map = mapRef.current;
     if (!map) return;
-    // Keep the basemap under the field layers when they exist.
     if (map.getLayer("field-fill")) applyBasemap(map, bm, "field-fill");
     else applyBasemap(map, bm);
   }
@@ -270,7 +335,7 @@ export function DisplayMap({ polygon }: { polygon: Polygon | null | undefined })
     <div className="relative">
       <div
         ref={containerRef}
-        className="h-64 w-full overflow-hidden rounded-lg border border-slate-200"
+        className={`${heightClass} w-full overflow-hidden rounded-lg border border-slate-200`}
       />
       <BasemapControl current={basemap} onChange={changeBasemap} />
       <CoordBar coord={coord} attribution={basemap.attribution} />
