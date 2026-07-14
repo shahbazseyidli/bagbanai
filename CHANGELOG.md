@@ -3,6 +3,17 @@
 Bütün əhəmiyyətli dəyişikliklər burada qeyd olunur. Format [Keep a Changelog](https://keepachangelog.com/),
 versiyalar [SemVer](https://semver.org/).
 
+## [1.0.4] — 2026-07-14 — İnfrastruktur Sprint 1 (basemap qalereyası)
+
+### Added
+- **Basemap qalereyası + keçid** (FarmerApp "Xəritə növləri" paritesi): **Hibrid (peyk+adlar)**,
+  **Peyk** (Esri World Imagery), **Sentinel-2 buludsuz** (EOX), **Küçə** (OSM), **Topo** (OpenTopoMap).
+  Seçim `localStorage`-da yadda qalır; default Hibrid. Həm çəkmə, həm göstərmə xəritəsində.
+  Yeni `lib/basemaps.ts`; `FieldMap.tsx` refaktoru (native-draw qorunub).
+- **Koordinat oxunuşu** (canlı lon/lat) + basemap attribution paneli (aşağı-sağ).
+- **Geolokasiya** düyməsi (çəkmə xəritəsi) + naviqasiya kontrolları.
+- Sahə sərhədi indi **sarı** (peyk üzərində daha aydın görünür).
+
 ## [1.0.3] — 2026-07-14
 
 ### Fixed
