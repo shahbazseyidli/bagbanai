@@ -32,6 +32,24 @@ def read_window(asset_href: str, field_geojson: dict, fill: int, scale: float) -
     return arr * scale
 
 
+def write_cog(da: xr.DataArray, path: str) -> None:
+    """Write a clipped/masked index DataArray to a Cloud-Optimized GeoTIFF (float32,
+    NaN nodata) for TiTiler to serve/colorize. Falls back to plain GTiff if the COG
+    driver is unavailable."""
+    import os
+
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    out = da.astype("float32")
+    try:
+        out = out.rio.write_nodata(float("nan"), inplace=False)
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        out.rio.to_raster(path, driver="COG", compress="DEFLATE")
+    except Exception:  # noqa: BLE001 — older GDAL without COG driver
+        out.rio.to_raster(path, driver="GTiff", compress="DEFLATE", tiled=True)
+
+
 def read_fmask(asset_href: str, field_geojson: dict) -> xr.DataArray:
     da = rioxarray.open_rasterio(asset_href, masked=False)
     if "band" in da.dims and da.sizes.get("band", 1) == 1:

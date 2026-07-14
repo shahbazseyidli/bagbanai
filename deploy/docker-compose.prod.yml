@@ -81,19 +81,22 @@ services:
     env_file: ../.env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      RASTER_DIR: /data/rasters
     volumes:
       - ../services/geo_pipeline:/srv/geo_pipeline:ro   # live code (no rebuild per change)
+      - ./data/rasters:/data/rasters:rw                 # clipped index COGs written per scene
     depends_on:
       db:
         condition: service_healthy
 
-  # TiTiler for XYZ raster index tiles (spec §10.5). Enabled when tile export lands.
+  # TiTiler serves + colorizes the clipped index COGs written by the geo worker (§10.5).
   titiler:
     image: ghcr.io/developmentseed/titiler:latest
     restart: unless-stopped
-    profiles: ["tiles"]
     environment:
       GDAL_DISABLE_READDIR_ON_OPEN: EMPTY_DIR
       CPL_VSIL_CURL_ALLOWED_EXTENSIONS: .tif
+    volumes:
+      - ./data/rasters:/data/rasters:ro                 # read the COGs (same path as geo)
     ports:
       - "127.0.0.1:8001:8000"

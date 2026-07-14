@@ -14,6 +14,8 @@ if [ -z "$ids" ]; then echo "no fields yet — nothing to process"; exit 0; fi
 
 for id in $ids; do
   echo "==> HLS pipeline for field $id (days_back=$DAYS)"
-  $COMPOSE --profile geo run --rm geo python -m geo_pipeline.pipeline "$id" "$DAYS" || echo "  ! field $id failed, continuing"
+  # track=0 → silent daily refresh: writes new scenes/rasters but keeps status='ready'
+  # and does not re-send the "data ready" notification.
+  $COMPOSE --profile geo run --rm geo python -m geo_pipeline.pipeline "$id" "$DAYS" 0 || echo "  ! field $id failed, continuing"
 done
 echo "HLS run complete."

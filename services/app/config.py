@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     object_storage_driver: str = "local"
     object_storage_root: str = "./storage"
     tile_server_base: str = "http://localhost:8000/api/tiles"
+    # Public path where nginx proxies TiTiler (serves the clipped index COGs).
+    titiler_public_base: str = "/titiler"
 
 
 settings = Settings()

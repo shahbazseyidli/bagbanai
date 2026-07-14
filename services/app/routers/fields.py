@@ -46,11 +46,14 @@ async def create_field(body: FieldIn, user_id: str = Depends(get_current_user_id
         if chk["npts"] < 4:  # closed ring: 3 distinct vertices + repeat
             raise HTTPException(status_code=400, detail="need_at_least_3_vertices")
 
+        # Queue satellite processing (a cron worker picks it up within ~2 min). The UI
+        # shows a "preparing…" banner with progress/ETA until data_status flips to ready.
         row = await conn.fetchrow(
-            """insert into public.fields (farm_id, org_id, name, geom, area_ha, bbox, created_by)
+            """insert into public.fields
+                 (farm_id, org_id, name, geom, area_ha, bbox, created_by, data_status, data_eta_seconds)
                select $1::uuid, $2::uuid, $3, g.geom,
                       round((st_area(g.geom::geography)/10000.0)::numeric, 4),
-                      st_envelope(g.geom), $5::uuid
+                      st_envelope(g.geom), $5::uuid, 'queued', 600
                from (select st_setsrid(st_geomfromgeojson($4),4326) as geom) g
                returning id, farm_id, org_id, name, area_ha, mgrs_tiles""",
             body.farm_id, org_id, body.name, geojson, user_id)
@@ -79,12 +82,30 @@ async def get_field(field_id: str, user_id: str = Depends(get_current_user_id)):
         await require_member(conn, user_id, org_id)
         row = await conn.fetchrow(
             """select id, farm_id, org_id, name, area_ha, mgrs_tiles,
-                      st_asgeojson(geom) as geom, st_asgeojson(centroid) as centroid
+                      st_asgeojson(geom) as geom, st_asgeojson(centroid) as centroid,
+                      data_status, data_progress_done, data_progress_total, data_eta_seconds
                from public.fields where id=$1::uuid""", field_id)
     return dict(id=str(row["id"]), farm_id=str(row["farm_id"]), org_id=str(row["org_id"]),
                 name=row["name"], area_ha=float(row["area_ha"]) if row["area_ha"] is not None else None,
                 mgrs_tiles=row["mgrs_tiles"], geom=json.loads(row["geom"]),
-                centroid=json.loads(row["centroid"]) if row["centroid"] else None)
+                centroid=json.loads(row["centroid"]) if row["centroid"] else None,
+                data_status=row["data_status"], data_progress_done=row["data_progress_done"],
+                data_progress_total=row["data_progress_total"], data_eta_seconds=row["data_eta_seconds"])
+
+
+@router.get("/{field_id}/data-status")
+async def data_status(field_id: str, user_id: str = Depends(get_current_user_id)):
+    """Lightweight poll target for the 'preparing…' banner (progress + ETA)."""
+    async with connection(user_id) as conn:
+        org_id = await _org_of_field(conn, field_id)
+        await require_member(conn, user_id, org_id)
+        r = await conn.fetchrow(
+            """select data_status, data_progress_done, data_progress_total,
+                      data_eta_seconds, data_ready_at
+               from public.fields where id=$1::uuid""", field_id)
+    return dict(status=r["data_status"], done=r["data_progress_done"],
+                total=r["data_progress_total"], eta_seconds=r["data_eta_seconds"],
+                ready_at=r["data_ready_at"].isoformat() if r["data_ready_at"] else None)
 
 
 @router.get("/{field_id}/metadata")
