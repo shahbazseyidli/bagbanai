@@ -31,6 +31,8 @@ export const az = {
   "common.select": "Seçin",
   "common.yes": "Bəli",
   "common.no": "Xeyr",
+  "common.other": "Digər…",
+  "common.otherSpecify": "Digər (əl ilə yazın)",
 
   // auth
   "auth.email": "E-poçt",
@@ -109,7 +111,7 @@ export const az = {
   // indices
   "idx.title": "Peyk indeksləri",
   "idx.select": "İndeks seçin",
-  "idx.noData": "Bu sahə üçün hələ peyk məlumatı yoxdur",
+  "idx.noData": "Peyk məlumatı hazırlanır. Yeni sahələr üçün ilkin analiz avtomatik işə düşür və adətən 1 gün ərzində burada görünür.",
   "idx.latest": "Son ölçmə",
   "idx.timeseries": "Zaman seriyası",
 

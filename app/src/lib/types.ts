@@ -83,7 +83,16 @@ export interface FieldMetadata {
 
 export interface IndexPoint {
   date: string;
-  value: number;
+  mean: number | null;
+  p10?: number | null;
+  p50?: number | null;
+  p90?: number | null;
+}
+
+// Response of GET /api/fields/{id}/indices
+export interface IndexSeries {
+  index: string;
+  series: IndexPoint[];
 }
 
 export interface Scouting {

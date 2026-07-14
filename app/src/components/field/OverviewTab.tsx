@@ -14,7 +14,7 @@ import { api, ApiError } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import { DisplayMap } from "@/components/FieldMap";
 import { Placeholder, Spinner } from "@/components/ui";
-import type { FieldDetail, IndexPoint } from "@/lib/types";
+import type { FieldDetail, IndexPoint, IndexSeries } from "@/lib/types";
 
 const INDICES = ["NDVI", "EVI", "SAVI", "MSAVI", "NDMI", "NDWI", "NBR", "NBR2", "TVI"];
 
@@ -30,11 +30,12 @@ export default function OverviewTab({ field }: { field: FieldDetail }) {
     setUnavailable(false);
     (async () => {
       try {
-        const data = await api.get<IndexPoint[] | { points?: IndexPoint[] }>(
+        const data = await api.get<IndexSeries | IndexPoint[]>(
           `/api/fields/${field.id}/indices?index=${index}`,
         );
         if (!active) return;
-        const points = Array.isArray(data) ? data : (data?.points ?? []);
+        // API returns { index, series: [{ date, mean, p10, p50, p90 }] }.
+        const points = Array.isArray(data) ? data : (data?.series ?? []);
         setSeries(points);
         if (!points || points.length === 0) setUnavailable(true);
       } catch (err) {
@@ -76,12 +77,24 @@ export default function OverviewTab({ field }: { field: FieldDetail }) {
           ) : (
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={series}>
+                <LineChart data={series} margin={{ top: 5, right: 8, bottom: 5, left: -12 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} domain={["auto", "auto"]} />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="value" stroke="#059669" strokeWidth={2} dot={false} />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 11 }}
+                    tickFormatter={(d: string) => (typeof d === "string" ? d.slice(5) : d)}
+                  />
+                  <YAxis tick={{ fontSize: 11 }} domain={["auto", "auto"]} width={44} />
+                  <Tooltip
+                    formatter={(v: number | string, name: string) => [
+                      typeof v === "number" ? v.toFixed(3) : v,
+                      name,
+                    ]}
+                  />
+                  {/* p10–p90 range (within-field variability) as faint context lines */}
+                  <Line type="monotone" dataKey="p90" name="p90" stroke="#a7f3d0" strokeWidth={1} dot={false} />
+                  <Line type="monotone" dataKey="p10" name="p10" stroke="#a7f3d0" strokeWidth={1} dot={false} />
+                  <Line type="monotone" dataKey="mean" name={index} stroke="#059669" strokeWidth={2} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>

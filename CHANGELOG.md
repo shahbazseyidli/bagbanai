@@ -3,6 +3,27 @@
 Bütün əhəmiyyətli dəyişikliklər burada qeyd olunur. Format [Keep a Changelog](https://keepachangelog.com/),
 versiyalar [SemVer](https://semver.org/).
 
+## [1.0.3] — 2026-07-14
+
+### Fixed
+- **NDVI/indeks qrafiki heç vaxt görünmürdü (əsl səbəb):** İcmal paneli `/api/fields/{id}/indices`
+  cavabından `data.points` + hər nöqtədə `value` sahəsi gözləyirdi, backend isə `data.series` +
+  `{date, mean, p10, p50, p90}` qaytarır. Uyğunsuzluq üzündən data (DB-də 1000+ sətir) olsa belə
+  qrafik həmişə boş idi. Frontend backend formatına uyğunlaşdırıldı: `series` oxunur, `mean` çəkilir,
+  p10–p90 sahə-daxili dəyişkənlik zolağı əlavə edildi (OverviewTab.tsx, types.ts `IndexPoint`).
+- **Yeni sahədə "data yoxdur" mesajı:** daha aydın — ilkin peyk analizinin avtomatik işə düşdüyü və
+  1 gün ərzində görünəcəyi bildirilir.
+
+### Added
+- **Metadata formu tam dropdown:** Bitki növü, Sort (bitkidən asılı), Torpaq növü, Suvarma üsulu,
+  Əvvəlki bitki, İnkişaf mərhələsi, Şum üsulu artıq 1-kliklə seçim (`<select>`) — hər biri "Digər"
+  ilə sərbəst mətn ehtiyatı saxlayır (mövcud dəyərlər qorunur). Massiv alt-formlarında da dropdown:
+  çətinlik növü, növbəli əkin bitkisi, gübrə məhsulu, zərərverici növü, şiddət (1–3). Bütün
+  siyahılar Azərbaycanca, canonical dəyərlər subsidiya/seed lüğəti ilə uyğun (`lib/metadataOptions.ts`).
+
+### Ops
+- HLS boru xətti istifadəçinin yeni "test lecet" sahəsi üçün əl ilə işə salındı (0 → indeks sətirləri).
+
 ## [1.0.2] — 2026-07-01
 
 ### Fixed
