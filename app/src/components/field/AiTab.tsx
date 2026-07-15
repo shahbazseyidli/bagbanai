@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Sparkles, Send, RefreshCw } from "lucide-react";
+import { Sparkles, Send } from "lucide-react";
 import { api } from "@/lib/api";
 import { Spinner } from "@/components/ui";
 
@@ -36,7 +36,6 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
   const [advice, setAdvice] = useState<Advice | null>(null);
   const [configured, setConfigured] = useState(true);
   const [loading, setLoading] = useState(true);
-  const [gen, setGen] = useState(false);
 
   const [msgs, setMsgs] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
@@ -65,20 +64,6 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [msgs]);
 
-  async function regenerate() {
-    setGen(true);
-    try {
-      await api.post(`/api/fields/${fieldId}/advice/generate`, {});
-      const a = await api.get<{ advice: Advice | null; configured: boolean }>(`/api/fields/${fieldId}/advice`);
-      setAdvice(a?.advice ?? null);
-      setConfigured(a?.configured ?? true);
-    } catch {
-      /* ignore */
-    } finally {
-      setGen(false);
-    }
-  }
-
   async function send() {
     const text = input.trim();
     if (!text || sending) return;
@@ -102,24 +87,15 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
     <div className="grid gap-6 lg:grid-cols-2">
       {/* Advice */}
       <div className="card">
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3 flex items-center">
           <h3 className="flex items-center gap-2 font-semibold text-slate-800">
             <Sparkles className="h-4 w-4 text-emerald-600" /> AI məsləhəti
           </h3>
-          <button
-            type="button"
-            onClick={regenerate}
-            disabled={gen}
-            className="flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${gen ? "animate-spin" : ""}`} /> Yenidən analiz et
-          </button>
         </div>
 
         {!advice ? (
           <p className="text-sm text-slate-500">
-            Hələ məsləhət yoxdur. Peyk məlumatı hazır olanda avtomatik yaranır, ya da
-            “Yenidən analiz et” düyməsini basın.
+            Hələ məsləhət yoxdur. Peyk məlumatı hazır olanda avtomatik yaranır.
           </p>
         ) : (
           <div className="space-y-4 text-sm">
@@ -163,6 +139,10 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
 
             <p className="border-t border-slate-100 pt-2 text-xs text-slate-400">
               {advice.disclaimer} · {advice.generated_at.slice(0, 10)}
+            </p>
+            <p className="text-xs text-slate-400">
+              AI təhlili avtomatik yenilənir (15 gündə bir, son peyk məlumatı əsasında)
+              {advice.generated_at ? ` · son yenilənmə: ${advice.generated_at.slice(0, 10)}` : ""}.
             </p>
           </div>
         )}

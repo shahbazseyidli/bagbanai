@@ -4,6 +4,7 @@ the advice materially changes vs the previous one, notify the farmer (in-app + e
 from __future__ import annotations
 
 import json
+from datetime import datetime, timedelta, timezone
 from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
@@ -54,11 +55,24 @@ def _signature(risks: list[dict], recs: list[dict]) -> str:
     return json.dumps({"r": r, "c": c}, ensure_ascii=False)
 
 
-async def generate_and_store(conn, field_id: str) -> Optional[dict]:
+async def generate_and_store(conn, field_id: str, force: bool = False) -> Optional[dict]:
     """Generate advice for a field, store it, and notify on material change.
-    Returns the stored advice dict, or None if the LLM is not configured."""
+    Returns the stored advice dict, or None if the LLM is not configured or the
+    15-day throttle skips regeneration (unless force=True)."""
     if not llm.is_configured():
         return None
+
+    # 15-day throttle: the auto-trigger fires after each new scene, but advice is
+    # regenerated at most once per 15 days unless force=True (manual refresh).
+    if not force:
+        last_at = await conn.fetchval(
+            "select generated_at from public.advice where field_id=$1::uuid "
+            "order by generated_at desc limit 1", field_id)
+        if last_at is not None:
+            now = datetime.now(timezone.utc)
+            ref = last_at if last_at.tzinfo else last_at.replace(tzinfo=timezone.utc)
+            if ref > now - timedelta(days=15):
+                return None
 
     ctx = await build_field_context(conn, field_id)
     field_row = await conn.fetchrow(

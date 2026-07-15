@@ -73,6 +73,52 @@ function legendFor(index: string) {
   return index === "NDMI" || index === "NDWI" ? INDEX_LEGEND.water : INDEX_LEGEND.veg;
 }
 
+// Latest-value summary (GET /api/fields/{id}/indices/summary).
+interface IndexSummaryEntry {
+  index: string;
+  latest: number | null;
+  date: string | null;
+}
+interface IndexSummary {
+  indices: IndexSummaryEntry[];
+}
+
+// Indices shown in the "Cari göstəricilər" card, in display order.
+const SUMMARY_INDICES = ["NDVI", "NDMI", "NDWI", "EVI", "SAVI", "NBR"];
+
+type Tone = "good" | "warn" | "bad";
+
+// Tone → colored dot + status text classes.
+const TONE: Record<Tone, { dot: string; text: string }> = {
+  good: { dot: "bg-emerald-500", text: "text-emerald-700" },
+  warn: { dot: "bg-amber-500", text: "text-amber-700" },
+  bad: { dot: "bg-red-500", text: "text-red-700" },
+};
+
+// Plain-language status + one-line note for a raw index value (frontend thresholds).
+function interpret(index: string, value: number): { status: string; note: string; tone: Tone } {
+  if (index === "NDVI" || index === "EVI" || index === "SAVI") {
+    if (value < 0.2) return { status: "Çox zəif", note: "Çılpaq və ya çox seyrək örtük.", tone: "bad" };
+    if (value < 0.4) return { status: "Zəif", note: "Seyrək bitki örtüyü.", tone: "warn" };
+    if (value < 0.6) return { status: "Orta", note: "İnkişaf edən örtük.", tone: "warn" };
+    if (value <= 0.8) return { status: "Sağlam", note: "Sıx, sağlam bitki.", tone: "good" };
+    return { status: "Çox sağlam", note: "Çox sıx örtük.", tone: "good" };
+  }
+  if (index === "NDMI") {
+    if (value < 0) return { status: "Çox quru", note: "Su stresi.", tone: "bad" };
+    if (value < 0.2) return { status: "Quraqlıq riski", note: "Nəmlik aşağı.", tone: "warn" };
+    if (value <= 0.4) return { status: "Orta nəmlik", note: "Qənaətbəxş nəmlik.", tone: "good" };
+    return { status: "Yaxşı nəmlik", note: "Kifayət qədər su.", tone: "good" };
+  }
+  if (index === "NDWI") {
+    if (value < 0) return { status: "Quru", note: "Səthdə su yoxdur.", tone: "good" };
+    return { status: "Nəm/su", note: "Səthdə su/rütubət var.", tone: "warn" };
+  }
+  // NBR (fire / dryness)
+  if (value < 0.1) return { status: "Quru/yanıq riski", note: "Quru və ya yanmış ola bilər.", tone: "bad" };
+  return { status: "Normal", note: "Normal vəziyyət.", tone: "good" };
+}
+
 // Monday-start week key (matches Postgres date_trunc('week')) for benchmark alignment.
 function weekKey(dateStr: string): string {
   const d = new Date(`${dateStr}T00:00:00Z`);
@@ -140,6 +186,7 @@ export default function OverviewTab({ field }: { field: FieldDetail }) {
   const [cmpB, setCmpB] = useState(1);
   const [status, setStatus] = useState<FieldDataStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const [summary, setSummary] = useState<IndexSummaryEntry[] | null>(null);
 
   // Poll processing status until ready (drives the preparing banner + auto-refresh).
   useEffect(() => {
@@ -202,6 +249,30 @@ export default function OverviewTab({ field }: { field: FieldDetail }) {
     };
   }, [field.id, index, ready]);
 
+  // Latest per-index values for the "Cari göstəricilər" explanation card.
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const s = await api.get<IndexSummary>(`/api/fields/${field.id}/indices/summary`);
+        if (active) setSummary(s?.indices ?? []);
+      } catch {
+        if (active) setSummary([]);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [field.id, ready]);
+
+  // Interpreted rows for the summary card (only present indices with a value, in order).
+  const summaryRows = useMemo(() => {
+    const byIndex = new Map((summary ?? []).map((e) => [e.index, e]));
+    return SUMMARY_INDICES.map((ix) => byIndex.get(ix))
+      .filter((e): e is IndexSummaryEntry => e != null && e.latest != null)
+      .map((e) => ({ entry: e, value: e.latest as number, ...interpret(e.index, e.latest as number) }));
+  }, [summary]);
+
   // Scenes visible after the cloud-cover filter (used by timeline + compare pickers).
   const visibleScenes = useMemo(
     () => scenes.filter((s) => s.cloud_pct == null || s.cloud_pct <= maxCloud),
@@ -238,6 +309,30 @@ export default function OverviewTab({ field }: { field: FieldDetail }) {
       {effectiveStatus === "failed" && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
           Peyk məlumatının hazırlanmasında problem oldu. Komanda avtomatik yenidən cəhd edəcək.
+        </div>
+      )}
+
+      {summaryRows.length > 0 && (
+        <div className="card">
+          <h3 className="mb-3 font-semibold text-slate-800">Cari göstəricilər</h3>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {summaryRows.map(({ entry, value, status: st, note, tone }) => (
+              <div key={entry.index} className="rounded-lg border border-slate-200 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate text-sm font-medium text-slate-700">
+                    {INDEX_LABELS[entry.index] ?? entry.index}
+                  </span>
+                  <span className="shrink-0 font-mono text-sm text-slate-800">{value.toFixed(3)}</span>
+                </div>
+                <div className="mt-1.5 flex items-center gap-2">
+                  <span className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full ${TONE[tone].dot}`} />
+                  <span className={`text-sm font-semibold ${TONE[tone].text}`}>{st}</span>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">{note}</p>
+                {entry.date && <p className="mt-1 text-[11px] text-slate-400">{entry.date}</p>}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
