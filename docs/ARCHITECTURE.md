@@ -431,8 +431,8 @@ get a blank `DATABASE_URL` and crash-loop.
   `/ → 127.0.0.1:3000`. Repo copies: `deploy/nginx-agradex.conf`, `deploy/nginx-agradex-http.conf`.
   (Harmless "conflicting server_name" warnings from a leftover duplicate block — cleanup pending.)
 - **SSL**: Let's Encrypt on origin (`/etc/letsencrypt/live/agradex.com/`, certbot auto-renew).
-  Cloudflare A `@`/`www` proxied; SSL mode currently **Flexible** → **TODO flip to Full (Strict)**
-  (origin :443 is ready).
+  Cloudflare A `@`/`www` proxied; SSL mode **Full (Strict)** ✅ (verified 2026-07-16) — CF↔origin
+  encrypted end-to-end.
 
 ### Secrets — `/opt/bagbanai/.env` (backup `/root/agradex.env.bak`)
 `POSTGRES_USER/PASSWORD/DB`, `JWT_SECRET`, `INTERNAL_API_TOKEN`, `EARTHDATA_TOKEN` (EDL bearer,

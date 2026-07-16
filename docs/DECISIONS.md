@@ -298,8 +298,8 @@ Same-origin `/api` (the `web` container ships `NEXT_PUBLIC_API_BASE=""`) means n
 the httpOnly auth cookie (ADR-0002) work without cross-site cookie complications.
 
 **Consequences.** Cloudflare proxies `@` and `www` to `95.216.208.82`. SSL is Let's Encrypt on
-the origin with certbot auto-renew; Cloudflare SSL mode is currently **Flexible** — TODO flip to
-**Full (Strict)** (origin `:443` is ready). A leftover duplicate server block emits harmless
+the origin with certbot auto-renew; Cloudflare SSL mode is **Full (Strict)** ✅ (verified 2026-07-16)
+— CF↔origin encrypted end-to-end. A leftover duplicate server block emits harmless
 "conflicting server_name" warnings — cleanup pending. Repo copies of the vhost live at
 `deploy/nginx-agradex.conf` and `deploy/nginx-agradex-http.conf`.
 

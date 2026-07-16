@@ -171,9 +171,9 @@ next in line, **P2** = valuable but can wait.
   geo worker picks it up. Validate: `cd /opt/bagbanai && bash deploy/run-hls.sh 30` on a test field
   and confirm new `scenes`/`index_stats` rows. Consider a calendar reminder ~2 weeks before expiry.
 
-#### P0-3 · Cloudflare SSL → Full (Strict)
-- **WHAT:** Cloudflare SSL mode is currently **Flexible**; flip it to **Full (Strict)** for
-  end-to-end encryption (CF ↔ origin). The origin `:443` with a Let's Encrypt cert is already ready.
+#### P0-3 · Cloudflare SSL → Full (Strict) — ✅ DONE (verified 2026-07-16)
+- **WHAT:** Cloudflare SSL mode is now **Full (Strict)** — CF↔origin is encrypted end-to-end
+  (origin `:443` with a Let's Encrypt cert). Confirmed in the CF dashboard on 2026-07-16.
 - **WHY:** Flexible means the CF↔origin hop is plaintext HTTP — a real confidentiality gap for an app
   with logins and farm data. The reason it wasn't done earlier: the CF dashboard was unresponsive
   during setup.

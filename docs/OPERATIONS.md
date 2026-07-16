@@ -375,9 +375,11 @@ certbot renew --dry-run     # test
 certbot renew               # force check
 ```
 
-**Cloudflare.** `@` and `www` are proxied. SSL mode is currently **Flexible**. The origin `:443` is ready,
-so the **TODO** is to flip Cloudflare to **Full (Strict)** (dashboard: Overview → SSL/TLS → Full (Strict))
-for end-to-end encryption. The dashboard was unresponsive during setup — retry pending.
+**Cloudflare.** `@` and `www` are proxied. SSL mode is **Full (Strict)** ✅ (set/verified 2026-07-16) —
+CF↔origin is encrypted end-to-end against the origin `:443` Let's Encrypt cert. Caveat: origin LE
+HTTP-01 renewal needs `:80` reachable from Let's Encrypt; if you later add a Hetzner firewall
+restricting `:80` to Cloudflare IPs, also allow LE ranges or switch the origin to a Cloudflare
+Origin CA cert (15-year, no renewal).
 
 ---
 

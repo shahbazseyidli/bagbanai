@@ -87,7 +87,7 @@ bagbanai/
 ## Deployment (LIVE — https://agradex.com ✅)
 - Hetzner server **bagban-ai** (CPX22, Helsinki), public IPv4 **95.216.208.82** (Primary IP recreate boyu qorunur), project AGRADEX-TEST. Operator Mac SSH açarı (`~/.ssh/id_ed25519`, comment `macbookpro`) `root@95.216.208.82`-də authorized (deploy/cloud-init.sh-də erkən əlavə edilib).
 - DNS: agradex.com A @ + A www → 95.216.208.82 (Cloudflare, **proxied**).
-- **SSL:** origin-də Let's Encrypt (`/etc/letsencrypt/live/agradex.com/`, certbot auto-renew). nginx `/etc/nginx/sites-enabled/agradex.com`: iki server bloku — **:80** (məcburi redirect yox, CF Flexible altında loop-safe) + **:443** (LE cert). Hər blokda location-lar: `/titiler/` → `127.0.0.1:8001/`, `/api/` → `127.0.0.1:8000`, `/` → `127.0.0.1:3000`. Cloudflare SSL mode hazırda **Flexible** → **TODO Full (Strict)**-ə keçir (origin :443 hazır). Repo nüsxələri `deploy/nginx-agradex.conf`, `deploy/nginx-agradex-http.conf`. (Leftover dublikat blokdan "conflicting server_name" xəbərdarlığı — təmizlik gözləyir.)
+- **SSL:** origin-də Let's Encrypt (`/etc/letsencrypt/live/agradex.com/`, certbot auto-renew). nginx `/etc/nginx/sites-enabled/agradex.com`: iki server bloku — **:80** (məcburi redirect yox, CF Flexible altında loop-safe) + **:443** (LE cert). Hər blokda location-lar: `/titiler/` → `127.0.0.1:8001/`, `/api/` → `127.0.0.1:8000`, `/` → `127.0.0.1:3000`. Cloudflare SSL mode **Full (Strict)** ✅ (2026-07-16 CF panelində doğrulanıb — origin :443 LE cert ilə şifrələnir; nginx :80 bloku hələ məcburi redirect etmir — Flexible dövründən qalma, Full (Strict) altında zərərsiz). Repo nüsxələri `deploy/nginx-agradex.conf`, `deploy/nginx-agradex-http.conf`. (Leftover dublikat blokdan "conflicting server_name" xəbərdarlığı — təmizlik gözləyir.)
 
 ### Konteynerlər (`deploy/docker-compose.prod.yml`)
 - `db` (PostGIS, healthcheck), `api` (FastAPI, 127.0.0.1:8000), `web` (Next.js, 127.0.0.1:3000), **`titiler`** (127.0.0.1:8001→80, `./data/rasters` ro mount), `geo` (profile `geo`, tələbə görə, `./data/rasters` rw + canlı geo_pipeline kodu mount), `tools` (profile `tools`, miqrasiyalar), `n8n` (profile `orchestration`). Bütün app portları `127.0.0.1`-ə bağlı, host nginx qabaqda.
@@ -102,21 +102,31 @@ bagbanai/
 - `*/2 * * * * cd /opt/bagbanai && flock -n /tmp/bagban-queue.lock bash deploy/process-queue.sh >> /var/log/bagban-queue.log 2>&1` — **hər 2 dəq queue worker** (`data_status='queued'` sahələri → geo pipeline `days_back=60`, `track=1`).
 
 ### Secrets (`/opt/bagbanai/.env`, backup `/root/agradex.env.bak`)
-`POSTGRES_USER/PASSWORD/DB`, `JWT_SECRET`, `INTERNAL_API_TOKEN`, **`EARTHDATA_TOKEN`** (EDL bearer, **EXPIRES 2026-08-30** → urs.earthdata.nasa.gov-da regenerate), **`LLM_PROVIDER/LLM_MODEL/LLM_API_KEY`** (boş — AI aktivləşdirmək üçün əlavə et), **`SMTP_HOST/PORT/USER/PASSWORD/FROM`** (boş — email bildirişləri üçün; web/in-app bildirişlər onsuz işləyir).
+`POSTGRES_USER/PASSWORD/DB`, `JWT_SECRET`, `INTERNAL_API_TOKEN`, **`EARTHDATA_TOKEN`** (EDL bearer, **EXPIRES 2026-08-30** → urs.earthdata.nasa.gov-da regenerate), **`LLM_PROVIDER=anthropic/LLM_MODEL=claude-opus-4-8/LLM_API_KEY`** (TƏYİN OLUNUB — **AI AKTİV**, 2026-07-16 doğrulandı; ⚠️ açar chat-da açıq görünmüşdü → **rotate et**), **`SMTP_HOST/PORT/USER/PASSWORD/FROM`** (boş — email bildirişləri üçün; web/in-app bildirişlər onsuz işləyir).
 
 ### Doğrulanmış canlı
-/api/health ok; home "Bağban AI"; /api/subsidy/rates = 117; hazelnut 3ha = 9000 AZN; HLS demo sahələr işləyir; AI endpoint-ləri açarsız rejimdə səliqəli deqradasiya (configured:false / 503); TiTiler raster overlay + basemap qalereyası canlı.
+/api/health ok; /api/ready db:true; home "Bağban AI"; /api/subsidy/rates = 117; hazelnut 3ha = 9000 AZN; HLS demo sahələr işləyir (ən son səhnə 2026-07-11). **AI AKTİV** (anthropic claude-opus-4-8; məsləhət+chat yüksək keyfiyyətlə işləyir — admin panel: 2 user / 2 org / 5 sahə, 15 AI çağırışı, ~$0.70 ümumi xərc; 2026-07-16 canlı doğrulandı). TiTiler raster overlay + basemap qalereyası canlı.
 
 ## Phase 2+ (təxirə salınıb — spec §28 + `docs/ROADMAP.md`)
 - Hava (Open-Meteo) + modellər (GDD/spray/frost/drought), qayda mühərriki → çox-kanallı bildirişlər, hesabatlar (PDF/DOCX), baza/anomaliya/fenologiya, billing (Stripe/PSP; cədvəllər + gating hazır, inteqrasiya yox).
 - `docs/Infrastruktur_Layer_Tekmillesdirme.md` §6 qalan işlər: bulud-örtük filtri UI, iki-tarix compare/swipe, ölkə/rayon NDVI benchmark, PDF/DOCX hesabatlar, rəsmi kadastr layı, geokodlama axtarışı, hillshade/terrain.
 
 ## Açıq işlər / TODO (növbəti sessiya)
-1. **AI-ı aktivləşdir:** `LLM_API_KEY` (+ `LLM_PROVIDER=anthropic`, `LLM_MODEL=claude-opus-4-8`) `.env`-ə → `api` restart.
-2. **Cloudflare SSL Full (Strict)** toggle (origin :443 hazır).
-3. **nginx dublikat server_name** təmizliyi.
-4. **EARTHDATA_TOKEN** 2026-08-30-da bitir → regenerate et.
-5. Sprint-2 qalan maddələri (yuxarıda) + Faza 2 (spec §28).
+**Bitmiş (2026-07-16 canlı auditdə doğrulandı):** ✅ AI aktiv (opus-4-8) · ✅ Cloudflare SSL Full (Strict).
+
+**Təhlükəsizlik/infra (2026-07-16 auditdə aşkarlandı — hesab ayarı, istifadəçi edir):**
+1. **Hetzner Cloud Firewall YOXDUR** → origin (95.216.208.82) birbaşa əlçatan (CF bypass mümkün). 80/443-ü yalnız Cloudflare IP-lərinə, 22-ni admin IP-yə məhdudlaşdır. ⚠️ Diqqət: origin LE cert HTTP-01 renewal :80 tələb edir → ya LE IP-lərinə icazə ver, ya CF Origin CA cert-ə keç.
+2. **`signal-cv.agradex.com`** (A, DNS-only) eyni origin IP-ni (95.216.208.82) sızdırır → proxied et və ya sil/köçür.
+3. **Hetzner server backup aktiv deyil** → avtomatik backup aç (~€3.9/ay) və/və ya off-server `pg_dump` cron.
+4. **2FA yoxdur** (Hetzner + ehtimal CF) → aktivləşdir.
+5. **LLM açarını rotate et** (chat-da açıq görünmüşdü); miqyas artanda `claude-sonnet-5`-ə keç (xərc ~3×↓).
+6. **MX/SPF/DKIM/DMARC yoxdur** (agradex.com) → SMTP email bildirişlərindən əvvəl qur.
+
+**Digər:**
+7. **nginx dublikat server_name** təmizliyi (CHANGELOG 1.0.7 həll olunmuş deyir — serverdə doğrula).
+8. **EARTHDATA_TOKEN** 2026-08-30-da bitir → regenerate et.
+9. **wip/onboarding-refine** branch (review olunmamış): item 1/2/3/5/6 — bax `HANDOFF.md §4`.
+10. Sprint-2 qalan maddələri (yuxarıda) + Faza 2 (spec §28).
 
 ## İstinad sahələr (canlı test üçün)
 - **"test lecet"** id `860891bd-912c-4ec3-9235-b7d4d0193190` (tam emal olunub: ~962 index_stats sətri + clipped COG-lar).
