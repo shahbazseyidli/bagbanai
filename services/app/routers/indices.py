@@ -72,7 +72,7 @@ async def summary(field_id: str, user_id: str = Depends(get_current_user_id)):
                 "index": name,
                 "latest": (float(by_name[name]["mean"])
                            if name in by_name and by_name[name]["mean"] is not None else None),
-                "date": (by_name[name]["acquired_at"].date().isoformat()
+                "date": (by_name[name]["acquired_at"].isoformat()
                          if name in by_name else None),
             }
             for name in _SUMMARY_INDICES

@@ -136,6 +136,7 @@ export default function MetadataTab({ fieldId }: { fieldId: string }) {
   const [rowsMap, setRowsMap] = useState<Record<string, Row[]>>({});
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState("");
+  const [loadFailed, setLoadFailed] = useState(false);
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
   // Snapshot taken on entering edit mode so "Ləğv et" can discard changes.
@@ -144,6 +145,7 @@ export default function MetadataTab({ fieldId }: { fieldId: string }) {
   useEffect(() => {
     (async () => {
       try {
+        setLoadFailed(false);
         const data = await api.get<FieldMetadata | null>(`/api/fields/${fieldId}/metadata`);
         const m = data ?? ({ crop_type: "" } as FieldMetadata);
         setMeta(m);
@@ -154,6 +156,7 @@ export default function MetadataTab({ fieldId }: { fieldId: string }) {
         setRowsMap(rm);
       } catch (err) {
         setError(err instanceof Error ? err.message : t("common.error"));
+        setLoadFailed(true);
         setMeta({ crop_type: "" } as FieldMetadata);
       }
     })();
@@ -165,7 +168,7 @@ export default function MetadataTab({ fieldId }: { fieldId: string }) {
   }
 
   function enterEdit() {
-    if (!meta) return;
+    if (!meta || loadFailed) return;
     snapshot.current = {
       meta: JSON.parse(JSON.stringify(meta)) as FieldMetadata,
       rowsMap: JSON.parse(JSON.stringify(rowsMap)) as Record<string, Row[]>,
@@ -249,10 +252,17 @@ export default function MetadataTab({ fieldId }: { fieldId: string }) {
       <div className="card space-y-6">
         <div className="flex items-center justify-between gap-4">
           <h3 className="font-semibold text-slate-800">{t("meta.title")}</h3>
-          <button type="button" className="btn-secondary" onClick={enterEdit}>
-            Redaktə et
-          </button>
+          {!loadFailed && (
+            <button type="button" className="btn-secondary" onClick={enterEdit}>
+              Redaktə et
+            </button>
+          )}
         </div>
+        {loadFailed && (
+          <p className="text-sm text-red-600">
+            Məlumat yüklənmədi{error ? `: ${error}` : ""}. Redaktə mövcud məlumatı silə bilər — səhifəni yeniləyin.
+          </p>
+        )}
         {saved && <p className="text-sm text-emerald-700">{t("meta.saved")}</p>}
 
         <div className="grid gap-6 sm:grid-cols-2">
@@ -338,6 +348,7 @@ export default function MetadataTab({ fieldId }: { fieldId: string }) {
 
         <FormField label={t("meta.variety")}>
           <VocabSelect
+            key={meta.crop_type ?? ""}
             options={varietyOptions}
             value={meta.variety}
             onChange={(v) => set("variety", v ?? undefined)}

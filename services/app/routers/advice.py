@@ -42,7 +42,7 @@ async def generate_advice(field_id: str, user_id: str = Depends(get_current_user
     async with connection(user_id) as conn:
         org_id = await _org_of_field(conn, field_id)
         await require_member(conn, user_id, org_id)
-        result = await advice_svc.generate_and_store(conn, field_id)
+        result = await advice_svc.generate_and_store(conn, field_id, force=True)
     if result is None:
         raise HTTPException(status_code=503, detail="ai_unavailable")
     return result
