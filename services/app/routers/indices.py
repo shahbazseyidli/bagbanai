@@ -50,6 +50,36 @@ async def latest(field_id: str, user_id: str = Depends(get_current_user_id)):
     return {"indices": items, "available_indices": INDEX_NAMES}
 
 
+_SUMMARY_INDICES = ["NDVI", "NDMI", "NDWI", "EVI", "SAVI", "NBR"]
+
+
+@router.get("/{field_id}/indices/summary")
+async def summary(field_id: str, user_id: str = Depends(get_current_user_id)):
+    """Latest value per index for the İcmal explanation block: one row per index in
+    a fixed order, with the most recent mean/date (null when the pipeline has none)."""
+    async with connection(user_id) as conn:
+        org_id = await _org_of_field(conn, field_id)
+        await require_member(conn, user_id, org_id)
+        rows = await conn.fetch(
+            """select distinct on (index_name) index_name, mean, acquired_at
+               from public.index_stats
+               where field_id=$1::uuid
+               order by index_name, acquired_at desc""", field_id)
+    by_name = {r["index_name"]: r for r in rows}
+    return {
+        "indices": [
+            {
+                "index": name,
+                "latest": (float(by_name[name]["mean"])
+                           if name in by_name and by_name[name]["mean"] is not None else None),
+                "date": (by_name[name]["acquired_at"].isoformat()
+                         if name in by_name else None),
+            }
+            for name in _SUMMARY_INDICES
+        ],
+    }
+
+
 @router.get("/{field_id}/scenes")
 async def scenes(field_id: str, index: str = Query("NDVI"),
                  user_id: str = Depends(get_current_user_id)):

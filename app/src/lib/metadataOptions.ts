@@ -8,6 +8,9 @@ export interface Opt {
   label: string;
 }
 
+// Alphabetical comparator for option labels (Azerbaijani collation).
+const byAzLabel = (a: Opt, b: Opt): number => a.label.localeCompare(b.label, "az");
+
 // Crop cycle — chosen first in the wizard to soft-filter the crop grid.
 export const CYCLE_OPTIONS: Opt[] = [
   { value: "perennial", label: "Çoxillik əkmə (bağ/plantasiya)" },
@@ -44,6 +47,12 @@ export const CROP_CYCLE: Record<string, "perennial" | "annual"> = {
   fruit_other: "perennial",
   tea: "perennial",
   alfalfa: "perennial",
+  nectarine: "perennial",
+  quince: "perennial",
+  mulberry: "perennial",
+  feijoa: "perennial",
+  strawberry: "perennial",
+  plum: "perennial",
   windbreak: "perennial",
   wheat: "annual",
   barley: "annual",
@@ -63,6 +72,26 @@ export const CROP_CYCLE: Record<string, "perennial" | "annual"> = {
   potato: "annual",
   vegetable: "annual",
   melon: "annual",
+  rye: "annual",
+  oats: "annual",
+  buckwheat: "annual",
+  chickpea: "annual",
+  bean: "annual",
+  lentil: "annual",
+  broad_bean: "annual",
+  flax: "annual",
+  sesame: "annual",
+  rapeseed: "annual",
+  tomato: "annual",
+  cucumber: "annual",
+  onion: "annual",
+  garlic: "annual",
+  cabbage: "annual",
+  eggplant: "annual",
+  pepper: "annual",
+  carrot: "annual",
+  pumpkin: "annual",
+  greens: "annual",
   other_crops: "annual",
 };
 
@@ -83,9 +112,10 @@ export const PH_BANDS: PhBand[] = [
   { value: "very_alkaline", label: "Çox qələvi", ph: 9.0, hint: "pH > 8.5" },
 ];
 
-// All crops present in the 2026 subsidy seed + a few common extras, grouped
-// loosely (cereals → industrial → vegetables → nuts → fruit → citrus → berry).
-export const CROP_OPTIONS: Opt[] = [
+// All crops present in the 2026 subsidy seed + a few common extras. The concrete
+// crops below are sorted alphabetically by Azerbaijani label at export time; the
+// generic catch-all entries are always appended last, regardless of label.
+const CROP_MAIN_OPTIONS: Opt[] = [
   { value: "wheat", label: "Buğda" },
   { value: "barley", label: "Arpa" },
   { value: "corn", label: "Qarğıdalı" },
@@ -93,11 +123,21 @@ export const CROP_OPTIONS: Opt[] = [
   { value: "millet", label: "Darı" },
   { value: "sorghum", label: "Sorqo" },
   { value: "cereals_legumes", label: "Dənli-paxlalılar" },
+  { value: "rye", label: "Çovdar" },
+  { value: "oats", label: "Vələmir" },
+  { value: "buckwheat", label: "Qarabaşaq" },
+  { value: "chickpea", label: "Noxud" },
+  { value: "bean", label: "Lobya" },
+  { value: "lentil", label: "Mərci" },
+  { value: "broad_bean", label: "Paxla" },
   { value: "cotton", label: "Pambıq" },
   { value: "sunflower", label: "Günəbaxan" },
   { value: "sugar_beet", label: "Şəkər çuğunduru" },
   { value: "soy", label: "Soya" },
   { value: "groundnut", label: "Yerfındığı" },
+  { value: "flax", label: "Kətan" },
+  { value: "sesame", label: "Küncüt" },
+  { value: "rapeseed", label: "Raps" },
   { value: "tobacco_virginia", label: "Tütün (Virciniya)" },
   { value: "tobacco_other", label: "Tütün (digər)" },
   { value: "saffron", label: "Zəfəran" },
@@ -106,6 +146,16 @@ export const CROP_OPTIONS: Opt[] = [
   { value: "potato", label: "Kartof" },
   { value: "vegetable", label: "Tərəvəz" },
   { value: "melon", label: "Bostan (qarpız/yemiş)" },
+  { value: "tomato", label: "Pomidor" },
+  { value: "cucumber", label: "Xiyar" },
+  { value: "onion", label: "Soğan" },
+  { value: "garlic", label: "Sarımsaq" },
+  { value: "cabbage", label: "Kələm" },
+  { value: "eggplant", label: "Badımcan" },
+  { value: "pepper", label: "Bibər" },
+  { value: "carrot", label: "Kök" },
+  { value: "pumpkin", label: "Balqabaq" },
+  { value: "greens", label: "Göyərti" },
   { value: "hazelnut", label: "Fındıq" },
   { value: "walnut", label: "Qoz" },
   { value: "almond", label: "Badam" },
@@ -114,10 +164,15 @@ export const CROP_OPTIONS: Opt[] = [
   { value: "apple", label: "Alma" },
   { value: "pear", label: "Armud" },
   { value: "peach_apricot", label: "Şaftalı / Ərik" },
+  { value: "nectarine", label: "Nektarin" },
   { value: "cherry", label: "Gilas / Albalı" },
   { value: "persimmon", label: "Xurma" },
   { value: "fig", label: "Əncir" },
   { value: "pomegranate", label: "Nar" },
+  { value: "quince", label: "Heyva" },
+  { value: "mulberry", label: "Tut" },
+  { value: "feijoa", label: "Feyxoa" },
+  { value: "plum", label: "Gavalı" },
   { value: "grape", label: "Üzüm" },
   { value: "olive", label: "Zeytun" },
   { value: "kiwi", label: "Kivi" },
@@ -126,12 +181,22 @@ export const CROP_OPTIONS: Opt[] = [
   { value: "blackberry", label: "Böyürtkən" },
   { value: "raspberry", label: "Moruq" },
   { value: "currant", label: "Qarağat" },
+  { value: "strawberry", label: "Çiyələk" },
   { value: "blueberry_soil", label: "Göy giləmeyvə (torpaqda)" },
   { value: "blueberry_pot", label: "Göy giləmeyvə (konteynerdə)" },
-  { value: "berry_other", label: "Digər giləmeyvə" },
-  { value: "fruit_other", label: "Digər meyvə" },
-  { value: "windbreak", label: "Küləkqoruyucu zolaq" },
+];
+
+// Generic catch-all entries — always listed last, after the sorted crop list.
+const CROP_CATCH_ALL_OPTIONS: Opt[] = [
   { value: "other_crops", label: "Digər bitkilər" },
+  { value: "fruit_other", label: "Digər meyvə" },
+  { value: "berry_other", label: "Digər giləmeyvə" },
+  { value: "windbreak", label: "Küləkqoruyucu zolaq" },
+];
+
+export const CROP_OPTIONS: Opt[] = [
+  ...[...CROP_MAIN_OPTIONS].sort(byAzLabel),
+  ...CROP_CATCH_ALL_OPTIONS,
 ];
 
 // Sort/variety suggestions per crop (Azerbaijani sorts where known). Crops not
@@ -139,38 +204,38 @@ export const CROP_OPTIONS: Opt[] = [
 export const VARIETY_OPTIONS_BY_CROP: Record<string, Opt[]> = {
   hazelnut: [
     "Ata-baba", "Yağlı", "Topqara", "Aşrəfli", "Qalib", "Ənvəri", "Sərək", "Xaçmaz",
-  ].map((v) => ({ value: v, label: v })),
+  ].map((v) => ({ value: v, label: v })).sort(byAzLabel),
   wheat: [
     "Yumşaq buğda", "Bərk buğda", "Qobustan", "Nurlu-99", "Əkinçi-84",
     "Qiymətli-2/17", "Tale-38", "Bərəkətli-95", "Ruzi-84",
-  ].map((v) => ({ value: v, label: v })),
+  ].map((v) => ({ value: v, label: v })).sort(byAzLabel),
   barley: [
     "Cəlilabad-19", "Qarabağ-7", "Pallidum-596", "Nutans-553", "Cəfəri",
-  ].map((v) => ({ value: v, label: v })),
+  ].map((v) => ({ value: v, label: v })).sort(byAzLabel),
   corn: [
     "Zaqatala-68", "Qarabağ", "Şirin qarğıdalı", "Pioneer hibridi", "NK hibridi",
-  ].map((v) => ({ value: v, label: v })),
+  ].map((v) => ({ value: v, label: v })).sort(byAzLabel),
   grape: [
     "Mədrəsə", "Bayanşirə", "Ağ şanı", "Qara şanı", "Təbrizi", "Mərəndi",
     "Rkatsiteli", "Kişmiş", "Şardone", "Kaberne", "Merlo",
-  ].map((v) => ({ value: v, label: v })),
+  ].map((v) => ({ value: v, label: v })).sort(byAzLabel),
   apple: [
     "Cırhacı", "Zəngi", "Qızıl əhmədi", "Golden Delicious", "Fuji", "Gala",
     "Simirenko", "Ağ papaq",
-  ].map((v) => ({ value: v, label: v })),
-  pear: ["Nar armud", "Abbasbəyi", "Konfretnaya", "Williams"].map((v) => ({ value: v, label: v })),
+  ].map((v) => ({ value: v, label: v })).sort(byAzLabel),
+  pear: ["Nar armud", "Abbasbəyi", "Konfretnaya", "Williams"].map((v) => ({ value: v, label: v })).sort(byAzLabel),
   pomegranate: [
     "Gülöyşə", "Vələs", "Bala Mürsəl", "Şah nar", "Qırmızı qabıq",
-  ].map((v) => ({ value: v, label: v })),
+  ].map((v) => ({ value: v, label: v })).sort(byAzLabel),
   peach_apricot: [
     "Ağcanabad ərik", "Badami ərik", "Xurmayı ərik", "Novrast", "Salami şaftalı", "Nektarin",
-  ].map((v) => ({ value: v, label: v })),
-  cherry: ["Xanım barmağı", "Gödək saplaq", "Napoleon", "Bigarreau"].map((v) => ({ value: v, label: v })),
-  walnut: ["Seyfəddin", "Dəmiryol", "Chandler", "Fernor"].map((v) => ({ value: v, label: v })),
-  almond: ["Nonpareil", "Ağ badam", "Nikitski", "Ferraduel"].map((v) => ({ value: v, label: v })),
-  potato: ["Nevski", "Marfona", "Sante", "Kardinal", "Qırmızı"].map((v) => ({ value: v, label: v })),
-  cotton: ["Gəncə-8", "Gəncə-110", "AP-317"].map((v) => ({ value: v, label: v })),
-  tea: ["Azərbaycan-2", "Qruziya seleksiyası"].map((v) => ({ value: v, label: v })),
+  ].map((v) => ({ value: v, label: v })).sort(byAzLabel),
+  cherry: ["Xanım barmağı", "Gödək saplaq", "Napoleon", "Bigarreau"].map((v) => ({ value: v, label: v })).sort(byAzLabel),
+  walnut: ["Seyfəddin", "Dəmiryol", "Chandler", "Fernor"].map((v) => ({ value: v, label: v })).sort(byAzLabel),
+  almond: ["Nonpareil", "Ağ badam", "Nikitski", "Ferraduel"].map((v) => ({ value: v, label: v })).sort(byAzLabel),
+  potato: ["Nevski", "Marfona", "Sante", "Kardinal", "Qırmızı"].map((v) => ({ value: v, label: v })).sort(byAzLabel),
+  cotton: ["Gəncə-8", "Gəncə-110", "AP-317"].map((v) => ({ value: v, label: v })).sort(byAzLabel),
+  tea: ["Azərbaycan-2", "Qruziya seleksiyası"].map((v) => ({ value: v, label: v })).sort(byAzLabel),
 };
 
 export const SOIL_TYPE_OPTIONS: Opt[] = [
