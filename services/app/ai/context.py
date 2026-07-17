@@ -14,11 +14,23 @@ async def _index_trends(conn, field_id: str) -> list[dict]:
     """Latest value, ~4-weeks-ago value, and 90-day min/max per index (field mean)."""
     rows = await conn.fetch(
         """
-        with recent as (
-          select index_name, acquired_at, mean,
-                 row_number() over (partition by index_name order by acquired_at desc) as rn
+        with prim as (
+          -- Pick the field's freshest sensor family so trends never mix 10m S2 with 30m HLS:
+          -- HLS (S30/L30) while it keeps updating, else Sentinel-2 — so AI trends survive an
+          -- Earthdata token lapse (HLS freezes → S2 becomes freshest → trends follow S2).
+          select max(acquired_at) filter (where sensor in ('S30','L30'))
+                 >= coalesce(max(acquired_at) filter (where sensor not in ('S30','L30')),
+                             '-infinity'::date) as use_hls
           from public.index_stats
           where field_id=$1::uuid and acquired_at >= current_date - 120
+        ),
+        recent as (
+          select i.index_name, i.acquired_at, i.mean,
+                 row_number() over (partition by i.index_name order by i.acquired_at desc) as rn
+          from public.index_stats i, prim
+          where i.field_id=$1::uuid and i.acquired_at >= current_date - 120
+            and ( (prim.use_hls and i.sensor in ('S30','L30'))
+               or (coalesce(prim.use_hls, false) is not true and i.sensor not in ('S30','L30')) )
         )
         select index_name,
                max(mean) filter (where rn=1)               as latest,
