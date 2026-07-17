@@ -112,21 +112,25 @@ bagbanai/
 - `docs/Infrastruktur_Layer_Tekmillesdirme.md` §6 qalan işlər: bulud-örtük filtri UI, iki-tarix compare/swipe, ölkə/rayon NDVI benchmark, PDF/DOCX hesabatlar, rəsmi kadastr layı, geokodlama axtarışı, hillshade/terrain.
 
 ## Açıq işlər / TODO (növbəti sessiya)
-**Bitmiş (2026-07-16 canlı auditdə doğrulandı):** ✅ AI aktiv (opus-4-8) · ✅ Cloudflare SSL Full (Strict).
+**Bitmiş (2026-07-16/17 sessiyalarda):** ✅ AI aktiv (opus-4-8) · ✅ CF SSL Full(Strict) · ✅ **wip/onboarding-refine deploy** (item 1/2/3/5/6 + 4 review fix, canlı, `43e5e7a`) · ✅ **DB backup** lokal+off-site server2 (`/root/bin/backup-db.sh`, cron 02:30) · ✅ **Server 1 UFW+fail2ban** (server 2 onsuz da qorunurdu).
 
-**Təhlükəsizlik/infra (2026-07-16 auditdə aşkarlandı — hesab ayarı, istifadəçi edir):**
-1. **Hetzner Cloud Firewall YOXDUR** → origin (95.216.208.82) birbaşa əlçatan (CF bypass mümkün). 80/443-ü yalnız Cloudflare IP-lərinə, 22-ni admin IP-yə məhdudlaşdır. ⚠️ Diqqət: origin LE cert HTTP-01 renewal :80 tələb edir → ya LE IP-lərinə icazə ver, ya CF Origin CA cert-ə keç.
-2. **`signal-cv.agradex.com`** (A, DNS-only) eyni origin IP-ni (95.216.208.82) sızdırır → proxied et və ya sil/köçür.
-3. **Hetzner server backup aktiv deyil** → avtomatik backup aç (~€3.9/ay) və/və ya off-server `pg_dump` cron.
-4. **2FA yoxdur** (Hetzner + ehtimal CF) → aktivləşdir.
-5. **LLM açarını rotate et** (chat-da açıq görünmüşdü); miqyas artanda `claude-sonnet-5`-ə keç (xərc ~3×↓).
-6. **MX/SPF/DKIM/DMARC yoxdur** (agradex.com) → SMTP email bildirişlərindən əvvəl qur.
+**🛰️ Sentinel-2 10m feature — `feat/sentinel2-sensor` branch (GitHub-a push olunub, DEPLOY OLUNMAYIB):**
+Tam icra + canlı validasiya (offset=0, TVI xaric). **7 review tapıntısı deploy-dan əvvəl düzəldilməli** (2 MEDIUM: pipeline oxuma guard, deploy-sırası). Deploy ardıcıllığı + tapıntılar: **`docs/Sentinel2_Integration.md`**.
 
-**Digər:**
-7. **nginx dublikat server_name** təmizliyi (CHANGELOG 1.0.7 həll olunmuş deyir — serverdə doğrula).
-8. **EARTHDATA_TOKEN** 2026-08-30-da bitir → regenerate et.
-9. **wip/onboarding-refine** branch (review olunmamış): item 1/2/3/5/6 — bax `HANDOFF.md §4`.
-10. Sprint-2 qalan maddələri (yuxarıda) + Faza 2 (spec §28).
+**🐛 Canlı QA tapıntıları (2026-07-17 review — düzəldiləcək):**
+1. **Subsidiya etiketləri tərcümə olunmayıb** — bitki/qrup adları xam İngilis (`cereals_legumes`, `fruit_other`, `alfalfa`, `corn`...). `app/src/lib/i18n.ts` cropLabels/cropGroupLabels natamam (metadataOptions-dan ayrı mənbə). *(yüksək görünürlük)*
+2. **Subsidiya wizard "tarif tapılmadı" dead-end** — region/intensivlik addımları toplanmır (məs. alma region-asılıdır). Spec §30 wizard natamam icra olunub.
+3. **Bildiriş zəngi/UI yoxdur** — backend `notifications` yaradır, frontend səthi (zəng) yoxdur → istifadəçi görmür.
+4. **Minimum sahə ölçüsü yoxlaması yoxdur** — 0.01 ha sahə (test-nope) yaradıla bilir.
+5. Komanda dəvəti email göndərmir (SMTP təxir; UI dəvət linkini göstərmir).
+
+**Təhlükəsizlik/infra (hesab ayarı, istifadəçi edir):**
+1. **Tier-2 firewall** (origin IP gizlətmə) təxirdə — signal-cv/findix/n8n əvvəl CF-proxy tələb edir + LE→Origin CA. Server 1+2 onsuz da UFW+fail2ban.
+2. **2FA yoxdur** (Hetzner + ehtimal CF) → aktivləşdir.
+3. **LLM açarını rotate et** (chat-da açıq görünmüşdü); miqyasda `claude-sonnet-5` (xərc ~3×↓).
+4. **MX/SPF/DKIM/DMARC yoxdur** (agradex.com) → SMTP email bildirişlərindən əvvəl.
+5. **EARTHDATA_TOKEN** 2026-08-30-da bitir → regenerate (token bitəndə S2 feature HLS-i əvəz edə bilər).
+6. **nginx dublikat server_name** (serverdə doğrula).
 
 ## İstinad sahələr (canlı test üçün)
 - **"test lecet"** id `860891bd-912c-4ec3-9235-b7d4d0193190` (tam emal olunub: ~962 index_stats sətri + clipped COG-lar).
