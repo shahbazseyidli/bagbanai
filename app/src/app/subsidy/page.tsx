@@ -242,6 +242,18 @@ function Wizard() {
     setError("");
     setResult(null);
     setSaved(false);
+    // Require every dimension the wizard offered for this crop, so the user picks region/
+    // intensity/period instead of hitting a confusing "tarif tapılmadı" with a blank region.
+    const missing: string[] = [];
+    if (dims?.intensities?.length && !intensity) missing.push(t("sub.intensity"));
+    if (dims?.region_categories?.length && !regionCategory) missing.push(t("sub.region_category"));
+    if (dims?.needs_region_rayon && !regionRayon) missing.push(t("sub.region_rayon"));
+    if (dims?.irrigations?.length && !irrigation) missing.push(t("sub.irrigation"));
+    if (dims?.planting_periods?.length && !plantingPeriod) missing.push(t("sub.planting_period"));
+    if (missing.length) {
+      setError(`Hesablamaq üçün seçin: ${missing.join(", ")}.`);
+      return;
+    }
     setBusy(true);
     const body: CalcBody = {
       year: YEAR,
