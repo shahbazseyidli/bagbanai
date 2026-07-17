@@ -3,6 +3,17 @@
 Bütün əhəmiyyətli dəyişikliklər burada qeyd olunur. Format [Keep a Changelog](https://keepachangelog.com/),
 versiyalar [SemVer](https://semver.org/).
 
+## [1.1.0] — 2026-07-17 — Canlı QA fixləri + Sentinel-2 10m feature (branch)
+
+### Fixed (CANLI, main `04d7a55`)
+- **Subsidiya kalkulyatoru** bitki/qrup adları tam **Azərbaycanca** (əvvəl xam `cereals_legumes`, `fruit_other` və s. istifadəçiyə göstərilirdi) — `i18n.ts` cropGroupLabels/cropLabels 2026 seed-lə tam uyğunlaşdırıldı.
+- **Subsidiya wizard** təklif olunan ölçüləri (region/intensivlik/dövr) məcbur edir → çaşdırıcı "tarif tapılmadı" dead-end aradan qalxdı (məs. alma region-asılıdır).
+- **Bildiriş zəngi** (`NotificationBell`) nav-a əlavə edildi — istifadəçilər peyk-hazır / AI-məsləhət bildirişlərini artıq görür (oxunmamış badge + dropdown + mark-read).
+- Sahə yaradılışı **`<0.05 ha`** sahələri rədd edir (`field_too_small`) — peyk piksel analizi mümkün olmayan sahələr (əvvəl 0.01 ha yaradıla bilirdi).
+
+### In progress (`feat/sentinel2-sensor` branch — deploy OLUNMAYIB)
+- **Sentinel-2 L2A 10m** yeni sensor kimi (NASA HLS 30m yanında): 1 ha analiz keyfiyyətini FarmerApp səviyyəsinə qaldırır. Migration 0013, `search_s2.py` (Element84), `run_field_all`, 4 endpoint sensor-scope, frontend sensor toggle + iki-sensor chart. Tam deploy ardıcıllığı: **`docs/Sentinel2_Integration.md`**.
+
 ## [1.0.9] — 2026-07-14 — Sahə əlavəetmə sihirbazı (click-first, adaptiv) + "Sahə haqqında məlumat"
 
 ### Added
