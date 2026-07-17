@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Leaf, Menu, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { t } from "@/lib/i18n";
+import NotificationBell from "@/components/NotificationBell";
 
 export default function Nav() {
   const { user, logout } = useAuth();
@@ -46,6 +47,7 @@ export default function Nav() {
             ))}
           {user ? (
             <div className="ml-2 flex items-center gap-2">
+              <NotificationBell />
               <span className="text-sm text-slate-500">{user.email}</span>
               <button className="btn-ghost" onClick={onLogout}>
                 {t("nav.logout")}
