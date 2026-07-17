@@ -37,7 +37,8 @@ async def create_field(body: FieldIn, user_id: str = Depends(get_current_user_id
 
         # Validate geometry server-side (turf validates client-side too).
         chk = await conn.fetchrow(
-            """select st_isvalid(g) as valid, geometrytype(g) as gtype, st_npoints(g) as npts
+            """select st_isvalid(g) as valid, geometrytype(g) as gtype, st_npoints(g) as npts,
+                      st_area(g::geography)/10000.0 as area_ha
                from (select st_setsrid(st_geomfromgeojson($1),4326) as g) s""", geojson)
         if chk is None or chk["gtype"] != "POLYGON":
             raise HTTPException(status_code=400, detail="not_a_polygon")
@@ -45,6 +46,10 @@ async def create_field(body: FieldIn, user_id: str = Depends(get_current_user_id
             raise HTTPException(status_code=400, detail="invalid_polygon_self_intersection")
         if chk["npts"] < 4:  # closed ring: 3 distinct vertices + repeat
             raise HTTPException(status_code=400, detail="need_at_least_3_vertices")
+        # Reject absurdly small fields: below ~0.05 ha (500 m²) no satellite pixel analysis is
+        # possible (even Sentinel-2 10m gives ~5 pixels) and it is almost always a drawing error.
+        if chk["area_ha"] is not None and float(chk["area_ha"]) < 0.05:
+            raise HTTPException(status_code=400, detail="field_too_small")
 
         # Queue satellite processing (a cron worker picks it up within ~2 min). The UI
         # shows a "preparing…" banner with progress/ETA until data_status flips to ready.

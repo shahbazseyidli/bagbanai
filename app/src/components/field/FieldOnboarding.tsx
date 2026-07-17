@@ -199,6 +199,10 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
       }
       const poly = validateBoundary();
       if (!poly) return;
+      if (areaHa != null && areaHa < 0.05) {
+        setError(`Sahə çox kiçikdir (${areaHa.toFixed(3)} ha). Peyk analizi üçün minimum ~0.05 ha lazımdır — sərhədi yenidən çəkin.`);
+        return;
+      }
       void fetchGeo(poly);
     }
     if (step === 2 && !(data.crop_type && data.crop_type.trim())) {
@@ -260,7 +264,10 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
       }
       onCreated(field);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("common.error"));
+      const msg = err instanceof Error ? err.message : t("common.error");
+      setError(msg === "field_too_small"
+        ? "Sahə çox kiçikdir (minimum ~0.05 ha). Sərhədi yenidən çəkin."
+        : msg);
       setBusy(false);
     }
   }
