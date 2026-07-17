@@ -239,7 +239,12 @@ def run_field_s2(field_id: str, days_back: int = 120, max_cloud: int = 70,
         rdir = persist.raster_dir()
         scenes_written = 0
         for i, g in enumerate(granules):
-            stats_da = process_granule_s2(field["geom"], g)
+            try:
+                stats_da = process_granule_s2(field["geom"], g)
+            except Exception as exc:  # noqa: BLE001 — skip a bad granule (transient COG read /
+                # a neighbouring tile whose extent misses the field), keep the rest; mirrors HLS.
+                print(f"  ! S2 granule {g.granule_id}: {exc}", file=sys.stderr)
+                stats_da = {}
             if stats_da and any((v[0] or {}).get("valid_pixels", 0) for v in stats_da.values()):
                 stats = {k: v[0] for k, v in stats_da.items()}
                 scene_id = persist.persist_scene(
@@ -289,8 +294,12 @@ def run_field_all(field_id: str, days_back: int = 120, max_cloud: int = 70,
                         write_rasters=write_rasters, track_status=False, trigger_advice=False)
         s2: dict = {"ok": False, "scenes_written": 0}
         try:
+            # S2 runs second and is the longer pass → let it drive the progress bar/ETA. A raised
+            # error still can't strand the field: run_field_s2 may set 'failed', but the outer
+            # set_field_status('ready') below overwrites it (HLS data is kept regardless).
             s2 = run_field_s2(field_id, days_back=days_back, max_cloud=max_cloud,
-                              write_rasters=write_rasters, track_status=False, trigger_advice=False)
+                              write_rasters=write_rasters, track_status=track_status,
+                              trigger_advice=False)
         except Exception as exc:  # noqa: BLE001 — S2 must never fail the field; HLS is authoritative
             print(f"  ! S2 pass failed (HLS kept): {exc}", file=sys.stderr)
         written = (hls.get("scenes_written", 0) or 0) + (s2.get("scenes_written", 0) or 0)

@@ -329,6 +329,7 @@ export default function OverviewTab({ field }: { field: FieldDetail }) {
     setSceneIdx(0);
     setCmpA(0);
     setCmpB(Math.min(1, Math.max(0, visibleScenes.length - 1)));
+    if (visibleScenes.length < 2) setCompare(false); // compare needs ≥2 scenes — never trap the user
   }, [visibleScenes.length]);
 
   const activeScene: RasterScene | null = visibleScenes[sceneIdx] ?? visibleScenes[0] ?? null;
@@ -363,6 +364,9 @@ export default function OverviewTab({ field }: { field: FieldDetail }) {
   // Small-field warning (info-only). NO-OP when area is unknown.
   const smallField = field.area_ha != null && field.area_ha < AREA_MIN_S2;
   const smallForHls = field.area_ha != null && field.area_ha < AREA_MIN_HLS;
+  // Show the warning for a truly tiny field (either sensor) OR a field that is small specifically
+  // for HLS 30m (0.15–0.5 ha) while HLS is the active sensor.
+  const showSmallBanner = smallField || (sensor === "HLS" && smallForHls);
   // The map is showing a different sensor than the toggle (fell back because none was available).
   const fellBack = !preparing && scenes.length > 0 && sceneSensor != null && sceneSensor !== sensor;
   // Which sensor the map actually shows (for the fallback note).
@@ -376,10 +380,11 @@ export default function OverviewTab({ field }: { field: FieldDetail }) {
           Peyk məlumatının hazırlanmasında problem oldu. Komanda avtomatik yenidən cəhd edəcək.
         </div>
       )}
-      {smallField && (
+      {showSmallBanner && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-          Sahə çox kiçikdir ({field.area_ha} ha). Piksel-səviyyəli analiz üçün nəticələr yalnız bir
-          neçə peyk pikselinə əsaslanır və təxminidir.
+          {smallField
+            ? `Sahə çox kiçikdir (${field.area_ha} ha). Piksel-səviyyəli analiz üçün nəticələr yalnız bir neçə peyk pikselinə əsaslanır və təxminidir.`
+            : `Bu sahə (${field.area_ha} ha) HLS 30m üçün kiçikdir — sahəyə cəmi bir neçə piksel düşür.`}
           {sensor === "HLS" && smallForHls &&
             " HLS (30m) bu ölçüdə daha az dəqiqdir — Sentinel-2 (10m) seçin."}
         </div>
@@ -489,9 +494,11 @@ export default function OverviewTab({ field }: { field: FieldDetail }) {
                     <span className="inline-block h-0.5 w-4 bg-emerald-600" /> HLS 30m
                   </span>
                 )}
-                <span className="inline-flex items-center gap-1">
-                  <span className="inline-block h-0.5 w-4" style={{ background: "#a7f3d0" }} /> Sahədaxili min–maks
-                </span>
+                {hasHls && (
+                  <span className="inline-flex items-center gap-1">
+                    <span className="inline-block h-0.5 w-4" style={{ background: "#a7f3d0" }} /> Sahədaxili min–maks
+                  </span>
+                )}
                 {hasBenchmark && (
                   <span className="inline-flex items-center gap-1">
                     <span className="inline-block h-0.5 w-4" style={{ background: "#f59e0b" }} /> Digər sahələrin ortası
