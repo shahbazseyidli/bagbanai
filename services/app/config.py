@@ -24,6 +24,13 @@ class Settings(BaseSettings):
     llm_provider: str = "anthropic"
     llm_model: str = "claude-opus-4-8"
     llm_api_key: str = ""
+    # EPPO Data Services token; added to .env by the operator; empty → pest data degrades.
+    eppo_token: str = ""
+    # Knowledge layer (M3): web-search provider for zone research. 'anthropic' folds search into
+    # the LLM call (web_search tool); a dedicated vendor (tavily/exa) can be wired behind it later.
+    search_provider: str = "anthropic"
+    # Reverse-geocoder for rayon (zone_id) resolution; free OSM Nominatim by default.
+    nominatim_base: str = "https://nominatim.openstreetmap.org"
 
     # Email notifications (optional; web/in-app work without these). SMTP or an API relay.
     smtp_host: str = ""
