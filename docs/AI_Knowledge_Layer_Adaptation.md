@@ -141,7 +141,39 @@ Bilik Pasportunun qalan hissəsi olmadan da fermerə görünən dəyər verir.
 
 ---
 
-## 8. Növbəti addım
-Bu adaptasiya təsdiqlənəndə: (1) CLAUDE.md TODO-ya bu layihə əlavə olunur, (2) M1+M5 üçün ayrıca
-implementasiya branch-i açılır (`feat/ai-knowledge-layer`), (3) migration 0014 dizayn edilir.
-İmplementasiya BAŞLAMAZDAN əvvəl istifadəçi təsdiqi (main push = deploy qaydası).
+## 8. İMPLEMENTASİYA VƏZİYYƏTİ (branch `feat/ai-knowledge-layer` — DEPLOY GÖZLƏYİR)
+
+M1–M8 tam qurulub, `feat/ai-knowledge-layer`-də. **main-ə merge/deploy YOX** (istifadəçi təsdiqi gözlənilir).
+Gate-lər: `tsc --noEmit` təmiz + api image import testi təmiz + migration 0014 tam zəncirdə (0001→0014)
+throwaway DB-də təsdiqlənib.
+
+| M | Nə quruldu | Əsas fayllar |
+|---|---|---|
+| M1 | 4 cədvəl + crop_thresholds genişlənməsi | `db/migrations/0014_knowledge_layer.sql` |
+| M5 | Bitki-spesifik status etiketləri (Xudat düzəlişi) | `crop_thresholds.json`/`load_seeds.py`, `indices.py` (`/norms`), `OverviewTab.tsx` |
+| M2 | Struktur adapterlər | `ai/sources/{base,soilgrids,faostat,eppo}.py` |
+| M3 | Araşdırma orkestratoru + web_search | `ai/research.py`, `ai/knowledge.py`, `ai/llm.py` (`web_research`) |
+| M4 | Job növbəsi + asılılıq xəritəsi + trigger | `ai/jobs.py`, `routers/internal.py` (`/research/drain`), `routers/fields.py`, `deploy/process-research.sh` |
+| M6 | Passport-lu məsləhət (çarpaz sintez, səbəb-nəticə) | `ai/context.py`, `ai/advice.py` |
+| M7 | Clarifications backend + UI | `ai/clarify.py`, `routers/knowledge.py`, `ClarificationBlock.tsx` |
+| M8 | Open-Meteo hava + su bloku + passport UI | `ai/weather.py`, `ai/sources/openmeteo.py`, `run-weather.sh`, `KnowledgePassport.tsx` |
+
+### Deploy ardıcıllığı (təsdiqdən sonra — main push = deploy)
+1. **Migration 0014 ƏVVƏL** (queue lock altında): `... --profile tools run --rm tools "./db/migrate.sh"`.
+2. **Seed loader-i işlət** (KRİTİK — index_norms-u doldurur, yoxsa M5 universal-a fallback edir və Xudat düzəlməz):
+   `... --profile tools run --rm tools "python db/seeds/load_seeds.py"`.
+3. `bash deploy/update.sh` (api/web rebuild).
+4. Import + tsc gate (artıq CI-də təsdiqlənib).
+5. **Cron-lar əlavə et:**
+   - `*/3 * * * * cd /opt/bagbanai && flock -n /tmp/bagban-research.lock bash deploy/process-research.sh >> /var/log/bagban-research.log 2>&1`
+   - `45 3 * * * cd /opt/bagbanai && bash deploy/run-weather.sh >> /var/log/bagban-weather.log 2>&1`
+6. Brauzerdə yoxla: Xudat sahəsində EVI/SAVI artıq "Orta" (Zəif yox) + 🎯 nişanı; AI tabda Bilik Pasportu.
+
+### Deploy-dan sonra istifadəçi işləri
+- **EPPO token** (`data.eppo.int` hesabı) → `.env`-ə `EPPO_TOKEN=` → pest bloku aktivləşir (indi `eppo_no_token` ilə səliqəli deqradasiya).
+- LLM açarı artıq var (advice/chat üçün) → web_search sintezi avtomatik işləyir; açar yoxdursa struktur-API blokları (torpaq/hava/pest) yenə dolur.
+
+### Bilərəkdən MVP-də saxlanan / sonraya
+- Tarif gating (D7 — indi hamıya tam). · FAOSTAT canlı host hazırda 521 (adapter deqradasiya edir; host qalxanda yoxla). ·
+  Mövsümi fenoloji trigger (indi manual/metadata-triggered; cron-based seasonal enqueue follow-up). ·
+  Research-dən gələn `index_norms`-un crop_thresholds-a geri-yazılması (indi seed-based provisional bands).
