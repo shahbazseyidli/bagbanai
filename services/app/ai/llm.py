@@ -98,5 +98,47 @@ async def complete_text(system: str, messages: list[dict],
     return "\n".join(parts).strip(), _usage(provider, model, resp)
 
 
+async def web_research(system: str, prompt: str, *, max_uses: int = 5,
+                       max_tokens: int = 4000) -> tuple[str, list[dict], dict]:
+    """Run a research turn with the provider's web search enabled (knowledge layer M3).
+
+    Returns (text, citations, usage). `citations` is a list of {url, title} gathered from
+    the search results so the synthesis step can attach source links (traceability P5).
+    With the anthropic provider this uses the server-side web_search tool — search AND draft
+    happen in one call (spec P3: search finds, LLM synthesizes). SEARCH_PROVIDER lets a
+    dedicated search vendor (Tavily/Exa) be wired later behind the same signature.
+
+    Raises LLMUnavailable when no key/provider is configured so callers degrade to
+    structured-API-only knowledge."""
+    if not is_configured():
+        raise LLMUnavailable("no LLM key configured")
+    provider = (settings.llm_provider or "anthropic").lower()
+    search_provider = (getattr(settings, "search_provider", "") or "anthropic").lower()
+    if provider != "anthropic" or search_provider != "anthropic":
+        raise LLMUnavailable(f"web search provider {search_provider} not wired yet")
+    model = settings.llm_model or "claude-opus-4-8"
+    client = _anthropic_client()
+    resp = await client.messages.create(
+        model=model,
+        max_tokens=max_tokens,
+        system=system,
+        messages=[{"role": "user", "content": prompt}],
+        tools=[{"type": "web_search_20250305", "name": "web_search", "max_uses": max_uses}],
+    )
+    text_parts: list[str] = []
+    citations: list[dict] = []
+    seen: set[str] = set()
+    for block in resp.content:
+        btype = getattr(block, "type", None)
+        if btype == "text":
+            text_parts.append(block.text)
+            for c in (getattr(block, "citations", None) or []):
+                url = getattr(c, "url", None)
+                if url and url not in seen:
+                    seen.add(url)
+                    citations.append({"url": url, "title": getattr(c, "title", "") or ""})
+    return "\n".join(text_parts).strip(), citations, _usage(provider, model, resp)
+
+
 def model_info() -> tuple[str, str]:
     return (settings.llm_provider or "anthropic", settings.llm_model or "claude-opus-4-8")

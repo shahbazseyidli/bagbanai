@@ -36,6 +36,48 @@ async def run_pipeline(field_id: str, days_back: int = 120):
     return result
 
 
+@router.post("/research/drain")
+async def drain_research(limit: int = 1):
+    """Claim up to `limit` due research_jobs and run Phase-1 research for each (knowledge
+    layer M4). Called by the deploy/process-research.sh cron. One job per call by default so
+    a slow LLM synthesis stays within the proxy timeout; the cron loops. After a successful
+    run it re-detects clarifications and (best-effort) refreshes advice with the new passport."""
+    from ..ai import clarify, jobs
+    from ..ai import research as research_svc
+    from ..ai import usage as ai_usage
+
+    processed = []
+    async with connection(None) as conn:
+        claimed = await jobs.claim_due(conn, limit=limit)
+    for job in claimed:
+        if not job["field_id"]:
+            async with connection(None) as conn:
+                await jobs.complete(conn, job["id"], True, error="no_field")
+            continue
+        try:
+            async with connection(None) as conn:
+                result = await research_svc.research_field(conn, job["field_id"], job["blocks"])
+                await clarify.detect_clarifications(conn, job["field_id"])
+                usage = result.get("usage")
+                if usage and result.get("org_id"):
+                    try:
+                        await ai_usage.record_usage(
+                            conn, kind="research", provider=usage["provider"], model=usage["model"],
+                            input_tokens=usage["input_tokens"], output_tokens=usage["output_tokens"],
+                            org_id=result["org_id"], user_id=None, field_id=job["field_id"])
+                    except Exception:
+                        pass
+                await jobs.complete(conn, job["id"], bool(result.get("ok")),
+                                    error=",".join(result.get("degraded", [])) or None)
+            processed.append({"job": job["id"], "field": job["field_id"],
+                              "written": result.get("written"), "degraded": result.get("degraded")})
+        except Exception as exc:  # noqa: BLE001 — one bad job must not stall the queue
+            async with connection(None) as conn:
+                await jobs.complete(conn, job["id"], False, error=str(exc)[:400])
+            processed.append({"job": job["id"], "field": job["field_id"], "error": str(exc)[:200]})
+    return {"claimed": len(claimed), "processed": processed}
+
+
 @router.post("/weather/run")
 async def run_weather(field_id: str):
     # Weather service is Phase 2 (Open-Meteo). Placeholder contract for n8n wiring.
