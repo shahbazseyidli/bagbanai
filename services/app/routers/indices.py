@@ -91,7 +91,9 @@ async def latest(field_id: str, sensor: str = Query("s2"),
     return {"indices": items, "available_indices": INDEX_NAMES, "sensor": used}
 
 
-_SUMMARY_INDICES = ["NDVI", "NDMI", "NDWI", "EVI", "SAVI", "NBR"]
+# NDRE included so the at-a-glance card surfaces the red-edge reading (E0) — it only has data
+# for the s2 family (empty for hls, dropped client-side), so it appears only when S2 is active.
+_SUMMARY_INDICES = ["NDVI", "NDRE", "NDMI", "NDWI", "EVI", "SAVI", "NBR"]
 
 
 @router.get("/{field_id}/norms")

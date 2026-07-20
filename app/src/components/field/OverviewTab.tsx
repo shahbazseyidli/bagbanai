@@ -99,7 +99,8 @@ interface IndexSummary {
 }
 
 // Indices shown in the "Cari göstəricilər" card, in display order.
-const SUMMARY_INDICES = ["NDVI", "NDMI", "NDWI", "EVI", "SAVI", "NBR"];
+// NDRE surfaced in the at-a-glance card (E0) — S2-only; absent for HLS (no data → filtered out).
+const SUMMARY_INDICES = ["NDVI", "NDRE", "NDMI", "NDWI", "EVI", "SAVI", "NBR"];
 
 type Tone = "good" | "warn" | "bad";
 
