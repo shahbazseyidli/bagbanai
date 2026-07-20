@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Sparkles, Send } from "lucide-react";
 import { api } from "@/lib/api";
 import { Spinner } from "@/components/ui";
+import KnowledgePassport from "@/components/field/KnowledgePassport";
 
 interface Risk { title: string; severity: string; detail: string }
 interface Rec { title: string; detail: string }
@@ -81,10 +82,20 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
   }
 
   if (loading) return <Spinner />;
-  if (!configured) return <NotConfigured />;
+  // The Knowledge Passport (soil/water/pests/phenology) shows even when the LLM isn't
+  // configured — structured-API research produces it without a key.
+  if (!configured)
+    return (
+      <div className="space-y-6">
+        <KnowledgePassport fieldId={fieldId} />
+        <NotConfigured />
+      </div>
+    );
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
+    <div className="space-y-6">
+      <KnowledgePassport fieldId={fieldId} />
+      <div className="grid gap-6 lg:grid-cols-2">
       {/* Advice */}
       <div className="card">
         <div className="mb-3 flex items-center">
@@ -190,6 +201,7 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
             <Send className="h-4 w-4" />
           </button>
         </div>
+      </div>
       </div>
     </div>
   );

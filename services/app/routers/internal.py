@@ -80,8 +80,33 @@ async def drain_research(limit: int = 1):
 
 @router.post("/weather/run")
 async def run_weather(field_id: str):
-    # Weather service is Phase 2 (Open-Meteo). Placeholder contract for n8n wiring.
-    raise HTTPException(status_code=501, detail="weather_phase_2")
+    """Refresh the Open-Meteo forecast + water_requirements block for one field (M8)."""
+    from ..ai import weather as weather_svc
+    async with connection(None) as conn:
+        result = await weather_svc.refresh_field(conn, field_id)
+    return result
+
+
+@router.post("/weather/drain")
+async def drain_weather(limit: int = 50):
+    """Refresh weather for the least-recently-updated fields (called by the daily cron)."""
+    from ..ai import weather as weather_svc
+    async with connection(None) as conn:
+        ids = await conn.fetch(
+            """select f.id from public.fields f
+               left join (select field_id, max(fetched_at) mx from public.weather_cache group by 1) w
+                 on w.field_id=f.id
+               order by w.mx nulls first limit $1""", limit)
+    done = 0
+    for r in ids:
+        try:
+            async with connection(None) as conn:
+                res = await weather_svc.refresh_field(conn, str(r["id"]))
+                if res.get("ok"):
+                    done += 1
+        except Exception:  # noqa: BLE001 — one field must not stall the batch
+            pass
+    return {"refreshed": done, "considered": len(ids)}
 
 
 @router.post("/rules/run")
