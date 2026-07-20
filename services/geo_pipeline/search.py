@@ -20,12 +20,13 @@ VI_COLLECTIONS = {"S30": "HLSS30_VI", "L30": "HLSL30_VI"}
 
 @dataclass
 class Granule:
-    sensor: str                 # S30 | L30
+    sensor: str                 # S30 | L30 | S2
     acquired_at: date
     granule_id: str
     mgrs_tile: Optional[str]
     cloud_pct: Optional[float]
     assets: dict = dc_field(default_factory=dict)   # index_name/band -> href
+    band_meta: dict = dc_field(default_factory=dict)  # asset_key -> {"scale","offset"} (S2 raster:bands)
 
 
 def login() -> None:

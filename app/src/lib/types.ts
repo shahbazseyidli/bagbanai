@@ -77,6 +77,7 @@ export interface RasterScene {
   scene_id: string;
   date: string;
   cloud_pct: number | null;
+  sensor?: string; // 'hls' | 's2'
   tile_url: string;
 }
 
@@ -84,6 +85,7 @@ export interface RasterScenes {
   index: string;
   colormap: string;
   rescale: string;
+  sensor?: string; // sensor family actually returned (may fall back from the requested one)
   scenes: RasterScene[];
 }
 
@@ -127,6 +129,7 @@ export interface GeoSite {
 
 export interface IndexPoint {
   date: string;
+  sensor?: string; // 'hls' | 's2' — series returns both sensors, tagged
   mean: number | null;
   p10?: number | null;
   p50?: number | null;

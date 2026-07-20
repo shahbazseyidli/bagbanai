@@ -56,26 +56,27 @@ def persist_scene(field_id: str, org_id: str, sensor: str, acquired_at: date,
         for index_name, s in stats_by_index.items():
             cur.execute(
                 """insert into public.index_stats
-                     (scene_id, field_id, org_id, index_name, mean, min, max, std, p10, p50, p90, valid_pixels, acquired_at)
-                   values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                     (scene_id, field_id, org_id, sensor, index_name, mean, min, max, std, p10, p50, p90, valid_pixels, acquired_at)
+                   values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                    on conflict (scene_id, index_name) do update set
-                     mean=excluded.mean, min=excluded.min, max=excluded.max, std=excluded.std,
+                     sensor=excluded.sensor, mean=excluded.mean, min=excluded.min, max=excluded.max, std=excluded.std,
                      p10=excluded.p10, p50=excluded.p50, p90=excluded.p90, valid_pixels=excluded.valid_pixels""",
-                (scene_id, field_id, org_id, index_name, s["mean"], s["min"], s["max"], s["std"],
+                (scene_id, field_id, org_id, sensor, index_name, s["mean"], s["min"], s["max"], s["std"],
                  s["p10"], s["p50"], s["p90"], s["valid_pixels"], acquired_at))
         conn.commit()
     return str(scene_id)
 
 
 def persist_raster(scene_id: str, field_id: str, index_name: str,
-                   storage_path: str, acquired_at: date) -> None:
+                   storage_path: str, acquired_at: date, sensor: Optional[str] = None) -> None:
     """Record a written index COG (idempotent per scene+index)."""
     with psycopg.connect(_dsn()) as conn, conn.cursor() as cur:
         cur.execute(
-            """insert into public.index_rasters (scene_id, field_id, index_name, storage_path, acquired_at)
-               values (%s,%s,%s,%s,%s)
-               on conflict (scene_id, index_name) do update set storage_path=excluded.storage_path""",
-            (scene_id, field_id, index_name, storage_path, acquired_at))
+            """insert into public.index_rasters (scene_id, field_id, sensor, index_name, storage_path, acquired_at)
+               values (%s,%s,%s,%s,%s,%s)
+               on conflict (scene_id, index_name) do update set
+                 sensor=excluded.sensor, storage_path=excluded.storage_path""",
+            (scene_id, field_id, sensor, index_name, storage_path, acquired_at))
         conn.commit()
 
 

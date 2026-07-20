@@ -15,6 +15,15 @@ import { api } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import { DisplayMap, CompareMap } from "@/components/FieldMap";
 import { Placeholder, Spinner } from "@/components/ui";
+import {
+  type Sensor,
+  SENSOR_META,
+  SENSOR_PARAM,
+  sensorFamily,
+  indexAvailable,
+  AREA_MIN_S2,
+  AREA_MIN_HLS,
+} from "@/lib/sensors";
 import type {
   FieldDetail,
   IndexPoint,
@@ -80,6 +89,7 @@ interface IndexSummaryEntry {
   date: string | null;
 }
 interface IndexSummary {
+  sensor?: string;
   indices: IndexSummaryEntry[];
 }
 
@@ -152,7 +162,7 @@ function PreparingBanner({ status }: { status: FieldDataStatus }) {
       <p className="mt-2 text-xs text-emerald-700">
         {status.total > 0
           ? `${status.done} / ${status.total} səhnə hazırdır. `
-          : "NASA peyk arxivindən oxunur. "}
+          : "NASA və Sentinel-2 arxivindən oxunur. "}
         Hazır olanda sizə bildiriş göndərəcəyik — bu səhifədən çıxa bilərsiniz.
       </p>
     </div>
@@ -176,9 +186,11 @@ function IndexLegend({ index }: { index: string }) {
 
 export default function OverviewTab({ field }: { field: FieldDetail }) {
   const [index, setIndex] = useState("NDVI");
+  const [sensor, setSensor] = useState<Sensor>("S2"); // default 10m; localStorage read on mount
   const [series, setSeries] = useState<IndexPoint[] | null>(null);
   const [benchmark, setBenchmark] = useState<Record<string, number>>({});
   const [scenes, setScenes] = useState<RasterScene[]>([]);
+  const [sceneSensor, setSceneSensor] = useState<Sensor | null>(null); // sensor actually shown
   const [sceneIdx, setSceneIdx] = useState(0);
   const [maxCloud, setMaxCloud] = useState(100);
   const [compare, setCompare] = useState(false);
@@ -187,6 +199,16 @@ export default function OverviewTab({ field }: { field: FieldDetail }) {
   const [status, setStatus] = useState<FieldDataStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState<IndexSummaryEntry[] | null>(null);
+  const [summarySensor, setSummarySensor] = useState<Sensor | null>(null);
+
+  // Read the persisted sensor on mount (not in useState init → avoids an SSR hydration mismatch).
+  useEffect(() => {
+    const s = typeof window !== "undefined" ? window.localStorage.getItem("bagban.sensor") : null;
+    if (s === "S2" || s === "HLS") setSensor(s);
+  }, []);
+  useEffect(() => {
+    if (typeof window !== "undefined") window.localStorage.setItem("bagban.sensor", sensor);
+  }, [sensor]);
 
   // Poll processing status until ready (drives the preparing banner + auto-refresh).
   useEffect(() => {
@@ -215,30 +237,26 @@ export default function OverviewTab({ field }: { field: FieldDetail }) {
   const preparing = effectiveStatus === "queued" || effectiveStatus === "processing";
   const ready = status?.status === "ready";
 
-  // Fetch time-series + raster scenes + regional benchmark for the selected index.
+  // Time series (BOTH sensors, tagged) + regional benchmark — NOT re-fetched on the sensor toggle.
   useEffect(() => {
     let active = true;
     setLoading(true);
     (async () => {
       try {
-        const [ser, sc, bm] = await Promise.all([
+        const [ser, bm] = await Promise.all([
           api.get<IndexSeries>(`/api/fields/${field.id}/indices?index=${index}`),
-          api.get<RasterScenes>(`/api/fields/${field.id}/scenes?index=${index}`),
           api
             .get<IndexBenchmark>(`/api/fields/${field.id}/indices/benchmark?index=${index}`)
             .catch(() => null),
         ]);
         if (!active) return;
         setSeries(ser?.series ?? []);
-        setScenes(sc?.scenes ?? []);
-        setSceneIdx(0);
         const bench: Record<string, number> = {};
         for (const p of bm?.series ?? []) bench[weekKey(p.date)] = p.mean;
         setBenchmark(bench);
       } catch {
         if (!active) return;
         setSeries([]);
-        setScenes([]);
         setBenchmark({});
       } finally {
         if (active) setLoading(false);
@@ -249,13 +267,40 @@ export default function OverviewTab({ field }: { field: FieldDetail }) {
     };
   }, [field.id, index, ready]);
 
-  // Latest per-index values for the "Cari göstəricilər" explanation card.
+  // Map raster scenes for the active index + sensor (re-fetched on the sensor toggle).
   useEffect(() => {
     let active = true;
     (async () => {
       try {
-        const s = await api.get<IndexSummary>(`/api/fields/${field.id}/indices/summary`);
-        if (active) setSummary(s?.indices ?? []);
+        const sc = await api.get<RasterScenes>(
+          `/api/fields/${field.id}/scenes?index=${index}&sensor=${SENSOR_PARAM[sensor]}`,
+        );
+        if (!active) return;
+        setScenes(sc?.scenes ?? []);
+        setSceneSensor(sc?.sensor ? sensorFamily(sc.sensor) : null);
+        setSceneIdx(0);
+      } catch {
+        if (!active) return;
+        setScenes([]);
+        setSceneSensor(null);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [field.id, index, sensor, ready]);
+
+  // Latest per-index values for the "Cari göstəricilər" card (matches the active sensor).
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const s = await api.get<IndexSummary>(
+          `/api/fields/${field.id}/indices/summary?sensor=${SENSOR_PARAM[sensor]}`,
+        );
+        if (!active) return;
+        setSummary(s?.indices ?? []);
+        setSummarySensor(s?.sensor ? sensorFamily(s.sensor) : null);
       } catch {
         if (active) setSummary([]);
       }
@@ -263,7 +308,7 @@ export default function OverviewTab({ field }: { field: FieldDetail }) {
     return () => {
       active = false;
     };
-  }, [field.id, ready]);
+  }, [field.id, sensor, ready]);
 
   // Interpreted rows for the summary card (only present indices with a value, in order).
   const summaryRows = useMemo(() => {
@@ -284,24 +329,48 @@ export default function OverviewTab({ field }: { field: FieldDetail }) {
     setSceneIdx(0);
     setCmpA(0);
     setCmpB(Math.min(1, Math.max(0, visibleScenes.length - 1)));
+    if (visibleScenes.length < 2) setCompare(false); // compare needs ≥2 scenes — never trap the user
   }, [visibleScenes.length]);
 
   const activeScene: RasterScene | null = visibleScenes[sceneIdx] ?? visibleScenes[0] ?? null;
   const rasterUrl = activeScene?.tile_url ?? null;
 
-  // Merge the field mean series with the aligned regional benchmark (weekly).
+  // Pivot the two-sensor series by date into HLS/S2 lines + the aligned weekly benchmark.
   const chartData = useMemo(() => {
-    if (!series) return [];
+    const byDate = new Map<string, Record<string, unknown>>();
+    for (const p of series ?? []) {
+      const row = byDate.get(p.date) ?? { date: p.date };
+      if (sensorFamily(p.sensor) === "S2") {
+        row.s2_mean = p.mean;
+      } else {
+        row.hls_mean = p.mean;
+        row.hls_p10 = p.p10 ?? null;
+        row.hls_p90 = p.p90 ?? null;
+      }
+      byDate.set(p.date, row);
+    }
     const hasBench = Object.keys(benchmark).length > 0;
-    return series.map((p) => ({
-      ...p,
-      benchmark: hasBench ? (benchmark[weekKey(p.date)] ?? null) : null,
-    }));
+    return Array.from(byDate.values())
+      .sort((a, b) => (String(a.date) < String(b.date) ? -1 : 1))
+      .map((r) => ({ ...r, benchmark: hasBench ? (benchmark[weekKey(String(r.date))] ?? null) : null }));
   }, [series, benchmark]);
   const hasBenchmark = Object.keys(benchmark).length > 0;
+  const hasHls = (series ?? []).some((p) => sensorFamily(p.sensor) === "HLS");
+  const hasS2 = (series ?? []).some((p) => sensorFamily(p.sensor) === "S2");
 
   const sceneA = visibleScenes[cmpA] ?? null;
   const sceneB = visibleScenes[cmpB] ?? null;
+
+  // Small-field warning (info-only). NO-OP when area is unknown.
+  const smallField = field.area_ha != null && field.area_ha < AREA_MIN_S2;
+  const smallForHls = field.area_ha != null && field.area_ha < AREA_MIN_HLS;
+  // Show the warning for a truly tiny field (either sensor) OR a field that is small specifically
+  // for HLS 30m (0.15–0.5 ha) while HLS is the active sensor.
+  const showSmallBanner = smallField || (sensor === "HLS" && smallForHls);
+  // The map is showing a different sensor than the toggle (fell back because none was available).
+  const fellBack = !preparing && scenes.length > 0 && sceneSensor != null && sceneSensor !== sensor;
+  // Which sensor the map actually shows (for the fallback note).
+  const sensorSceneOrHls = (): Sensor => sceneSensor ?? (sensor === "S2" ? "HLS" : "S2");
 
   return (
     <div className="space-y-6">
@@ -311,10 +380,26 @@ export default function OverviewTab({ field }: { field: FieldDetail }) {
           Peyk məlumatının hazırlanmasında problem oldu. Komanda avtomatik yenidən cəhd edəcək.
         </div>
       )}
+      {showSmallBanner && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          {smallField
+            ? `Sahə çox kiçikdir (${field.area_ha} ha). Piksel-səviyyəli analiz üçün nəticələr yalnız bir neçə peyk pikselinə əsaslanır və təxminidir.`
+            : `Bu sahə (${field.area_ha} ha) HLS 30m üçün kiçikdir — sahəyə cəmi bir neçə piksel düşür.`}
+          {sensor === "HLS" && smallForHls &&
+            " HLS (30m) bu ölçüdə daha az dəqiqdir — Sentinel-2 (10m) seçin."}
+        </div>
+      )}
 
       {summaryRows.length > 0 && (
         <div className="card">
-          <h3 className="mb-3 font-semibold text-slate-800">Cari göstəricilər</h3>
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h3 className="font-semibold text-slate-800">Cari göstəricilər</h3>
+            {summarySensor && (
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
+                {SENSOR_META[summarySensor].short}
+              </span>
+            )}
+          </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {summaryRows.map(({ entry, value, status: st, note, tone }) => (
               <div key={entry.index} className="rounded-lg border border-slate-200 p-3">
@@ -337,7 +422,7 @@ export default function OverviewTab({ field }: { field: FieldDetail }) {
       )}
 
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Left — index selector + time series */}
+        {/* Left — index selector + two-sensor time series */}
         <div className="card">
           <h3 className="mb-3 font-semibold text-slate-800">{t("idx.title")}</h3>
           <label className="label">{t("idx.select")}</label>
@@ -373,8 +458,9 @@ export default function OverviewTab({ field }: { field: FieldDetail }) {
                       name,
                     ]}
                   />
-                  <Line type="monotone" dataKey="p90" name="p90" stroke="#a7f3d0" strokeWidth={1} dot={false} />
-                  <Line type="monotone" dataKey="p10" name="p10" stroke="#a7f3d0" strokeWidth={1} dot={false} />
+                  {/* HLS intra-field min–max band */}
+                  <Line type="monotone" dataKey="hls_p90" name="p90" stroke="#a7f3d0" strokeWidth={1} dot={false} connectNulls />
+                  <Line type="monotone" dataKey="hls_p10" name="p10" stroke="#a7f3d0" strokeWidth={1} dot={false} connectNulls />
                   {hasBenchmark && (
                     <Line
                       type="monotone"
@@ -387,16 +473,32 @@ export default function OverviewTab({ field }: { field: FieldDetail }) {
                       connectNulls
                     />
                   )}
-                  <Line type="monotone" dataKey="mean" name={index} stroke="#059669" strokeWidth={2} dot={false} />
+                  {hasHls && (
+                    <Line type="monotone" dataKey="hls_mean" name="HLS 30m"
+                      stroke="#059669" strokeWidth={2} dot={{ r: 2, fill: "#059669" }} connectNulls />
+                  )}
+                  {hasS2 && (
+                    <Line type="monotone" dataKey="s2_mean" name="Sentinel-2 10m"
+                      stroke="#2563eb" strokeWidth={2} dot={{ r: 2, fill: "#2563eb" }} connectNulls />
+                  )}
                 </LineChart>
               </ResponsiveContainer>
-              <div className="mt-1 flex flex-wrap items-center gap-4 text-[11px] text-slate-500">
-                <span className="inline-flex items-center gap-1">
-                  <span className="inline-block h-0.5 w-4 bg-emerald-600" /> Sahə ortası
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <span className="inline-block h-0.5 w-4" style={{ background: "#a7f3d0" }} /> Sahədaxili min–maks
-                </span>
+              <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500">
+                {hasS2 && (
+                  <span className="inline-flex items-center gap-1">
+                    <span className="inline-block h-0.5 w-4" style={{ background: "#2563eb" }} /> Sentinel-2 10m
+                  </span>
+                )}
+                {hasHls && (
+                  <span className="inline-flex items-center gap-1">
+                    <span className="inline-block h-0.5 w-4 bg-emerald-600" /> HLS 30m
+                  </span>
+                )}
+                {hasHls && (
+                  <span className="inline-flex items-center gap-1">
+                    <span className="inline-block h-0.5 w-4" style={{ background: "#a7f3d0" }} /> Sahədaxili min–maks
+                  </span>
+                )}
                 {hasBenchmark && (
                   <span className="inline-flex items-center gap-1">
                     <span className="inline-block h-0.5 w-4" style={{ background: "#f59e0b" }} /> Digər sahələrin ortası
@@ -407,7 +509,7 @@ export default function OverviewTab({ field }: { field: FieldDetail }) {
           )}
         </div>
 
-        {/* Right — map with raster overlay + scene timeline / compare */}
+        {/* Right — map with raster overlay + sensor toggle + scene timeline / compare */}
         <div className="card">
           <div className="mb-3 flex items-center justify-between gap-2">
             <h3 className="truncate font-semibold text-slate-800">{field.name}</h3>
@@ -433,6 +535,28 @@ export default function OverviewTab({ field }: { field: FieldDetail }) {
                 </button>
               )}
             </div>
+          </div>
+
+          {/* Sensor toggle — S2 (10m, sharp) vs HLS (30m, dense) */}
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <div className="inline-flex rounded-md border border-slate-200 p-0.5">
+              {(["S2", "HLS"] as Sensor[]).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  aria-pressed={sensor === s}
+                  onClick={() => setSensor(s)}
+                  className={`rounded px-2.5 py-1 text-xs ${
+                    sensor === s
+                      ? "bg-emerald-600 font-semibold text-white"
+                      : "text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  {SENSOR_META[s].short}
+                </button>
+              ))}
+            </div>
+            <span className="text-[11px] text-slate-500">{SENSOR_META[sensor].note}</span>
           </div>
 
           {compare && sceneA && sceneB ? (
@@ -475,6 +599,14 @@ export default function OverviewTab({ field }: { field: FieldDetail }) {
           ) : (
             <>
               <DisplayMap polygon={field.geom} rasterUrl={rasterUrl} />
+
+              {fellBack && (
+                <p className="mt-2 text-xs text-amber-600">
+                  {sensor === "S2" && !indexAvailable("S2", index)
+                    ? `${index} Sentinel-2 (10m) üçün hələ yoxdur — ${SENSOR_META[sensorSceneOrHls()].short} göstərilir.`
+                    : `Seçilmiş mənbə (${SENSOR_META[sensor].short}) üçün bu indeksin rasteri hələ yoxdur — ${SENSOR_META[sensorSceneOrHls()].short} göstərilir.`}
+                </p>
+              )}
 
               {scenes.length > 0 ? (
                 <>
@@ -524,7 +656,9 @@ export default function OverviewTab({ field }: { field: FieldDetail }) {
               ) : (
                 !preparing && (
                   <p className="mt-3 text-xs text-slate-400">
-                    Bu indeks üçün hələ raster yoxdur.
+                    {sensor === "S2" && !indexAvailable("S2", index)
+                      ? `${index} Sentinel-2 (10m) üçün mövcud deyil — HLS 30m seçin.`
+                      : "Bu indeks üçün hələ raster yoxdur."}
                   </p>
                 )
               )}
