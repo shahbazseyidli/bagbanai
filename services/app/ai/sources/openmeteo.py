@@ -1,0 +1,54 @@
+"""Open-Meteo forecast (knowledge layer M8) — keyless daily weather incl. FAO ET0.
+
+Feeds two things: the weather_cache table (per-field forecast) and the water_requirements
+block (ET0 − precip → net irrigation need, Kc-adjusted). ET0 comes straight from Open-Meteo's
+`et0_fao_evapotranspiration` (FAO-56 Penman-Monteith) so we don't recompute it."""
+from __future__ import annotations
+
+from .base import SourceResult, get_json, source_meta
+
+_DAILY = [
+    "temperature_2m_max", "temperature_2m_min", "precipitation_sum",
+    "precipitation_probability_max", "et0_fao_evapotranspiration",
+    "wind_speed_10m_max", "relative_humidity_2m_mean",
+]
+
+
+async def fetch_weather(lat: float, lon: float, *, days: int = 7,
+                        base: str = "https://api.open-meteo.com/v1") -> SourceResult:
+    """7-day daily forecast for the field centroid. Returns per-day rows + totals. Never raises."""
+    try:
+        js = await get_json(
+            f"{base.rstrip('/')}/forecast",
+            params={"latitude": lat, "longitude": lon, "daily": ",".join(_DAILY),
+                    "forecast_days": days, "timezone": "auto"})
+    except Exception as exc:  # noqa: BLE001
+        return SourceResult(ok=False, error=f"openmeteo_unreachable: {exc}")
+
+    daily = (js or {}).get("daily") or {}
+    dates = daily.get("time") or []
+    if not dates:
+        return SourceResult(ok=False, error="openmeteo_empty")
+
+    def col(k):
+        return daily.get(k) or []
+
+    rows = []
+    for i, d in enumerate(dates):
+        def at(k):
+            v = col(k)
+            return v[i] if i < len(v) else None
+        rows.append({
+            "date": d, "t_min": at("temperature_2m_min"), "t_max": at("temperature_2m_max"),
+            "precip_mm": at("precipitation_sum"), "precip_prob": at("precipitation_probability_max"),
+            "et0_mm": at("et0_fao_evapotranspiration"), "wind_max": at("wind_speed_10m_max"),
+            "rh_mean": at("relative_humidity_2m_mean"),
+        })
+
+    def _sum(k):
+        return round(sum(r[k] for r in rows if r[k] is not None), 1)
+
+    data = {"days": rows, "et0_total_mm": _sum("et0_mm"), "precip_total_mm": _sum("precip_mm")}
+    return SourceResult(
+        ok=True, data=data,
+        source=source_meta("https://open-meteo.com/", "Open-Meteo (FAO-56 ET0)", "structured_api", 0.9))

@@ -62,6 +62,14 @@ async def create_field(body: FieldIn, user_id: str = Depends(get_current_user_id
                from (select st_setsrid(st_geomfromgeojson($4),4326) as geom) g
                returning id, farm_id, org_id, name, area_ha, mgrs_tiles""",
             body.farm_id, org_id, body.name, geojson, user_id)
+        # Kick off Phase-1 knowledge research (soil + zone; crop blocks fill in once the
+        # profile is added). Debounced via research_jobs; the worker picks it up (M4).
+        try:
+            from ..ai import jobs
+            await jobs.enqueue(conn, field_id=str(row["id"]), org_id=org_id,
+                               trigger_type="field_created", blocks=["ALL"])
+        except Exception:  # noqa: BLE001 — research is best-effort, never blocks field creation
+            pass
     return FieldOut(id=str(row["id"]), farm_id=str(row["farm_id"]), org_id=str(row["org_id"]),
                     name=row["name"], area_ha=float(row["area_ha"]) if row["area_ha"] is not None else None,
                     mgrs_tiles=row["mgrs_tiles"])
@@ -137,6 +145,12 @@ async def put_metadata(field_id: str, body: FieldMetadataIn, user_id: str = Depe
     async with connection(user_id) as conn:
         org_id = await _org_of_field(conn, field_id)
         await require_role(conn, user_id, org_id, ROLES_WORKER)
+        # Snapshot the knowledge-relevant fields BEFORE the upsert, so we can enqueue only the
+        # research blocks the change actually invalidates (spec §6 dependency map).
+        _prev = await conn.fetchrow(
+            """select crop_type, variety, planting_date, irrigation_method,
+                      irrigation_available, seeding_density, growth_stage
+               from public.field_metadata where field_id=$1::uuid""", field_id)
         await conn.execute(
             """insert into public.field_metadata
                  (field_id, crop_type, variety, planting_date, expected_harvest, difficulties,
@@ -165,4 +179,24 @@ async def put_metadata(field_id: str, body: FieldMetadataIn, user_id: str = Depe
             body.slope_deg, body.aspect_deg, body.tillage_practice, body.target_yield,
             json.dumps(body.prior_yields), json.dumps(body.pest_history), body.notes,
             body.crop_cycle, body.region, body.economic_region)
+
+        # Diff the dependency-map fields → enqueue only the invalidated research blocks (M4).
+        try:
+            from ..ai import jobs
+            from ..ai.knowledge import blocks_for_change
+            new_vals = {"crop_type": body.crop_type, "variety": body.variety,
+                        "planting_date": body.planting_date,
+                        "irrigation_method": body.irrigation_method,
+                        "irrigation_available": body.irrigation_available,
+                        "seeding_density": body.seeding_density, "growth_stage": body.growth_stage}
+            if _prev is None:
+                changed = ["crop_type"] if body.crop_type else []  # first profile → full research
+            else:
+                changed = [k for k, v in new_vals.items() if str(_prev[k]) != str(v)]
+            blocks = blocks_for_change(changed)
+            if blocks:
+                await jobs.enqueue(conn, field_id=field_id, org_id=org_id,
+                                   trigger_type="data_changed", blocks=blocks, changed_fields=changed)
+        except Exception:  # noqa: BLE001 — research is best-effort, never blocks the save
+            pass
     return {"ok": True}
