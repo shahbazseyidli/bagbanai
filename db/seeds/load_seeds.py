@@ -34,17 +34,25 @@ def load_json(name: str):
 def seed_crop_thresholds(cur):
     rows = load_json("crop_thresholds.json")
     for r in rows:
+        # growth_stage/age_class default to 'all' (crop-level row); the unique key is now
+        # (crop_type, growth_stage, age_class) after migration 0014. index_norms calibrates
+        # the per-index UI labels (M5); null → the API falls back to 'generic'.
+        params = dict(r)
+        params.setdefault("growth_stage", "all")
+        params.setdefault("age_class", "all")
+        params["index_norms"] = Jsonb(r["index_norms"]) if r.get("index_norms") else None
         cur.execute(
             """insert into public.crop_thresholds
-                 (crop_type, gdd_base_c, ndvi_healthy_min, ndvi_stress_max,
-                  ndmi_stress_max, frost_threshold_c, heat_threshold_c)
-               values (%(crop_type)s,%(gdd_base_c)s,%(ndvi_healthy_min)s,%(ndvi_stress_max)s,
-                       %(ndmi_stress_max)s,%(frost_threshold_c)s,%(heat_threshold_c)s)
-               on conflict (crop_type) do update set
+                 (crop_type, growth_stage, age_class, gdd_base_c, ndvi_healthy_min, ndvi_stress_max,
+                  ndmi_stress_max, frost_threshold_c, heat_threshold_c, index_norms)
+               values (%(crop_type)s,%(growth_stage)s,%(age_class)s,%(gdd_base_c)s,%(ndvi_healthy_min)s,
+                       %(ndvi_stress_max)s,%(ndmi_stress_max)s,%(frost_threshold_c)s,%(heat_threshold_c)s,%(index_norms)s)
+               on conflict (crop_type, growth_stage, age_class) do update set
                  gdd_base_c=excluded.gdd_base_c, ndvi_healthy_min=excluded.ndvi_healthy_min,
                  ndvi_stress_max=excluded.ndvi_stress_max, ndmi_stress_max=excluded.ndmi_stress_max,
-                 frost_threshold_c=excluded.frost_threshold_c, heat_threshold_c=excluded.heat_threshold_c""",
-            r,
+                 frost_threshold_c=excluded.frost_threshold_c, heat_threshold_c=excluded.heat_threshold_c,
+                 index_norms=excluded.index_norms""",
+            params,
         )
     print(f"crop_thresholds: {len(rows)} rows")
 

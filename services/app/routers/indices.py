@@ -90,6 +90,36 @@ async def latest(field_id: str, sensor: str = Query("s2"),
 _SUMMARY_INDICES = ["NDVI", "NDMI", "NDWI", "EVI", "SAVI", "NBR"]
 
 
+@router.get("/{field_id}/norms")
+async def index_norms(field_id: str, user_id: str = Depends(get_current_user_id)):
+    """Crop-specific index band edges for the UI status labels (M5). Resolves the field's
+    crop_type → crop_thresholds.index_norms; falls back to 'generic' when the crop has no
+    calibration. `calibrated` is true only when a crop-specific (non-generic) row supplied
+    the bands — the UI shows a "calibrated for <crop>" hint in that case. NULL norms → the
+    frontend uses its universal thresholds."""
+    async with connection(user_id) as conn:
+        org_id = await _org_of_field(conn, field_id)
+        await require_member(conn, user_id, org_id)
+        crop = await conn.fetchval(
+            "select crop_type from public.field_metadata where field_id=$1::uuid", field_id)
+        norms = None
+        calibrated = False
+        if crop:
+            norms = await conn.fetchval(
+                """select index_norms from public.crop_thresholds
+                   where crop_type=$1 and growth_stage='all' and age_class='all'""", crop)
+            calibrated = norms is not None
+        if norms is None:  # crop unknown, or crop row has no calibration → generic
+            norms = await conn.fetchval(
+                """select index_norms from public.crop_thresholds
+                   where crop_type='generic' and growth_stage='all' and age_class='all'""")
+    # asyncpg returns jsonb as a str — parse to an object for the JSON response.
+    if isinstance(norms, str):
+        import json
+        norms = json.loads(norms)
+    return {"crop_type": crop, "calibrated": calibrated, "norms": norms or {}}
+
+
 @router.get("/{field_id}/indices/summary")
 async def summary(field_id: str, sensor: str = Query("s2"),
                   user_id: str = Depends(get_current_user_id)):

@@ -105,14 +105,32 @@ const TONE: Record<Tone, { dot: string; text: string }> = {
   bad: { dot: "bg-red-500", text: "text-red-700" },
 };
 
-// Plain-language status + one-line note for a raw index value (frontend thresholds).
-function interpret(index: string, value: number): { status: string; note: string; tone: Tone } {
+// Per-crop calibration bands for the vegetation indices (M5), fetched from /norms.
+// { NDVI: [e1,e2,e3,e4], EVI: [...], SAVI: [...] } — edges split the 5 status tiers.
+type IndexNorms = Record<string, number[]>;
+
+// Vegetation status from 4 band edges [e1,e2,e3,e4]: <e1 çox zəif, <e2 zəif, <e3 orta,
+// <e4 sağlam, ≥e4 çox sağlam. Universal default [0.2,0.4,0.6,0.8] reproduces the old thresholds.
+const VEG_TIERS: { status: string; note: string; tone: Tone }[] = [
+  { status: "Çox zəif", note: "Çılpaq və ya çox seyrək örtük.", tone: "bad" },
+  { status: "Zəif", note: "Seyrək bitki örtüyü.", tone: "warn" },
+  { status: "Orta", note: "İnkişaf edən örtük.", tone: "warn" },
+  { status: "Sağlam", note: "Sıx, sağlam bitki.", tone: "good" },
+  { status: "Çox sağlam", note: "Çox sıx örtük.", tone: "good" },
+];
+
+// Plain-language status + one-line note for a raw index value. `norms` (per-crop, from the
+// API) calibrates the vegetation indices; without it the universal edges are used.
+function interpret(
+  index: string,
+  value: number,
+  norms?: IndexNorms | null,
+): { status: string; note: string; tone: Tone } {
   if (index === "NDVI" || index === "EVI" || index === "SAVI") {
-    if (value < 0.2) return { status: "Çox zəif", note: "Çılpaq və ya çox seyrək örtük.", tone: "bad" };
-    if (value < 0.4) return { status: "Zəif", note: "Seyrək bitki örtüyü.", tone: "warn" };
-    if (value < 0.6) return { status: "Orta", note: "İnkişaf edən örtük.", tone: "warn" };
-    if (value <= 0.8) return { status: "Sağlam", note: "Sıx, sağlam bitki.", tone: "good" };
-    return { status: "Çox sağlam", note: "Çox sıx örtük.", tone: "good" };
+    const edges = norms?.[index] ?? [0.2, 0.4, 0.6, 0.8];
+    let tier = 0;
+    while (tier < edges.length && value >= edges[tier]) tier += 1;
+    return VEG_TIERS[Math.min(tier, VEG_TIERS.length - 1)];
   }
   if (index === "NDMI") {
     if (value < 0) return { status: "Çox quru", note: "Su stresi.", tone: "bad" };
@@ -200,6 +218,8 @@ export default function OverviewTab({ field }: { field: FieldDetail }) {
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState<IndexSummaryEntry[] | null>(null);
   const [summarySensor, setSummarySensor] = useState<Sensor | null>(null);
+  const [norms, setNorms] = useState<IndexNorms | null>(null);
+  const [normsCrop, setNormsCrop] = useState<{ crop_type: string | null; calibrated: boolean } | null>(null);
 
   // Read the persisted sensor on mount (not in useState init → avoids an SSR hydration mismatch).
   useEffect(() => {
@@ -310,13 +330,33 @@ export default function OverviewTab({ field }: { field: FieldDetail }) {
     };
   }, [field.id, sensor, ready]);
 
+  // Crop-specific index norms (M5) — calibrates the status labels; falls back to universal.
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const r = await api.get<{ crop_type: string | null; calibrated: boolean; norms: IndexNorms }>(
+          `/api/fields/${field.id}/norms`,
+        );
+        if (!active) return;
+        setNorms(r?.norms ?? null);
+        setNormsCrop(r ? { crop_type: r.crop_type, calibrated: r.calibrated } : null);
+      } catch {
+        /* no norms → universal thresholds */
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [field.id]);
+
   // Interpreted rows for the summary card (only present indices with a value, in order).
   const summaryRows = useMemo(() => {
     const byIndex = new Map((summary ?? []).map((e) => [e.index, e]));
     return SUMMARY_INDICES.map((ix) => byIndex.get(ix))
       .filter((e): e is IndexSummaryEntry => e != null && e.latest != null)
-      .map((e) => ({ entry: e, value: e.latest as number, ...interpret(e.index, e.latest as number) }));
-  }, [summary]);
+      .map((e) => ({ entry: e, value: e.latest as number, ...interpret(e.index, e.latest as number, norms) }));
+  }, [summary, norms]);
 
   // Scenes visible after the cloud-cover filter (used by timeline + compare pickers).
   const visibleScenes = useMemo(
@@ -394,11 +434,21 @@ export default function OverviewTab({ field }: { field: FieldDetail }) {
         <div className="card">
           <div className="mb-3 flex items-center justify-between gap-2">
             <h3 className="font-semibold text-slate-800">Cari göstəricilər</h3>
-            {summarySensor && (
-              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
-                {SENSOR_META[summarySensor].short}
-              </span>
-            )}
+            <div className="flex shrink-0 items-center gap-1.5">
+              {normsCrop?.calibrated && (
+                <span
+                  className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700"
+                  title="Status etiketləri bu bitki növü üçün kalibrlənib (universal həddlər yox)."
+                >
+                  🎯 Bitkiyə uyğun
+                </span>
+              )}
+              {summarySensor && (
+                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
+                  {SENSOR_META[summarySensor].short}
+                </span>
+              )}
+            </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {summaryRows.map(({ entry, value, status: st, note, tone }) => (
