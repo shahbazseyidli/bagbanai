@@ -31,12 +31,13 @@ export const SENSOR_META: Record<Sensor, {
 export const AREA_MIN_S2 = 0.15; // ~15 Sentinel-2 10m pixels
 export const AREA_MIN_HLS = 0.5; // ~5 HLS 30m pixels
 
-// Indices available per sensor. TVI is HLS-only for now — computed-from-reflectance S2 TVI has
-// a magnitude (~0-30) that mis-renders under the shared colormap; revisit with a TVI rescale.
+// Indices available per sensor. TVI is HLS-only (S2 TVI magnitude mis-renders under the shared
+// colormap). NDRE/CIre are S2-only (E0): they need the red-edge 705 nm band, which Landsat/HLS
+// lack — so they only appear when the Sentinel-2 sensor is selected.
 const ALL_INDICES = ["NDVI", "EVI", "SAVI", "MSAVI", "NDMI", "NDWI", "NBR", "NBR2", "TVI"];
 export const SENSOR_INDICES: Record<Sensor, string[]> = {
   HLS: ALL_INDICES,
-  S2: ALL_INDICES.filter((i) => i !== "TVI"),
+  S2: [...ALL_INDICES.filter((i) => i !== "TVI"), "NDRE", "CIre"],
 };
 
 export function indexAvailable(sensor: Sensor, index: string): boolean {

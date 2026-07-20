@@ -35,7 +35,7 @@ import type {
   FieldDataStatus,
 } from "@/lib/types";
 
-const INDICES = ["NDVI", "EVI", "SAVI", "MSAVI", "NDMI", "NDWI", "NBR", "NBR2", "TVI"];
+const INDICES = ["NDVI", "EVI", "SAVI", "MSAVI", "NDMI", "NDWI", "NBR", "NBR2", "TVI", "NDRE", "CIre"];
 
 // Farmer-facing Azerbaijani labels (FarmerApp-style names).
 const INDEX_LABELS: Record<string, string> = {
@@ -48,6 +48,8 @@ const INDEX_LABELS: Record<string, string> = {
   NBR: "Yanğın indeksi (NBR)",
   NBR2: "Yanğın indeksi 2 (NBR2)",
   TVI: "Bitki örtüyü (TVI)",
+  NDRE: "Red-edge sağlamlıq (NDRE)",
+  CIre: "Xlorofil indeksi (CIre)",
 };
 
 // One-line plain-language explanation shown under the selector.
@@ -61,6 +63,8 @@ const INDEX_INFO: Record<string, string> = {
   NBR: "Yanğın/quru sahə göstəricisi. Aşağı dəyər yanmış və ya quru ərazini göstərir.",
   NBR2: "Yanğın göstəricisinin ikinci variantı (bitki quruluğuna həssas).",
   TVI: "Bitki örtüyünün sıxlığı (transformasiya olunmuş NDVI).",
+  NDRE: "Red-edge indeksi (yalnız Sentinel-2). Sıx çətirdə NDVI doyanda belə fərqi göstərir; azot statusuna həssasdır.",
+  CIre: "Xlorofil indeksi (red-edge, yalnız Sentinel-2). Azot/xlorofil qiymətləndirməsi üçün daha həssas.",
 };
 
 // Legend gradient + labels per index family (must match the TiTiler colormap on the map).
@@ -127,8 +131,11 @@ function interpret(
   value: number,
   norms?: IndexNorms | null,
 ): { status: string; note: string; tone: Tone } {
-  if (index === "NDVI" || index === "EVI" || index === "SAVI") {
-    const edges = norms?.[index] ?? [0.2, 0.4, 0.6, 0.8];
+  // Vegetation-family indices use the tiered band edges. NDRE shares NDVI-like scaling; CIre is a
+  // larger ratio, so it needs its own crop norms (falls back to a red-edge default when absent).
+  if (index === "NDVI" || index === "EVI" || index === "SAVI" || index === "NDRE" || index === "CIre") {
+    const fallback = index === "CIre" ? [0.5, 1.0, 1.8, 2.8] : [0.2, 0.4, 0.6, 0.8];
+    const edges = norms?.[index] ?? fallback;
     let tier = 0;
     while (tier < edges.length && value >= edges[tier]) tier += 1;
     return VEG_TIERS[Math.min(tier, VEG_TIERS.length - 1)];
@@ -227,6 +234,11 @@ export default function OverviewTab({ field }: { field: FieldDetail }) {
     const s = typeof window !== "undefined" ? window.localStorage.getItem("bagban.sensor") : null;
     if (s === "S2" || s === "HLS") setSensor(s);
   }, []);
+  // Reset the index if the current one isn't available for the selected sensor (E0: NDRE/CIre are
+  // S2-only, TVI is HLS-only) so switching sensors never leaves an impossible selection.
+  useEffect(() => {
+    if (!indexAvailable(sensor, index)) setIndex("NDVI");
+  }, [sensor, index]);
   useEffect(() => {
     if (typeof window !== "undefined") window.localStorage.setItem("bagban.sensor", sensor);
   }, [sensor]);
@@ -479,7 +491,7 @@ export default function OverviewTab({ field }: { field: FieldDetail }) {
           <h3 className="mb-3 font-semibold text-slate-800">{t("idx.title")}</h3>
           <label className="label">{t("idx.select")}</label>
           <select className="input" value={index} onChange={(e) => setIndex(e.target.value)}>
-            {INDICES.map((ix) => (
+            {INDICES.filter((ix) => indexAvailable(sensor, ix)).map((ix) => (
               <option key={ix} value={ix}>
                 {INDEX_LABELS[ix] ?? ix}
               </option>

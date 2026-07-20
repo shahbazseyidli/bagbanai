@@ -182,7 +182,7 @@ def process_granule_s2(field_geojson: dict, granule: Granule) -> dict[str, tuple
     sc, off = _so(km["nir"])
     ref = read_s2_band(nir_href, field_geojson, ref=None, scale=sc, offset=off, nodata=S2_SR_NODATA)
     bands = {"nir": ref}
-    for canon in ("red", "green", "blue", "swir1", "swir2"):
+    for canon in ("red", "green", "blue", "swir1", "swir2", "rededge"):
         href = granule.assets.get(km.get(canon, ""))
         if not href:
             continue

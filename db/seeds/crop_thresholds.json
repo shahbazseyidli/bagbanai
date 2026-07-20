@@ -1,8 +1,8 @@
 [
   {"crop_type":"generic",  "gdd_base_c":10, "ndvi_healthy_min":0.6, "ndvi_stress_max":0.4, "ndmi_stress_max":0.1, "frost_threshold_c":0,  "heat_threshold_c":35,
-   "index_norms":{"NDVI":[0.2,0.4,0.6,0.8],"EVI":[0.2,0.4,0.6,0.8],"SAVI":[0.2,0.4,0.6,0.8]}},
+   "index_norms":{"NDVI":[0.2,0.4,0.6,0.8],"EVI":[0.2,0.4,0.6,0.8],"SAVI":[0.2,0.4,0.6,0.8],"NDRE":[0.15,0.25,0.35,0.5],"CIre":[0.5,1.0,1.8,2.8]}},
   {"crop_type":"hazelnut", "gdd_base_c":7,  "ndvi_healthy_min":0.6, "ndvi_stress_max":0.4, "ndmi_stress_max":0.1, "frost_threshold_c":-1, "heat_threshold_c":36,
-   "index_norms":{"NDVI":[0.30,0.45,0.58,0.72],"EVI":[0.18,0.28,0.40,0.55],"SAVI":[0.18,0.28,0.40,0.55]}},
+   "index_norms":{"NDVI":[0.30,0.45,0.58,0.72],"EVI":[0.18,0.28,0.40,0.55],"SAVI":[0.18,0.28,0.40,0.55],"NDRE":[0.12,0.20,0.30,0.45],"CIre":[0.4,0.8,1.5,2.5]}},
   {"crop_type":"grape",    "gdd_base_c":10, "ndvi_healthy_min":0.5, "ndvi_stress_max":0.35,"ndmi_stress_max":0.1, "frost_threshold_c":-1, "heat_threshold_c":38,
    "index_norms":{"NDVI":[0.28,0.42,0.55,0.70],"EVI":[0.18,0.30,0.45,0.60],"SAVI":[0.18,0.30,0.45,0.60]}},
   {"crop_type":"wheat",    "gdd_base_c":0,  "ndvi_healthy_min":0.6, "ndvi_stress_max":0.4, "ndmi_stress_max":0.1, "frost_threshold_c":-4, "heat_threshold_c":32,

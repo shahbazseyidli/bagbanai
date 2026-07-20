@@ -67,7 +67,7 @@ async def _synthesize_zone(crop_type: str, zone_label: str) -> tuple[list[dict],
     )
     text, citations, usage1 = await llm.web_research(
         "Sən kənd təsərrüfatı üzrə tədqiqatçısan. Mötəbər mənbələrdən dəqiq məlumat topla və "
-        "mənbələri göstər.", research_prompt, max_uses=6)
+        "mənbələri göstər.", research_prompt, max_uses=4)
     synth_user = (
         f"Bitki: {crop_type}, Region: {zone_label}.\n"
         f"Veb axtarışdan toplanan məlumat:\n{text}\n\n"

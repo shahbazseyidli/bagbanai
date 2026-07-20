@@ -21,7 +21,8 @@ BANDS = {
     "L30": {"blue": "B02", "green": "B03", "red": "B04", "nir": "B05", "swir1": "B06", "swir2": "B07", "fmask": "Fmask"},
     # Sentinel-2 L2A — Element84 Earth Search asset KEYS (not band ids). nir='nir'=B08 (10m) is
     # the reference grid; 20m swir reproject onto it. scl = Scene Classification (cloud mask).
-    "S2": {"blue": "blue", "green": "green", "red": "red", "nir": "nir", "swir1": "swir16", "swir2": "swir22", "scl": "scl"},
+    "S2": {"blue": "blue", "green": "green", "red": "red", "nir": "nir", "swir1": "swir16", "swir2": "swir22",
+           "rededge": "rededge1", "scl": "scl"},
 }
 
 # Sentinel-2 L2A reflectance scaling (Element84 sentinel-2-l2a): reflectance = DN*0.0001, NO
@@ -32,10 +33,11 @@ S2_SR_SCALE = 0.0001
 S2_SR_OFFSET = 0.0
 S2_SR_NODATA = 0
 
-# Indices computed for S2. TVI is EXCLUDED: computed-from-reflectance TVI has magnitude ~0-30
-# (validated on a live scene), which mis-renders under the vegetation rescale (-0.1..0.9) and
-# would break the two-sensor chart vs the HLS-VI product. Revisit with a TVI-specific rescale.
-S2_INDEX_NAMES = [n for n in INDEX_NAMES if n != "TVI"]
+# Indices computed for S2. TVI is EXCLUDED (magnitude ~0-30 mis-renders under the veg rescale).
+# NDRE/CIre are ADDED and S2-ONLY (E0): they use the red-edge band (705 nm) which Landsat/HLS
+# lack, so they never appear for the HLS family. NDRE doesn't saturate in dense canopy (where
+# NDVI does) and is azot-sensitive — it softens the false "Zəif" on mature orchards.
+S2_INDEX_NAMES = [n for n in INDEX_NAMES if n != "TVI"] + ["NDRE", "CIre"]
 
 
 def compute_from_reflectance(name: str, b: dict):
@@ -46,6 +48,13 @@ def compute_from_reflectance(name: str, b: dict):
     blue = b.get("blue")
     swir1 = b.get("swir1")
     swir2 = b.get("swir2")
+    rededge = b.get("rededge")
+    if name == "NDRE":
+        # Red-edge NDVI (S2 B8 vs B5 705 nm) — doesn't saturate in dense canopy; azot-sensitive.
+        return (nir - rededge) / (nir + rededge)
+    if name == "CIre":
+        # Chlorophyll Index red-edge — same bands, more sensitive to N; ratio (~0-4, not -1..1).
+        return nir / rededge - 1
     if name == "NDVI":
         return (nir - red) / (nir + red)
     if name == "EVI":

@@ -14,7 +14,7 @@ from .search import Granule
 EARTH_SEARCH_URL = "https://earth-search.aws.element84.com/v1"
 S2_COLLECTION = "sentinel-2-l2a"
 # Element84 v1 asset KEYS (not band ids). red/green/blue/nir are 10m; swir/nir08 are 20m.
-S2_ASSET_KEYS = ["red", "green", "blue", "nir", "nir08", "swir16", "swir22", "scl"]
+S2_ASSET_KEYS = ["red", "green", "blue", "nir", "nir08", "swir16", "swir22", "scl", "rededge1"]
 
 
 def _mgrs_from_item(item) -> Optional[str]:

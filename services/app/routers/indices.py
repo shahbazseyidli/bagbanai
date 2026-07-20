@@ -18,7 +18,9 @@ from .fields import _org_of_field
 
 router = APIRouter(prefix="/api/fields", tags=["indices"])
 
-INDEX_NAMES = ["NDVI", "EVI", "SAVI", "MSAVI", "NDMI", "NDWI", "NBR", "NBR2", "TVI"]
+# NDRE/CIre are S2-only red-edge indices (E0); they appear for the s2 family only (HLS lacks
+# the 705 nm band) and simply return empty for hls, handled by the existing sensor fallback.
+INDEX_NAMES = ["NDVI", "EVI", "SAVI", "MSAVI", "NDMI", "NDWI", "NBR", "NBR2", "TVI", "NDRE", "CIre"]
 
 # API sensor families → DB sensor codes.
 _SENSOR_FAMILIES = {"hls": ["S30", "L30"], "s2": ["S2"]}
@@ -53,7 +55,9 @@ def _raster_style(index: str) -> tuple[str, str]:
         return "rdbu", "-0.5,0.5"
     if index in _BURN:
         return "rdylgn", "-0.5,0.8"
-    return "rdylgn", "-0.1,0.9"  # vegetation (NDVI/EVI/SAVI/MSAVI/TVI)
+    if index == "CIre":
+        return "rdylgn", "0,3"      # chlorophyll ratio (~0-4), not bounded like NDVI
+    return "rdylgn", "-0.1,0.9"  # vegetation (NDVI/EVI/SAVI/MSAVI/TVI/NDRE)
 
 
 @router.get("/{field_id}/indices/latest")
