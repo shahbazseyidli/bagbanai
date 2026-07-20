@@ -15,6 +15,7 @@ import { api } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import { DisplayMap, CompareMap } from "@/components/FieldMap";
 import { Placeholder, Spinner } from "@/components/ui";
+import ClarificationBlock from "@/components/field/ClarificationBlock";
 import {
   type Sensor,
   SENSOR_META,
@@ -415,6 +416,7 @@ export default function OverviewTab({ field }: { field: FieldDetail }) {
   return (
     <div className="space-y-6">
       {preparing && status && <PreparingBanner status={status} />}
+      <ClarificationBlock fieldId={field.id} />
       {effectiveStatus === "failed" && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
           Peyk məlumatının hazırlanmasında problem oldu. Komanda avtomatik yenidən cəhd edəcək.

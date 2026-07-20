@@ -102,6 +102,31 @@ async def build_field_context(conn, field_id: str) -> dict[str, Any]:
         "open_tasks": rows(tasks),
         "yields": rows(yields),
         "previous_advice_summary": prior["summary"] if prior else None,
+        # Knowledge Passport (M6): zone + field research blocks the advice reasons over
+        # (crop norms, phenology, pests, soil, resolved clarifications). Empty until the
+        # research worker has run — advice degrades gracefully to satellite-only.
+        "knowledge_passport": await _knowledge_passport(conn, field_id, field),
     }
     # ISO-ify dates for JSON.
     return json.loads(json.dumps(ctx, default=str))
+
+
+async def _knowledge_passport(conn, field_id: str, field) -> dict:
+    """Compact passport for the advice prompt: zone knowledge (crop_profile/phenology/
+    pest_disease/water/agro) + field blocks (soil, resolved clarifications). Trimmed to
+    summaries so it stays token-cheap."""
+    from . import knowledge as kb
+    crop_type = field["crop_type"] if field and "crop_type" in field else None
+    ctx_block = await conn.fetchval(
+        """select content from public.field_knowledge
+           where field_id=$1::uuid and block_type='field_context'""", field_id)
+    zone_id = None
+    if ctx_block:
+        import json as _json
+        c = _json.loads(ctx_block) if isinstance(ctx_block, str) else ctx_block
+        zone_id = c.get("zone_id")
+    passport = await kb.load_passport(conn, field_id, crop_type, zone_id)
+    zone = {k: v.get("content") for k, v in (passport.get("zone") or {}).items()}
+    fld = {k: v.get("content") for k, v in (passport.get("field") or {}).items()
+           if k in ("soil_profile", "resolved_clarifications")}
+    return {"zone_id": zone_id, "zone": zone, "field": fld}
