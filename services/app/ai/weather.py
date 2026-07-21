@@ -36,14 +36,16 @@ async def refresh_field(conn, field_id: str, *, base: str = "https://api.open-me
         return {"ok": False, "reason": res.error}
 
     # Cache each forecast day (idempotent on (field_id, forecast_date, fetched_at)).
+    from datetime import date as _date
     for d in res.data["days"]:
+        fdate = _date.fromisoformat(d["date"]) if isinstance(d["date"], str) else d["date"]
         await conn.execute(
             """insert into public.weather_cache
                  (field_id, org_id, forecast_date, t_min, t_max, precip_mm, precip_prob,
                   et0_mm, wind_max, rh_mean, raw)
                values ($1::uuid,$2::uuid,$3::date,$4,$5,$6,$7,$8,$9,$10,$11::jsonb)
                on conflict (field_id, forecast_date, fetched_at) do nothing""",
-            field_id, org_id, d["date"], d["t_min"], d["t_max"], d["precip_mm"], d["precip_prob"],
+            field_id, org_id, fdate, d["t_min"], d["t_max"], d["precip_mm"], d["precip_prob"],
             d["et0_mm"], d["wind_max"], d["rh_mean"], json.dumps(d))
 
     # Water balance.
