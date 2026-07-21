@@ -112,20 +112,17 @@ bagbanai/
 - `docs/Infrastruktur_Layer_Tekmillesdirme.md` §6 qalan işlər: bulud-örtük filtri UI, iki-tarix compare/swipe, ölkə/rayon NDVI benchmark, PDF/DOCX hesabatlar, rəsmi kadastr layı, geokodlama axtarışı, hillshade/terrain.
 
 ## Açıq işlər / TODO (növbəti sessiya)
-**Bitmiş (2026-07-16/17 sessiyalarda, CANLI + doğrulanıb):** ✅ AI aktiv (opus-4-8) · ✅ CF SSL Full(Strict) · ✅ **wip/onboarding-refine** (item 1/2/3/5/6 + 4 review fix) · ✅ **Canlı QA fixləri** (`04d7a55`): subsidiya tam AZ etiketlər + wizard dead-end (ölçü-məcburiyyəti) + **bildiriş zəngi** (NotificationBell) + min sahə `<0.05 ha` rədd · ✅ **DB backup** lokal+off-site server2 (`/root/bin/backup-db.sh`, cron 02:30) · ✅ **Server 1+2 UFW+fail2ban**.
+**CANLI + doğrulanıb (2026-07-16..21 sessiyalar):** ✅ AI aktiv · ✅ CF SSL Full(Strict) · ✅ QA fixləri · ✅ DB backup (lokal+off-site) · ✅ UFW+fail2ban · ✅ **Sentinel-2 10m** (S2 sensor, deployed) · ✅ **AI Bilik Qatı M1-M8** (zone/field knowledge, SoilGrids/EPPO/FAOSTAT, web_search research, clarifications, weather+water) · ✅ **E0 NDRE/CIre** (red-edge, S2-only) · ✅ **C3 toxun-tap** (geoapi mikroservis, edge-aware region-grow) · ✅ **E1** pedotransfer TAW/RAW · ✅ **E2** çiləmə pəncərəsi + frost/heat alert · ✅ **3-paket billing** (free/pro/business, gating+admin Abunələr) · ✅ **/pricing** səhifəsi · ✅ **UX Sprint A** (sahə silmə/edit fix, xəritə axtarış, S2-gözlə state, abunə badge, ölkə/rayon dropdown, "Sahələrim" adı). Detal: memory `[[v21-feature-expansion-plan]]`, `[[billing-tiers]]`, `[[ai-knowledge-layer-spec]]` + `docs/`.
 
-**🛰️ Sentinel-2 10m feature — `feat/sentinel2-sensor` branch (GitHub-da, DEPLOY OLUNMAYIB):**
-Tam icra + canlı validasiya (offset=0, TVI xaric) + 7 review-fix. **1 ha analiz keyfiyyətini FarmerApp səviyyəsinə (10m) qaldırır** (HLS 30m yanında yeni sensor). Deploy ardıcıllığı (migration 0013 əvvəl, lock altında → update.sh → pystac yoxla → run-s2 backfill → cron) + bütün detal: **`docs/Sentinel2_Integration.md`**.
+**Növbəti — UX Sprint B (istifadəçi addımları lazım):**
+1. **Email/OTP (Resend)** — sən: Resend hesabı + API açarı `.env`-ə (`RESEND_API_KEY`); Cloudflare-ə SPF+DKIM. Mən: migration (email_verified/otp) + signup OTP axını + `notify.py` Resend API. `no-reply@agradex.com`.
+2. **panel.agradex.com** (tək app + hostname routing) — sən: Cloudflare `panel` A → 95.216.208.82. Mən: nginx server bloku + cookie domain `.agradex.com` + login redirect + middleware.
 
-**Təhlükəsizlik/infra (hesab ayarı, istifadəçi edir):**
-1. **Tier-2 firewall** (origin IP gizlətmə) təxirdə — `signal-cv`/findix/n8n əvvəl CF-proxy + LE→Origin CA tələb edir. Server 1+2 onsuz da UFW+fail2ban ilə qorunur.
-2. **2FA yoxdur** (Hetzner + ehtimal CF) → aktivləşdir.
-3. **LLM açarını rotate et** (chat-da açıq görünmüşdü); miqyasda `claude-sonnet-5` (xərc ~3×↓).
-4. **MX/SPF/DKIM/DMARC yoxdur** (agradex.com) → SMTP email bildirişlərindən əvvəl.
-5. **EARTHDATA_TOKEN** 2026-08-30-da bitir → regenerate (bitəndə S2 feature HLS-i əvəz edə bilər).
-6. **nginx dublikat server_name** (serverdə doğrula).
+**v2.1 qalan fazalar:** E1 lab-analiz yükləmə (OCR) · E3 WhatsApp bot · E4 zərərverici riski (B1) · E5 tam FAO-56 suvarma · E6/E7 bot+foto · C4 offline · C5 səs · C7 gübrə · D2 benchmark · D3 MRV.
 
-**Faza 2+ (spec §28):** hava (Open-Meteo)/modellər (GDD/frost/spray), qayda mühərriki → çox-kanallı bildiriş (Telegram), fenologiya/anomaliya, PDF hesabatlar, billing (**Payriff** — Stripe AZ-də yox).
+**Təhlükəsizlik/infra (istifadəçi edir):** Tier-2 firewall · 2FA (Hetzner/CF) · **LLM açar rotate** · **EPPO_TOKEN** (.env, pest bloku) · **EARTHDATA_TOKEN 2026-08-30 bitir** → regenerate · nginx dublikat server_name.
+
+**Data qeydi:** silmə bug-u (indi düzəlib) səbəbindən istifadəçi bəzi sahələrini silmişdi (02:30 backup-da qalır, bərpa etmədi). Xudat və s. sahələrin crop_type-ı fındıq təyin olunmalıdır ki M5/E0 kalibrasiyası görünsün.
 
 ## İnfrastruktur xəritəsi (2 Hetzner serveri — bax `[[agradex-infrastructure]]` memory)
 - **Server 1** `bagban-ai` **95.216.208.82** (Helsinki): agradex.com (Bağban AI, CF-proxied) + signal-cv.agradex.com (DNS-only, Telegram bot).

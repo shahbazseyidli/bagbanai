@@ -3,6 +3,22 @@
 Bütün əhəmiyyətli dəyişikliklər burada qeyd olunur. Format [Keep a Changelog](https://keepachangelog.com/),
 versiyalar [SemVer](https://semver.org/).
 
+## [1.2.0] — 2026-07-21 — Bilik qatı + v2.1 (E0/C3/E1/E2) + billing + UX (CANLI)
+
+### Added (CANLI, main)
+- **AI Bilik Qatı (M1–M8):** zone/field knowledge blokları, struktur mənbələr (SoilGrids/EPPO/FAOSTAT), web_search+LLM araşdırma, dəqiqləşdirmə blokları, hava+su balansı. Migration 0014.
+- **E0 NDRE + CIre** red-edge indeksləri (Sentinel-2 yalnız) — sıx çətirdə NDVI doyanda real vəziyyəti göstərir; İcmal-summary-də.
+- **C3 "toxun və tap"** avtomatik sahə sərhədi — `geoapi` mikroservis (kənar-həssas region-growing, windowed COG oxuma, mem-cap); çılpaq torpaqda "əl ilə çək" fallback.
+- **E1** Saxton-Rawls pedotransfer → FC/WP/TAW/RAW (soil_profile blokunda; B2-ni açır).
+- **E2** saatlıq hava → çiləmə pəncərəsi + frost/heat/külək alertləri (spray_window bloku; kritik frost→bildiriş).
+- **3-paket billing** (Pulsuz / Pro 10 AZN / Business 25 AZN): `tiers.py` flag+limit, per-tier model (sonnet/opus), gating (advice kvota, chat, sahə limiti, passport), admin **Abunələr** tab.
+- **/pricing** public səhifə + home bölmə + nav linki.
+- **UX Sprint A:** sahə edit/sil paneli (silmə redirect 404 fix), xəritə axtarış zolağı, Sentinel-2 "hazırlanır — gözləyin" state, istifadəçi abunə badge+istifadə, ölkə/rayon **dropdown**, "İdarə paneli"→"Sahələrim".
+- **M5** bitki-spesifik indeks etiketləri (crop_thresholds.index_norms); `weather_cache` date bug fix.
+
+### Fixed
+- Silmə bug-u: backend silirdi, UI 404 redirect "error" göstərirdi → indi dashboard-a yönləndirir.
+
 ## [1.1.0] — 2026-07-17 — Canlı QA fixləri + Sentinel-2 10m feature (branch)
 
 ### Fixed (CANLI, main `04d7a55`)
