@@ -31,6 +31,7 @@ import ClickDate from "./info/ClickDate";
 import PhPicker from "./info/PhPicker";
 import NumberSlider from "./info/NumberSlider";
 import AutoField from "./info/AutoField";
+import { COUNTRIES, AZ_RAYONS } from "@/lib/regions";
 import YesNo from "./info/YesNo";
 import { ARRAY_DEFS, RepeatableRows, type Row, fromRows } from "./repeatableRows";
 
@@ -475,12 +476,25 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
           </FormField>
 
           <div className="grid gap-4 rounded-xl border border-slate-100 bg-slate-50/60 p-4 sm:grid-cols-2">
-            <AutoField
-              label="Rayon"
-              value={data.region ?? null}
-              loading={geoLoading}
-              onChange={(v) => set("region", v)}
-            />
+            <FormField label="Ölkə">
+              <select className="input" value="AZ" disabled>
+                {COUNTRIES.map((c) => (
+                  <option key={c.code} value={c.code}>{c.name}</option>
+                ))}
+              </select>
+            </FormField>
+            <FormField label="Rayon">
+              <select
+                className="input"
+                value={AZ_RAYONS.find((r) => (data.region ?? "").includes(r)) ?? ""}
+                onChange={(e) => set("region", e.target.value || undefined)}
+              >
+                <option value="">{geoLoading ? "Tapılır…" : "Rayon seçin"}</option>
+                {AZ_RAYONS.map((r) => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
+            </FormField>
             <AutoField
               label={t("meta.elevation_m")}
               value={toNum(data.elevation_m)}
