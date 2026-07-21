@@ -8,12 +8,12 @@ needs farmer confirmation (spec C3 trap): the caller shows "Bu sizin sahədirmi?
 Runs in the geo image (rasterio/shapely/rioxarray already present); exposed via segment_api.py."""
 from __future__ import annotations
 
-from collections import deque
 from math import cos, radians
 from typing import Optional
 
-MAX_HA = 60.0           # hard cap so the fill can't swallow a whole valley (spec trap)
+MAX_HA = 50.0           # hard cap so the fill can't swallow a whole valley (spec trap)
 NDVI_TOL = 0.08         # similarity band around the seed's NDVI (tighter → less neighbour bleed)
+EDGE_THRESH = 0.06      # per-pixel NDVI gradient above this = a field boundary (fill stops there)
 HALF_M = 650.0          # half-size of the read window around the tap (metres)
 TARGET_VERTICES = 24    # simplify down to roughly this many points (spec: ~15, not 200)
 
@@ -112,41 +112,52 @@ def detect_boundary(lon: float, lat: float, *, max_ha: float = MAX_HA,
         if not (0 <= row < h and 0 <= col < w) or not np.isfinite(ndvi[row, col]):
             continue
 
-        seed_val = float(ndvi[row, col])
+        from scipy import ndimage
+
         px_area_m2 = abs(transform.a * transform.e)
         max_px = int((max_ha * 10000.0) / px_area_m2)
+        # Seed value = local 3×3 mean (robust to one noisy pixel).
+        r0, r1, c0, c1 = max(0, row - 1), min(h, row + 2), max(0, col - 1), min(w, col + 2)
+        seed_val = float(np.nanmean(ndvi[r0:r1, c0:c1]))
+        if not np.isfinite(seed_val):
+            continue
 
-        # BFS flood-fill over 4-neighbours within the NDVI tolerance, bounded by max_px.
-        mask = np.zeros((h, w), dtype="uint8")
-        seen = np.zeros((h, w), dtype=bool)
-        dq = deque([(row, col)])
-        seen[row, col] = True
-        count = 0
-        capped = False
-        while dq:
-            r, c = dq.popleft()
-            v = ndvi[r, c]
-            if not np.isfinite(v) or abs(v - seed_val) > tol:
-                continue
-            mask[r, c] = 1
-            count += 1
-            if count > max_px:
-                capped = True
-                break
-            for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-                nr, nc = r + dr, c + dc
-                if 0 <= nr < h and 0 <= nc < w and not seen[nr, nc]:
-                    seen[nr, nc] = True
-                    dq.append((nr, nc))
+        # Edge map: a high NDVI gradient marks a field boundary (road, ditch, different crop).
+        # Excluding edge pixels stops the region bleeding into neighbouring fields — the raw
+        # flood-fill's main failure (spec C3 trap: "algorithm grabs the whole region").
+        gy, gx = np.gradient(np.nan_to_num(ndvi, nan=seed_val))
+        grad = np.hypot(gx, gy)
+        candidate = np.isfinite(ndvi) & (np.abs(ndvi - seed_val) < tol) & (grad < EDGE_THRESH)
+
+        # Connected component containing the tapped pixel (not just any similar pixel).
+        lbl, _ = ndimage.label(candidate)
+        if lbl[row, col] == 0:
+            continue
+        mask = lbl == lbl[row, col]
+        # Clean the blob: fill interior holes, open away single-pixel spurs, close small gaps
+        # → a smooth, simple boundary instead of the jagged/self-touching ring.
+        mask = ndimage.binary_fill_holes(mask)
+        mask = ndimage.binary_opening(mask, iterations=1)
+        mask = ndimage.binary_closing(mask, iterations=2)
+        lbl2, _ = ndimage.label(mask)          # opening may split — re-take the seed's blob
+        if lbl2[row, col] == 0:
+            continue
+        mask = (lbl2 == lbl2[row, col])
+        count = int(mask.sum())
+        capped = count > max_px
         if count < 20:            # too small — likely a bad seed/cloud; try next granule
             continue
 
-        # Vectorise the blob; keep the polygon that contains the seed (or the largest).
+        # Vectorise the cleaned blob; keep the polygon that contains the seed (or the largest).
+        mask_u8 = mask.astype("uint8")
         polys = [shape(geom) for geom, val in
-                 rasterio.features.shapes(mask, mask=mask.astype(bool), transform=transform) if val == 1]
+                 rasterio.features.shapes(mask_u8, mask=mask, transform=transform) if val == 1]
         if not polys:
             continue
         chosen = next((p for p in polys if p.contains(Point(sx, sy))), max(polys, key=lambda p: p.area))
+        chosen = chosen.buffer(0)   # heal any self-touching ring before simplifying
+        if chosen.geom_type == "MultiPolygon":
+            chosen = max(chosen.geoms, key=lambda p: p.area)
         # Simplify to a handful of vertices + drop holes (spec C3.3: ~15 points, not 200).
         chosen = _simplify_to_target(chosen, abs(transform.a))
         if chosen.is_empty or chosen.area < px_area_m2 * 20:
