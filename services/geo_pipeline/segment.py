@@ -177,6 +177,6 @@ def detect_boundary(lon: float, lat: float, *, max_ha: float = MAX_HA,
         to_wgs = Transformer.from_crs(crs, "EPSG:4326", always_xy=True)
         poly_wgs = shp_transform(lambda x, y, z=None: to_wgs.transform(x, y), chosen)
         return {"ok": True, "polygon": mapping(poly_wgs), "area_ha": area_ha,
-                "reason": "capped" if capped else "ok", "scene_date": str(getattr(g, "acquired_at", ""))}
+                "reason": "ok", "scene_date": str(getattr(g, "acquired_at", ""))}
 
     return {"ok": False, "polygon": None, "area_ha": None, "reason": "no_readable_scene"}
