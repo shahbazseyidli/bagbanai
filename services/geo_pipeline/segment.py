@@ -12,9 +12,24 @@ from collections import deque
 from math import cos, radians
 from typing import Optional
 
-MAX_HA = 100.0          # hard cap so the fill can't swallow a whole valley (spec trap)
-NDVI_TOL = 0.12         # similarity band around the seed's NDVI
-HALF_M = 900.0          # half-size of the read window around the tap (metres)
+MAX_HA = 60.0           # hard cap so the fill can't swallow a whole valley (spec trap)
+NDVI_TOL = 0.08         # similarity band around the seed's NDVI (tighter → less neighbour bleed)
+HALF_M = 650.0          # half-size of the read window around the tap (metres)
+TARGET_VERTICES = 24    # simplify down to roughly this many points (spec: ~15, not 200)
+
+
+def _simplify_to_target(poly, px_m: float):
+    """Douglas-Peucker with an increasing tolerance until the exterior ring is small enough
+    (spec C3.3 step 4 — 15 points, not 200). Drops holes: a field boundary is one ring."""
+    from shapely.geometry import Polygon
+    ring = Polygon(poly.exterior)
+    tol = max(px_m, 12.0)
+    for _ in range(8):
+        s = ring.simplify(tol, preserve_topology=True)
+        if not s.is_empty and len(s.exterior.coords) <= TARGET_VERTICES:
+            return s
+        tol *= 1.6
+    return ring.simplify(tol, preserve_topology=True)
 
 
 def _bbox_geojson(lon: float, lat: float, half_m: float = HALF_M) -> dict:
@@ -132,8 +147,8 @@ def detect_boundary(lon: float, lat: float, *, max_ha: float = MAX_HA,
         if not polys:
             continue
         chosen = next((p for p in polys if p.contains(Point(sx, sy))), max(polys, key=lambda p: p.area))
-        # Simplify (Douglas-Peucker) to ~a handful of vertices (tolerance in metres).
-        chosen = chosen.simplify(15.0, preserve_topology=True)
+        # Simplify to a handful of vertices + drop holes (spec C3.3: ~15 points, not 200).
+        chosen = _simplify_to_target(chosen, abs(transform.a))
         if chosen.is_empty or chosen.area < px_area_m2 * 20:
             continue
 
