@@ -52,3 +52,39 @@ async def fetch_weather(lat: float, lon: float, *, days: int = 7,
     return SourceResult(
         ok=True, data=data,
         source=source_meta("https://open-meteo.com/", "Open-Meteo (FAO-56 ET0)", "structured_api", 0.9))
+
+
+_HOURLY = ["temperature_2m", "relative_humidity_2m", "dew_point_2m",
+           "precipitation", "precipitation_probability", "wind_speed_10m"]
+
+
+async def fetch_hourly(lat: float, lon: float, *, days: int = 5,
+                       base: str = "https://api.open-meteo.com/v1") -> SourceResult:
+    """Hourly forecast for the spray-window model (v2.1 B3/E2). Never raises."""
+    try:
+        js = await get_json(
+            f"{base.rstrip('/')}/forecast",
+            params={"latitude": lat, "longitude": lon, "hourly": ",".join(_HOURLY),
+                    "forecast_days": days, "timezone": "auto"})
+    except Exception as exc:  # noqa: BLE001
+        return SourceResult(ok=False, error=f"openmeteo_unreachable: {exc}")
+
+    hourly = (js or {}).get("hourly") or {}
+    times = hourly.get("time") or []
+    if not times:
+        return SourceResult(ok=False, error="openmeteo_empty")
+
+    def col(k):
+        return hourly.get(k) or []
+
+    rows = []
+    for i, ts in enumerate(times):
+        def at(k):
+            v = col(k)
+            return v[i] if i < len(v) else None
+        rows.append({"ts": ts, "temp": at("temperature_2m"), "rh": at("relative_humidity_2m"),
+                     "dew": at("dew_point_2m"), "precip": at("precipitation"),
+                     "precip_prob": at("precipitation_probability"), "wind": at("wind_speed_10m")})
+    return SourceResult(
+        ok=True, data={"hours": rows},
+        source=source_meta("https://open-meteo.com/", "Open-Meteo (hourly)", "structured_api", 0.9))

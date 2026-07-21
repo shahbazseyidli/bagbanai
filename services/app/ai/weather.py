@@ -64,7 +64,124 @@ async def refresh_field(conn, field_id: str, *, base: str = "https://api.open-me
     await kb.upsert_field_block(
         conn, field_id, org_id, "water_requirements", content, [res.source],
         kb.input_hash({"et0": et0, "precip": precip, "kc": kc}), confidence=0.8)
-    return {"ok": True, "field_id": field_id, "net_irrigation_mm": net_need}
+
+    # Spray window + weather alerts (E2), best-effort — never fails the water refresh.
+    spray = {"ok": False}
+    try:
+        spray = await refresh_spray(conn, field_id, org_id, row["lat"], row["lon"], row["crop_type"], base)
+    except Exception:  # noqa: BLE001
+        pass
+    return {"ok": True, "field_id": field_id, "net_irrigation_mm": net_need, "spray": spray}
+
+
+# ===== Spray window + weather alerts (v2.1 B3/E2) =====
+def _spray_suitability(hour: dict, next_hours: list) -> tuple[str, list]:
+    """Per-hour spray suitability (spec B3.3). good | marginal | unsuitable + AZ reasons."""
+    wind, temp, rh = hour.get("wind"), hour.get("temp"), hour.get("rh")
+    if wind is None or temp is None or rh is None:
+        return "unsuitable", ["məlumat yoxdur"]
+    reasons = []
+    if wind < 3:
+        reasons.append("külək çox zəif — inversiya, dreyf riski")
+    elif wind > 15:
+        reasons.append("külək güclü — dreyf")
+    if temp < 5 or temp > 28:
+        reasons.append("temperatur uyğun deyil")
+    if rh < 40:
+        reasons.append("hava quru — damcı buxarlanır")
+    if (hour.get("precip") or 0) > 0.1:
+        reasons.append("yağış")
+    if any((h.get("precip") or 0) > 0.2 for h in next_hours[:4]):
+        reasons.append("4 saat içində yağış — yuyulma")
+    if not reasons:
+        return "good", []
+    # A single soft factor (dryness) → marginal; anything else → unsuitable.
+    if reasons == ["hava quru — damcı buxarlanır"]:
+        return "marginal", reasons
+    return "unsuitable", reasons
+
+
+def compute_spray_window(hours: list) -> dict:
+    """Hourly suitability + the earliest good daytime window (≥2 consecutive good hours)."""
+    graded = []
+    for i, h in enumerate(hours):
+        s, r = _spray_suitability(h, hours[i + 1:i + 6])
+        graded.append({"ts": h["ts"], "suitability": s, "reasons": r,
+                       "wind": h.get("wind"), "temp": h.get("temp"), "rh": h.get("rh")})
+    best = None
+    run: list = []
+    for e in graded:
+        hr = int(e["ts"][11:13]) if len(e["ts"]) >= 13 else 12
+        if e["suitability"] == "good" and 6 <= hr <= 20:
+            run.append(e)
+        else:
+            if len(run) >= 2:
+                break
+            run = []
+    if len(run) >= 2:
+        best = {"start": run[0]["ts"], "end": run[-1]["ts"],
+                "wind": run[0]["wind"], "temp": run[0]["temp"]}
+    return {"hours": graded[:72], "best_window": best}
+
+
+def compute_alerts(hours: list, frost_c: Optional[float], heat_c: Optional[float],
+                   sensitive: bool) -> list:
+    """Frost / heat / wind alerts from the next 48 h (spec B3.3). Phenology-sensitive frost = critical."""
+    nxt = [h for h in hours[:48] if h.get("temp") is not None]
+    alerts = []
+    if nxt:
+        tmin = min(h["temp"] for h in nxt)
+        thr = frost_c if frost_c is not None else 2.0
+        if tmin <= thr:
+            alerts.append({"type": "frost", "severity": "critical" if sensitive else "warning",
+                           "detail": f"Növbəti 48 saatda minimum {tmin:.0f}°C"})
+        tmax = max(h["temp"] for h in nxt)
+        if heat_c is not None and tmax >= heat_c:
+            alerts.append({"type": "heat", "severity": "warning",
+                           "detail": f"Növbəti 48 saatda maksimum {tmax:.0f}°C (istilik stresi)"})
+    winds = [h["wind"] for h in hours[:48] if h.get("wind") is not None]
+    if winds and max(winds) > 40:
+        alerts.append({"type": "wind", "severity": "warning",
+                       "detail": f"Güclü külək {max(winds):.0f} km/s"})
+    return alerts
+
+
+async def refresh_spray(conn, field_id: str, org_id: str, lat: float, lon: float,
+                        crop_type: Optional[str], base: str) -> dict:
+    """Fetch hourly forecast → spray window + alerts → field block + critical notifications."""
+    from .sources import openmeteo
+    res = await openmeteo.fetch_hourly(lat, lon, base=base)
+    if not res.ok:
+        return {"ok": False, "reason": res.error}
+    hours = res.data["hours"]
+    # Crop thresholds for alerts.
+    frost_c = heat_c = None
+    if crop_type:
+        row = await conn.fetchval(
+            """select json_build_object('f', frost_threshold_c, 'h', heat_threshold_c)
+               from public.crop_thresholds where crop_type=$1 and growth_stage='all' and age_class='all'""",
+            crop_type)
+        if row:
+            r = json.loads(row) if isinstance(row, str) else row
+            frost_c, heat_c = r.get("f"), r.get("h")
+    sw = compute_spray_window(hours)
+    # Frost is "sensitive" if the field is flowering/budding (from metadata growth_stage).
+    stage = await conn.fetchval(
+        "select growth_stage from public.field_metadata where field_id=$1::uuid", field_id)
+    sensitive = bool(stage and any(k in str(stage).lower() for k in ("çiçək", "flower", "tumurcuq", "bud")))
+    alerts = compute_alerts(hours, frost_c, heat_c, sensitive)
+    content = {"best_window": sw["best_window"], "hours": sw["hours"], "alerts": alerts}
+    await kb.upsert_field_block(conn, field_id, org_id, "spray_window", content, [res.source],
+                               kb.input_hash({"n": len(hours)}), confidence=0.85)
+    # In-app notification for a critical (frost) alert.
+    for a in alerts:
+        if a["severity"] == "critical":
+            await conn.execute(
+                """insert into public.notifications
+                     (field_id, org_id, source, type, severity, title, body, delivered_channels)
+                   values ($1::uuid,$2::uuid,'weather','frost','critical',$3,$4,array['inapp'])""",
+                field_id, org_id, "🥶 Şaxta xəbərdarlığı", a["detail"])
+    return {"ok": True, "alerts": len(alerts), "best_window": sw["best_window"] is not None}
 
 
 async def _kc_for(conn, crop_type: Optional[str]) -> float:

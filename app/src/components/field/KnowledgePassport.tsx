@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BookOpen, Droplets, Mountain, Bug, CalendarDays } from "lucide-react";
+import { BookOpen, Droplets, Mountain, Bug, CalendarDays, Wind, AlertTriangle } from "lucide-react";
 import { api } from "@/lib/api";
 
 // The research worker fills these blocks (knowledge layer M3/M8). This panel makes them
@@ -50,13 +50,20 @@ export default function KnowledgePassport({ fieldId }: { fieldId: string }) {
   if (!p) return null;
   const soil = p.field?.soil_profile;
   const water = p.field?.water_requirements;
+  const spray = p.field?.spray_window;
   const pests = p.zone?.pest_disease ?? p.zone?.pest_disease_eppo;
   const phen = p.zone?.phenology;
-  const hasAny = soil || water || pests || phen;
+  const hasAny = soil || water || pests || phen || spray;
   if (!hasAny) return null;
 
-  const soilC = soil?.content as Record<string, { value: number; unit: string }> | undefined;
+  const soilC = soil?.content as
+    | (Record<string, { value: number; unit: string }> & { water_params?: { taw_mm: number; raw_mm: number } })
+    | undefined;
   const waterC = water?.content as { net_irrigation_mm?: number; recommendation?: string } | undefined;
+  const sprayC = spray?.content as
+    | { best_window?: { start: string; end: string } | null; alerts?: { type: string; severity: string; detail: string }[] }
+    | undefined;
+  const fmtHour = (ts?: string) => (ts && ts.length >= 16 ? ts.slice(5, 16).replace("T", " ") : ts ?? "");
   const pestsC = pests?.content as
     | { pests?: { name: string; type: string }[]; summary?: string; details?: string[] }
     | undefined;
@@ -74,6 +81,25 @@ export default function KnowledgePassport({ fieldId }: { fieldId: string }) {
         )}
       </div>
 
+      {/* Weather alerts (E2) — frost/heat/wind — shown prominently above the block grid. */}
+      {sprayC?.alerts && sprayC.alerts.length > 0 && (
+        <div className="mb-3 space-y-1.5">
+          {sprayC.alerts.map((a, i) => (
+            <div
+              key={i}
+              className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
+                a.severity === "critical"
+                  ? "border-red-300 bg-red-50 text-red-800"
+                  : "border-amber-300 bg-amber-50 text-amber-800"
+              }`}
+            >
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <span>{a.detail}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="grid gap-3 sm:grid-cols-2">
         {soilC && (
           <div className="rounded-lg border border-slate-200 p-3">
@@ -85,8 +111,23 @@ export default function KnowledgePassport({ fieldId }: { fieldId: string }) {
               {soilC.texture_class && <li>Tekstura: {String((soilC.texture_class as unknown) ?? "")}</li>}
               {soilC.organic_carbon && <li>Üzvi karbon: {soilC.organic_carbon.value} {soilC.organic_carbon.unit}</li>}
               {soilC.cec && <li>CEC: {soilC.cec.value} {soilC.cec.unit}</li>}
+              {soilC.water_params && (
+                <li>Su tutumu: TAW {soilC.water_params.taw_mm} mm · RAW {soilC.water_params.raw_mm} mm</li>
+              )}
             </ul>
             <Sources sources={soil?.sources} />
+          </div>
+        )}
+
+        {sprayC?.best_window && (
+          <div className="rounded-lg border border-slate-200 p-3">
+            <div className="mb-1 flex items-center gap-1.5 text-sm font-medium text-slate-700">
+              <Wind className="h-4 w-4 text-teal-600" /> Çiləmə pəncərəsi
+            </div>
+            <p className="text-xs text-slate-600">
+              Ən uyğun: {fmtHour(sprayC.best_window.start)} – {fmtHour(sprayC.best_window.end)}
+            </p>
+            <Sources sources={spray?.sources} />
           </div>
         )}
 
