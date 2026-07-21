@@ -88,6 +88,21 @@ function Dashboard() {
   const [showFarmForm, setShowFarmForm] = useState(false);
   const [farmName, setFarmName] = useState("");
   const [farmRegion, setFarmRegion] = useState("");
+  const [sub, setSub] = useState<{
+    label: string;
+    usage: { fields: { used: number; limit: number }; advice: { used: number; limit: number } };
+  } | null>(null);
+
+  useEffect(() => {
+    if (!selectedOrg) return;
+    (async () => {
+      try {
+        setSub(await api.get(`/api/orgs/${selectedOrg}/subscription`));
+      } catch {
+        setSub(null);
+      }
+    })();
+  }, [selectedOrg]);
 
   const loadFarms = useCallback(async (orgId: string) => {
     try {
@@ -173,10 +188,31 @@ function Dashboard() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-900">{t("dash.title")}</h1>
-        <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700">
-          {t("dash.tariff")}
-        </span>
+        <Link
+          href="/pricing"
+          className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100"
+          title="Paketlərə bax / yüksəlt"
+        >
+          Paket: {sub?.label ?? "Pulsuz"}
+          {sub && sub.label === "Pulsuz" ? " · Yüksəlt →" : ""}
+        </Link>
       </div>
+
+      {/* Subscription usage snapshot (user-facing) */}
+      {sub && (
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-1 rounded-lg border border-slate-200 bg-slate-50/60 px-4 py-2 text-xs text-slate-600">
+          <span>
+            Sahələr: <b className="text-slate-800">{sub.usage.fields.used}</b>
+            {sub.usage.fields.limit < 1000 ? ` / ${sub.usage.fields.limit}` : ""}
+          </span>
+          <span>
+            Bu ay AI məsləhət: <b className="text-slate-800">{sub.usage.advice.used}</b> / {sub.usage.advice.limit}
+          </span>
+          <Link href="/pricing" className="ml-auto text-emerald-700 hover:underline">
+            Paketi dəyiş →
+          </Link>
+        </div>
+      )}
 
       <ErrorNote message={error} />
 

@@ -26,6 +26,30 @@ async def create_org(body: OrgIn, user_id: str = Depends(get_current_user_id)):
     return OrgOut(id=str(org["id"]), name=org["name"], country=org["country"], role="owner")
 
 
+@router.get("/{org_id}/subscription")
+async def org_subscription(org_id: str, user_id: str = Depends(get_current_user_id)):
+    """The org's current package + this-month usage vs limits (user-facing account view)."""
+    from .. import tiers
+    async with connection(user_id) as conn:
+        await require_member(conn, user_id, org_id)
+        tier = await tiers.org_tier(conn, org_id)
+        fields = int(await conn.fetchval(
+            "select count(*) from public.fields where org_id=$1::uuid", org_id) or 0)
+        advice_used = await tiers.month_count(conn, org_id, "advice")
+        chat_used = await tiers.month_count(conn, org_id, "chat")
+    cfg = tiers.tier_config(tier)
+    return {
+        "tier": tier, "label": cfg["label_az"], "price_azn": cfg["price_azn"],
+        "usage": {
+            "fields": {"used": fields, "limit": cfg["max_fields"]},
+            "advice": {"used": advice_used, "limit": cfg["advice_per_month"]},
+            "chat": {"used": chat_used, "limit": cfg["chat_per_month"]},
+        },
+        "features": {k: cfg[k] for k in ("passport", "weather_alerts", "irrigation",
+                                         "email", "whatsapp", "pest_risk", "fertilizer")},
+    }
+
+
 @router.get("", response_model=list[OrgOut])
 async def list_orgs(user_id: str = Depends(get_current_user_id)):
     async with connection(user_id) as conn:

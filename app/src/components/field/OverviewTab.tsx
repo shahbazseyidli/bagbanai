@@ -423,6 +423,10 @@ export default function OverviewTab({ field }: { field: FieldDetail }) {
   const showSmallBanner = smallField || (sensor === "HLS" && smallForHls);
   // The map is showing a different sensor than the toggle (fell back because none was available).
   const fellBack = !preparing && scenes.length > 0 && sceneSensor != null && sceneSensor !== sensor;
+  // Sentinel-2 selected but its data isn't ready yet (HLS arrived first) → don't silently show
+  // HLS as if it were S2; show a "please wait" state instead. Only when the index *should* exist
+  // for S2 (an S2-only index like NDRE legitimately has no HLS fallback).
+  const s2Pending = sensor === "S2" && fellBack && sceneSensor === "HLS" && indexAvailable("S2", index);
   // Which sensor the map actually shows (for the fallback note).
   const sensorSceneOrHls = (): Sensor => sceneSensor ?? (sensor === "S2" ? "HLS" : "S2");
 
@@ -660,6 +664,24 @@ export default function OverviewTab({ field }: { field: FieldDetail }) {
               />
               <IndexLegend index={index} />
               <p className="mt-2 text-xs text-slate-400">Ortadakı dəstəyi sürüşdürün — sol/sağ tarixi tutuşdurun.</p>
+            </>
+          ) : s2Pending ? (
+            <>
+              <DisplayMap polygon={field.geom} rasterUrl={null} />
+              <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-center">
+                <p className="font-medium text-emerald-800">Sentinel-2 (10m) hazırlanır…</p>
+                <p className="mt-1 text-xs text-emerald-700">
+                  Yüksək dəqiqlikli Sentinel-2 səhnəsi bu sahə üçün hələ hazırlanır — tezliklə hazır
+                  olacaq. İndi HLS (30m) məlumatını görmək üçün yuxarıdan “HLS 30m” seçin.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setSensor("HLS")}
+                  className="mt-3 rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
+                >
+                  HLS 30m göstər
+                </button>
+              </div>
             </>
           ) : (
             <>

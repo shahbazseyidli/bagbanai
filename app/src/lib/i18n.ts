@@ -4,7 +4,7 @@
 export const az = {
   // brand / nav
   "brand": "Bağban AI",
-  "nav.dashboard": "İdarə paneli",
+  "nav.dashboard": "Sahələrim",
   "nav.subsidy": "Subsidiya kalkulyatoru",
   "nav.team": "Komanda",
   "nav.logout": "Çıxış",
@@ -61,7 +61,7 @@ export const az = {
   "landing.feat3.body": "Skautinq, tapşırıqlar, əməliyyatlar və məhsuldarlıq bir yerdə.",
 
   // dashboard
-  "dash.title": "İdarə paneli",
+  "dash.title": "Sahələrim",
   "dash.orgs": "Təşkilatlar",
   "dash.selectOrg": "Təşkilat seçin",
   "dash.newOrg": "Yeni təşkilat",
