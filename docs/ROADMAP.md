@@ -320,3 +320,17 @@ overlay traffic grows (gap doc §7); log rotation for `/var/log/bagban-hls.log` 
 5. **After each atomic change:** descriptive commit (`feat(scope): …`), update `CHANGELOG.md`, and
    update `CLAUDE.md`/this roadmap so the next session inherits the context. Follow phases in order
    (§28) and check the Definition of Done before moving on.
+
+---
+
+## 2026-07-21 — v1.2.0 (CANLI) — bax CLAUDE.md TODO + memory [[v21-feature-expansion-plan]] / [[billing-tiers]] / [[ai-knowledge-layer-spec]]
+
+**Görülən + deploy (main):**
+- Sentinel-2 10m sensor · E0 NDRE/CIre red-edge (S2-only) · M5 bitki-spesifik indeks etiketləri (crop_thresholds.index_norms).
+- **AI Bilik Qatı M1-M8** (migration 0014): zone_knowledge/field_knowledge/clarifications/research_jobs; struktur mənbələr (SoilGrids/EPPO/FAOSTAT/Open-Meteo); web_search+LLM zona araşdırması; dəqiqləşdirmə blokları; hava+su balansı.
+- **C3 toxun-tap** avtomatik sahə sərhədi (geoapi mikroservis, kənar-həssas region-growing).
+- **E1** Saxton-Rawls pedotransfer (FC/WP/TAW/RAW) · **E2** çiləmə pəncərəsi + frost/heat/külək alertləri.
+- **3-paket billing** (Pulsuz/Pro 10AZN/Business 25AZN): tiers.py gating + admin Abunələr + /pricing.
+- **UX Sprint A**: sahə edit/sil paneli (silmə 404 fix), xəritə axtarış, S2 "hazırlanır-gözlə" state, abunə badge, ölkə/rayon dropdown, "Sahələrim" adı.
+
+**Açıq (növbəti):** UX Sprint B (Resend email/OTP + panel.agradex.com subdomain — istifadəçi addımları) · v2.1 E3-E12 (WhatsApp bot, B1 zərərverici riski, tam FAO-56 suvarma, foto diaqnoz, gübrə, benchmark, MRV) · E1 lab-analiz OCR.

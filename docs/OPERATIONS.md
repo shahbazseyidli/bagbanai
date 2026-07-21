@@ -546,3 +546,25 @@ From `deploy/docker-compose.prod.yml`. All app ports bind to `127.0.0.1` and are
 
 Run a profile-gated service:
 `docker compose -f deploy/docker-compose.prod.yml --profile <geo|tools|orchestration> run --rm <service> ...`
+
+---
+
+## 2026-07-21 — v1.2.0 əməliyyat əlavələri
+
+### Yeni servis: geoapi (C3 toxun-tap)
+Always-on uvicorn (geo image) `geo_pipeline.segment_api:app`, `mem_limit 700m`, **publish olunmur** — api ona `http://geoapi:8010` ilə çatır. Kod mount olunur → dəyişikliyə `docker restart deploy-geoapi-1` bəs edir; yeni dep (scipy/fastapi) → `docker compose build geoapi && up -d geoapi`.
+
+### Yeni cron-lar (root crontab)
+- `30 3 * * *` run-s2.sh (Sentinel-2 günlük refresh, NDRE/CIre daxil)
+- `45 3 * * *` run-weather.sh (Open-Meteo → weather_cache + water_requirements + spray_window)
+- `*/3 * * * *` process-research.sh (research_jobs → internal /research/drain)
+
+### Knowledge layer / yeni feature deploy ardıcıllığı
+1. migration (`tools` container: `apt-get install postgresql-client && ./db/migrate.sh`) — knowledge = 0014.
+2. **`load_seeds.py` MÜTLƏQ** (`tools`: `pip install psycopg[binary] && python db/seeds/load_seeds.py`) — crop_thresholds.index_norms doldurur (yoxsa M5/E0 kalibr universal-a düşür).
+3. `bash deploy/update.sh` (api/web/titiler rebuild). geoapi/geo ayrıca (yuxarı).
+4. tsc gate: server-də node:20-slim konteynerdə `npm ci && npx tsc --noEmit` (git archive origin/main app).
+5. import gate: `docker run --rm -v ...:/srv -w /srv deploy-api python -c "import app.main"`.
+
+### Sirlər (yeni)
+`EPPO_TOKEN` (boş → pest deqradasiya), `SEARCH_PROVIDER=anthropic`, `NOMINATIM_BASE`, `RESEND_API_KEY` (Sprint B).

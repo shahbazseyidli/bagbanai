@@ -284,3 +284,12 @@ Router: `services/app/routers/health.py` — prefix `/api`.
 | 413 / 415 | `file_too_large` / `unsupported_type` | Upload rejected |
 | 501 | `geo_deps_unavailable_run_on_worker` / `weather_phase_2` / `rules_phase_2` | Not implemented in this image / Phase 2 |
 | 503 | `ai_not_configured` / `ai_unavailable` | LLM key absent or generation failed |
+
+---
+
+## 2026-07-21 — v1.2.0 yeni endpoint-lər
+
+**Knowledge / passport:** `GET /api/fields/{id}/knowledge` (passport; free tier → gated boş), `GET /api/fields/{id}/clarifications`, `POST /api/fields/{id}/clarifications/{cid}/answer`, `POST /api/fields/{id}/research` (manual araşdırma), `GET /api/fields/{id}/norms` (bitki-spesifik indeks bantları — M5).
+**İndekslər:** `?sensor=` NDRE/CIre S2-only (E0). **Sahə:** `PUT /api/fields/{id}` (ad dəyiş), `DELETE /api/fields/{id}` (cascade). **C3:** `POST /api/geo/segment {lon,lat}` (→ geoapi proxy).
+**Abunəlik:** `GET /api/orgs/{id}/subscription` (user tier+usage). **Admin:** `GET /api/admin/subscriptions`, `PUT /api/admin/subscriptions/{org_id}`, `GET /api/admin/tiers`.
+**Internal (X-Internal-Token):** `POST /api/internal/research/drain`, `POST /api/internal/weather/run?field_id=`, `POST /api/internal/weather/drain`.
