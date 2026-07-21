@@ -120,10 +120,19 @@ async def research_field(conn, field_id: str, blocks: Optional[list[str]] = None
     if wants("soil_profile"):
         try:
             from .sources import soilgrids
+            from . import soil as soil_calc
             res = await soilgrids.fetch_soil(lat, lon)
             if res.ok:
+                content = dict(res.data)
+                sources = [res.source]
+                # E1: derive FAO-56 water-holding params (FC/WP/TAW/RAW) from the texture so
+                # B2 irrigation can use them without recomputing (Saxton-Rawls pedotransfer).
+                swp = soil_calc.soil_water_params(res.data, crop_type)
+                if swp:
+                    content["water_params"] = swp
+                    sources.append(swp["source"])
                 await kb.upsert_field_block(
-                    conn, field_id, org_id, "soil_profile", res.data, [res.source],
+                    conn, field_id, org_id, "soil_profile", content, sources,
                     kb.input_hash({"lat": lat, "lon": lon}), confidence=res.source.get("confidence"))
                 written.append("soil_profile")
             else:
