@@ -99,6 +99,9 @@ services:
     command: ["uvicorn", "geo_pipeline.segment_api:app", "--host", "0.0.0.0", "--port", "8010", "--workers", "1"]
     env_file: ../.env
     restart: unless-stopped
+    # Hard memory cap: a runaway segmentation is killed inside this cgroup, never OOM-killing
+    # the shared host (api/web/db). Windowed reads keep real usage well under this.
+    mem_limit: 700m
     volumes:
       - ../services/geo_pipeline:/srv/geo_pipeline:ro   # live code (no rebuild per change)
 

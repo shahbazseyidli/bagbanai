@@ -27,7 +27,7 @@ async def segment_boundary(body: dict, user_id: str = Depends(get_current_user_i
     except (TypeError, ValueError):
         return {"ok": False, "reason": "bad_coords", "polygon": None}
     try:
-        async with httpx.AsyncClient(timeout=35.0) as client:
+        async with httpx.AsyncClient(timeout=50.0) as client:
             r = await client.post(f"{_GEOAPI_URL}/segment", json={"lon": lon, "lat": lat})
             r.raise_for_status()
             return r.json()

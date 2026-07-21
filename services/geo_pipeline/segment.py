@@ -29,19 +29,27 @@ def detect_boundary(lon: float, lat: float, *, max_ha: float = MAX_HA,
     """Return {ok, polygon(GeoJSON 4326)|None, area_ha, reason}. Never raises for the
     expected failure modes (no scene / cloudy / fill hit the cap) — returns ok=False."""
     import numpy as np
+    import rasterio
     import rasterio.features
-    from shapely.geometry import shape, mapping
+    from rasterio.warp import transform_bounds
+    from rasterio.windows import from_bounds
+    from shapely.geometry import shape, mapping, Point
     from shapely.ops import transform as shp_transform
     from pyproj import Transformer
 
-    from .read import prepare_gdal_for_public_cog, read_s2_band
+    from .read import prepare_gdal_for_public_cog
     from .search_s2 import search_scenes_s2
-    from .indices import BANDS, S2_SR_NODATA, S2_SR_OFFSET, S2_SR_SCALE
+    from .indices import BANDS, S2_SR_SCALE
 
     from datetime import date, timedelta
+    from math import cos, radians
 
     prepare_gdal_for_public_cog()
-    geo = _bbox_geojson(lon, lat)
+    # Read window in WGS84 around the tap (bounded → windowed COG reads stay tiny, no full-tile
+    # load; a full-tile eager read was OOM-killing the shared host).
+    _dlat = HALF_M / 111320.0
+    _dlon = HALF_M / (111320.0 * max(cos(radians(lat)), 1e-6))
+    win_bbox = (lon - _dlon, lat - _dlat, lon + _dlon, lat + _dlat)
     bbox = (lon - 0.02, lat - 0.02, lon + 0.02, lat + 0.02)
     today = date.today()
     try:
@@ -53,25 +61,34 @@ def detect_boundary(lon: float, lat: float, *, max_ha: float = MAX_HA,
     granules.sort(key=lambda g: getattr(g, "acquired_at", today), reverse=True)
 
     km = BANDS["S2"]
+
+    def _read_window(href, crs, win):
+        """Windowed COG read → float32 reflectance array (only the window loads)."""
+        with rasterio.open(href) as src:
+            arr = src.read(1, window=win, boundless=True, fill_value=0).astype("float32")
+        return arr * S2_SR_SCALE
+
     # Freshest granule first; use the first that reads cleanly over the window.
     for g in granules:
         red_h, nir_h = g.assets.get(km["red"]), g.assets.get(km["nir"])
         if not red_h or not nir_h:
             continue
         try:
-            nir = read_s2_band(nir_h, geo, ref=None, scale=S2_SR_SCALE, offset=S2_SR_OFFSET, nodata=S2_SR_NODATA)
-            red = read_s2_band(red_h, geo, ref=nir, scale=S2_SR_SCALE, offset=S2_SR_OFFSET, nodata=S2_SR_NODATA)
+            with rasterio.open(nir_h) as src:
+                crs = src.crs
+                l, b, r_, t = transform_bounds("EPSG:4326", crs, *win_bbox)
+                win = from_bounds(l, b, r_, t, src.transform)
+                transform = src.window_transform(win)
+            nir = _read_window(nir_h, crs, win)
+            red = _read_window(red_h, crs, win)
         except Exception:  # noqa: BLE001 — try the next granule
             continue
-        ndvi = ((nir - red) / (nir + red)).values.astype("float32")
+        denom = nir + red
+        ndvi = np.where(denom > 0, (nir - red) / denom, np.nan).astype("float32")
         if not np.isfinite(ndvi).any():
             continue
 
-        transform = nir.rio.transform()
-        crs = nir.rio.crs
-        h, w = ndvi.shape[-2:] if ndvi.ndim > 2 else ndvi.shape
-        ndvi = ndvi.reshape(h, w)
-
+        h, w = ndvi.shape
         # Seed pixel = the tap point, projected into the raster CRS then to row/col.
         to_utm = Transformer.from_crs("EPSG:4326", crs, always_xy=True)
         sx, sy = to_utm.transform(lon, lat)
@@ -114,9 +131,7 @@ def detect_boundary(lon: float, lat: float, *, max_ha: float = MAX_HA,
                  rasterio.features.shapes(mask, mask=mask.astype(bool), transform=transform) if val == 1]
         if not polys:
             continue
-        seed_pt_utm = (sx, sy)
-        from shapely.geometry import Point
-        chosen = next((p for p in polys if p.contains(Point(seed_pt_utm))), max(polys, key=lambda p: p.area))
+        chosen = next((p for p in polys if p.contains(Point(sx, sy))), max(polys, key=lambda p: p.area))
         # Simplify (Douglas-Peucker) to ~a handful of vertices (tolerance in metres).
         chosen = chosen.simplify(15.0, preserve_topology=True)
         if chosen.is_empty or chosen.area < px_area_m2 * 20:
