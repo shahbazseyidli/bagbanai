@@ -101,6 +101,8 @@ export const az = {
 
   // field detail tabs
   "field.tab.overview": "İcmal",
+  "field.tab.sentinel2": "Sentinel-2",
+  "field.tab.nasa": "NASA",
   "field.tab.ai": "AI Məsləhət",
   "field.tab.metadata": "Sahə haqqında məlumat",
   "field.tab.scouting": "Skautinq",

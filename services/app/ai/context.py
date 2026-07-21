@@ -7,35 +7,41 @@ from __future__ import annotations
 import json
 from typing import Any
 
+# Indices the AI advice reasons over (S2-only trends — see index_trends).
 INDICES = ["NDVI", "NDMI", "NDWI", "EVI", "SAVI", "NBR"]
+# Indices surfaced on the Overview ("İcmal") insight page — adds the S2-only red-edge NDRE.
+INSIGHT_INDICES = ["NDVI", "NDRE", "EVI", "SAVI", "NDMI", "NDWI"]
+
+# DB sensor codes per UI sensor family: Sentinel-2 = 'S2', NASA HLS = 'S30'/'L30'.
+_SENSOR_SQL = {"S2": "i.sensor = 'S2'", "HLS": "i.sensor in ('S30','L30')"}
 
 
-async def _index_trends(conn, field_id: str) -> list[dict]:
-    """Latest value, ~4-weeks-ago value, and 90-day min/max per index (field mean)."""
+async def index_trends(
+    conn, field_id: str, sensor: str = "S2", indices: list[str] | None = None,
+) -> list[dict]:
+    """Latest value, a ~3-weeks-ago value (+ its date), trend, and 90-day min/max per index
+    (field mean), restricted to ONE sensor family.
+
+    The AI advice uses S2 exclusively (product decision: the agronomist reasons over the sharp
+    10m Sentinel-2 signal only, never mixed with 30m HLS). If the field has no S2 scenes yet the
+    list is empty and advice degrades gracefully to metadata + knowledge. The Overview insight
+    endpoint reuses this for both sensors so it can show whichever arrived first."""
+    indices = indices or INDICES
+    cond = _SENSOR_SQL.get(sensor, _SENSOR_SQL["S2"])
     rows = await conn.fetch(
-        """
-        with prim as (
-          -- Pick the field's freshest sensor family so trends never mix 10m S2 with 30m HLS:
-          -- HLS (S30/L30) while it keeps updating, else Sentinel-2 — so AI trends survive an
-          -- Earthdata token lapse (HLS freezes → S2 becomes freshest → trends follow S2).
-          select max(acquired_at) filter (where sensor in ('S30','L30'))
-                 >= coalesce(max(acquired_at) filter (where sensor not in ('S30','L30')),
-                             '-infinity'::date) as use_hls
-          from public.index_stats
-          where field_id=$1::uuid and acquired_at >= current_date - 120
-        ),
-        recent as (
+        f"""
+        with recent as (
           select i.index_name, i.acquired_at, i.mean,
                  row_number() over (partition by i.index_name order by i.acquired_at desc) as rn
-          from public.index_stats i, prim
+          from public.index_stats i
           where i.field_id=$1::uuid and i.acquired_at >= current_date - 120
-            and ( (prim.use_hls and i.sensor in ('S30','L30'))
-               or (coalesce(prim.use_hls, false) is not true and i.sensor not in ('S30','L30')) )
+            and {cond}
         )
         select index_name,
                max(mean) filter (where rn=1)               as latest,
                max(acquired_at) filter (where rn=1)        as latest_date,
-               avg(mean) filter (where rn between 4 and 8) as prior,
+               avg(mean) filter (where rn between 3 and 6) as prior,
+               max(acquired_at) filter (where rn=4)        as prior_date,
                min(mean)                                   as min90,
                max(mean)                                   as max90
         from recent
@@ -43,19 +49,29 @@ async def _index_trends(conn, field_id: str) -> list[dict]:
         """, field_id)
     out = []
     for r in rows:
-        if r["index_name"] not in INDICES or r["latest"] is None:
+        if r["index_name"] not in indices or r["latest"] is None:
             continue
         latest = float(r["latest"])
         prior = float(r["prior"]) if r["prior"] is not None else None
-        trend = None
+        latest_date = r["latest_date"]
+        prior_date = r["prior_date"]
+        trend, delta, pct, days = None, None, None, None
         if prior is not None:
-            d = latest - prior
-            trend = "yüksəlir" if d > 0.03 else "düşür" if d < -0.03 else "sabit"
+            delta = latest - prior
+            trend = "yüksəlir" if delta > 0.03 else "düşür" if delta < -0.03 else "sabit"
+            pct = round(delta / prior * 100, 1) if abs(prior) > 1e-6 else None
+            if latest_date and prior_date:
+                days = (latest_date - prior_date).days
         out.append({
             "index": r["index_name"],
             "latest": round(latest, 3),
-            "latest_date": r["latest_date"].isoformat() if r["latest_date"] else None,
-            "four_weeks_ago": round(prior, 3) if prior is not None else None,
+            "latest_date": latest_date.isoformat() if latest_date else None,
+            "prior": round(prior, 3) if prior is not None else None,
+            "prior_date": prior_date.isoformat() if prior_date else None,
+            "four_weeks_ago": round(prior, 3) if prior is not None else None,  # back-compat
+            "delta": round(delta, 3) if delta is not None else None,
+            "pct": pct,
+            "days": days,
             "trend": trend,
             "min_90d": round(float(r["min90"]), 3) if r["min90"] is not None else None,
             "max_90d": round(float(r["max90"]), 3) if r["max90"] is not None else None,
@@ -94,9 +110,14 @@ async def build_field_context(conn, field_id: str) -> dict[str, Any]:
     def rows(rs):
         return [dict(r) for r in rs]
 
+    # AI reasons over Sentinel-2 (10m) trends ONLY — never HLS (product decision).
+    s2_trends = await index_trends(conn, field_id, sensor="S2")
+
     ctx = {
         "field": dict(field) if field else {"name": "sahə"},
-        "satellite_indices": await _index_trends(conn, field_id),
+        "satellite_source": "Sentinel-2 (10m)",
+        "satellite_status": None if s2_trends else "Sentinel-2 məlumatı hələ hazırlanır",
+        "satellite_indices": s2_trends,
         "scouting": rows(scouting),
         "operations": rows(operations),
         "open_tasks": rows(tasks),

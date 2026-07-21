@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { t, type I18nKey } from "@/lib/i18n";
 import { ErrorNote, Spinner } from "@/components/ui";
 import OverviewTab from "@/components/field/OverviewTab";
+import SatelliteTab from "@/components/field/SatelliteTab";
 import AiTab from "@/components/field/AiTab";
 import MetadataTab from "@/components/field/MetadataTab";
 import ScoutingTab from "@/components/field/ScoutingTab";
@@ -15,10 +16,14 @@ import OperationsTab from "@/components/field/OperationsTab";
 import YieldsTab from "@/components/field/YieldsTab";
 import type { FieldDetail } from "@/lib/types";
 
-type TabKey = "overview" | "ai" | "metadata" | "scouting" | "tasks" | "operations" | "yields";
+type TabKey =
+  | "overview" | "sentinel2" | "nasa" | "ai" | "metadata"
+  | "scouting" | "tasks" | "operations" | "yields";
 
 const TABS: { key: TabKey; labelKey: I18nKey }[] = [
   { key: "overview", labelKey: "field.tab.overview" },
+  { key: "sentinel2", labelKey: "field.tab.sentinel2" },
+  { key: "nasa", labelKey: "field.tab.nasa" },
   { key: "ai", labelKey: "field.tab.ai" },
   { key: "metadata", labelKey: "field.tab.metadata" },
   { key: "scouting", labelKey: "field.tab.scouting" },
@@ -192,7 +197,9 @@ export default function FieldDetailPage() {
       </div>
 
       <div>
-        {tab === "overview" && <OverviewTab field={field} />}
+        {tab === "overview" && <OverviewTab field={field} onNavigate={(x) => setTab(x)} />}
+        {tab === "sentinel2" && <SatelliteTab field={field} sensor="S2" />}
+        {tab === "nasa" && <SatelliteTab field={field} sensor="HLS" />}
         {tab === "ai" && <AiTab fieldId={field.id} />}
         {tab === "metadata" && <MetadataTab fieldId={field.id} />}
         {tab === "scouting" && <ScoutingTab fieldId={field.id} />}

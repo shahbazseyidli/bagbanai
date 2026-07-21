@@ -164,6 +164,37 @@ async def summary(field_id: str, sensor: str = Query("s2"),
     }
 
 
+@router.get("/{field_id}/insights")
+async def insights(field_id: str, user_id: str = Depends(get_current_user_id)):
+    """Per-index trend snapshot (latest, ~3-weeks-ago prior, delta, % change, direction) for
+    BOTH sensors, powering the Overview ("İcmal") insight page. The page prefers Sentinel-2
+    (10m, sharper) and falls back to NASA HLS (30m) when S2 hasn't arrived yet — showing the
+    first data available while the rest is still processing. Also returns crop calibration and
+    the field's processing status so the page can render the right 'still preparing' note."""
+    from ..ai.context import index_trends, INSIGHT_INDICES
+    async with connection(user_id) as conn:
+        org_id = await _org_of_field(conn, field_id)
+        await require_member(conn, user_id, org_id)
+        s2 = await index_trends(conn, field_id, sensor="S2", indices=INSIGHT_INDICES)
+        hls = await index_trends(conn, field_id, sensor="HLS", indices=INSIGHT_INDICES)
+        crop = await conn.fetchval(
+            "select crop_type from public.field_metadata where field_id=$1::uuid", field_id)
+        calibrated = False
+        if crop:
+            calibrated = await conn.fetchval(
+                """select index_norms is not null from public.crop_thresholds
+                   where crop_type=$1 and growth_stage='all' and age_class='all'""", crop) or False
+        status = await conn.fetchrow(
+            """select data_status, data_ready_at from public.fields where id=$1::uuid""", field_id)
+    return {
+        "s2": s2,
+        "hls": hls,
+        "crop_type": crop,
+        "calibrated": bool(calibrated),
+        "data_status": status["data_status"] if status else "ready",
+    }
+
+
 @router.get("/{field_id}/scenes")
 async def scenes(field_id: str, index: str = Query("NDVI"), sensor: str = Query("s2"),
                  user_id: str = Depends(get_current_user_id)):

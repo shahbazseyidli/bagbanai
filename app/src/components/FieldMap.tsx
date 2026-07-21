@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import { Layers, Search, Ruler, Mountain, X } from "lucide-react";
-import { length as turfLength, area as turfArea } from "@turf/turf";
+import { length as turfLength, area as turfArea, simplify as turfSimplify } from "@turf/turf";
 import type { Polygon } from "@/lib/types";
 import {
   BASEMAPS,
@@ -186,12 +186,16 @@ interface DrawMapProps {
   /** When true, a map tap fires `onDetect(lng,lat)` instead of adding a vertex (C3). */
   detectMode?: boolean;
   onDetect?: (lng: number, lat: number) => void;
+  /** When true, press-and-drag paints a freehand boundary (lasso) instead of tapping vertices. */
+  brushMode?: boolean;
 }
 
 // Editable drawing map — MapLibre-native click-to-draw (no mapbox-gl-draw, which is
 // incompatible with this MapLibre version). Click the map to add polygon vertices;
-// the ring closes automatically once there are ≥3 points.
-export function DrawMap({ onPolygon, importedPolygon, importSeq = 0, detectMode = false, onDetect }: DrawMapProps) {
+// the ring closes automatically once there are ≥3 points. A "brush" mode lets the farmer
+// press-and-drag to trace the boundary freehand; the traced path is simplified into editable
+// vertices on release.
+export function DrawMap({ onPolygon, importedPolygon, importSeq = 0, detectMode = false, onDetect, brushMode = false }: DrawMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const ptsRef = useRef<[number, number][]>([]);
@@ -202,6 +206,9 @@ export function DrawMap({ onPolygon, importedPolygon, importSeq = 0, detectMode 
   detectRef.current = detectMode;
   const onDetectRef = useRef(onDetect);
   onDetectRef.current = onDetect;
+  const brushRef = useRef(brushMode);
+  brushRef.current = brushMode;
+  const brushPtsRef = useRef<[number, number][]>([]);
   const [count, setCount] = useState(0);
   const [basemap, setBasemap] = useState<Basemap>(() => getSavedBasemap());
   const basemapRef = useRef(basemap);
@@ -271,6 +278,8 @@ export function DrawMap({ onPolygon, importedPolygon, importSeq = 0, detectMode 
     });
 
     map.on("click", (e) => {
+      // Brush mode paints via pointer events (below) — ignore the click it also fires.
+      if (brushRef.current) return;
       // Detect mode (C3): a tap asks the server to trace the field boundary instead of
       // adding a vertex. The result loads via importedPolygon (editable), so the farmer
       // still confirms/adjusts it.
@@ -304,6 +313,92 @@ export function DrawMap({ onPolygon, importedPolygon, importSeq = 0, detectMode 
     if (map && b) map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: 40, maxZoom: 16 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [importSeq]);
+
+  // Brush (freehand lasso): press-and-drag paints the boundary. While active we disable map
+  // panning so the drag draws instead of moving the map, capture the pointer path, and on
+  // release simplify it (turf) into editable vertices — so the farmer can still fine-tune it.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const canvas = map.getCanvas();
+    if (!brushMode) {
+      canvas.style.cursor = "";
+      canvas.style.touchAction = "";
+      map.dragPan.enable();
+      return;
+    }
+    canvas.style.cursor = "crosshair";
+    canvas.style.touchAction = "none"; // stop the page from scrolling while painting on touch
+    map.dragPan.disable();
+    let drawing = false;
+
+    const toLngLat = (ev: PointerEvent): [number, number] => {
+      const rect = canvas.getBoundingClientRect();
+      const p = map.unproject([ev.clientX - rect.left, ev.clientY - rect.top]);
+      return [p.lng, p.lat];
+    };
+    const renderBrush = () => {
+      const pts = brushPtsRef.current;
+      const ring = pts.length >= 3 ? [...pts, pts[0]] : pts;
+      const shape =
+        pts.length >= 3
+          ? { type: "Feature", geometry: { type: "Polygon", coordinates: [ring] }, properties: {} }
+          : pts.length >= 2
+            ? { type: "Feature", geometry: { type: "LineString", coordinates: pts }, properties: {} }
+            : { type: "FeatureCollection", features: [] };
+      (map.getSource("draw") as maplibregl.GeoJSONSource | undefined)?.setData(shape as GeoJSON.GeoJSON);
+    };
+    const finalize = () => {
+      const pts = brushPtsRef.current;
+      brushPtsRef.current = [];
+      if (pts.length < 3) { renderRef.current(); return; }
+      const ring = [...pts, pts[0]];
+      let out: [number, number][] = ring;
+      try {
+        const s = turfSimplify(
+          { type: "Feature", geometry: { type: "Polygon", coordinates: [ring] }, properties: {} } as GeoJSON.Feature,
+          { tolerance: 0.00008, highQuality: true },
+        );
+        const c = (s.geometry as GeoJSON.Polygon).coordinates?.[0] as [number, number][] | undefined;
+        if (c && c.length >= 4) out = c;
+      } catch { /* keep raw path on simplify failure */ }
+      // Strip the closing duplicate — the renderer re-closes the ring.
+      ptsRef.current = out.slice(0, -1).map((p) => [p[0], p[1]] as [number, number]);
+      renderRef.current();
+    };
+
+    const down = (ev: PointerEvent) => {
+      if (ev.button !== 0 && ev.pointerType === "mouse") return;
+      drawing = true;
+      brushPtsRef.current = [toLngLat(ev)];
+      renderBrush();
+      ev.preventDefault();
+    };
+    const move = (ev: PointerEvent) => {
+      if (!drawing) return;
+      brushPtsRef.current.push(toLngLat(ev));
+      renderBrush();
+      ev.preventDefault();
+    };
+    const up = () => {
+      if (!drawing) return;
+      drawing = false;
+      finalize();
+    };
+
+    canvas.addEventListener("pointerdown", down);
+    canvas.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    return () => {
+      canvas.removeEventListener("pointerdown", down);
+      canvas.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      canvas.style.cursor = "";
+      canvas.style.touchAction = "";
+      map.dragPan.enable();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brushMode]);
 
   function changeBasemap(bm: Basemap) {
     setBasemap(bm);

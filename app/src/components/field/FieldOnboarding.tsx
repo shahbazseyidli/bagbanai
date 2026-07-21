@@ -10,6 +10,7 @@ import { Upload, MapPin, Mountain, Compass, TriangleRight } from "lucide-react";
 import { api } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import { DrawMap } from "@/components/FieldMap";
+import UpgradeCta from "@/components/UpgradeCta";
 import { ErrorNote, Field as FormField } from "@/components/ui";
 import { parseCoordinates, polygonFromRing, validatePolygon } from "@/lib/geo";
 import { parseGeoImport } from "@/lib/geoio";
@@ -93,6 +94,7 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
   const [detect, setDetect] = useState(false);       // C3 tap-to-detect mode
   const [detecting, setDetecting] = useState(false);
   const [detectMsg, setDetectMsg] = useState("");
+  const [brush, setBrush] = useState(false);         // freehand brush/lasso mode
 
   async function handleDetect(lng: number, lat: number) {
     setDetecting(true);
@@ -135,6 +137,7 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
 
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [limitReached, setLimitReached] = useState(false); // free-tier field cap → marketing CTA
 
   const cycle = data.crop_cycle ?? null;
   const isPerennial = cycle === "perennial";
@@ -294,6 +297,12 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
       onCreated(field);
     } catch (err) {
       const msg = err instanceof Error ? err.message : t("common.error");
+      if (msg === "field_limit_reached") {
+        // Free-tier cap: replace the raw error with a marketing upgrade nudge.
+        setLimitReached(true);
+        setBusy(false);
+        return;
+      }
       setError(msg === "field_too_small"
         ? "Sahə çox kiçikdir (minimum ~0.05 ha). Sərhədi yenidən çəkin."
         : msg);
@@ -359,20 +368,37 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
             <div className="space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm text-slate-500">
-                  {detect ? "Sahənizin içinə toxunun — sərhədi avtomatik tapacağıq." : t("field.drawHint")}
+                  {brush
+                    ? "Barmağınızla (və ya siçanla) sahənin sərhədini çəkin — buraxanda avtomatik tamamlanacaq."
+                    : detect
+                      ? "Sahənizin içinə toxunun — sərhədi avtomatik tapacağıq."
+                      : t("field.drawHint")}
                 </p>
-                <button
-                  type="button"
-                  onClick={() => { setDetect((v) => !v); setDetectMsg(""); }}
-                  disabled={detecting}
-                  className={`shrink-0 rounded-lg border px-3 py-1.5 text-xs font-medium ${
-                    detect
-                      ? "border-emerald-600 bg-emerald-600 text-white"
-                      : "border-emerald-300 text-emerald-700 hover:bg-emerald-50"
-                  } disabled:opacity-50`}
-                >
-                  {detecting ? "Tapılır…" : detect ? "✓ Toxun və tap (aktiv)" : "✨ Toxun və tap"}
-                </button>
+                <div className="flex shrink-0 flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setBrush((v) => !v); setDetect(false); setDetectMsg(""); }}
+                    className={`rounded-lg border px-3 py-1.5 text-xs font-medium ${
+                      brush
+                        ? "border-emerald-600 bg-emerald-600 text-white"
+                        : "border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                    }`}
+                  >
+                    {brush ? "✓ Fırça (aktiv)" : "✏️ Fırça ilə çək"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setDetect((v) => !v); setBrush(false); setDetectMsg(""); }}
+                    disabled={detecting}
+                    className={`rounded-lg border px-3 py-1.5 text-xs font-medium ${
+                      detect
+                        ? "border-emerald-600 bg-emerald-600 text-white"
+                        : "border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                    } disabled:opacity-50`}
+                  >
+                    {detecting ? "Tapılır…" : detect ? "✓ Toxun və tap (aktiv)" : "✨ Toxun və tap"}
+                  </button>
+                </div>
               </div>
               {detectMsg && (
                 <p className={`text-xs ${detectMsg.includes("tapıldı") ? "text-emerald-700" : "text-amber-700"}`}>
@@ -385,6 +411,7 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
                 importSeq={importSeq}
                 detectMode={detect}
                 onDetect={handleDetect}
+                brushMode={brush}
               />
               <div className="flex flex-wrap items-center gap-2 text-xs">
                 <input
@@ -707,7 +734,8 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
         </div>
       )}
 
-      <ErrorNote message={error} />
+      {limitReached && <UpgradeCta onDismiss={() => setLimitReached(false)} />}
+      <ErrorNote message={limitReached ? "" : error} />
 
       {/* Navigation */}
       <div className="flex items-center justify-between border-t border-slate-100 pt-4">
@@ -724,7 +752,7 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
             {t("common.next")}
           </button>
         ) : (
-          <button type="button" className="btn-primary" onClick={submit} disabled={busy}>
+          <button type="button" className="btn-primary" onClick={submit} disabled={busy || limitReached}>
             {busy ? t("common.saving") : "Sahəni yarat"}
           </button>
         )}
