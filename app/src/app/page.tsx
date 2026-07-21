@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { t } from "@/lib/i18n";
 import { ErrorNote, Placeholder, Spinner } from "@/components/ui";
+import PricingTable from "@/components/PricingTable";
 import type { Farm, Field, Org } from "@/lib/types";
 
 export default function HomePage() {
@@ -47,6 +48,16 @@ function Landing() {
         <Feature icon={<Satellite />} title={t("landing.feat1.title")} body={t("landing.feat1.body")} />
         <Feature icon={<Calculator />} title={t("landing.feat2.title")} body={t("landing.feat2.body")} />
         <Feature icon={<ClipboardList />} title={t("landing.feat3.title")} body={t("landing.feat3.body")} />
+      </section>
+
+      <section id="pricing" className="space-y-5">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-slate-900">Paketlər və qiymətlər</h2>
+          <p className="mx-auto mt-2 max-w-2xl text-sm text-slate-600">
+            Pulsuz başlayın — sahənizi peykdən izləyin. Hazır olanda AI aqronom məsləhətinə keçin.
+          </p>
+        </div>
+        <PricingTable />
       </section>
     </div>
   );

@@ -20,6 +20,7 @@ export default function Nav() {
 
   const links = [
     { href: "/", label: t("nav.dashboard"), authOnly: true },
+    { href: "/pricing", label: "Qiymətlər", authOnly: false },
     { href: "/subsidy", label: t("nav.subsidy"), authOnly: false },
     { href: "/team", label: t("nav.team"), authOnly: true },
     ...(user?.is_admin ? [{ href: "/admin", label: "Admin", authOnly: true }] : []),
