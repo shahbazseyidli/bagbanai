@@ -89,6 +89,19 @@ services:
       db:
         condition: service_healthy
 
+  # Always-on tap-to-detect boundary service (v2.1 C3). Same geo image, but a persistent
+  # uvicorn instead of a one-shot job. Not published — the api container reaches it as
+  # geoapi:8010 and enforces auth; nginx never proxies to it directly.
+  geoapi:
+    build:
+      context: ../services
+      dockerfile: Dockerfile.geo
+    command: ["uvicorn", "geo_pipeline.segment_api:app", "--host", "0.0.0.0", "--port", "8010", "--workers", "1"]
+    env_file: ../.env
+    restart: unless-stopped
+    volumes:
+      - ../services/geo_pipeline:/srv/geo_pipeline:ro   # live code (no rebuild per change)
+
   # TiTiler serves + colorizes the clipped index COGs written by the geo worker (§10.5).
   titiler:
     image: ghcr.io/developmentseed/titiler:latest

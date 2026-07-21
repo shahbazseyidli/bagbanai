@@ -13,6 +13,27 @@ from ..deps import get_current_user_id
 
 router = APIRouter(prefix="/api/geo", tags=["geo"])
 
+# Tap-to-detect boundary (v2.1 C3). Proxies to the geoapi microservice (heavy geo deps live
+# there, not in this image). Auth-gated: any logged-in user creating a field. The result
+# ALWAYS needs farmer confirmation before saving (spec C3 trap) — enforced in the UI.
+_GEOAPI_URL = "http://geoapi:8010"
+
+
+@router.post("/segment")
+async def segment_boundary(body: dict, user_id: str = Depends(get_current_user_id)):
+    try:
+        lon = float(body.get("lon"))
+        lat = float(body.get("lat"))
+    except (TypeError, ValueError):
+        return {"ok": False, "reason": "bad_coords", "polygon": None}
+    try:
+        async with httpx.AsyncClient(timeout=35.0) as client:
+            r = await client.post(f"{_GEOAPI_URL}/segment", json={"lon": lon, "lat": lat})
+            r.raise_for_status()
+            return r.json()
+    except Exception as exc:  # noqa: BLE001 — degrade to manual draw on any failure
+        return {"ok": False, "reason": f"geoapi_unavailable:{exc}", "polygon": None}
+
 _OCTANTS = ["Şimal", "Şimal-Şərq", "Şərq", "Cənub-Şərq",
             "Cənub", "Cənub-Qərb", "Qərb", "Şimal-Qərb"]
 
