@@ -114,18 +114,14 @@ bagbanai/
 - Hava (Open-Meteo) + modellər (GDD/spray/frost/drought), qayda mühərriki → çox-kanallı bildirişlər, hesabatlar (PDF/DOCX), baza/anomaliya/fenologiya, billing (Stripe/PSP; cədvəllər + gating hazır, inteqrasiya yox).
 - `docs/Infrastruktur_Layer_Tekmillesdirme.md` §6 qalan işlər: bulud-örtük filtri UI, iki-tarix compare/swipe, ölkə/rayon NDVI benchmark, PDF/DOCX hesabatlar, rəsmi kadastr layı, geokodlama axtarışı, hillshade/terrain.
 
-## Açıq işlər / TODO (növbəti sessiya)
-**CANLI + doğrulanıb (2026-07-16..21 sessiyalar):** ✅ AI aktiv · ✅ CF SSL Full(Strict) · ✅ QA fixləri · ✅ DB backup (lokal+off-site) · ✅ UFW+fail2ban · ✅ **Sentinel-2 10m** (S2 sensor, deployed) · ✅ **AI Bilik Qatı M1-M8** (zone/field knowledge, SoilGrids/EPPO/FAOSTAT, web_search research, clarifications, weather+water) · ✅ **E0 NDRE/CIre** (red-edge, S2-only) · ✅ **C3 toxun-tap** (geoapi mikroservis, edge-aware region-grow) · ✅ **E1** pedotransfer TAW/RAW · ✅ **E2** çiləmə pəncərəsi + frost/heat alert · ✅ **3-paket billing** (free/pro/business, gating+admin Abunələr) · ✅ **/pricing** səhifəsi · ✅ **UX Sprint A** (sahə silmə/edit fix, xəritə axtarış, S2-gözlə state, abunə badge, ölkə/rayon dropdown, "Sahələrim" adı). Detal: memory `[[v21-feature-expansion-plan]]`, `[[billing-tiers]]`, `[[ai-knowledge-layer-spec]]` + `docs/`.
+## Açıq işlər / TODO → **tək izləyici: `docs/ROADMAP.md`**
+Bütün gələcək tasklar (E0–E12 + platform mühəndislik + istifadəçidə bloklanan) statusla **`docs/ROADMAP.md`**-dədir (status kodu ⬜🔨🚀✅⏳❌). Task bitəndə statusu orada yenilə — burada təkrarlama. Gap-scan (kod-yoxlamalı) `wf_c498734d`, 2026-07-21.
 
-**Növbəti — UX Sprint B (istifadəçi addımları lazım):**
-1. **Email/OTP (Resend)** — sən: Resend hesabı + API açarı `.env`-ə (`RESEND_API_KEY`); Cloudflare-ə SPF+DKIM. Mən: migration (email_verified/otp) + signup OTP axını + `notify.py` Resend API. `no-reply@agradex.com`.
-2. **panel.agradex.com** (tək app + hostname routing) — sən: Cloudflare `panel` A → 95.216.208.82. Mən: nginx server bloku + cookie domain `.agradex.com` + login redirect + middleware.
+**Ən yüksək prioritet indi:** T0 partial-NDVI göstərmə · T1 qayda mühərriki + dispatcher · T4 GDD modeli · T5 foto diaqnoz (vision). **Sərt deadline-lar:** ⚠️ **EARTHDATA_TOKEN 2026-08-30 bitir** (yenilə, yoxsa HLS 401) · ⚠️ **EPPO API 2026-09-01 bağlanır** · **LLM açar rotate** (bir dəfə açıq görünüb).
 
-**v2.1 qalan fazalar:** E1 lab-analiz yükləmə (OCR) · E3 WhatsApp bot · E4 zərərverici riski (B1) · E5 tam FAO-56 suvarma · E6/E7 bot+foto · C4 offline · C5 səs · C7 gübrə · D2 benchmark · D3 MRV.
+**İstifadəçi addımı gözləyən (ROADMAP §B):** Email/OTP (Resend açarı+DNS) · panel.agradex.com (CF A-record) · E3 Telegram bot token · EPPO_TOKEN · billing PSP · 2FA/firewall · Xudat crop_type=fındıq (M5/E0 kalibrasiya görünsün).
 
-**Təhlükəsizlik/infra (istifadəçi edir):** Tier-2 firewall · 2FA (Hetzner/CF) · **LLM açar rotate** · **EPPO_TOKEN** (.env, pest bloku) · **EARTHDATA_TOKEN 2026-08-30 bitir** → regenerate · nginx dublikat server_name.
-
-**Data qeydi:** silmə bug-u (indi düzəlib) səbəbindən istifadəçi bəzi sahələrini silmişdi (02:30 backup-da qalır, bərpa etmədi). Xudat və s. sahələrin crop_type-ı fındıq təyin olunmalıdır ki M5/E0 kalibrasiyası görünsün.
+**Data qeydi:** köhnə silmə bug-u (indi düzəlib) səbəbindən istifadəçi bəzi sahələrini silmişdi (02:30 backup-da qaldı, bərpa etmədi).
 
 ## İnfrastruktur xəritəsi (2 Hetzner serveri — bax `[[agradex-infrastructure]]` memory)
 - **Server 1** `bagban-ai` **95.216.208.82** (Helsinki): agradex.com (Bağban AI, CF-proxied) + signal-cv.agradex.com (DNS-only, Telegram bot).
