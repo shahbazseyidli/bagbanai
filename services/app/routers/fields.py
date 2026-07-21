@@ -106,6 +106,20 @@ async def get_field(field_id: str, user_id: str = Depends(get_current_user_id)):
                 data_progress_total=row["data_progress_total"], data_eta_seconds=row["data_eta_seconds"])
 
 
+@router.delete("/{field_id}")
+async def delete_field(field_id: str, user_id: str = Depends(get_current_user_id)):
+    """Delete a field and everything scoped to it. All field-scoped tables use ON DELETE
+    CASCADE (index_stats/rasters/scenes/weather/knowledge/clarifications/scouting/tasks/...),
+    so a single delete cleans them up; history tables (subsidy calc, ai_usage) keep their rows
+    with field_id set null. Requires agronomist+ (ROLES_WRITE). Raster COG files on disk are
+    left for the periodic cleanup — they are not reachable from the API container's mounts."""
+    async with connection(user_id) as conn:
+        org_id = await _org_of_field(conn, field_id)
+        await require_role(conn, user_id, org_id, ROLES_WRITE)
+        await conn.execute("delete from public.fields where id=$1::uuid", field_id)
+    return {"ok": True}
+
+
 @router.get("/{field_id}/data-status")
 async def data_status(field_id: str, user_id: str = Depends(get_current_user_id)):
     """Lightweight poll target for the 'preparing…' banner (progress + ETA)."""

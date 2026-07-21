@@ -128,24 +128,26 @@ function SearchControl({ onPick }: { onPick: (lng: number, lat: number, bbox?: [
   }
 
   return (
-    <div className="absolute left-1/2 top-2 z-10 w-64 max-w-[80%] -translate-x-1/2">
-      <form onSubmit={run} className="flex items-center gap-1 rounded-md bg-white/95 px-2 py-1 shadow">
-        <Search className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+    <div className="relative z-20 mb-2 w-full">
+      <form onSubmit={run} className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm">
+        <Search className="h-4 w-4 shrink-0 text-slate-400" />
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Yer axtar (kənd, rayon…)"
-          className="w-full bg-transparent text-xs text-slate-700 outline-none placeholder:text-slate-400"
+          className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
         />
-        {busy && <span className="text-[10px] text-slate-400">…</span>}
         {q && (
-          <button type="button" onClick={() => { setQ(""); setResults([]); setOpen(false); }} className="text-slate-400 hover:text-slate-600">
-            <X className="h-3.5 w-3.5" />
+          <button type="button" onClick={() => { setQ(""); setResults([]); setOpen(false); }} className="shrink-0 text-slate-400 hover:text-slate-600">
+            <X className="h-4 w-4" />
           </button>
         )}
+        <button type="submit" disabled={busy || !q.trim()} className="shrink-0 rounded-md bg-emerald-600 px-3 py-1 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50">
+          {busy ? "…" : "Axtar"}
+        </button>
       </form>
       {open && results.length > 0 && (
-        <div className="mt-1 max-h-48 overflow-y-auto rounded-md bg-white/98 p-1 text-xs shadow-lg">
+        <div className="absolute left-0 right-0 z-30 mt-1 max-h-48 overflow-y-auto rounded-md border border-slate-200 bg-white p-1 text-sm shadow-lg">
           {results.map((r, i) => (
             <button
               key={i}
@@ -320,16 +322,22 @@ export function DrawMap({ onPolygon, importedPolygon, importSeq = 0 }: DrawMapPr
   }
 
   return (
-    <div className="relative">
-      <div ref={containerRef} className="h-80 w-full overflow-hidden rounded-lg border border-slate-200" />
-      <div className="absolute left-2 top-2 z-10 flex items-center gap-2 rounded-md bg-white/90 px-2 py-1 text-xs text-slate-700 shadow">
-        <span>Xəritəyə klikləyin — təpə: {count}</span>
-        <button type="button" onClick={undoPt} className="rounded border border-slate-300 px-2 py-0.5 hover:bg-slate-50">Geri</button>
-        <button type="button" onClick={clearPts} className="rounded bg-emerald-600 px-2 py-0.5 text-white hover:bg-emerald-700">Təmizlə</button>
-      </div>
+    <div>
+      {/* Search lives ABOVE the map so it never collides with the draw toolbar or the
+          zoom/geolocate controls (previously all crowded the top strip on mobile). */}
       <SearchControl onPick={flyToPick} />
-      <BasemapControl current={basemap} onChange={changeBasemap} hillshade={hillshade} onToggleHillshade={toggleHillshade} />
-      <CoordBar coord={coord} attribution={basemap.attribution} />
+      <div className="relative">
+        <div ref={containerRef} className="h-80 w-full overflow-hidden rounded-lg border border-slate-200" />
+        {/* Draw toolbar top-left — the top-right corner holds the zoom/geolocate controls, and
+            search now sits above the map, so the top strip no longer collides. */}
+        <div className="absolute left-2 top-2 z-10 flex items-center gap-2 rounded-md bg-white/90 px-2 py-1 text-xs text-slate-700 shadow">
+          <span>Təpə: {count}</span>
+          <button type="button" onClick={undoPt} className="rounded border border-slate-300 px-2 py-0.5 hover:bg-slate-50">Geri</button>
+          <button type="button" onClick={clearPts} className="rounded bg-emerald-600 px-2 py-0.5 text-white hover:bg-emerald-700">Təmizlə</button>
+        </div>
+        <BasemapControl current={basemap} onChange={changeBasemap} hillshade={hillshade} onToggleHillshade={toggleHillshade} />
+        <CoordBar coord={coord} attribution={basemap.attribution} />
+      </div>
     </div>
   );
 }

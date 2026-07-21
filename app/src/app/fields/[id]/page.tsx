@@ -35,6 +35,21 @@ export default function FieldDetailPage() {
   const [field, setField] = useState<FieldDetail | null>(null);
   const [error, setError] = useState("");
   const [tab, setTab] = useState<TabKey>("overview");
+  const [confirmDel, setConfirmDel] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function onDelete() {
+    if (!field) return;
+    setDeleting(true);
+    try {
+      await api.del(`/api/fields/${field.id}`);
+      router.push(field.farm_id ? `/farms/${field.farm_id}` : "/");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("common.error"));
+      setDeleting(false);
+      setConfirmDel(false);
+    }
+  }
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
@@ -56,14 +71,42 @@ export default function FieldDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">{field.name}</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          {field.area_ha?.toFixed(2)} {t("field.ha")}
-          {field.mgrs_tiles && field.mgrs_tiles.length > 0 && (
-            <span> · {t("field.mgrs")}: {field.mgrs_tiles.join(", ")}</span>
-          )}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">{field.name}</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            {field.area_ha?.toFixed(2)} {t("field.ha")}
+            {field.mgrs_tiles && field.mgrs_tiles.length > 0 && (
+              <span> · {t("field.mgrs")}: {field.mgrs_tiles.join(", ")}</span>
+            )}
+          </p>
+        </div>
+        {confirmDel ? (
+          <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+            <span className="text-sm text-red-700">Sahə və bütün datası silinsin?</span>
+            <button
+              onClick={onDelete}
+              disabled={deleting}
+              className="rounded bg-red-600 px-3 py-1 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+            >
+              {deleting ? "Silinir…" : "Bəli, sil"}
+            </button>
+            <button
+              onClick={() => setConfirmDel(false)}
+              disabled={deleting}
+              className="rounded px-2 py-1 text-sm text-slate-600 hover:text-slate-800"
+            >
+              Ləğv et
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmDel(true)}
+            className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-red-600 hover:border-red-300 hover:bg-red-50"
+          >
+            Sahəni sil
+          </button>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-1 border-b border-slate-200">

@@ -78,6 +78,15 @@ export const api = {
     return handle<T>(res);
   },
 
+  async del<T>(path: string): Promise<T> {
+    const res = await fetch(url(path), {
+      method: "DELETE",
+      credentials: "include",
+      headers: { Accept: "application/json" },
+    });
+    return handle<T>(res);
+  },
+
   async upload<T>(path: string, file: File, fieldName = "file"): Promise<T> {
     const form = new FormData();
     form.append(fieldName, file);
