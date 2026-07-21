@@ -183,18 +183,25 @@ interface DrawMapProps {
   importedPolygon?: Polygon | null;
   /** Bump this to (re)load `importedPolygon` into the draw buffer. */
   importSeq?: number;
+  /** When true, a map tap fires `onDetect(lng,lat)` instead of adding a vertex (C3). */
+  detectMode?: boolean;
+  onDetect?: (lng: number, lat: number) => void;
 }
 
 // Editable drawing map — MapLibre-native click-to-draw (no mapbox-gl-draw, which is
 // incompatible with this MapLibre version). Click the map to add polygon vertices;
 // the ring closes automatically once there are ≥3 points.
-export function DrawMap({ onPolygon, importedPolygon, importSeq = 0 }: DrawMapProps) {
+export function DrawMap({ onPolygon, importedPolygon, importSeq = 0, detectMode = false, onDetect }: DrawMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const ptsRef = useRef<[number, number][]>([]);
   const renderRef = useRef<() => void>(() => {});
   const cbRef = useRef(onPolygon);
   cbRef.current = onPolygon;
+  const detectRef = useRef(detectMode);
+  detectRef.current = detectMode;
+  const onDetectRef = useRef(onDetect);
+  onDetectRef.current = onDetect;
   const [count, setCount] = useState(0);
   const [basemap, setBasemap] = useState<Basemap>(() => getSavedBasemap());
   const basemapRef = useRef(basemap);
@@ -264,6 +271,13 @@ export function DrawMap({ onPolygon, importedPolygon, importSeq = 0 }: DrawMapPr
     });
 
     map.on("click", (e) => {
+      // Detect mode (C3): a tap asks the server to trace the field boundary instead of
+      // adding a vertex. The result loads via importedPolygon (editable), so the farmer
+      // still confirms/adjusts it.
+      if (detectRef.current) {
+        onDetectRef.current?.(e.lngLat.lng, e.lngLat.lat);
+        return;
+      }
       ptsRef.current = [...ptsRef.current, [e.lngLat.lng, e.lngLat.lat]];
       render();
     });

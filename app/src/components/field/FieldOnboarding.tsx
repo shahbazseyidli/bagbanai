@@ -89,6 +89,34 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
   const [coordsText, setCoordsText] = useState("");
   const [importedPolygon, setImportedPolygon] = useState<Polygon | null>(null);
   const [importSeq, setImportSeq] = useState(0);
+  const [detect, setDetect] = useState(false);       // C3 tap-to-detect mode
+  const [detecting, setDetecting] = useState(false);
+  const [detectMsg, setDetectMsg] = useState("");
+
+  async function handleDetect(lng: number, lat: number) {
+    setDetecting(true);
+    setDetectMsg("Sahə sərhədi tapılır…");
+    try {
+      const d = await api.post<{ ok: boolean; polygon?: Polygon; area_ha?: number; reason?: string }>(
+        "/api/geo/segment", { lon: lng, lat: lat },
+      );
+      if (d?.ok && d.polygon) {
+        setImportedPolygon(d.polygon);
+        setImportSeq((s) => s + 1);
+        setDetect(false);
+        setDetectMsg(
+          `~${d.area_ha} ha tapıldı — düzəldə və ya təsdiqləyə bilərsiniz.` +
+            (d.reason === "capped" ? " (Sərhəd tam aydın deyil, yoxlayın.)" : ""),
+        );
+      } else {
+        setDetectMsg("Sərhəd avtomatik tapılmadı — xəritədə əl ilə çəkin.");
+      }
+    } catch {
+      setDetectMsg("Xəta baş verdi — əl ilə çəkin.");
+    } finally {
+      setDetecting(false);
+    }
+  }
   const fileRef = useRef<HTMLInputElement>(null);
 
   // --- Terrain / reverse-geocode ---
@@ -328,8 +356,35 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
 
           {mode === "draw" ? (
             <div className="space-y-2">
-              <p className="text-sm text-slate-500">{t("field.drawHint")}</p>
-              <DrawMap onPolygon={setDrawnPolygon} importedPolygon={importedPolygon} importSeq={importSeq} />
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm text-slate-500">
+                  {detect ? "Sahənizin içinə toxunun — sərhədi avtomatik tapacağıq." : t("field.drawHint")}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => { setDetect((v) => !v); setDetectMsg(""); }}
+                  disabled={detecting}
+                  className={`shrink-0 rounded-lg border px-3 py-1.5 text-xs font-medium ${
+                    detect
+                      ? "border-emerald-600 bg-emerald-600 text-white"
+                      : "border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                  } disabled:opacity-50`}
+                >
+                  {detecting ? "Tapılır…" : detect ? "✓ Toxun və tap (aktiv)" : "✨ Toxun və tap"}
+                </button>
+              </div>
+              {detectMsg && (
+                <p className={`text-xs ${detectMsg.includes("tapıldı") ? "text-emerald-700" : "text-amber-700"}`}>
+                  {detectMsg}
+                </p>
+              )}
+              <DrawMap
+                onPolygon={setDrawnPolygon}
+                importedPolygon={importedPolygon}
+                importSeq={importSeq}
+                detectMode={detect}
+                onDetect={handleDetect}
+              />
               <div className="flex flex-wrap items-center gap-2 text-xs">
                 <input
                   ref={fileRef}
