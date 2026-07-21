@@ -11,9 +11,11 @@ from __future__ import annotations
 from math import cos, radians
 from typing import Optional
 
-MAX_HA = 50.0           # hard cap so the fill can't swallow a whole valley (spec trap)
+MAX_HA = 35.0           # over this, a "field" is almost certainly bled into neighbours → reject
 NDVI_TOL = 0.08         # similarity band around the seed's NDVI (tighter → less neighbour bleed)
-EDGE_THRESH = 0.06      # per-pixel NDVI gradient above this = a field boundary (fill stops there)
+EDGE_THRESH = 0.05      # per-pixel NDVI gradient above this = a boundary (fill stops there)
+REFL_EDGE = 0.035       # reflectance (red/NIR) gradient boundary — catches roads/ditches on
+                        # BARE or uniform soil where NDVI is flat and gives no edge
 HALF_M = 650.0          # half-size of the read window around the tap (metres)
 TARGET_VERTICES = 24    # simplify down to roughly this many points (spec: ~15, not 200)
 
@@ -122,12 +124,16 @@ def detect_boundary(lon: float, lat: float, *, max_ha: float = MAX_HA,
         if not np.isfinite(seed_val):
             continue
 
-        # Edge map: a high NDVI gradient marks a field boundary (road, ditch, different crop).
-        # Excluding edge pixels stops the region bleeding into neighbouring fields — the raw
-        # flood-fill's main failure (spec C3 trap: "algorithm grabs the whole region").
-        gy, gx = np.gradient(np.nan_to_num(ndvi, nan=seed_val))
-        grad = np.hypot(gx, gy)
-        candidate = np.isfinite(ndvi) & (np.abs(ndvi - seed_val) < tol) & (grad < EDGE_THRESH)
+        # Edge map: a boundary (road, ditch, different crop/soil) shows as a gradient. NDVI alone
+        # is flat on bare/uniform soil, so we ALSO take the red & NIR reflectance gradients — a
+        # field edge there shows in brightness even when NDVI doesn't. Excluding edge pixels stops
+        # the region bleeding into neighbours (spec C3 trap: "grabs the whole region").
+        def _gm(a):
+            gy_, gx_ = np.gradient(np.nan_to_num(a, nan=0.0))
+            return np.hypot(gx_, gy_)
+
+        edge = (_gm(ndvi) > EDGE_THRESH) | (_gm(nir) > REFL_EDGE) | (_gm(red) > REFL_EDGE)
+        candidate = np.isfinite(ndvi) & (np.abs(ndvi - seed_val) < tol) & (~edge)
 
         # Connected component containing the tapped pixel (not just any similar pixel).
         lbl, _ = ndimage.label(candidate)
@@ -144,9 +150,13 @@ def detect_boundary(lon: float, lat: float, *, max_ha: float = MAX_HA,
             continue
         mask = (lbl2 == lbl2[row, col])
         count = int(mask.sum())
-        capped = count > max_px
         if count < 20:            # too small — likely a bad seed/cloud; try next granule
             continue
+        if count > max_px:
+            # Bled past the cap → the boundary is unclear here (uniform terrain, or the tap
+            # sat on an edge). Don't hand back a wrong mega-blob — tell the UI to draw manually.
+            return {"ok": False, "polygon": None,
+                    "area_ha": round(count * px_area_m2 / 10000.0, 1), "reason": "boundary_unclear"}
 
         # Vectorise the cleaned blob; keep the polygon that contains the seed (or the largest).
         mask_u8 = mask.astype("uint8")
