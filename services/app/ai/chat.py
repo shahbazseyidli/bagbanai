@@ -46,6 +46,17 @@ async def answer(conn, field_id: str, user_id: str, message: str) -> Optional[st
         return None
     org_id = str(field_row["org_id"])
 
+    # Tier gating: chat availability + monthly quota + per-tier model. Gated replies are
+    # returned as an ephemeral message (not persisted, not charged).
+    from .. import tiers
+    tier = await tiers.org_tier(conn, org_id)
+    chat_limit = tiers.limit(tier, "chat_per_month")
+    if chat_limit <= 0:
+        return "AI söhbət Pro (10 AZN) və Business paketlərindədir. Paketi yüksəldin."
+    if await tiers.month_count(conn, org_id, "chat") >= chat_limit:
+        return f"Bu ay AI söhbət limitiniz ({chat_limit} mesaj) bitib. Növbəti ay yenilənir və ya paketi yüksəldin."
+    tier_model = tiers.model_for(tier)
+
     ctx = await build_field_context(conn, field_id)
     latest = await conn.fetchrow(
         "select summary, findings from public.advice where field_id=$1::uuid "
@@ -60,7 +71,7 @@ async def answer(conn, field_id: str, user_id: str, message: str) -> Optional[st
     msgs.append({"role": "user", "content": message})
 
     try:
-        reply, usage = await llm.complete_text(system, msgs)
+        reply, usage = await llm.complete_text(system, msgs, model=tier_model)
     except llm.LLMUnavailable:
         return None
 

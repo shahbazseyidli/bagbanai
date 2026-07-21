@@ -54,16 +54,17 @@ def _usage(provider: str, model: str, resp) -> dict:
 
 
 async def complete_structured(system: str, user: str, schema: Type[T],
-                              max_tokens: int = 3000) -> tuple[T, dict]:
+                              max_tokens: int = 3000, model: str | None = None) -> tuple[T, dict]:
     """Return (validated instance of `schema`, usage). Anthropic path uses messages.parse
-    (structured outputs); other providers can be added behind the same interface."""
+    (structured outputs); other providers can be added behind the same interface.
+    `model` overrides the default (used for per-tier model selection)."""
     if not is_configured():
         raise LLMUnavailable("no LLM key configured")
     provider = (settings.llm_provider or "anthropic").lower()
     if provider != "anthropic":
         # Provider-agnostic by design; only Claude is wired today (chosen provider).
         raise LLMUnavailable(f"provider {provider} not wired yet")
-    model = settings.llm_model or "claude-opus-4-8"
+    model = model or settings.llm_model or "claude-opus-4-8"
     client = _anthropic_client()
     resp = await client.messages.parse(
         model=model,
@@ -78,15 +79,15 @@ async def complete_structured(system: str, user: str, schema: Type[T],
 
 
 async def complete_text(system: str, messages: list[dict],
-                        max_tokens: int = 1500) -> tuple[str, dict]:
+                        max_tokens: int = 1500, model: str | None = None) -> tuple[str, dict]:
     """Free-form chat completion. `messages` is a list of {role, content}.
-    Returns (text, usage)."""
+    Returns (text, usage). `model` overrides the default (per-tier selection)."""
     if not is_configured():
         raise LLMUnavailable("no LLM key configured")
     provider = (settings.llm_provider or "anthropic").lower()
     if provider != "anthropic":
         raise LLMUnavailable(f"provider {provider} not wired yet")
-    model = settings.llm_model or "claude-opus-4-8"
+    model = model or settings.llm_model or "claude-opus-4-8"
     client = _anthropic_client()
     resp = await client.messages.create(
         model=model,

@@ -88,11 +88,20 @@ async def generate_and_store(conn, field_id: str, force: bool = False) -> Option
     org_id = str(field_row["org_id"])
     field_name = field_row["name"]
 
+    # Tier gating: monthly advice quota + per-tier model (Pro=sonnet, Business=opus).
+    from .. import tiers
+    tier = await tiers.org_tier(conn, org_id)
+    used = await tiers.month_count(conn, org_id, "advice")
+    if used >= tiers.limit(tier, "advice_per_month"):
+        return {"quota_exceeded": True, "tier": tier,
+                "limit": tiers.limit(tier, "advice_per_month")}
+    tier_model = tiers.model_for(tier)
+
     user = ("Sahə məlumatları (JSON):\n" + json.dumps(ctx, ensure_ascii=False, indent=2)
             + "\n\nBu sahə üçün xülasə, risklər, məsləhətlər və növbəti addımları çıxar.")
 
     try:
-        result, usage = await llm.complete_structured(SYSTEM, user, AdviceResult)
+        result, usage = await llm.complete_structured(SYSTEM, user, AdviceResult, model=tier_model)
     except llm.LLMUnavailable:
         return None
 

@@ -35,6 +35,15 @@ async def create_field(body: FieldIn, user_id: str = Depends(get_current_user_id
         org_id = await _org_of_farm(conn, body.farm_id)
         await require_role(conn, user_id, org_id, ROLES_WRITE)
 
+        # Tier field-count limit (Pulsuz 1, Pro 5, Business unlimited).
+        from .. import tiers
+        tier = await tiers.org_tier(conn, org_id)
+        max_fields = tiers.limit(tier, "max_fields")
+        current = await conn.fetchval(
+            "select count(*) from public.fields where org_id=$1::uuid", org_id)
+        if current >= max_fields:
+            raise HTTPException(status_code=402, detail="field_limit_reached")
+
         # Validate geometry server-side (turf validates client-side too).
         chk = await conn.fetchrow(
             """select st_isvalid(g) as valid, geometrytype(g) as gtype, st_npoints(g) as npts,

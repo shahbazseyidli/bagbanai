@@ -22,6 +22,11 @@ async def get_knowledge(field_id: str, user_id: str = Depends(get_current_user_i
     async with connection(user_id) as conn:
         org_id = await _org_of_field(conn, field_id)
         await require_member(conn, user_id, org_id)
+        # Knowledge Passport is a paid feature (Pro/Business). Free tier gets an empty passport
+        # (the UI hides it) → a nudge to upgrade.
+        from .. import tiers
+        if not tiers.allows(await tiers.org_tier(conn, org_id), "passport"):
+            return {"crop_type": None, "zone_id": None, "zone": {}, "field": {}, "gated": True}
         meta = await conn.fetchrow(
             "select crop_type, region from public.field_metadata where field_id=$1::uuid", field_id)
         crop_type = meta["crop_type"] if meta else None

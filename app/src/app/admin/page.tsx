@@ -32,11 +32,12 @@ import type {
   AdminBilling,
 } from "@/lib/types";
 
-type Tab = "overview" | "users" | "activity" | "billing";
+type Tab = "overview" | "users" | "subscriptions" | "activity" | "billing";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "overview", label: "Ümumi" },
   { id: "users", label: "İstifadəçilər" },
+  { id: "subscriptions", label: "Abunələr" },
   { id: "activity", label: "Aktivlik" },
   { id: "billing", label: "Xərc / Billing" },
 ];
@@ -433,6 +434,116 @@ function BillingSection() {
   );
 }
 
+// ---- Subscriptions tab (admin sets each org's package; billing deferred) ----
+interface AdminSub {
+  org_id: string;
+  name: string;
+  owner_email: string | null;
+  tier: string;
+  label: string;
+  fields: number;
+  advice_month: number;
+  advice_limit: number;
+  chat_month: number;
+  chat_limit: number;
+  valid_until: string | null;
+}
+
+const TIER_OPTIONS = [
+  { id: "free", label: "Pulsuz" },
+  { id: "pro", label: "Pro (10 AZN)" },
+  { id: "business", label: "Business (25 AZN)" },
+];
+
+function SubscriptionsSection() {
+  const [subs, setSubs] = useState<AdminSub[] | null>(null);
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const r = await api.get<{ subscriptions: AdminSub[] }>("/api/admin/subscriptions");
+      setSubs(r?.subscriptions ?? []);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "xəta");
+    }
+  }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function setTier(orgId: string, tier: string) {
+    setSaving(orgId);
+    try {
+      await api.put(`/api/admin/subscriptions/${orgId}`, { tier });
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "xəta");
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  if (error) return <ErrorNote message={error} />;
+  if (!subs) return <Spinner />;
+
+  return (
+    <div className="overflow-x-auto rounded-lg border border-slate-200">
+      <table className="min-w-full text-left text-sm">
+        <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+          <tr>
+            <th className="px-3 py-2">Təşkilat</th>
+            <th className="px-3 py-2">Sahib</th>
+            <th className="px-3 py-2">Sahə</th>
+            <th className="px-3 py-2">Bu ay (məsləhət / söhbət)</th>
+            <th className="px-3 py-2">Paket</th>
+            <th className="px-3 py-2" />
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {subs.map((s) => (
+            <tr key={s.org_id}>
+              <td className="px-3 py-2 font-medium text-slate-800">{s.name}</td>
+              <td className="px-3 py-2 text-slate-500">{s.owner_email ?? "—"}</td>
+              <td className="px-3 py-2 tabular-nums">{s.fields}</td>
+              <td className="px-3 py-2 tabular-nums text-slate-600">
+                {s.advice_month}/{s.advice_limit} · {s.chat_month}/{s.chat_limit}
+              </td>
+              <td className="px-3 py-2">
+                <span
+                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                    s.tier === "business"
+                      ? "bg-violet-100 text-violet-700"
+                      : s.tier === "pro"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-slate-100 text-slate-600"
+                  }`}
+                >
+                  {s.label}
+                </span>
+              </td>
+              <td className="px-3 py-2">
+                <select
+                  value={s.tier}
+                  disabled={saving === s.org_id}
+                  onChange={(e) => setTier(s.org_id, e.target.value)}
+                  className="rounded border border-slate-300 px-2 py-1 text-xs disabled:opacity-50"
+                >
+                  {TIER_OPTIONS.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
@@ -471,6 +582,7 @@ export default function AdminPage() {
 
       {tab === "overview" && <OverviewSection />}
       {tab === "users" && <UsersSection />}
+      {tab === "subscriptions" && <SubscriptionsSection />}
       {tab === "activity" && <ActivitySection />}
       {tab === "billing" && <BillingSection />}
     </div>

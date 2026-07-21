@@ -3,8 +3,10 @@
 The API connects as a superuser role and bypasses RLS, so these endpoints query
 across ALL orgs/users directly. Every endpoint is gated by require_platform_admin
 (users.is_admin). Read-only; no org scoping."""
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 
+from .. import tiers
 from ..ai import llm
 from ..db import connection
 from ..deps import get_current_user_id, require_platform_admin
@@ -53,6 +55,73 @@ async def overview(user_id: str = Depends(get_current_user_id)):
         "model": model,
         "ai_configured": llm.is_configured(),
     }
+
+
+@router.get("/tiers")
+async def list_tiers(user_id: str = Depends(get_current_user_id)):
+    """The tier catalogue (labels, price, limits) for the admin UI."""
+    async with connection(user_id) as conn:
+        await require_platform_admin(conn, user_id)
+    return {"tiers": tiers.TIERS}
+
+
+@router.get("/subscriptions")
+async def subscriptions(user_id: str = Depends(get_current_user_id)):
+    """Every org with its effective package + owner + field count + this-month AI usage."""
+    async with connection(user_id) as conn:
+        await require_platform_admin(conn, user_id)
+        rows = await conn.fetch(
+            """select o.id, o.name,
+                      u.email as owner_email,
+                      coalesce(s.tier, 'free') as tier,
+                      s.valid_until, s.hectare_cap, s.seats, s.updated_at,
+                      (select count(*) from public.fields f where f.org_id=o.id) as fields,
+                      (select count(*) from public.ai_usage a where a.org_id=o.id and a.kind='advice'
+                         and a.created_at >= date_trunc('month', now())) as advice_month,
+                      (select count(*) from public.ai_usage a where a.org_id=o.id and a.kind='chat'
+                         and a.created_at >= date_trunc('month', now())) as chat_month
+               from public.organizations o
+               left join public.users u on u.id=o.owner_id
+               left join public.org_subscriptions s on s.org_id=o.id
+               order by o.created_at desc""")
+    out = []
+    for r in rows:
+        out.append({
+            "org_id": str(r["id"]), "name": r["name"], "owner_email": r["owner_email"],
+            "tier": r["tier"], "label": tiers.tier_config(r["tier"])["label_az"],
+            "valid_until": r["valid_until"].isoformat() if r["valid_until"] else None,
+            "hectare_cap": float(r["hectare_cap"]) if r["hectare_cap"] is not None else None,
+            "seats": r["seats"], "fields": int(r["fields"]),
+            "advice_month": int(r["advice_month"]), "chat_month": int(r["chat_month"]),
+            "advice_limit": tiers.limit(r["tier"], "advice_per_month"),
+            "chat_limit": tiers.limit(r["tier"], "chat_per_month"),
+        })
+    return {"subscriptions": out}
+
+
+class SubUpdate(BaseModel):
+    tier: str
+    valid_until: str | None = None   # ISO date; null → 'infinity' (admin-granted, no expiry)
+    hectare_cap: float | None = None
+    seats: int | None = None
+
+
+@router.put("/subscriptions/{org_id}")
+async def set_subscription(org_id: str, body: SubUpdate,
+                           user_id: str = Depends(get_current_user_id)):
+    """Admin sets an org's package (billing deferred → manual). Upserts org_subscriptions."""
+    if body.tier not in tiers.TIERS:
+        raise HTTPException(status_code=400, detail="unknown_tier")
+    async with connection(user_id) as conn:
+        await require_platform_admin(conn, user_id)
+        await conn.execute(
+            """insert into public.org_subscriptions (org_id, tier, valid_until, hectare_cap, seats, updated_at)
+               values ($1::uuid, $2, coalesce($3::timestamptz, 'infinity'), $4, coalesce($5, 1), now())
+               on conflict (org_id) do update set
+                 tier=excluded.tier, valid_until=excluded.valid_until,
+                 hectare_cap=excluded.hectare_cap, seats=excluded.seats, updated_at=now()""",
+            org_id, body.tier, body.valid_until, body.hectare_cap, body.seats)
+    return {"ok": True, "tier": body.tier}
 
 
 @router.get("/users")
