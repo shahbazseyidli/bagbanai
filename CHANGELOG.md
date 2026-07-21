@@ -3,6 +3,15 @@
 Bütün əhəmiyyətli dəyişikliklər burada qeyd olunur. Format [Keep a Changelog](https://keepachangelog.com/),
 versiyalar [SemVer](https://semver.org/).
 
+## [1.3.0] — 2026-07-21 — Ayrı peyk tabları + İcmal insight + fırça + upgrade CTA (CANLI, main `ac1695a`)
+
+### Added (CANLI, main)
+- **Ayrı peyk tabları:** NASA HLS (30m) və Sentinel-2 (10m) artıq ayrı top-level tablarda (`SatelliteTab`, sabit sensor, yanlış-sensor fallback bloklanıb). İcmal ilk gələn sensoru göstərir + "digəri hazırlanır" qeydi.
+- **AI yalnız Sentinel-2:** `context.index_trends` `sensor='S2'`-yə bağlandı (əvvəl ən-təzə-ailə); S2 yoxdursa `satellite_status` qeydi ilə səliqəli deqradasiya.
+- **İcmal "wow" insight səhifəsi:** başlıq sağlamlıq hökmü + məhsul-bilən "nə dəyişdi → sənin məhsulun üçün nə deməkdir → nə etməli" izah kartları + NDVI sparkline + son peyk şəkli. Deterministik (`lib/insights.ts`, LLM-siz). Yeni endpoint `GET /api/fields/{id}/insights` (s2+hls trend). Paylaşılan `lib/indexStatus.ts`.
+- **Fırça ilə sahə seçimi:** `DrawMap`-də sərbəst (lasso) rejim — basıb-sürüşdürərək sərhəd çəkilir, turf simplify → redaktə oluna bilən təpələr; onboarding-də "✏️ Fırça" düyməsi.
+- **Marketinq upgrade CTA:** `field_limit_reached` (402) artıq qırmızı error yerinə `UpgradeCta` (fayda bulletləri + "Paketlərə bax" → /pricing) göstərir.
+
 ## [1.2.0] — 2026-07-21 — Bilik qatı + v2.1 (E0/C3/E1/E2) + billing + UX (CANLI)
 
 ### Added (CANLI, main)
