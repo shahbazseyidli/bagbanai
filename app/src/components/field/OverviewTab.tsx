@@ -423,10 +423,12 @@ export default function OverviewTab({ field }: { field: FieldDetail }) {
   const showSmallBanner = smallField || (sensor === "HLS" && smallForHls);
   // The map is showing a different sensor than the toggle (fell back because none was available).
   const fellBack = !preparing && scenes.length > 0 && sceneSensor != null && sceneSensor !== sensor;
-  // Sentinel-2 selected but its data isn't ready yet (HLS arrived first) → don't silently show
-  // HLS as if it were S2; show a "please wait" state instead. Only when the index *should* exist
-  // for S2 (an S2-only index like NDRE legitimately has no HLS fallback).
-  const s2Pending = sensor === "S2" && fellBack && sceneSensor === "HLS" && indexAvailable("S2", index);
+  // Sentinel-2 selected but its data isn't ready yet (HLS arrived first, or still processing) →
+  // don't silently show HLS as if it were S2; show a "please wait" state instead. Independent of
+  // the preparing banner so it also covers the ready-but-HLS-only case. Only when the index
+  // *should* exist for S2 (an S2-only index like NDRE legitimately has no HLS fallback).
+  const s2Pending =
+    sensor === "S2" && scenes.length > 0 && sceneSensor === "HLS" && indexAvailable("S2", index);
   // Which sensor the map actually shows (for the fallback note).
   const sensorSceneOrHls = (): Sensor => sceneSensor ?? (sensor === "S2" ? "HLS" : "S2");
 
