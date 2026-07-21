@@ -18,6 +18,9 @@ REFL_EDGE = 0.035       # reflectance (red/NIR) gradient boundary — catches ro
                         # BARE or uniform soil where NDVI is flat and gives no edge
 HALF_M = 650.0          # half-size of the read window around the tap (metres)
 TARGET_VERTICES = 24    # simplify down to roughly this many points (spec: ~15, not 200)
+SEARCH_DAYS = 120       # look back far enough to find a vegetated scene, not just bare/harvested
+VEG_MIN = 0.25          # tap-pixel NDVI below this = bare/harvested → skip, seek a greener scene
+SKIP_BARE_LIMIT = 5     # how many bare scenes to skip before accepting one (avoids infinite skip)
 
 
 def _simplify_to_target(poly, px_m: float):
@@ -70,7 +73,7 @@ def detect_boundary(lon: float, lat: float, *, max_ha: float = MAX_HA,
     bbox = (lon - 0.02, lat - 0.02, lon + 0.02, lat + 0.02)
     today = date.today()
     try:
-        granules = search_scenes_s2(bbox, today - timedelta(days=45), today, max_cloud=40)
+        granules = search_scenes_s2(bbox, today - timedelta(days=SEARCH_DAYS), today, max_cloud=40)
     except Exception as exc:  # noqa: BLE001
         return {"ok": False, "polygon": None, "area_ha": None, "reason": f"search_failed:{exc}"}
     if not granules:
@@ -85,7 +88,9 @@ def detect_boundary(lon: float, lat: float, *, max_ha: float = MAX_HA,
             arr = src.read(1, window=win, boundless=True, fill_value=0).astype("float32")
         return arr * S2_SR_SCALE
 
-    # Freshest granule first; use the first that reads cleanly over the window.
+    # Freshest granule first; skip bare/harvested scenes (flat NDVI, no edges) to find a
+    # vegetated one where the field boundary is actually visible.
+    skipped_bare = 0
     for g in granules:
         red_h, nir_h = g.assets.get(km["red"]), g.assets.get(km["nir"])
         if not red_h or not nir_h:
@@ -122,6 +127,11 @@ def detect_boundary(lon: float, lat: float, *, max_ha: float = MAX_HA,
         r0, r1, c0, c1 = max(0, row - 1), min(h, row + 2), max(0, col - 1), min(w, col + 2)
         seed_val = float(np.nanmean(ndvi[r0:r1, c0:c1]))
         if not np.isfinite(seed_val):
+            continue
+        # Bare/harvested at the tap → this scene has no usable edges; look at an older, greener
+        # one (up to a limit, so a genuinely always-bare field still gets an answer).
+        if seed_val < VEG_MIN and skipped_bare < SKIP_BARE_LIMIT:
+            skipped_bare += 1
             continue
 
         # Edge map: a boundary (road, ditch, different crop/soil) shows as a gradient. NDVI alone

@@ -106,6 +106,19 @@ async def get_field(field_id: str, user_id: str = Depends(get_current_user_id)):
                 data_progress_total=row["data_progress_total"], data_eta_seconds=row["data_eta_seconds"])
 
 
+@router.put("/{field_id}")
+async def update_field(field_id: str, body: dict, user_id: str = Depends(get_current_user_id)):
+    """Rename a field (field-level edit). Agronomist+ (ROLES_WRITE)."""
+    async with connection(user_id) as conn:
+        org_id = await _org_of_field(conn, field_id)
+        await require_role(conn, user_id, org_id, ROLES_WRITE)
+        name = (str(body.get("name") or "")).strip()
+        if not name:
+            raise HTTPException(status_code=400, detail="name_required")
+        await conn.execute("update public.fields set name=$2 where id=$1::uuid", field_id, name)
+    return {"ok": True, "name": name}
+
+
 @router.delete("/{field_id}")
 async def delete_field(field_id: str, user_id: str = Depends(get_current_user_id)):
     """Delete a field and everything scoped to it. All field-scoped tables use ON DELETE

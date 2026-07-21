@@ -35,15 +35,41 @@ export default function FieldDetailPage() {
   const [field, setField] = useState<FieldDetail | null>(null);
   const [error, setError] = useState("");
   const [tab, setTab] = useState<TabKey>("overview");
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [saving, setSaving] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  function openEdit() {
+    if (field) setEditName(field.name);
+    setConfirmDel(false);
+    setEditing(true);
+  }
+
+  async function onSaveName() {
+    if (!field) return;
+    const name = editName.trim();
+    if (!name) return;
+    setSaving(true);
+    try {
+      await api.put(`/api/fields/${field.id}`, { name });
+      setField({ ...field, name });
+      setEditing(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("common.error"));
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function onDelete() {
     if (!field) return;
     setDeleting(true);
     try {
       await api.del(`/api/fields/${field.id}`);
-      router.push(field.farm_id ? `/farms/${field.farm_id}` : "/");
+      // Redirect to the dashboard (a /farms/{id} page doesn't exist — that 404 was the bug).
+      router.push("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : t("common.error"));
       setDeleting(false);
@@ -81,33 +107,73 @@ export default function FieldDetailPage() {
             )}
           </p>
         </div>
-        {confirmDel ? (
-          <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
-            <span className="text-sm text-red-700">Sahə və bütün datası silinsin?</span>
-            <button
-              onClick={onDelete}
-              disabled={deleting}
-              className="rounded bg-red-600 px-3 py-1 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
-            >
-              {deleting ? "Silinir…" : "Bəli, sil"}
-            </button>
-            <button
-              onClick={() => setConfirmDel(false)}
-              disabled={deleting}
-              className="rounded px-2 py-1 text-sm text-slate-600 hover:text-slate-800"
-            >
-              Ləğv et
-            </button>
-          </div>
-        ) : (
+        {!editing && (
           <button
-            onClick={() => setConfirmDel(true)}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-red-600 hover:border-red-300 hover:bg-red-50"
+            onClick={openEdit}
+            className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
           >
-            Sahəni sil
+            ⚙️ Redaktə
           </button>
         )}
       </div>
+
+      {/* Field settings/edit panel — rename + delete live here (delete no longer in the header). */}
+      {editing && (
+        <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-slate-800">Sahə ayarları</h3>
+            <button onClick={() => setEditing(false)} className="text-sm text-slate-500 hover:text-slate-700">
+              Bağla
+            </button>
+          </div>
+
+          <div className="mt-3">
+            <label className="text-xs font-medium text-slate-500">Sahənin adı</label>
+            <div className="mt-1 flex gap-2">
+              <input
+                className="input flex-1"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+              />
+              <button
+                onClick={onSaveName}
+                disabled={saving || !editName.trim() || editName.trim() === field.name}
+                className="btn-primary shrink-0 disabled:opacity-50"
+              >
+                {saving ? "Saxlanır…" : "Saxla"}
+              </button>
+            </div>
+            <p className="mt-1 text-[11px] text-slate-400">
+              Məhsul növü, torpaq və s. dəyişikliklər üçün “Sahə haqqında məlumat” tabına keçin.
+            </p>
+          </div>
+
+          <div className="mt-4 border-t border-slate-200 pt-4">
+            {confirmDel ? (
+              <div className="flex flex-wrap items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+                <span className="text-sm text-red-700">Sahə və bütün datası (peyk, məsləhət, skautinq) həmişəlik silinsin?</span>
+                <button
+                  onClick={onDelete}
+                  disabled={deleting}
+                  className="rounded bg-red-600 px-3 py-1 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                >
+                  {deleting ? "Silinir…" : "Bəli, sil"}
+                </button>
+                <button onClick={() => setConfirmDel(false)} disabled={deleting} className="rounded px-2 py-1 text-sm text-slate-600 hover:text-slate-800">
+                  Ləğv et
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setConfirmDel(true)}
+                className="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+              >
+                Sahəni sil
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-1 border-b border-slate-200">
         {TABS.map((tb) => (
