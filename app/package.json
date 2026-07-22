@@ -16,7 +16,8 @@
     "next": "^15.1.8",
     "react": "19.0.0",
     "react-dom": "19.0.0",
-    "recharts": "^2.13.3"
+    "recharts": "^2.13.3",
+    "shpjs": "^4.0.4"
   },
   "devDependencies": {
     "@types/mapbox__mapbox-gl-draw": "^1.4.8",

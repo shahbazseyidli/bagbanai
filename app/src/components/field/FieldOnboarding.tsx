@@ -13,7 +13,7 @@ import { DrawMap } from "@/components/FieldMap";
 import UpgradeCta from "@/components/UpgradeCta";
 import { ErrorNote, Field as FormField } from "@/components/ui";
 import { parseCoordinates, polygonFromRing, validatePolygon } from "@/lib/geo";
-import { parseGeoImport } from "@/lib/geoio";
+import { parseGeoImport, parseShapefile } from "@/lib/geoio";
 import type { Field, GeoSite, Polygon } from "@/lib/types";
 import {
   type Opt,
@@ -160,11 +160,21 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const text = await file.text();
-      const poly = parseGeoImport(text, file.name);
-      if (!poly) {
-        setError("Faylda poliqon tapılmadı (GeoJSON/KML gözlənilir).");
-        return;
+      const lower = file.name.toLowerCase();
+      let poly: Polygon | null;
+      if (lower.endsWith(".zip") || lower.endsWith(".shp")) {
+        // Shapefile (T19) — cadastre/agronomist boundaries usually arrive as a zipped shapefile.
+        poly = await parseShapefile(await file.arrayBuffer());
+        if (!poly) {
+          setError("Shapefile-də poliqon tapılmadı (.zip içində .shp + .dbf + .prj olmalıdır).");
+          return;
+        }
+      } else {
+        poly = parseGeoImport(await file.text(), file.name);
+        if (!poly) {
+          setError("Faylda poliqon tapılmadı (GeoJSON / KML / Shapefile gözlənilir).");
+          return;
+        }
       }
       setMode("draw");
       setImportedPolygon(poly);
@@ -417,7 +427,7 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
                 <input
                   ref={fileRef}
                   type="file"
-                  accept=".geojson,.json,.kml,application/geo+json,application/vnd.google-earth.kml+xml"
+                  accept=".geojson,.json,.kml,.zip,.shp,application/geo+json,application/vnd.google-earth.kml+xml,application/zip"
                   onChange={onFile}
                   className="hidden"
                 />
@@ -426,7 +436,7 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
                   onClick={() => fileRef.current?.click()}
                   className="inline-flex items-center gap-1 rounded border border-slate-300 px-2 py-1 text-slate-600 hover:bg-slate-50"
                 >
-                  <Upload className="h-3.5 w-3.5" /> İdxal (GeoJSON/KML)
+                  <Upload className="h-3.5 w-3.5" /> İdxal (GeoJSON/KML/Shapefile)
                 </button>
               </div>
             </div>

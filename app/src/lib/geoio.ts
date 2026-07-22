@@ -97,6 +97,19 @@ function firstPolygonFromKML(text: string): Polygon | null {
   return ringToPolygon(ring);
 }
 
+/** Parse a zipped shapefile (.zip with .shp/.dbf/.prj) into the first polygon it contains (T19).
+ * shpjs is loaded lazily so it never enters the main bundle — only when a farmer imports one. */
+export async function parseShapefile(buffer: ArrayBuffer): Promise<Polygon | null> {
+  const shp = (await import("shpjs")).default;
+  const geo = await shp(buffer);
+  const layers = Array.isArray(geo) ? geo : [geo];
+  for (const fc of layers) {
+    const p = firstPolygonFromGeoJSON(fc);
+    if (p) return p;
+  }
+  return null;
+}
+
 /** Parse a GeoJSON/KML string into the first polygon it contains. Returns null if none. */
 export function parseGeoImport(text: string, filename = ""): Polygon | null {
   const lower = filename.toLowerCase();
