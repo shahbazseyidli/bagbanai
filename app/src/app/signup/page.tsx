@@ -7,6 +7,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { t } from "@/lib/i18n";
 import { ErrorNote } from "@/components/ui";
+import OtpVerify from "@/components/OtpVerify";
 import type { User } from "@/lib/types";
 
 function mapAuthError(detail: string): string {
@@ -23,20 +24,27 @@ export default function SignupPage() {
   const [fullName, setFullName] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [otpEmail, setOtpEmail] = useState<string | null>(null); // set → show OTP step
+
+  function onVerified(user: User) {
+    setUser(user);
+    router.push("/");
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setBusy(true);
     try {
-      const user = await api.post<User>("/api/auth/signup", {
-        email,
-        password,
-        full_name: fullName || undefined,
-        locale: "az",
-      });
-      setUser(user);
-      router.push("/");
+      const r = await api.post<{ needs_verification: boolean; email?: string; user?: User }>(
+        "/api/auth/signup",
+        { email, password, full_name: fullName || undefined, locale: "az" },
+      );
+      if (r.needs_verification) {
+        setOtpEmail(r.email ?? email);
+      } else if (r.user) {
+        onVerified(r.user);
+      }
     } catch (err) {
       setError(mapAuthError(err instanceof ApiError ? err.detail : ""));
     } finally {
@@ -47,7 +55,12 @@ export default function SignupPage() {
   return (
     <div className="mx-auto max-w-sm">
       <div className="card">
-        <h1 className="mb-4 text-xl font-bold text-slate-900">{t("auth.signupTitle")}</h1>
+        <h1 className="mb-4 text-xl font-bold text-slate-900">
+          {otpEmail ? "Email təsdiqi" : t("auth.signupTitle")}
+        </h1>
+        {otpEmail ? (
+          <OtpVerify email={otpEmail} onVerified={onVerified} />
+        ) : (
         <form onSubmit={onSubmit} className="space-y-3">
           <div>
             <label className="label">{t("auth.fullName")}</label>
@@ -84,6 +97,7 @@ export default function SignupPage() {
             {busy ? t("common.loading") : t("auth.signupCta")}
           </button>
         </form>
+        )}
         <Link href="/login" className="mt-4 block text-center text-sm text-emerald-700 hover:underline">
           {t("auth.toLogin")}
         </Link>

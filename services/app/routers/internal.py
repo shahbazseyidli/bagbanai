@@ -139,6 +139,13 @@ async def run_rules_endpoint(field_id: str):
         return await run_rules(conn, field_id)
 
 
+@router.post("/telegram/setup")
+async def telegram_setup(base_url: str = "https://agradex.com"):
+    """Register the Telegram webhook (U4). Call once after TELEGRAM_BOT_TOKEN is set in .env."""
+    from ..messaging import telegram
+    return await telegram.set_webhook(f"{base_url.rstrip('/')}/api/telegram/webhook")
+
+
 @router.post("/baseline/run")
 async def run_baseline(field_id: str):
     """Recompute the per-week index baseline for a field (T6), so anomaly rules have a norm."""

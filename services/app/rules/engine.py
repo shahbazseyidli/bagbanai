@@ -162,8 +162,29 @@ async def dispatch(conn, field_id: str, org_id: str, candidates: list[dict]) -> 
                on conflict (field_id, rule_type, dedup_key) do update set
                  last_severity=excluded.last_severity, last_fired_at=now(), active=true""",
             field_id, rt, c.get("dedup_key", ""), sev)
+        await _deliver_telegram(conn, org_id, c["title"], c["body"])
         fired += 1
     return {"candidates": len(candidates), "fired": fired, "quiet_hours": quiet}
+
+
+async def _deliver_telegram(conn, org_id: str, title: str, body: str) -> None:
+    """Best-effort push of a dispatched alert to org members' linked+opted-in Telegram chats (U4)."""
+    from ..messaging import telegram
+    if not telegram.configured():
+        return
+    try:
+        rows = await conn.fetch(
+            """select c.id, c.chat_id from public.messaging_channels c
+               join public.organization_members m on m.user_id = c.user_id
+               where m.org_id=$1::uuid and c.channel='telegram'
+                 and c.verified and c.opt_in and c.chat_id is not null""", org_id)
+        for r in rows:
+            ok = await telegram.send(r["chat_id"], f"{title}\n{body}")
+            await conn.execute(
+                "insert into public.message_log (channel_id, text, status) values ($1,$2,$3)",
+                r["id"], title, "sent" if ok else "failed")
+    except Exception:  # noqa: BLE001 — never let delivery break dispatch
+        pass
 
 
 async def run_rules(conn, field_id: str) -> dict:

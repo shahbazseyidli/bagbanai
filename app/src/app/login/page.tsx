@@ -7,6 +7,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { t } from "@/lib/i18n";
 import { ErrorNote } from "@/components/ui";
+import OtpVerify from "@/components/OtpVerify";
 import type { User } from "@/lib/types";
 
 function mapAuthError(detail: string): string {
@@ -22,6 +23,12 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [otpEmail, setOtpEmail] = useState<string | null>(null); // set → account needs verification
+
+  function onVerified(user: User) {
+    setUser(user);
+    router.push("/");
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -32,7 +39,14 @@ export default function LoginPage() {
       setUser(user);
       router.push("/");
     } catch (err) {
-      setError(mapAuthError(err instanceof ApiError ? err.detail : ""));
+      const detail = err instanceof ApiError ? err.detail : "";
+      if (detail === "email_not_verified") {
+        // Send a fresh code and switch to the verification step.
+        try { await api.post("/api/auth/resend-otp", { email }); } catch { /* ignore */ }
+        setOtpEmail(email);
+      } else {
+        setError(mapAuthError(detail));
+      }
     } finally {
       setBusy(false);
     }
@@ -41,7 +55,12 @@ export default function LoginPage() {
   return (
     <div className="mx-auto max-w-sm">
       <div className="card">
-        <h1 className="mb-4 text-xl font-bold text-slate-900">{t("auth.loginTitle")}</h1>
+        <h1 className="mb-4 text-xl font-bold text-slate-900">
+          {otpEmail ? "Email təsdiqi" : t("auth.loginTitle")}
+        </h1>
+        {otpEmail ? (
+          <OtpVerify email={otpEmail} onVerified={onVerified} />
+        ) : (
         <form onSubmit={onSubmit} className="space-y-3">
           <div>
             <label className="label">{t("auth.email")}</label>
@@ -68,6 +87,7 @@ export default function LoginPage() {
             {busy ? t("common.loading") : t("auth.loginCta")}
           </button>
         </form>
+        )}
         <Link href="/signup" className="mt-4 block text-center text-sm text-emerald-700 hover:underline">
           {t("auth.toSignup")}
         </Link>

@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
 from .db import close_pool, init_pool
 from .routers import (admin, advice, auth, farms, fields, geo, health, indices,
-                      internal, knowledge, mgmt, orgs, scouting, subsidy, uploads)
+                      internal, knowledge, messaging, mgmt, orgs, scouting, subsidy, uploads)
 
 
 @asynccontextmanager
@@ -42,6 +42,7 @@ def create_app() -> FastAPI:
     app.include_router(advice.router)
     app.include_router(knowledge.router)
     app.include_router(internal.router)
+    app.include_router(messaging.router)
     app.include_router(admin.router)
     return app
 

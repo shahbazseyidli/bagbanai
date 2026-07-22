@@ -26,6 +26,15 @@ class LoginIn(BaseModel):
     password: str
 
 
+class VerifyOtpIn(BaseModel):
+    email: EmailStr
+    code: str
+
+
+class ResendOtpIn(BaseModel):
+    email: EmailStr
+
+
 class UserOut(BaseModel):
     id: str
     email: EmailStr

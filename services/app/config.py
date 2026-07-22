@@ -38,6 +38,18 @@ class Settings(BaseSettings):
     smtp_user: str = ""
     smtp_password: str = ""
     smtp_from: str = "Bağban AI <no-reply@agradex.com>"
+
+    # Email via Resend (preferred over SMTP) + OTP signup verification (U3). Empty key → the app
+    # degrades gracefully: signups auto-verify (never blocked) and emails just log.
+    resend_api_key: str = ""
+    email_from: str = "Bağban AI <no-reply@agradex.com>"
+    otp_ttl_min: int = 15
+
+    # Telegram one-way alert bot (U4 / T22). Empty token → the channel stays dormant; in-app
+    # notifications are unaffected.
+    telegram_bot_token: str = ""
+    telegram_bot_username: str = ""
+    telegram_webhook_secret: str = ""
     object_storage_driver: str = "local"
     object_storage_root: str = "./storage"
     tile_server_base: str = "http://localhost:8000/api/tiles"

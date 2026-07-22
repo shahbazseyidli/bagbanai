@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth";
 import { t } from "@/lib/i18n";
 import { ErrorNote, Placeholder, Spinner } from "@/components/ui";
 import PricingTable from "@/components/PricingTable";
+import TelegramConnect from "@/components/TelegramConnect";
 import type { Farm, Field, Org } from "@/lib/types";
 
 export default function HomePage() {
@@ -213,6 +214,8 @@ function Dashboard() {
           </Link>
         </div>
       )}
+
+      <TelegramConnect />
 
       <ErrorNote message={error} />
 
