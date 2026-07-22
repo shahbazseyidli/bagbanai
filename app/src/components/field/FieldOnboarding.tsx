@@ -5,7 +5,7 @@
 // terrain + reverse-geocode lookup; steps 2–3 collect "Sahə haqqında məlumat"
 // with almost no typing; step 4 confirms and submits (POST field → PUT metadata).
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Upload, MapPin, Mountain, Compass, TriangleRight } from "lucide-react";
 import { api } from "@/lib/api";
 import { t } from "@/lib/i18n";
@@ -95,6 +95,25 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
   const [detecting, setDetecting] = useState(false);
   const [detectMsg, setDetectMsg] = useState("");
   const [brush, setBrush] = useState(false);         // freehand brush/lasso mode
+
+  // D3.1 — if the visitor drew a field on the public landing map before signing up, prefill it here
+  // so onboarding starts from their real boundary instead of a blank map.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("bagban_draft_field");
+      if (!raw) return;
+      localStorage.removeItem("bagban_draft_field");
+      const draft = JSON.parse(raw) as { polygon?: Polygon };
+      if (draft?.polygon) {
+        setMode("draw");
+        setDrawnPolygon(draft.polygon);
+        setImportedPolygon(draft.polygon);
+        setImportSeq((s) => s + 1);
+      }
+    } catch {
+      /* ignore malformed draft */
+    }
+  }, []);
 
   async function handleDetect(lng: number, lat: number) {
     setDetecting(true);

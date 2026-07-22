@@ -34,6 +34,27 @@ async def segment_boundary(body: dict, user_id: str = Depends(get_current_user_i
     except Exception as exc:  # noqa: BLE001 — degrade to manual draw on any failure
         return {"ok": False, "reason": f"geoapi_unavailable:{exc}", "polygon": None}
 
+
+@router.post("/segment-public")
+async def segment_boundary_public(body: dict):
+    """Anonymous tap-to-detect for the public landing (D3.1) — same read-only NDVI segmentation as
+    /segment, but no auth and NOTHING is written. Lets a visitor see their own field boundary before
+    creating an account (value-before-account). Area-capped inside the geoapi microservice; degrades
+    to manual draw on any failure."""
+    try:
+        lon = float(body.get("lon"))
+        lat = float(body.get("lat"))
+    except (TypeError, ValueError):
+        return {"ok": False, "reason": "bad_coords", "polygon": None}
+    try:
+        async with httpx.AsyncClient(timeout=50.0) as client:
+            r = await client.post(f"{_GEOAPI_URL}/segment", json={"lon": lon, "lat": lat})
+            r.raise_for_status()
+            return r.json()
+    except Exception as exc:  # noqa: BLE001
+        return {"ok": False, "reason": f"geoapi_unavailable:{exc}", "polygon": None}
+
+
 _OCTANTS = ["Şimal", "Şimal-Şərq", "Şərq", "Cənub-Şərq",
             "Cənub", "Cənub-Qərb", "Qərb", "Şimal-Qərb"]
 

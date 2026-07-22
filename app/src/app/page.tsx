@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Leaf, Satellite, Calculator, ClipboardList, Plus, MapPin } from "lucide-react";
+import { Satellite, Calculator, ClipboardList, Plus, MapPin } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { t } from "@/lib/i18n";
@@ -13,6 +13,7 @@ import TelegramConnect from "@/components/TelegramConnect";
 import { ListSkeleton } from "@/components/Skeleton";
 import { useUiV2 } from "@/lib/uiFlag";
 import TodayHome from "@/components/home/TodayHome";
+import PublicLanding from "@/components/landing/PublicLanding";
 import type { Farm, Field, Org } from "@/lib/types";
 
 export default function HomePage() {
@@ -35,27 +36,12 @@ function HomeInner() {
 function Landing() {
   return (
     <div className="space-y-10">
-      <section className="rounded-2xl bg-gradient-to-br from-emerald-600 to-green-700 px-6 py-14 text-white">
-        <div className="mx-auto max-w-3xl text-center">
-          <Leaf className="mx-auto mb-4 h-12 w-12" />
-          <h1 className="text-3xl font-bold sm:text-4xl">{t("landing.title")}</h1>
-          <p className="mx-auto mt-4 max-w-2xl text-emerald-50">{t("landing.subtitle")}</p>
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link
-              href="/signup"
-              className="btn bg-white text-emerald-700 hover:bg-emerald-50"
-            >
-              {t("landing.ctaSignup")}
-            </Link>
-            <Link
-              href="/subsidy"
-              className="btn border border-white bg-transparent text-white hover:bg-white/10"
-            >
-              <Calculator className="h-4 w-4" />
-              {t("landing.ctaSubsidy")}
-            </Link>
-          </div>
-        </div>
+      {/* D3.1 — value before account: tap your field on live satellite, see it, then sign up. */}
+      <PublicLanding />
+
+      <section className="text-center">
+        <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">{t("landing.title")}</h1>
+        <p className="mx-auto mt-3 max-w-2xl text-slate-600">{t("landing.subtitle")}</p>
       </section>
 
       <section className="grid gap-4 sm:grid-cols-3">
