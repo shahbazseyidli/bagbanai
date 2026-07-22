@@ -3,6 +3,16 @@
 Bütün əhəmiyyətli dəyişikliklər burada qeyd olunur. Format [Keep a Changelog](https://keepachangelog.com/),
 versiyalar [SemVer](https://semver.org/).
 
+## [1.9.0] — 2026-07-23 — T16/T17/T19/T24 + D2 qalıqları (CANLI)
+
+### Added / Changed (CANLI, main — hər biri build gate + canlı doğrulama)
+- **D2 qalıqları (`?ui=v2`):** `FieldMapSheet` bir responsiv element — mobil sürüşən sheet / **desktop sabit sağ sidebar** (drag yox; uşaqlar bir dəfə mount olur); sheet mövqeyi **`?panel=`** URL-də (raise→push, lower→replace → **Android geri-jesti sheet-i endirir** + paylaşıla bilir). Canlı test: desktop sidebar + panel URL + geri-jesti.
+- **T19 — Shapefile import + ScaleControl:** `geoio.parseShapefile` (shpjs, lazy dynamic-import — əsas bundle-a girmir); FieldOnboarding idxalı `.zip/.shp` qəbul edir (kadastr/aqronom sərhədləri) → poliqon → draw buffer; xəritələrdə `maplibregl.ScaleControl`. Canlı: 4-təpəli shapefile → 13.869 ha düzgün. (Shapefile export & rəngli annotasiya təxirə.)
+- **T17 — Research → index_norms write-back + mövsümi auto-enqueue:** migration 0026 `crop_thresholds.norms_source/norms_updated_at`; research per-məhsul veg-indeks bantlarını (NDVI/EVI/SAVI/NDRE/CIre, ciddi-artan validasiya) sintez edib **guarded upsert** ilə yazır — **curated seed heç vaxt üstünə yazılmır** (yalnız NULL/`research`); zone_knowledge `index_norms` audit bloku; `POST /internal/research/enqueue-seasonal` + `deploy/enqueue-research-seasonal.sh` (aylıq). Canlı: upsert insert+seed-qorunma; hazelnut sintez etibarlı bantlar; seed toxunulmadı.
+- **T24 — Lab-analiz OCR:** migration 0027 `soil_profiles`; `ai/soil_lab.py` (T5 vision-u təkrar → pH/humus/N/P/K/tərkib/EC/CaCO3) → `soil_profiles` + `soil_profile` passport bloku `source=lab`; research **lab varsa SoilGrids yazmır** (lab>manual>soilgrids); `POST/GET /fields/{id}/soil-lab` (business, AI-gated); `SoilLabUpload` kartı AI tabında. Canlı: precedence (`soil_profile:lab`) + schema doğrulandı.
+- **T16 — Mövsüm feature-store:** migration 0028 `field_season_features`; `ai/season.py` mövsümü aqreqasiya edir (NDVI peak/mean/**trapesoid inteqral**, S2 üstün → HLS; GDD total T4; yağış total T8) → `POST /internal/season/compute` + `deploy/compute-season-features.sh` (aylıq); `GET /fields/{id}/season-features`. **NDVI-inteqral↔məhsuldarlıq modeli ≥3 mövsümə təxirə** — bu yalnız featurелəri yığır. Canlı: 3 sahə hesablandı (fındıq bağım integral 40.8/31 səhnə; GDD 1158).
+- **⏳ İstifadəçi addımı:** 2 yeni cron crontab-a əlavə edilməli (endpoint-lər canlı işləyir; skriptlərin başlığında dəqiq sətirlər).
+
 ## [1.8.0] — 2026-07-22 — UX/UI redizayn D0-D2 (dizayn araşdırması → İА) (CANLI)
 
 Mənbə: dizayn araşdırması `wf_68ea40bc` (OneSoil/Plantix/FarmerApp/GSMA + kod auditi) → `docs/DESIGN_IMPLEMENTATION_PLAN.md` (D0-D5, feature-parity matrisi).
