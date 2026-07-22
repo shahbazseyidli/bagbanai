@@ -10,6 +10,7 @@ import { t } from "@/lib/i18n";
 import { ErrorNote, Placeholder, Spinner } from "@/components/ui";
 import PricingTable from "@/components/PricingTable";
 import TelegramConnect from "@/components/TelegramConnect";
+import { ListSkeleton } from "@/components/Skeleton";
 import type { Farm, Field, Org } from "@/lib/types";
 
 export default function HomePage() {
@@ -181,7 +182,7 @@ function Dashboard() {
     }
   }
 
-  if (orgs === null) return <Spinner />;
+  if (orgs === null) return <ListSkeleton count={3} />;
 
   const current = orgs.find((o) => o.id === selectedOrg);
 

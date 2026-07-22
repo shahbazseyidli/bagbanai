@@ -20,9 +20,10 @@ import {
   AREA_MIN_S2, AREA_MIN_HLS,
 } from "@/lib/sensors";
 import {
-  INDEX_LABELS, INDEX_INFO, legendFor, interpret, TONE,
+  INDEX_LABELS, INDEX_INFO, legendFor, interpret,
   type IndexNorms,
 } from "@/lib/indexStatus";
+import StatusChip from "@/components/StatusChip";
 import type {
   FieldDetail, IndexPoint, IndexSeries, IndexBenchmark, RasterScene, RasterScenes, FieldDataStatus,
 } from "@/lib/types";
@@ -256,9 +257,8 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
                   <span className="truncate text-sm font-medium text-slate-700">{INDEX_LABELS[entry.index] ?? entry.index}</span>
                   <span className="shrink-0 font-mono text-sm text-slate-800">{value.toFixed(3)}</span>
                 </div>
-                <div className="mt-1.5 flex items-center gap-2">
-                  <span className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full ${TONE[tone].dot}`} />
-                  <span className={`text-sm font-semibold ${TONE[tone].text}`}>{st}</span>
+                <div className="mt-1.5">
+                  <StatusChip tone={tone} label={st} />
                 </div>
                 <p className="mt-1 text-xs text-slate-500">{note}</p>
                 {entry.date && <p className="mt-1 text-[11px] text-slate-400">{entry.date}</p>}
