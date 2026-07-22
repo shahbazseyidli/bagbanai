@@ -5,7 +5,14 @@ import { Plus, Trash2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import { ErrorNote, Field as FormField, Placeholder } from "@/components/ui";
+import ChoiceChips from "@/components/field/ChoiceChips";
 import type { Operation } from "@/lib/types";
+
+// D5.4 — click-first: the common field operations + currencies as tap chips.
+const OP_TYPES = ["Suvarma", "Gübrələmə", "Çiləmə", "Şumlama", "Əkin", "Yığım", "Budama", "Alaqotu"].map(
+  (v) => ({ value: v, label: v }),
+);
+const CURRENCIES = ["AZN", "USD", "EUR"].map((v) => ({ value: v, label: v }));
 
 interface InputRow {
   product: string;
@@ -73,7 +80,7 @@ export default function OperationsTab({ fieldId }: { fieldId: string }) {
         <h3 className="font-semibold text-slate-800">{t("op.add")}</h3>
         <div className="grid gap-3 sm:grid-cols-2">
           <FormField label={t("op.type")}>
-            <input className="input" value={type} required onChange={(e) => setType(e.target.value)} />
+            <ChoiceChips value={type} onChange={setType} options={OP_TYPES} other={{ placeholder: "Digər əməliyyat" }} />
           </FormField>
           <FormField label={t("op.performed_on")}>
             <input className="input" type="date" value={performedOn} required onChange={(e) => setPerformedOn(e.target.value)} />
@@ -82,7 +89,7 @@ export default function OperationsTab({ fieldId }: { fieldId: string }) {
             <input className="input" type="number" step="any" value={cost} onChange={(e) => setCost(e.target.value)} />
           </FormField>
           <FormField label={t("op.currency")}>
-            <input className="input" value={currency} onChange={(e) => setCurrency(e.target.value)} />
+            <ChoiceChips value={currency} onChange={setCurrency} options={CURRENCIES} />
           </FormField>
         </div>
 

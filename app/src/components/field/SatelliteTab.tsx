@@ -8,7 +8,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import { GitCompareArrows, Cloud } from "lucide-react";
 import { api } from "@/lib/api";
@@ -56,7 +56,7 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
   const firstIndex = SENSOR_INDICES[sensor][0] ?? "NDVI";
   const [index, setIndex] = useState("NDVI");
   const [series, setSeries] = useState<IndexPoint[] | null>(null);
-  const [benchmark, setBenchmark] = useState<Record<string, number>>({});
+  const [benchmark, setBenchmark] = useState<Record<string, { p50: number; p10?: number; p90?: number }>>({});
   const [scenes, setScenes] = useState<RasterScene[]>([]);
   const [noData, setNoData] = useState(false); // this sensor has no rasters (ignoring fallback)
   const [sceneIdx, setSceneIdx] = useState(0);
@@ -111,8 +111,8 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
         ]);
         if (!active) return;
         setSeries(ser?.series ?? []);
-        const bench: Record<string, number> = {};
-        for (const p of bm?.series ?? []) bench[weekKey(p.date)] = p.mean;
+        const bench: Record<string, { p50: number; p10?: number; p90?: number }> = {};
+        for (const p of bm?.series ?? []) bench[weekKey(p.date)] = { p50: p.mean, p10: p.p10, p90: p.p90 };
         setBenchmark(bench);
       } catch {
         if (!active) return;
@@ -205,7 +205,15 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
     const hasBench = Object.keys(benchmark).length > 0;
     return Array.from(byDate.values())
       .sort((a, b) => (String(a.date) < String(b.date) ? -1 : 1))
-      .map((r) => ({ ...r, benchmark: hasBench ? (benchmark[weekKey(String(r.date))] ?? null) : null }));
+      .map((r) => {
+        const b = benchmark[weekKey(String(r.date))];
+        return {
+          ...r,
+          benchmark: hasBench ? (b?.p50 ?? null) : null,
+          // D4.1 — district p10–p90 spread as a shaded band (Recharts range Area).
+          benchBand: hasBench && b?.p10 != null && b?.p90 != null ? [b.p10, b.p90] : null,
+        };
+      });
   }, [series, benchmark, sensor]);
 
   const hasBenchmark = Object.keys(benchmark).length > 0;
@@ -287,12 +295,17 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
           ) : (
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData} margin={{ top: 5, right: 8, bottom: 5, left: -12 }}>
+                <ComposedChart data={chartData} margin={{ top: 5, right: 8, bottom: 5, left: -12 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis dataKey="date" tick={{ fontSize: 11 }}
                     tickFormatter={(d: string) => (typeof d === "string" ? d.slice(5) : d)} />
                   <YAxis tick={{ fontSize: 11 }} domain={["auto", "auto"]} width={44} />
                   <Tooltip formatter={(v: number | string, name: string) => [typeof v === "number" ? v.toFixed(3) : v, name]} />
+                  {/* District p10–p90 spread (drawn first so it sits behind the lines). */}
+                  {hasBenchmark && (
+                    <Area type="monotone" dataKey="benchBand" name="Bölgə yayılması (p10–p90)"
+                      fill="#fef3c7" stroke="none" connectNulls isAnimationActive={false} />
+                  )}
                   {sensor === "HLS" && (
                     <>
                       <Line type="monotone" dataKey="p90" name="p90" stroke="#a7f3d0" strokeWidth={1} dot={false} connectNulls />
@@ -305,7 +318,7 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
                   )}
                   <Line type="monotone" dataKey="mean" name={meta.short}
                     stroke={meta.color} strokeWidth={2} dot={{ r: 2, fill: meta.color }} connectNulls />
-                </LineChart>
+                </ComposedChart>
               </ResponsiveContainer>
               <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500">
                 <span className="inline-flex items-center gap-1">
@@ -317,9 +330,14 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
                   </span>
                 )}
                 {hasBenchmark && (
-                  <span className="inline-flex items-center gap-1">
-                    <span className="inline-block h-0.5 w-4" style={{ background: "#f59e0b" }} /> Digər sahələrin ortası
-                  </span>
+                  <>
+                    <span className="inline-flex items-center gap-1">
+                      <span className="inline-block h-0.5 w-4" style={{ background: "#f59e0b" }} /> Digər sahələrin ortası
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <span className="inline-block h-2.5 w-4 rounded-sm" style={{ background: "#fef3c7" }} /> Bölgə yayılması (p10–p90)
+                    </span>
+                  </>
                 )}
               </div>
             </div>

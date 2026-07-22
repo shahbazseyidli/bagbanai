@@ -14,6 +14,10 @@ import { Plus } from "lucide-react";
 import { api } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import { ErrorNote, Field as FormField, Placeholder } from "@/components/ui";
+import ChoiceChips from "@/components/field/ChoiceChips";
+
+// D5.4 — click-first yield units.
+const YIELD_UNITS = ["ton", "kq", "ton/ha", "kq/ha", "sentner/ha"].map((v) => ({ value: v, label: v }));
 import type { Yield } from "@/lib/types";
 
 export default function YieldsTab({ fieldId }: { fieldId: string }) {
@@ -108,7 +112,7 @@ export default function YieldsTab({ fieldId }: { fieldId: string }) {
             <input className="input" type="number" step="any" value={value} onChange={(e) => setValue(e.target.value)} />
           </FormField>
           <FormField label={t("yield.unit")}>
-            <input className="input" value={unit} onChange={(e) => setUnit(e.target.value)} />
+            <ChoiceChips value={unit} onChange={setUnit} options={YIELD_UNITS} other={{ placeholder: "Digər vahid" }} />
           </FormField>
           <FormField label={t("yield.area")}>
             <input className="input" type="number" step="any" value={area} onChange={(e) => setArea(e.target.value)} />

@@ -145,7 +145,9 @@ export interface IndexSeries {
 // Response of GET /api/fields/{id}/indices/benchmark — weekly regional average.
 export interface IndexBenchmarkPoint {
   date: string; // Monday of the ISO week
-  mean: number;
+  mean: number; // = district p50
+  p10?: number;
+  p90?: number;
   n?: number;
 }
 export interface IndexBenchmark {

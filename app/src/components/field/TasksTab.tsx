@@ -10,6 +10,11 @@ import type { Task } from "@/lib/types";
 const STATUSES = ["open", "in_progress", "done"] as const;
 const PRIORITIES = ["low", "medium", "high"] as const;
 
+// D5.4 — click-first task types.
+const TASK_TYPES = ["Suvarma", "Gübrələmə", "Çiləmə", "Müşahidə", "Yığım", "Şumlama"].map(
+  (v) => ({ value: v, label: v }),
+);
+
 export default function TasksTab({ fieldId, orgId }: { fieldId: string; orgId: string }) {
   const [items, setItems] = useState<Task[]>([]);
   const [error, setError] = useState("");
@@ -78,7 +83,7 @@ export default function TasksTab({ fieldId, orgId }: { fieldId: string; orgId: s
             <input className="input" value={title} required onChange={(e) => setTitle(e.target.value)} />
           </FormField>
           <FormField label={t("task.type")}>
-            <input className="input" value={type} onChange={(e) => setType(e.target.value)} />
+            <ChoiceChips value={type} onChange={setType} options={TASK_TYPES} other={{ placeholder: "Digər növ" }} />
           </FormField>
           <FormField label={t("task.due")}>
             <input className="input" type="date" value={due} onChange={(e) => setDue(e.target.value)} />
