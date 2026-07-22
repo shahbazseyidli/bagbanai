@@ -5,6 +5,7 @@ import { Sparkles, Send } from "lucide-react";
 import { api } from "@/lib/api";
 import { Spinner } from "@/components/ui";
 import KnowledgePassport from "@/components/field/KnowledgePassport";
+import SpeakButton from "@/components/SpeakButton";
 
 interface Risk { title: string; severity: string; detail: string }
 interface Rec { title: string; detail: string }
@@ -98,10 +99,20 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
       <div className="grid gap-6 lg:grid-cols-2">
       {/* Advice */}
       <div className="card">
-        <div className="mb-3 flex items-center">
+        <div className="mb-3 flex items-center justify-between gap-2">
           <h3 className="flex items-center gap-2 font-semibold text-slate-800">
             <Sparkles className="h-4 w-4 text-emerald-600" /> AI məsləhəti
           </h3>
+          {advice && (
+            <SpeakButton
+              text={[
+                advice.summary,
+                ...(advice.risks ?? []).map((r) => `${r.title}. ${r.detail}`),
+                ...(advice.recommendations ?? []).map((r) => `${r.title}. ${r.detail}`),
+                ...(advice.next_steps ?? []),
+              ].filter(Boolean).join(". ")}
+            />
+          )}
         </div>
 
         {!advice ? (

@@ -16,6 +16,7 @@ import {
 import { api } from "@/lib/api";
 import { DisplayMap } from "@/components/FieldMap";
 import { Spinner } from "@/components/ui";
+import SpeakButton from "@/components/SpeakButton";
 import ClarificationBlock from "@/components/field/ClarificationBlock";
 import { SENSOR_PARAM, sensorFamily } from "@/lib/sensors";
 import { TONE, INDEX_LABELS, interpret, type IndexNorms, type Tone } from "@/lib/indexStatus";
@@ -240,6 +241,17 @@ export default function OverviewTab({
                 </div>
                 <h2 className={`mt-2 text-xl font-bold leading-snug sm:text-2xl ${hero.text}`}>{verdict.title}</h2>
                 <p className="mt-2 text-sm text-slate-600">{verdict.sub}</p>
+
+                {/* D5.2 — read the whole verdict + what-changed aloud for low-literacy farmers. */}
+                <SpeakButton
+                  className="mt-3"
+                  text={[
+                    verdict.title,
+                    verdict.sub,
+                    ...built.changes.map((c) => `${c.headline}. ${c.meaning} ${c.action}`),
+                  ].join(". ")}
+                />
+
 
                 {spark.length >= 2 && (
                   <div className="mt-4">
