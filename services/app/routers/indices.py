@@ -286,26 +286,32 @@ async def benchmark(field_id: str, index: str = Query("NDVI"),
     """Weekly regional/peer benchmark for `index` — the average across OTHER fields with the
     same crop (or, if none, across all other fields). HLS-only inside index_benchmark() (0013)
     so the baseline stays single-resolution. Returns an empty series when there are no peers."""
+    from .. import tiers
     async with connection(user_id) as conn:
         org_id = await _org_of_field(conn, field_id)
         await require_member(conn, user_id, org_id)
+        # Regional benchmark is a business-tier feature (T10).
+        if not tiers.allows(await tiers.org_tier(conn, org_id), "benchmark"):
+            return {"index": index, "gated": True, "series": []}
         crop = await conn.fetchval(
             "select crop_type from public.field_metadata where field_id=$1::uuid", field_id)
         scope = "crop"
         rows = await conn.fetch(
-            "select week, mean_avg, n from public.index_benchmark($1, $2, $3::uuid)",
+            "select week, p10, p50, p90, n from public.index_benchmark($1, $2, $3::uuid)",
             index, crop, field_id)
-        if not rows:  # no same-crop peers → fall back to all other fields (national avg)
+        if not rows:  # no same-crop peers (or k-anon suppressed) → fall back to all other fields
             scope = "all"
             rows = await conn.fetch(
-                "select week, mean_avg, n from public.index_benchmark($1, $2, $3::uuid)",
+                "select week, p10, p50, p90, n from public.index_benchmark($1, $2, $3::uuid)",
                 index, None, field_id)
     return {
         "index": index,
         "scope": scope,
         "crop_type": crop,
+        # `mean` kept (= p50) for chart back-compat; p10/p90 enable a percentile band.
         "series": [
-            {"date": r["week"].isoformat(), "mean": round(float(r["mean_avg"]), 4), "n": int(r["n"])}
+            {"date": r["week"].isoformat(), "mean": round(float(r["p50"]), 4),
+             "p10": round(float(r["p10"]), 4), "p90": round(float(r["p90"]), 4), "n": int(r["n"])}
             for r in rows
         ],
     }
