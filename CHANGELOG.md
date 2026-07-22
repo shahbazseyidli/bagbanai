@@ -3,6 +3,14 @@
 Bütün əhəmiyyətli dəyişikliklər burada qeyd olunur. Format [Keep a Changelog](https://keepachangelog.com/),
 versiyalar [SemVer](https://semver.org/).
 
+## [1.5.0] — 2026-07-22 — Sprint 1-3: rule engine (T1) + veg rules (T2) + baseline (T6) + photo AI (T5) (CANLI)
+
+### Added (CANLI, main)
+- **T1 — Qayda mühərriki + dispatcher:** yeni `services/app/rules/` (migration 0016 `alert_state`) — bütün alertlər tək deduped/sakit-saat(22-07)/cooldown(18s)/eskalasiya yolundan keçir. Hava frost/heat/külək alertləri `weather.py`-nin birbaşa insert-indən bura köçdü. `POST /rules/run` (əvvəl 501). Canlı test: inject→fired=1, təkrar→fired=0 (dedup).
+- **T2 — Vegetasiya qaydaları VG-1..4:** NDVI enmə / NDMI aşağı / baseline anomaliyası / NDVI+NBR birgə dəyişim → bildiriş (S2 trendləri). Geo pipeline yeni səhnədən sonra baseline+rules çağırır. Canlı: sağlam sahədə düzgün false-alert vermədi.
+- **T6 — Baseline/anomaliya:** migration 0018 `field_index_baseline` (həftəlik p10/p50/p90, SQL percentile), `ai/analytics.py` refresh_baseline + anomaly_for. Canlı: 35 baseline sətri. (Fenologiya-avto təxirə.)
+- **T5 — Foto diaqnoz (Claude vision):** `llm.complete_vision_structured` + `ai/diagnose.py` (Qayda 7 təhlükəsiz: problem tipi + qeydiyyatlı-siyahı + aqronom, pestisid dozası yox; əminlik kalibrli), migration 0019 `photo_diagnoses`, `POST /api/fields/{id}/diagnose` (Paket 3 + 30/ay kvota), ScoutingTab-da `PhotoDiagnose` paneli. Canlı: free→402, business→struktur diaqnoz + kvota izləmə.
+
 ## [1.4.0] — 2026-07-22 — Sprint 0-1: partial reveal (T0) + GDD (T4) + rayon dropdown (T13) (CANLI)
 
 ### Added (CANLI, main)
