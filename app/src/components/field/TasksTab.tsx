@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { api } from "@/lib/api";
 import { t, type I18nKey } from "@/lib/i18n";
 import { ErrorNote, Field as FormField, Placeholder } from "@/components/ui";
+import ChoiceChips from "@/components/field/ChoiceChips";
 import type { Task } from "@/lib/types";
 
 const STATUSES = ["open", "in_progress", "done"] as const;
