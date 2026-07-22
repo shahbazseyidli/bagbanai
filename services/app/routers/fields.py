@@ -40,7 +40,7 @@ async def create_field(body: FieldIn, user_id: str = Depends(get_current_user_id
         tier = await tiers.org_tier(conn, org_id)
         max_fields = tiers.limit(tier, "max_fields")
         current = await conn.fetchval(
-            "select count(*) from public.fields where org_id=$1::uuid", org_id)
+            "select count(*) from public.fields where org_id=$1::uuid and deleted_at is null", org_id)
         if current >= max_fields:
             raise HTTPException(status_code=402, detail="field_limit_reached")
 
@@ -90,7 +90,7 @@ async def list_fields(farm_id: str = Query(...), user_id: str = Depends(get_curr
         org_id = await _org_of_farm(conn, farm_id)
         await require_member(conn, user_id, org_id)
         rows = await conn.fetch(
-            "select id, farm_id, org_id, name, area_ha, mgrs_tiles from public.fields where farm_id=$1::uuid order by created_at",
+            "select id, farm_id, org_id, name, area_ha, mgrs_tiles from public.fields where farm_id=$1::uuid and deleted_at is null order by created_at",
             farm_id)
     return [FieldOut(id=str(r["id"]), farm_id=str(r["farm_id"]), org_id=str(r["org_id"]), name=r["name"],
                      area_ha=float(r["area_ha"]) if r["area_ha"] is not None else None,
@@ -106,7 +106,9 @@ async def get_field(field_id: str, user_id: str = Depends(get_current_user_id)):
             """select id, farm_id, org_id, name, area_ha, mgrs_tiles,
                       st_asgeojson(geom) as geom, st_asgeojson(centroid) as centroid,
                       data_status, data_progress_done, data_progress_total, data_eta_seconds
-               from public.fields where id=$1::uuid""", field_id)
+               from public.fields where id=$1::uuid and deleted_at is null""", field_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="field_not_found")
     return dict(id=str(row["id"]), farm_id=str(row["farm_id"]), org_id=str(row["org_id"]),
                 name=row["name"], area_ha=float(row["area_ha"]) if row["area_ha"] is not None else None,
                 mgrs_tiles=row["mgrs_tiles"], geom=json.loads(row["geom"]),
@@ -130,15 +132,25 @@ async def update_field(field_id: str, body: dict, user_id: str = Depends(get_cur
 
 @router.delete("/{field_id}")
 async def delete_field(field_id: str, user_id: str = Depends(get_current_user_id)):
-    """Delete a field and everything scoped to it. All field-scoped tables use ON DELETE
-    CASCADE (index_stats/rasters/scenes/weather/knowledge/clarifications/scouting/tasks/...),
-    so a single delete cleans them up; history tables (subsidy calc, ai_usage) keep their rows
-    with field_id set null. Requires agronomist+ (ROLES_WRITE). Raster COG files on disk are
-    left for the periodic cleanup — they are not reachable from the API container's mounts."""
+    """Soft-delete a field (D2.7): stamps deleted_at so reads hide it but the data survives and can
+    be restored within the undo window. Requires agronomist+ (ROLES_WRITE)."""
     async with connection(user_id) as conn:
         org_id = await _org_of_field(conn, field_id)
         await require_role(conn, user_id, org_id, ROLES_WRITE)
-        await conn.execute("delete from public.fields where id=$1::uuid", field_id)
+        await conn.execute(
+            "update public.fields set deleted_at=now() where id=$1::uuid and deleted_at is null",
+            field_id)
+    return {"ok": True}
+
+
+@router.post("/{field_id}/restore")
+async def restore_field(field_id: str, user_id: str = Depends(get_current_user_id)):
+    """Undo a soft-delete (D2.7)."""
+    async with connection(user_id) as conn:
+        org_id = await _org_of_field(conn, field_id)
+        await require_role(conn, user_id, org_id, ROLES_WRITE)
+        await conn.execute(
+            "update public.fields set deleted_at=null where id=$1::uuid", field_id)
     return {"ok": True}
 
 

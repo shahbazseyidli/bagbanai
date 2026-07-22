@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Settings } from "lucide-react";
 import { api, azError } from "@/lib/api";
@@ -35,6 +35,20 @@ const TABS: { key: TabKey; labelKey: I18nKey }[] = [
   { key: "yields", labelKey: "field.tab.yields" },
 ];
 
+// D2.3 — collapse the 9 flat tabs into 3 farmer intents. Primary choice is one of 3; each group
+// reveals its own tabs as a secondary chip row.
+type Group = "vaziyyet" | "isler" | "melumat";
+const GROUPS: { key: Group; label: string; tabs: TabKey[] }[] = [
+  { key: "vaziyyet", label: "Vəziyyət", tabs: ["overview", "sentinel2", "nasa"] },
+  { key: "isler", label: "İşlər", tabs: ["ai", "scouting", "tasks", "operations", "yields"] },
+  { key: "melumat", label: "Məlumat", tabs: ["metadata"] },
+];
+const GROUP_OF: Record<TabKey, Group> = {
+  overview: "vaziyyet", sentinel2: "vaziyyet", nasa: "vaziyyet",
+  ai: "isler", scouting: "isler", tasks: "isler", operations: "isler", yields: "isler",
+  metadata: "melumat",
+};
+
 export default function FieldDetailPage() {
   // useSearchParams (tab state) requires a Suspense boundary under the app router.
   return (
@@ -67,6 +81,7 @@ function FieldDetailInner() {
   const [saving, setSaving] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [undoDeleted, setUndoDeleted] = useState(false);
 
   function openEdit() {
     if (field) setEditName(field.name);
@@ -90,17 +105,33 @@ function FieldDetailInner() {
     }
   }
 
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
   async function onDelete() {
     if (!field) return;
     setDeleting(true);
     try {
       await api.del(`/api/fields/${field.id}`);
-      // Redirect to the dashboard (a /farms/{id} page doesn't exist — that 404 was the bug).
-      router.push("/");
+      // Soft-deleted (D2.7): show a 6s undo bar before leaving; restore if the farmer taps undo.
+      setDeleting(false);
+      setEditing(false);
+      setUndoDeleted(true);
+      undoTimer.current = setTimeout(() => router.push("/"), 6000);
     } catch (err) {
       setError(azError(err));
       setDeleting(false);
       setConfirmDel(false);
+    }
+  }
+
+  async function onUndoDelete() {
+    if (!field) return;
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    try {
+      await api.post(`/api/fields/${field.id}/restore`);
+      setUndoDeleted(false);
+    } catch (err) {
+      setError(azError(err));
     }
   }
 
@@ -124,6 +155,17 @@ function FieldDetailInner() {
 
   return (
     <div className="space-y-6">
+      {undoDeleted && (
+        <div className="fixed inset-x-0 bottom-4 z-50 mx-auto flex max-w-md items-center justify-between gap-3 rounded-xl bg-ink px-4 py-3 text-white shadow-lg">
+          <span className="text-sm">“{field.name}” silindi.</span>
+          <button
+            onClick={onUndoDelete}
+            className="min-h-11 rounded-lg bg-white/20 px-4 py-1.5 text-sm font-bold hover:bg-white/30"
+          >
+            Geri qaytar
+          </button>
+        </div>
+      )}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{field.name}</h1>
@@ -175,7 +217,7 @@ function FieldDetailInner() {
           <div className="mt-4 border-t border-slate-200 pt-4">
             {confirmDel ? (
               <div className="flex flex-wrap items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
-                <span className="text-sm text-red-700">Sahə və bütün datası (peyk, məsləhət, skautinq) həmişəlik silinsin?</span>
+                <span className="text-sm text-red-700">Sahə silinsin? Silindikdən sonra qısa müddət ərzində geri qaytara bilərsiniz.</span>
                 <button
                   onClick={onDelete}
                   disabled={deleting}
@@ -199,21 +241,50 @@ function FieldDetailInner() {
         </div>
       )}
 
-      <div className="flex flex-nowrap gap-1 overflow-x-auto border-b border-slate-200">
-        {TABS.map((tb) => (
-          <button
-            key={tb.key}
-            onClick={() => setTab(tb.key)}
-            className={`-mb-px shrink-0 whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium ${
-              tab === tb.key
-                ? "border-emerald-600 text-emerald-700"
-                : "border-transparent text-slate-500 hover:text-slate-700"
-            }`}
-          >
-            {t(tb.labelKey)}
-          </button>
-        ))}
-      </div>
+      {(() => {
+        const activeGroup = GROUP_OF[tab];
+        const groupTabs = GROUPS.find((g) => g.key === activeGroup)!.tabs;
+        return (
+          <div className="space-y-2">
+            {/* Primary: 3 farmer intents */}
+            <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
+              {GROUPS.map((g) => (
+                <button
+                  key={g.key}
+                  onClick={() => setTab(g.tabs[0])}
+                  aria-current={activeGroup === g.key}
+                  className={`min-h-11 flex-1 rounded-lg px-3 py-2 text-sm font-bold ${
+                    activeGroup === g.key ? "bg-white text-emerald-800 shadow-sm" : "text-slate-600"
+                  }`}
+                >
+                  {g.label}
+                </button>
+              ))}
+            </div>
+            {/* Secondary: this group's tabs (hidden when the group has just one) */}
+            {groupTabs.length > 1 && (
+              <div className="flex flex-nowrap gap-1 overflow-x-auto border-b border-slate-200">
+                {groupTabs.map((tk) => {
+                  const tb = TABS.find((x) => x.key === tk)!;
+                  return (
+                    <button
+                      key={tk}
+                      onClick={() => setTab(tk)}
+                      className={`-mb-px min-h-11 shrink-0 whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium ${
+                        tab === tk
+                          ? "border-emerald-600 text-emerald-700"
+                          : "border-transparent text-slate-600 hover:text-slate-800"
+                      }`}
+                    >
+                      {t(tb.labelKey)}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       <div>
         {tab === "overview" && <OverviewTab field={field} onNavigate={(x) => setTab(x)} />}
