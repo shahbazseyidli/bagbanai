@@ -3,6 +3,15 @@
 Bütün əhəmiyyətli dəyişikliklər burada qeyd olunur. Format [Keep a Changelog](https://keepachangelog.com/),
 versiyalar [SemVer](https://semver.org/).
 
+## [1.8.0] — 2026-07-22 — UX/UI redizayn D0-D2 (dizayn araşdırması → İА) (CANLI)
+
+Mənbə: dizayn araşdırması `wf_68ea40bc` (OneSoil/Plantix/FarmerApp/GSMA + kod auditi) → `docs/DESIGN_IMPLEMENTATION_PLAN.md` (D0-D5, feature-parity matrisi).
+
+### Added / Changed (CANLI, main)
+- **D0 — cərrahi quick-win:** onboarding **köhnə FieldCreator → FieldOnboarding + səssiz tenancy** (yeni user artıq kalibrli ilk sahə yaradır — kritik bug); NotificationBell **mobil header-də**; sahə tab vəziyyəti **URL-də (`?tab=`)** + skroller; tək-org üçün org selector/Rol gizli; **`azError()`** AZ xəta lüğəti; `.btn`/`.input` min-h-44 + 16px; PhotoDiagnose+FertilizerCard→AI tabı, MGRS header-dən, ⚙️→lucide.
+- **D1 — dizayn tokenləri + kit:** Tailwind token qatı (**emerald-600→#15803D** global lift, ink/warn/bad/good/info 700-çəki, card border-1.5, 16px döşəmə); **Inter Variable** (next/font, latin-ext — AZ ə); **StatusChip** (ikon+söz+rəng+aria); **Skeleton** kiti; qlobal focus-visible ring.
+- **D2 — İА (1+2-ci dilim):** sahə tabları **9→3 niyyət qrupu** (VƏZİYYƏT/İŞLƏR/MƏLUMAT); **soft-delete/undo** (migration 0025 `fields.deleted_at` + `/restore` + 6s undo bar — accidental-delete data-itki bağlandı); mobil **bottom nav** (5 slot + kamera FAB, hamburger-i əvəz etdi); yeni marşrutlar **/fields** (siyahı), **/more** (menyu), **/notifications** (event kartlar + severity çip + deep-link). D2 qalan: "Bu gün" home + sürüşən map-sheet (`?ui=v2`).
+
 ## [1.7.0] — 2026-07-22 — Email/OTP (Resend, U3) + Telegram alert bot (U4/T22) — kod hazır (CANLI)
 
 ### Added (CANLI, main — açarsız səliqəli dormant)
