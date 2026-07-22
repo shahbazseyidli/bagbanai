@@ -78,6 +78,43 @@ async def drain_research(limit: int = 1):
     return {"claimed": len(claimed), "processed": processed}
 
 
+@router.post("/research/enqueue-seasonal")
+async def enqueue_seasonal(limit: int = 200, stale_days: int = 120):
+    """Seasonal auto-enqueue (T17): queue Phase-1 research for fields whose crop calibration is
+    absent or older than `stale_days`, so zone blocks + researched index_norms refresh across
+    seasons. Called by the deploy/enqueue-research-seasonal.sh cron (monthly). Idempotent: fields
+    with an in-flight job are skipped and jobs.enqueue merges any remaining duplicates. Curated
+    seed norms are never a refresh trigger — only absent or research-derived (stale) ones are."""
+    from ..ai import jobs
+    async with connection(None) as conn:
+        rows = await conn.fetch(
+            """select f.id as field_id, f.org_id
+               from public.fields f
+               join public.field_metadata m on m.field_id=f.id
+               where f.deleted_at is null and m.crop_type is not null
+                 and not exists (
+                    select 1 from public.research_jobs j
+                    where j.field_id=f.id and j.status in ('queued','running'))
+                 and (
+                    not exists (
+                      select 1 from public.crop_thresholds ct
+                      where ct.crop_type=m.crop_type and ct.growth_stage='all'
+                        and ct.age_class='all' and ct.index_norms is not null)
+                    or exists (
+                      select 1 from public.crop_thresholds ct
+                      where ct.crop_type=m.crop_type and ct.growth_stage='all'
+                        and ct.age_class='all' and ct.norms_source='research'
+                        and (ct.norms_updated_at is null
+                             or ct.norms_updated_at < now() - ($1::int || ' days')::interval)))
+               limit $2""", stale_days, limit)
+        n = 0
+        for r in rows:
+            await jobs.enqueue(conn, field_id=str(r["field_id"]), org_id=str(r["org_id"]),
+                               trigger_type="seasonal", blocks=["ALL"], debounce_min=0)
+            n += 1
+    return {"enqueued": n, "candidates": len(rows)}
+
+
 @router.post("/weather/run")
 async def run_weather(field_id: str):
     """Refresh the Open-Meteo forecast + water_requirements block for one field (M8), then run the

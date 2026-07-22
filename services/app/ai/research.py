@@ -81,6 +81,70 @@ async def _synthesize_zone(crop_type: str, zone_label: str) -> tuple[list[dict],
     return blocks, citations, usage
 
 
+# ===== T17: per-crop vegetation-index calibration (write-back to crop_thresholds.index_norms) =====
+
+class CropIndexBands(BaseModel):
+    """Per-index band edges [e1,e2,e3,e4] splitting the 5 status tiers (çox zəif → çox sağlam).
+    Only NDVI is required; other indices may be null when the sources don't support them."""
+    ndvi: list[float] = Field(description="4 artan kənar (0..1): çox-zəif|zəif|orta|sağlam sərhədləri")
+    evi: Optional[list[float]] = Field(default=None, description="4 artan kənar (0..1) və ya null")
+    savi: Optional[list[float]] = Field(default=None, description="4 artan kənar (0..1) və ya null")
+    ndre: Optional[list[float]] = Field(default=None, description="4 artan kənar (0..1) və ya null")
+    cire: Optional[list[float]] = Field(default=None, description="4 artan kənar (0..~5) və ya null")
+    rationale: str = Field(description="Bantların bitki örtüyü sıxlığı/mərhələsinə görə əsaslandırması")
+
+
+_NORMS_SYSTEM = (
+    "Sən dəqiq əkinçilik kalibrasiyası üzrə mütəxəssissən. Sənə bitki növü və Azərbaycan regionu "
+    "verilir. Peyk vegetasiya indeksləri üçün 5 status pilləsini (çox zəif, zəif, orta, sağlam, çox "
+    "sağlam) ayıran 4 ARTAN kənar dəyər ver. Qaydalar:\n"
+    "- Dəyərlər həmin bitkinin TİPİK sağlam mövsümi zirvəsinə uyğun olsun (sıx meşəbağ yüksək NDVI, "
+    "seyrək/cavan əkin aşağı NDVI).\n"
+    "- NDVI/EVI/SAVI/NDRE 0..1; kənarlar ciddi artan olmalı; CIre 0..~5.\n"
+    "- Əmin olmadığın indeksi null burax. Uydurma — yalnız aqronomik cəhətdən əsaslı dəyərlər."
+)
+
+
+def _valid_edges(v, lo: float, hi: float) -> Optional[list[float]]:
+    """Accept only a strictly-increasing 4-tuple within [lo, hi]; else None."""
+    if not v or len(v) != 4 or any(not isinstance(x, (int, float)) for x in v):
+        return None
+    v = [float(x) for x in v]
+    if not all(lo <= x <= hi for x in v) or not all(v[i] < v[i + 1] for i in range(3)):
+        return None
+    return v
+
+
+async def _synthesize_index_norms(crop_type: str, zone_label: str) -> tuple[dict, dict]:
+    """Structured LLM → validated per-crop vegetation-index band edges. Returns (norms, usage);
+    norms is {} if nothing validated. Raises llm.LLMUnavailable when not configured."""
+    user = (f"Bitki: {crop_type}. Region: {zone_label}, Azərbaycan (Cənubi Qafqaz iqlimi).\n"
+            "Bu bitki üçün NDVI, EVI, SAVI, NDRE və CIre indekslərinin status kənarlarını ver.")
+    res, usage = await llm.complete_structured(_NORMS_SYSTEM, user, CropIndexBands)
+    norms: dict = {}
+    for key, lo, hi in (("NDVI", -0.1, 1.0), ("EVI", -0.1, 1.0), ("SAVI", -0.1, 1.0),
+                        ("NDRE", -0.1, 1.0), ("CIre", 0.0, 6.0)):
+        edges = _valid_edges(getattr(res, key.lower()), lo, hi)
+        if edges:
+            norms[key] = edges
+    return norms, usage
+
+
+async def _writeback_norms(conn, crop_type: str, norms: dict) -> None:
+    """Write researched bands to crop_thresholds.index_norms for (crop,'all','all'), but NEVER
+    over a curated seed: only rows with NULL index_norms or norms_source='research' are (re)written."""
+    import json
+    await conn.execute(
+        """insert into public.crop_thresholds
+             (crop_type, growth_stage, age_class, index_norms, norms_source, norms_updated_at)
+           values ($1,'all','all',$2::jsonb,'research', now())
+           on conflict (crop_type, growth_stage, age_class) do update
+             set index_norms=excluded.index_norms, norms_source='research', norms_updated_at=now()
+             where crop_thresholds.index_norms is null
+                or crop_thresholds.norms_source='research'""",
+        crop_type, json.dumps(norms))
+
+
 async def research_field(conn, field_id: str, blocks: Optional[list[str]] = None) -> dict:
     """Run Phase-1 research for a field. `blocks` limits the refresh (from the invalidation
     map); None/['ALL'] = everything. Returns a summary dict (written blocks, zone, degraded)."""
@@ -181,6 +245,26 @@ async def research_field(conn, field_id: str, blocks: Optional[list[str]] = None
             degraded.append("synthesis:llm_not_configured")
         except Exception as exc:  # noqa: BLE001
             degraded.append(f"synthesis:{exc}")
+
+    # --- Per-crop vegetation-index calibration → crop_thresholds.index_norms write-back (T17) ---
+    if crop_type and wants("index_norms") and llm.is_configured():
+        try:
+            norms, norms_usage = await _synthesize_index_norms(crop_type, zone_label)
+            if norms:
+                await _writeback_norms(conn, crop_type, norms)
+                # Keep a zone-level audit record of the researched bands + provenance.
+                await kb.upsert_zone_block(conn, crop_type, zone_id, "index_norms",
+                                           {"norms": norms}, [], confidence=0.6)
+                written.append("crop_index_norms")
+                if total_usage:
+                    total_usage["input_tokens"] += norms_usage["input_tokens"]
+                    total_usage["output_tokens"] += norms_usage["output_tokens"]
+                else:
+                    total_usage = norms_usage
+        except llm.LLMUnavailable:
+            degraded.append("index_norms:llm_not_configured")
+        except Exception as exc:  # noqa: BLE001
+            degraded.append(f"index_norms:{exc}")
 
     return {"ok": True, "field_id": field_id, "org_id": org_id, "crop_type": crop_type,
             "zone_id": zone_id, "written": written, "degraded": degraded, "usage": total_usage}
