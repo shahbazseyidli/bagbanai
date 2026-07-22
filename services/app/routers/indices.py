@@ -164,6 +164,27 @@ async def summary(field_id: str, sensor: str = Query("s2"),
     }
 
 
+@router.get("/{field_id}/gdd")
+async def gdd(field_id: str, user_id: str = Depends(get_current_user_id)):
+    """Growing-Degree-Days for the field's current season (T4): latest cumulative + daily series."""
+    async with connection(user_id) as conn:
+        org_id = await _org_of_field(conn, field_id)
+        await require_member(conn, user_id, org_id)
+        rows = await conn.fetch(
+            """select date, gdd_cumulative from public.field_gdd_daily
+               where field_id=$1::uuid order by date""", field_id)
+        latest = await conn.fetchrow(
+            """select gdd_cumulative, season_year, base_c, date from public.field_gdd_daily
+               where field_id=$1::uuid order by date desc limit 1""", field_id)
+    return {
+        "cumulative": float(latest["gdd_cumulative"]) if latest else None,
+        "season_year": latest["season_year"] if latest else None,
+        "base_c": float(latest["base_c"]) if latest else None,
+        "as_of": latest["date"].isoformat() if latest else None,
+        "series": [{"date": r["date"].isoformat(), "gdd": float(r["gdd_cumulative"])} for r in rows],
+    }
+
+
 @router.get("/{field_id}/insights")
 async def insights(field_id: str, user_id: str = Depends(get_current_user_id)):
     """Per-index trend snapshot (latest, ~3-weeks-ago prior, delta, % change, direction) for

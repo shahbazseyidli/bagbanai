@@ -87,9 +87,18 @@ async def run_weather(field_id: str):
     return result
 
 
+@router.post("/gdd/run")
+async def run_gdd(field_id: str):
+    """Recompute Growing-Degree-Days for one field's current season (T4)."""
+    from ..ai import gdd as gdd_svc
+    async with connection(None) as conn:
+        return await gdd_svc.refresh_field_gdd(conn, field_id)
+
+
 @router.post("/weather/drain")
 async def drain_weather(limit: int = 50):
-    """Refresh weather for the least-recently-updated fields (called by the daily cron)."""
+    """Refresh weather (+ GDD) for the least-recently-updated fields (called by the daily cron)."""
+    from ..ai import gdd as gdd_svc
     from ..ai import weather as weather_svc
     async with connection(None) as conn:
         ids = await conn.fetch(
@@ -104,6 +113,9 @@ async def drain_weather(limit: int = 50):
                 res = await weather_svc.refresh_field(conn, str(r["id"]))
                 if res.get("ok"):
                     done += 1
+            # GDD refresh is independent + best-effort — a failure must not stall the batch.
+            async with connection(None) as conn:
+                await gdd_svc.refresh_field_gdd(conn, str(r["id"]))
         except Exception:  # noqa: BLE001 — one field must not stall the batch
             pass
     return {"refreshed": done, "considered": len(ids)}

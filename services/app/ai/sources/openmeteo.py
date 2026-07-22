@@ -54,6 +54,32 @@ async def fetch_weather(lat: float, lon: float, *, days: int = 7,
         source=source_meta("https://open-meteo.com/", "Open-Meteo (FAO-56 ET0)", "structured_api", 0.9))
 
 
+async def fetch_archive(lat: float, lon: float, *, start: str, end: str,
+                        base: str = "https://archive-api.open-meteo.com/v1") -> SourceResult:
+    """Daily historical tmin/tmax for GDD accumulation (T4). Uses the keyless Open-Meteo *archive*
+    API (separate host, ~5-day lag on recent days). Never raises."""
+    try:
+        js = await get_json(
+            f"{base.rstrip('/')}/archive",
+            params={"latitude": lat, "longitude": lon, "start_date": start, "end_date": end,
+                    "daily": "temperature_2m_max,temperature_2m_min", "timezone": "auto"})
+    except Exception as exc:  # noqa: BLE001
+        return SourceResult(ok=False, error=f"openmeteo_archive_unreachable: {exc}")
+
+    daily = (js or {}).get("daily") or {}
+    dates = daily.get("time") or []
+    if not dates:
+        return SourceResult(ok=False, error="openmeteo_archive_empty")
+    tmax, tmin = daily.get("temperature_2m_max") or [], daily.get("temperature_2m_min") or []
+    rows = [{"date": d,
+             "t_max": tmax[i] if i < len(tmax) else None,
+             "t_min": tmin[i] if i < len(tmin) else None}
+            for i, d in enumerate(dates)]
+    return SourceResult(
+        ok=True, data={"days": rows},
+        source=source_meta("https://open-meteo.com/", "Open-Meteo Archive", "structured_api", 0.9))
+
+
 _HOURLY = ["temperature_2m", "relative_humidity_2m", "dew_point_2m",
            "precipitation", "precipitation_probability", "wind_speed_10m"]
 
