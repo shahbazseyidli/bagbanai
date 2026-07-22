@@ -316,7 +316,13 @@ function FieldDetailInner() {
         {undoBar}
         <FieldMapSheet
           field={field}
-          onCamera={() => setTab("ai")}
+          onCamera={() => {
+            // Camera FAB: open the AI (photo-diagnose) tab AND expand the sheet to full in one nav.
+            const sp = new URLSearchParams(searchParams.toString());
+            sp.set("tab", "ai");
+            sp.set("panel", "full");
+            router.push(`${pathname}?${sp.toString()}`, { scroll: false });
+          }}
           header={
             <>
               {titleRow}

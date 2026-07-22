@@ -237,6 +237,7 @@ export function DrawMap({ onPolygon, importedPolygon, importSeq = 0, detectMode 
     mapRef.current = map;
     map.addControl(new maplibregl.NavigationControl(), "top-right");
     map.addControl(new maplibregl.GeolocateControl({ trackUserLocation: false }), "top-right");
+    map.addControl(new maplibregl.ScaleControl({ maxWidth: 120, unit: "metric" }), "bottom-left"); // T19
     map.doubleClickZoom.disable();
     map.on("mousemove", (e) =>
       setCoord(`${e.lngLat.lng.toFixed(5)}, ${e.lngLat.lat.toFixed(5)}`),
@@ -501,6 +502,7 @@ export function DisplayMap({
     });
     mapRef.current = map;
     map.addControl(new maplibregl.NavigationControl(), "top-right");
+    map.addControl(new maplibregl.ScaleControl({ maxWidth: 120, unit: "metric" }), "bottom-left"); // T19
     map.on("mousemove", (e) =>
       setCoord(`${e.lngLat.lng.toFixed(5)}, ${e.lngLat.lat.toFixed(5)}`),
     );
