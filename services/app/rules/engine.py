@@ -106,8 +106,13 @@ async def _vegetation_candidates(conn, field_id: str) -> list[dict]:
     return out
 
 
-# Registered producers. Pest (T9), irrigation (T8) append here.
-_PRODUCERS = [_weather_candidates, _vegetation_candidates]
+async def _pest_candidates(conn, field_id: str) -> list[dict]:
+    from ..ai.pest import pest_candidates
+    return await pest_candidates(conn, field_id)
+
+
+# Registered producers. Irrigation alerts (T8) can append here later.
+_PRODUCERS = [_weather_candidates, _vegetation_candidates, _pest_candidates]
 
 
 async def evaluate(conn, field_id: str) -> list[dict]:

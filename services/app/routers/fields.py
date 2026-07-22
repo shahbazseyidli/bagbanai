@@ -174,6 +174,24 @@ async def diagnose_field(field_id: str, file: UploadFile = File(...),
             raise HTTPException(status_code=503, detail=f"ai_unavailable: {exc}")
 
 
+@router.post("/{field_id}/pest-mute")
+async def pest_mute(field_id: str, body: dict, user_id: str = Depends(get_current_user_id)):
+    """Farmer confirms a pest is absent → mute its risk alerts for N days (T9, Rule 12)."""
+    pest_name = (body or {}).get("pest_name")
+    days = int((body or {}).get("days", 90))
+    if not pest_name:
+        raise HTTPException(status_code=400, detail="pest_name_required")
+    async with connection(user_id) as conn:
+        org_id = await _org_of_field(conn, field_id)
+        await require_role(conn, user_id, org_id, ROLES_WRITE)
+        await conn.execute(
+            """insert into public.field_pest_mutes (field_id, pest_name, muted_until)
+               values ($1::uuid, $2, now() + ($3 || ' days')::interval)
+               on conflict (field_id, pest_name) do update set muted_until=excluded.muted_until""",
+            field_id, pest_name, str(days))
+    return {"ok": True, "pest_name": pest_name, "days": days}
+
+
 @router.get("/{field_id}/diagnoses")
 async def list_diagnoses(field_id: str, user_id: str = Depends(get_current_user_id)):
     """Recent photo diagnoses for the field (newest first)."""
