@@ -29,6 +29,7 @@ import ClickDate from "./info/ClickDate";
 import PhPicker from "./info/PhPicker";
 import NumberSlider from "./info/NumberSlider";
 import AutoField from "./info/AutoField";
+import { AZ_RAYONS } from "@/lib/regions";
 import YesNo from "./info/YesNo";
 import { ARRAY_DEFS, RepeatableRows, type Row, toRows, fromRows } from "./repeatableRows";
 
@@ -447,12 +448,19 @@ export default function MetadataTab({ fieldId }: { fieldId: string }) {
         </div>
 
         <div className="grid gap-6 rounded-xl border border-slate-100 bg-slate-50/60 p-4 sm:grid-cols-3">
-          <AutoField
-            label="Rayon"
-            value={meta.region ?? null}
-            loading={false}
-            onChange={(v) => set("region", v)}
-          />
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-slate-700">Rayon</p>
+            <select
+              className="input"
+              value={AZ_RAYONS.find((r) => (meta.region ?? "").includes(r)) ?? ""}
+              onChange={(e) => set("region", e.target.value || null)}
+            >
+              <option value="">Rayon seçin</option>
+              {AZ_RAYONS.map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+          </div>
           <AutoField
             label={t("meta.elevation_m")}
             value={toNum(meta.elevation_m)}

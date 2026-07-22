@@ -83,7 +83,8 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
         const s = await api.get<FieldDataStatus>(`/api/fields/${field.id}/data-status`);
         if (!active) return;
         setStatus(s);
-        if (s.status === "queued" || s.status === "processing") timer = setTimeout(poll, 6000);
+        if (s.status === "queued" || s.status === "processing" || s.status === "partial")
+          timer = setTimeout(poll, 6000);
       } catch { /* keep last */ }
     }
     poll();
@@ -91,7 +92,10 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
   }, [field.id]);
 
   const effectiveStatus = status?.status ?? field.data_status ?? "ready";
-  const preparing = effectiveStatus === "queued" || effectiveStatus === "processing";
+  // 'partial' = HLS ready, S2 still coming → for a sensor with no data yet the wait card should
+  // say "hazırlanır" (not "hələ yoxdur").
+  const preparing =
+    effectiveStatus === "queued" || effectiveStatus === "processing" || effectiveStatus === "partial";
   const ready = status?.status === "ready";
 
   // Time series (both sensors, tagged) + regional benchmark.

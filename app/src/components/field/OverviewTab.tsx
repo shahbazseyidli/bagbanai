@@ -115,7 +115,10 @@ export default function OverviewTab({
         const s = await api.get<FieldDataStatus>(`/api/fields/${field.id}/data-status`);
         if (!active) return;
         setStatus(s);
-        if (s.status === "queued" || s.status === "processing") timer = setTimeout(poll, 6000);
+        // Keep polling through 'partial' too (HLS shown, S2 still processing) so the page
+        // auto-upgrades to full when Sentinel-2 finishes.
+        if (s.status === "queued" || s.status === "processing" || s.status === "partial")
+          timer = setTimeout(poll, 6000);
       } catch { /* keep last */ }
     }
     poll();

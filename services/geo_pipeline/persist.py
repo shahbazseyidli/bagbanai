@@ -89,6 +89,9 @@ def set_field_status(field_id: str, status: str, *, total: Optional[int] = None,
         args: list = [status, message]
         if status == "processing":
             sets += ["data_started_at=now()", "data_progress_done=0"]
+        if status == "partial":
+            # First (HLS) scenes are in — stamp the reveal time (keep the earliest if re-run).
+            sets.append("first_scene_at=coalesce(first_scene_at, now())")
         if status == "ready":
             sets += ["data_ready_at=now()", "data_eta_seconds=0"]
         if total is not None:
@@ -116,6 +119,19 @@ def insert_ready_notification(field_id: str, org_id: str, field_name: str) -> No
                values (%s,%s,'vegetation','data_ready','info',%s,%s,array['inapp'])""",
             (field_id, org_id, "Peyk məlumatı hazırdır",
              f"“{field_name}” sahəsi üçün peyk indeksləri və xəritə hazırdır."))
+        conn.commit()
+
+
+def insert_partial_notification(field_id: str, org_id: str, field_name: str) -> None:
+    """First (HLS 30m) scenes are ready to view while Sentinel-2 10m keeps processing (T0)."""
+    with psycopg.connect(_dsn()) as conn, conn.cursor() as cur:
+        cur.execute(
+            """insert into public.notifications
+                 (field_id, org_id, source, type, severity, title, body, delivered_channels)
+               values (%s,%s,'vegetation','data_partial','info',%s,%s,array['inapp'])""",
+            (field_id, org_id, "İlk peyk məlumatı hazırdır",
+             f"“{field_name}” sahəsi üçün NASA (30m) məlumatı hazırdır — "
+             f"Sentinel-2 (10m) daha dəqiq şəkil hazırlanır."))
         conn.commit()
 
 

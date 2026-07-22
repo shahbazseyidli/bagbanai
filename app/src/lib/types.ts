@@ -52,7 +52,7 @@ export interface Polygon {
   coordinates: number[][][];
 }
 
-export type DataStatus = "none" | "queued" | "processing" | "ready" | "failed";
+export type DataStatus = "none" | "queued" | "processing" | "partial" | "ready" | "failed";
 
 export interface FieldDetail extends Field {
   geom?: Polygon | null;

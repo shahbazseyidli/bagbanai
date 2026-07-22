@@ -292,13 +292,26 @@ def run_field_all(field_id: str, days_back: int = 120, max_cloud: int = 70,
             persist.set_field_status(field_id, "processing")
         hls = run_field(field_id, days_back=days_back, max_cloud=max_cloud,
                         write_rasters=write_rasters, track_status=False, trigger_advice=False)
+        # T0: as soon as HLS has usable scenes, reveal the field as 'partial' (map/İcmal show data
+        # within minutes) and notify — then keep processing S2 without resetting to 'processing'.
+        flipped_partial = False
+        if track_status and (hls.get("scenes_written", 0) or 0) > 0:
+            try:
+                persist.set_field_status(field_id, "partial")
+                persist.insert_partial_notification(
+                    field_id, field["org_id"], field.get("name") or "Sahə")
+                flipped_partial = True
+            except Exception as exc:  # noqa: BLE001 — reveal is best-effort, never fail the field
+                print(f"partial reveal skipped: {exc}", file=sys.stderr)
         s2: dict = {"ok": False, "scenes_written": 0}
         try:
-            # S2 runs second and is the longer pass → let it drive the progress bar/ETA. A raised
-            # error still can't strand the field: run_field_s2 may set 'failed', but the outer
-            # set_field_status('ready') below overwrites it (HLS data is kept regardless).
+            # S2 runs second and is the longer pass. If we already flipped to 'partial', keep that
+            # status (track_status=False) so the S2 pass doesn't reset the field to 'processing'
+            # and re-hide the HLS data. Otherwise (HLS found nothing) let S2 drive progress/ETA.
+            # A raised error still can't strand the field: the outer set_field_status('ready') wins.
             s2 = run_field_s2(field_id, days_back=days_back, max_cloud=max_cloud,
-                              write_rasters=write_rasters, track_status=track_status,
+                              write_rasters=write_rasters,
+                              track_status=(track_status and not flipped_partial),
                               trigger_advice=False)
         except Exception as exc:  # noqa: BLE001 — S2 must never fail the field; HLS is authoritative
             print(f"  ! S2 pass failed (HLS kept): {exc}", file=sys.stderr)
