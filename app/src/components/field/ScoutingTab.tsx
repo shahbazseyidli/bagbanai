@@ -5,6 +5,7 @@ import { MapPin, Plus } from "lucide-react";
 import { api, apiAsset } from "@/lib/api";
 import { t, type I18nKey } from "@/lib/i18n";
 import { ErrorNote, Field as FormField, Placeholder } from "@/components/ui";
+import PhotoDiagnose from "@/components/field/PhotoDiagnose";
 import type { Scouting } from "@/lib/types";
 
 const CATEGORIES = ["pest", "disease", "weed", "nutrient", "water", "damage", "other"] as const;
@@ -83,6 +84,8 @@ export default function ScoutingTab({ fieldId }: { fieldId: string }) {
 
   return (
     <div className="space-y-6">
+      <PhotoDiagnose fieldId={fieldId} />
+
       <form onSubmit={onSubmit} className="card space-y-3">
         <h3 className="font-semibold text-slate-800">{t("scout.add")}</h3>
         <div className="grid gap-3 sm:grid-cols-2">

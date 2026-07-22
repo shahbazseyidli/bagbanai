@@ -78,6 +78,33 @@ async def complete_structured(system: str, user: str, schema: Type[T],
     return resp.parsed_output, _usage(provider, model, resp)
 
 
+async def complete_vision_structured(system: str, user: str, images: list[tuple[str, bytes]],
+                                     schema: Type[T], max_tokens: int = 2000,
+                                     model: str | None = None) -> tuple[T, dict]:
+    """Structured output over one or more images (T5 photo diagnosis). `images` is a list of
+    (media_type, raw_bytes). Anthropic messages.parse with base64 image blocks + the text prompt."""
+    if not is_configured():
+        raise LLMUnavailable("no LLM key configured")
+    provider = (settings.llm_provider or "anthropic").lower()
+    if provider != "anthropic":
+        raise LLMUnavailable(f"provider {provider} not wired yet")
+    model = model or settings.llm_model or "claude-opus-4-8"
+    client = _anthropic_client()
+    import base64
+    content: list[dict] = [
+        {"type": "image", "source": {"type": "base64", "media_type": mt,
+                                     "data": base64.standard_b64encode(raw).decode("ascii")}}
+        for mt, raw in images
+    ]
+    content.append({"type": "text", "text": user})
+    resp = await client.messages.parse(
+        model=model, max_tokens=max_tokens, system=system,
+        messages=[{"role": "user", "content": content}], output_format=schema)
+    if resp.parsed_output is None:
+        raise LLMUnavailable("model returned no structured output")
+    return resp.parsed_output, _usage(provider, model, resp)
+
+
 async def complete_text(system: str, messages: list[dict],
                         max_tokens: int = 1500, model: str | None = None) -> tuple[str, dict]:
     """Free-form chat completion. `messages` is a list of {role, content}.

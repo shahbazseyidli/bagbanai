@@ -5,7 +5,7 @@ the geo deps to intersect the field with the Sentinel-2 tile grid. Field creatio
 computes area_ha/centroid/bbox and validates the polygon."""
 import json
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 
 from ..db import connection
 from ..deps import ROLES_WORKER, ROLES_WRITE, get_current_user_id, require_member, require_role
@@ -140,6 +140,55 @@ async def delete_field(field_id: str, user_id: str = Depends(get_current_user_id
         await require_role(conn, user_id, org_id, ROLES_WRITE)
         await conn.execute("delete from public.fields where id=$1::uuid", field_id)
     return {"ok": True}
+
+
+@router.post("/{field_id}/diagnose")
+async def diagnose_field(field_id: str, file: UploadFile = File(...),
+                         user_id: str = Depends(get_current_user_id)):
+    """Photo disease/pest diagnosis via Claude vision (T5). Business-tier + monthly quota."""
+    from .. import tiers
+    from ..ai import diagnose as diag
+    from ..ai import llm
+    if not llm.is_configured():
+        raise HTTPException(status_code=503, detail="ai_not_configured")
+    data = await file.read()
+    if not data:
+        raise HTTPException(status_code=400, detail="empty_file")
+    if len(data) > 8_000_000:
+        raise HTTPException(status_code=413, detail="file_too_large")
+    media = file.content_type or "image/jpeg"
+    if media not in ("image/jpeg", "image/png", "image/webp", "image/gif"):
+        raise HTTPException(status_code=415, detail="unsupported_media_type")
+    async with connection(user_id) as conn:
+        org_id = await _org_of_field(conn, field_id)
+        await require_member(conn, user_id, org_id)
+        tier = await tiers.org_tier(conn, org_id)
+        if tiers.limit(tier, "photo_per_month") <= 0:
+            raise HTTPException(status_code=402, detail="photo_not_in_plan")
+        if await tiers.month_count(conn, org_id, "photo") >= tiers.limit(tier, "photo_per_month"):
+            raise HTTPException(status_code=402, detail="photo_quota_exceeded")
+        try:
+            return await diag.diagnose_photo(conn, field_id, org_id, [(media, data)],
+                                             model=tiers.model_for(tier))
+        except llm.LLMUnavailable as exc:
+            raise HTTPException(status_code=503, detail=f"ai_unavailable: {exc}")
+
+
+@router.get("/{field_id}/diagnoses")
+async def list_diagnoses(field_id: str, user_id: str = Depends(get_current_user_id)):
+    """Recent photo diagnoses for the field (newest first)."""
+    async with connection(user_id) as conn:
+        org_id = await _org_of_field(conn, field_id)
+        await require_member(conn, user_id, org_id)
+        rows = await conn.fetch(
+            """select id, result, model_name, created_at from public.photo_diagnoses
+               where field_id=$1::uuid order by created_at desc limit 20""", field_id)
+    out = []
+    for r in rows:
+        res = r["result"]
+        out.append({"id": str(r["id"]), "created_at": r["created_at"].isoformat(),
+                    "result": json.loads(res) if isinstance(res, str) else res})
+    return {"diagnoses": out}
 
 
 @router.get("/{field_id}/data-status")
