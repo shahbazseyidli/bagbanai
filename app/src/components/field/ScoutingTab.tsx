@@ -6,6 +6,7 @@ import { api, apiAsset } from "@/lib/api";
 import { t, type I18nKey } from "@/lib/i18n";
 import { ErrorNote, Field as FormField, Placeholder } from "@/components/ui";
 import PhotoDiagnose from "@/components/field/PhotoDiagnose";
+import { queueScouting, flushQueue } from "@/lib/offlineQueue";
 import type { Scouting } from "@/lib/types";
 
 const CATEGORIES = ["pest", "disease", "weed", "nutrient", "water", "damage", "other"] as const;
@@ -25,6 +26,7 @@ export default function ScoutingTab({ fieldId }: { fieldId: string }) {
   const [file, setFile] = useState<File | null>(null);
   const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
   const [geoErr, setGeoErr] = useState("");
+  const [offlineMsg, setOfflineMsg] = useState("");
 
   async function load() {
     try {
@@ -36,6 +38,18 @@ export default function ScoutingTab({ fieldId }: { fieldId: string }) {
 
   useEffect(() => {
     void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fieldId]);
+
+  // Flush any offline-queued scouting notes on mount + whenever connectivity returns (T12).
+  useEffect(() => {
+    const flush = () =>
+      flushQueue((fid, body) =>
+        api.post("/api/scouting", { field_id: fid, ...body }).then(() => undefined),
+      ).then((n) => { if (n > 0) void load(); });
+    void flush();
+    window.addEventListener("online", flush);
+    return () => window.removeEventListener("online", flush);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fieldId]);
 
@@ -51,9 +65,32 @@ export default function ScoutingTab({ fieldId }: { fieldId: string }) {
     );
   }
 
+  function resetForm() {
+    setSeverity("");
+    setNote("");
+    setFile(null);
+    setCoords(null);
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    setOfflineMsg("");
+    const body = {
+      category,
+      severity: severity ? Number(severity) : undefined,
+      note: note || undefined,
+      lat: coords?.lat,
+      lon: coords?.lon,
+    };
+    // Offline: queue the (text) note now; it syncs automatically on reconnect (photos need a
+    // live upload, so they're skipped offline).
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      queueScouting({ fieldId, body, ts: Date.now() });
+      setOfflineMsg("Oflayn: qeyd yadda saxlanıldı — internet qayıdanda avtomatik göndəriləcək (foto oflayn əlavə olunmur).");
+      resetForm();
+      return;
+    }
     setBusy(true);
     try {
       let photos: string[] = [];
@@ -61,22 +98,18 @@ export default function ScoutingTab({ fieldId }: { fieldId: string }) {
         const up = await api.upload<{ path: string }>("/api/uploads", file);
         photos = [up.path];
       }
-      await api.post("/api/scouting", {
-        field_id: fieldId,
-        category,
-        severity: severity ? Number(severity) : undefined,
-        note: note || undefined,
-        lat: coords?.lat,
-        lon: coords?.lon,
-        photos,
-      });
-      setSeverity("");
-      setNote("");
-      setFile(null);
-      setCoords(null);
+      await api.post("/api/scouting", { field_id: fieldId, ...body, photos });
+      resetForm();
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("common.error"));
+      // A network drop mid-submit → fall back to the offline queue.
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        queueScouting({ fieldId, body, ts: Date.now() });
+        setOfflineMsg("Oflayn: qeyd növbəyə alındı.");
+        resetForm();
+      } else {
+        setError(err instanceof Error ? err.message : t("common.error"));
+      }
     } finally {
       setBusy(false);
     }
@@ -123,6 +156,9 @@ export default function ScoutingTab({ fieldId }: { fieldId: string }) {
           </div>
         </div>
         <ErrorNote message={error} />
+        {offlineMsg && (
+          <p className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800">{offlineMsg}</p>
+        )}
         <button className="btn-primary" type="submit" disabled={busy}>
           <Plus className="h-4 w-4" /> {busy ? t("common.saving") : t("common.add")}
         </button>
