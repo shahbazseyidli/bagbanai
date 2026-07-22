@@ -6,8 +6,8 @@
 > `CHANGELOG.md`. Qayda: UI Azərbaycanca; kod/SQL/commit İngiliscə; Supabase yox (self-hosted PG16 +
 > öz JWT); main-ə push = **prod deploy** (hər push-dan əvvəl istifadəçidən təsdiq).
 >
-> **Son yenilənmə:** 2026-07-22 — **7/12 task canlıda:** T0 ✅ T4 ✅ T13 🚀 T1 ✅ T2 ✅ T6 ✅ T5 ✅.
-> Qalır: T8 · T9 · T10 · T11 · T12. E+T tək backlog (§C). Gap-scan `wf_c498734d`, kod ilə yoxlanmış.
+> **Son yenilənmə:** 2026-07-22 — **8/12 task canlıda:** T0 ✅ T4 ✅ T13 🚀 T1 ✅ T2 ✅ T6 ✅ T5 ✅
+> T8 ✅. Qalır: T9 · T10 · T11 · T12. E+T tək backlog (§C). Gap-scan `wf_c498734d`, kod ilə yoxlanmış.
 
 ## Status kodu (hər task bitəndə bu sətri yenilə)
 
@@ -78,7 +78,7 @@ Faza 1 tam canlı + üstünə düşən sprintlər. Detal `CHANGELOG.md` [1.0.0]�
 | **T5** | Foto diaqnoz (Claude vision → scouting) | **E7** / C1 | ai/vision | M | 🔴 | yox (LLM aktiv) | ✅ 84c4065 |
 | **T6** | Baseline/anomaliya aşkarı (fenologiya-avto təxirə) | Faza2 | geo/analytics | M | 🟡 | T4 | ✅ 5c10517 |
 | **T7** | PDF/Excel hesabatlar | §17 | backend/reports | L | 🟡 | yox | ⬜ |
-| **T8** | Tam FAO-56 suvarma cədvəli | **E5** / B2 | ai/weather | L | 🟡 | T4, E1 | ⬜ |
+| **T8** | Tam FAO-56 suvarma cədvəli | **E5** / B2 | ai/weather | L | 🟡 | T4, E1 | ✅ a1d4476 |
 | **T9** | Pest-risk engine (GDD + leaf-wetness) | **E4** / B1 | ai/model | L | 🟡 | T4, T1 (data U6) | ⬜ |
 | **T10** | D2 benchmark hardening (p10/50/90 + k-anon n≥5 + consent) | **E10** / D2 | analytics | M | 🟡 | yox | ⬜ |
 | **T11** | Gübrə plan engine (N-P-K balans + splits) | **E9** / C7 | ai/agro | L | 🟡 | AZ katalog | ⬜ |
