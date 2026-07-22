@@ -3,6 +3,13 @@
 Bütün əhəmiyyətli dəyişikliklər burada qeyd olunur. Format [Keep a Changelog](https://keepachangelog.com/),
 versiyalar [SemVer](https://semver.org/).
 
+## [1.4.0] — 2026-07-22 — Sprint 0-1: partial reveal (T0) + GDD (T4) + rayon dropdown (T13) (CANLI)
+
+### Added (CANLI, main)
+- **T0 — İlk-NDVI "partial" göstərmə:** sahə yaradılanda HLS səhnələri gələn kimi `data_status='partial'` + `first_scene_at` (migration 0015) + "İlk peyk məlumatı hazırdır" bildiriş; Sentinel-2 pass davam edərkən status 'partial' qalır (tam-ekran banner yox — data dərhal görünür), sonra avtomatik 'ready'. Canlı doğrulandı (demo sahə partial → ready).
+- **T4 — GDD toplama modeli:** Open-Meteo archive tmin/tmax → günlük + kumulyativ Growing-Degree-Days mövsüm başından; baza temp `crop_thresholds.gdd_base_c`-dən (migration 0017 `field_gdd_daily`, `ai/gdd.py`, `GET /api/fields/{id}/gdd`, günlük weather cron-a qoşuldu). Fenologiya (T6) / FAO-56 (T8) / pest (T9) üçün təməl. Canlı: demo sahə GDD=1157.9 (198 gün, base 7°C).
+- **T13 — MetadataTab rayon dropdown:** sahə redaktə tabında `region` sərbəst mətn → ölkə/rayon `<select>` (regions.ts təkrar istifadə).
+
 ## [1.3.0] — 2026-07-21 — Ayrı peyk tabları + İcmal insight + fırça + upgrade CTA (CANLI, main `ac1695a`)
 
 ### Added (CANLI, main)
