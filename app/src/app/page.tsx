@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Leaf, Satellite, Calculator, ClipboardList, Plus, MapPin } from "lucide-react";
@@ -11,13 +11,25 @@ import { ErrorNote, Placeholder, Spinner } from "@/components/ui";
 import PricingTable from "@/components/PricingTable";
 import TelegramConnect from "@/components/TelegramConnect";
 import { ListSkeleton } from "@/components/Skeleton";
+import { useUiV2 } from "@/lib/uiFlag";
+import TodayHome from "@/components/home/TodayHome";
 import type { Farm, Field, Org } from "@/lib/types";
 
 export default function HomePage() {
+  // useUiV2 reads ?ui= via useSearchParams, which needs a Suspense boundary under the app router.
+  return (
+    <Suspense fallback={<Spinner />}>
+      <HomeInner />
+    </Suspense>
+  );
+}
+
+function HomeInner() {
   const { user, loading } = useAuth();
+  const v2 = useUiV2();
   if (loading) return <Spinner />;
   if (!user) return <Landing />;
-  return <Dashboard />;
+  return v2 ? <TodayHome /> : <Dashboard />;
 }
 
 function Landing() {

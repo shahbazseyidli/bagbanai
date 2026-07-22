@@ -95,9 +95,13 @@ function ChangeCardView({ c }: { c: ChangeCard }) {
 export default function OverviewTab({
   field,
   onNavigate,
+  compact = false,
 }: {
   field: FieldDetail;
   onNavigate?: (tab: TabTarget) => void;
+  // In the v2 map-sheet the field's raster already fills the full-bleed map behind the sheet, so
+  // the hero snapshot map here would be redundant — hide it and let the verdict lead.
+  compact?: boolean;
 }) {
   const [insights, setInsights] = useState<InsightsResponse | null>(null);
   const [norms, setNorms] = useState<IndexNorms | null>(null);
@@ -223,7 +227,7 @@ export default function OverviewTab({
         <>
           {/* HERO — headline verdict + NDVI sparkline + latest snapshot */}
           <div className={`overflow-hidden rounded-2xl ring-1 ${hero.ring} ${hero.bg}`}>
-            <div className="grid gap-0 md:grid-cols-[1.4fr_1fr]">
+            <div className={`grid gap-0 ${compact ? "" : "md:grid-cols-[1.4fr_1fr]"}`}>
               <div className="p-5 sm:p-6">
                 <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-500">
                   <Leaf className={`h-4 w-4 ${hero.icon}`} />
@@ -277,7 +281,7 @@ export default function OverviewTab({
                 )}
               </div>
 
-              {heroUrl && (
+              {heroUrl && !compact && (
                 <div className="relative border-t border-white/60 p-3 md:border-l md:border-t-0">
                   <DisplayMap polygon={field.geom} rasterUrl={heroUrl} heightClass="h-52 sm:h-60" />
                 </div>

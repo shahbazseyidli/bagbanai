@@ -9,6 +9,8 @@ import { t, type I18nKey } from "@/lib/i18n";
 import { ErrorNote, Spinner } from "@/components/ui";
 import OverviewTab from "@/components/field/OverviewTab";
 import SatelliteTab from "@/components/field/SatelliteTab";
+import FieldMapSheet from "@/components/field/FieldMapSheet";
+import { useUiV2 } from "@/lib/uiFlag";
 import AiTab from "@/components/field/AiTab";
 import MetadataTab from "@/components/field/MetadataTab";
 import FertilizerCard from "@/components/field/FertilizerCard";
@@ -62,6 +64,7 @@ function FieldDetailInner() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { user, loading } = useAuth();
+  const v2 = useUiV2(); // D2.3 map-first presentation behind ?ui=v2
 
   const [field, setField] = useState<FieldDetail | null>(null);
   const [error, setError] = useState("");
@@ -153,156 +156,188 @@ function FieldDetailInner() {
   if (error) return <ErrorNote message={error} />;
   if (!field) return <Spinner />;
 
-  return (
-    <div className="space-y-6">
-      {undoDeleted && (
-        <div className="fixed inset-x-0 bottom-4 z-50 mx-auto flex max-w-md items-center justify-between gap-3 rounded-xl bg-ink px-4 py-3 text-white shadow-lg">
-          <span className="text-sm">“{field.name}” silindi.</span>
-          <button
-            onClick={onUndoDelete}
-            className="min-h-11 rounded-lg bg-white/20 px-4 py-1.5 text-sm font-bold hover:bg-white/30"
-          >
-            Geri qaytar
-          </button>
-        </div>
+  // Field detail is presented two ways from the SAME state/handlers: the classic stacked layout,
+  // and (behind ?ui=v2) the D2.3 map-first sheet. Build each piece once, then compose per branch.
+  const undoBar = undoDeleted ? (
+    <div className="fixed inset-x-0 bottom-4 z-50 mx-auto flex max-w-md items-center justify-between gap-3 rounded-xl bg-ink px-4 py-3 text-white shadow-lg">
+      <span className="text-sm">“{field.name}” silindi.</span>
+      <button
+        onClick={onUndoDelete}
+        className="min-h-11 rounded-lg bg-white/20 px-4 py-1.5 text-sm font-bold hover:bg-white/30"
+      >
+        Geri qaytar
+      </button>
+    </div>
+  ) : null;
+
+  const titleRow = (
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">{field.name}</h1>
+        <p className="mt-1 text-sm text-slate-600">
+          {field.area_ha?.toFixed(2)} {t("field.ha")}
+        </p>
+      </div>
+      {!editing && (
+        <button
+          onClick={openEdit}
+          className="inline-flex min-h-12 items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
+        >
+          <Settings className="h-4 w-4" /> Redaktə
+        </button>
       )}
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">{field.name}</h1>
-          <p className="mt-1 text-sm text-slate-600">
-            {field.area_ha?.toFixed(2)} {t("field.ha")}
-          </p>
-        </div>
-        {!editing && (
-          <button
-            onClick={openEdit}
-            className="inline-flex min-h-12 items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
-          >
-            <Settings className="h-4 w-4" /> Redaktə
-          </button>
-        )}
+    </div>
+  );
+
+  // Field settings/edit panel — rename + delete live here (delete no longer in the header).
+  const editPanel = (
+    <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-slate-800">Sahə ayarları</h3>
+        <button onClick={() => setEditing(false)} className="text-sm text-slate-500 hover:text-slate-700">
+          Bağla
+        </button>
       </div>
 
-      {/* Field settings/edit panel — rename + delete live here (delete no longer in the header). */}
-      {editing && (
-        <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-slate-800">Sahə ayarları</h3>
-            <button onClick={() => setEditing(false)} className="text-sm text-slate-500 hover:text-slate-700">
-              Bağla
+      <div className="mt-3">
+        <label className="text-xs font-medium text-slate-500">Sahənin adı</label>
+        <div className="mt-1 flex gap-2">
+          <input
+            className="input flex-1"
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+          />
+          <button
+            onClick={onSaveName}
+            disabled={saving || !editName.trim() || editName.trim() === field.name}
+            className="btn-primary shrink-0 disabled:opacity-50"
+          >
+            {saving ? "Saxlanır…" : "Saxla"}
+          </button>
+        </div>
+        <p className="mt-1 text-[11px] text-slate-400">
+          Məhsul növü, torpaq və s. dəyişikliklər üçün “Sahə haqqında məlumat” tabına keçin.
+        </p>
+      </div>
+
+      <div className="mt-4 border-t border-slate-200 pt-4">
+        {confirmDel ? (
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+            <span className="text-sm text-red-700">Sahə silinsin? Silindikdən sonra qısa müddət ərzində geri qaytara bilərsiniz.</span>
+            <button
+              onClick={onDelete}
+              disabled={deleting}
+              className="rounded bg-red-600 px-3 py-1 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+            >
+              {deleting ? "Silinir…" : "Bəli, sil"}
+            </button>
+            <button onClick={() => setConfirmDel(false)} disabled={deleting} className="rounded px-2 py-1 text-sm text-slate-600 hover:text-slate-800">
+              Ləğv et
             </button>
           </div>
+        ) : (
+          <button
+            onClick={() => setConfirmDel(true)}
+            className="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+          >
+            Sahəni sil
+          </button>
+        )}
+      </div>
+    </div>
+  );
 
-          <div className="mt-3">
-            <label className="text-xs font-medium text-slate-500">Sahənin adı</label>
-            <div className="mt-1 flex gap-2">
-              <input
-                className="input flex-1"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-              />
+  const activeGroup = GROUP_OF[tab];
+  const groupTabs = GROUPS.find((g) => g.key === activeGroup)!.tabs;
+  const tabNav = (
+    <div className="space-y-2">
+      {/* Primary: 3 farmer intents */}
+      <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
+        {GROUPS.map((g) => (
+          <button
+            key={g.key}
+            onClick={() => setTab(g.tabs[0])}
+            aria-current={activeGroup === g.key}
+            className={`min-h-11 flex-1 rounded-lg px-3 py-2 text-sm font-bold ${
+              activeGroup === g.key ? "bg-white text-emerald-800 shadow-sm" : "text-slate-600"
+            }`}
+          >
+            {g.label}
+          </button>
+        ))}
+      </div>
+      {/* Secondary: this group's tabs (hidden when the group has just one) */}
+      {groupTabs.length > 1 && (
+        <div className="flex flex-nowrap gap-1 overflow-x-auto border-b border-slate-200">
+          {groupTabs.map((tk) => {
+            const tb = TABS.find((x) => x.key === tk)!;
+            return (
               <button
-                onClick={onSaveName}
-                disabled={saving || !editName.trim() || editName.trim() === field.name}
-                className="btn-primary shrink-0 disabled:opacity-50"
+                key={tk}
+                onClick={() => setTab(tk)}
+                className={`-mb-px min-h-11 shrink-0 whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium ${
+                  tab === tk
+                    ? "border-emerald-600 text-emerald-700"
+                    : "border-transparent text-slate-600 hover:text-slate-800"
+                }`}
               >
-                {saving ? "Saxlanır…" : "Saxla"}
+                {t(tb.labelKey)}
               </button>
-            </div>
-            <p className="mt-1 text-[11px] text-slate-400">
-              Məhsul növü, torpaq və s. dəyişikliklər üçün “Sahə haqqında məlumat” tabına keçin.
-            </p>
-          </div>
-
-          <div className="mt-4 border-t border-slate-200 pt-4">
-            {confirmDel ? (
-              <div className="flex flex-wrap items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
-                <span className="text-sm text-red-700">Sahə silinsin? Silindikdən sonra qısa müddət ərzində geri qaytara bilərsiniz.</span>
-                <button
-                  onClick={onDelete}
-                  disabled={deleting}
-                  className="rounded bg-red-600 px-3 py-1 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
-                >
-                  {deleting ? "Silinir…" : "Bəli, sil"}
-                </button>
-                <button onClick={() => setConfirmDel(false)} disabled={deleting} className="rounded px-2 py-1 text-sm text-slate-600 hover:text-slate-800">
-                  Ləğv et
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setConfirmDel(true)}
-                className="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
-              >
-                Sahəni sil
-              </button>
-            )}
-          </div>
+            );
+          })}
         </div>
       )}
+    </div>
+  );
 
-      {(() => {
-        const activeGroup = GROUP_OF[tab];
-        const groupTabs = GROUPS.find((g) => g.key === activeGroup)!.tabs;
-        return (
-          <div className="space-y-2">
-            {/* Primary: 3 farmer intents */}
-            <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
-              {GROUPS.map((g) => (
-                <button
-                  key={g.key}
-                  onClick={() => setTab(g.tabs[0])}
-                  aria-current={activeGroup === g.key}
-                  className={`min-h-11 flex-1 rounded-lg px-3 py-2 text-sm font-bold ${
-                    activeGroup === g.key ? "bg-white text-emerald-800 shadow-sm" : "text-slate-600"
-                  }`}
-                >
-                  {g.label}
-                </button>
-              ))}
-            </div>
-            {/* Secondary: this group's tabs (hidden when the group has just one) */}
-            {groupTabs.length > 1 && (
-              <div className="flex flex-nowrap gap-1 overflow-x-auto border-b border-slate-200">
-                {groupTabs.map((tk) => {
-                  const tb = TABS.find((x) => x.key === tk)!;
-                  return (
-                    <button
-                      key={tk}
-                      onClick={() => setTab(tk)}
-                      className={`-mb-px min-h-11 shrink-0 whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium ${
-                        tab === tk
-                          ? "border-emerald-600 text-emerald-700"
-                          : "border-transparent text-slate-600 hover:text-slate-800"
-                      }`}
-                    >
-                      {t(tb.labelKey)}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        );
-      })()}
+  const tabContent = (
+    <div>
+      {tab === "overview" && <OverviewTab field={field} onNavigate={(x) => setTab(x)} compact={v2} />}
+      {tab === "sentinel2" && <SatelliteTab field={field} sensor="S2" />}
+      {tab === "nasa" && <SatelliteTab field={field} sensor="HLS" />}
+      {tab === "ai" && (
+        <div className="space-y-6">
+          <AiTab fieldId={field.id} />
+          <PhotoDiagnose fieldId={field.id} />
+          <FertilizerCard fieldId={field.id} />
+        </div>
+      )}
+      {tab === "metadata" && <MetadataTab fieldId={field.id} />}
+      {tab === "scouting" && <ScoutingTab fieldId={field.id} />}
+      {tab === "tasks" && <TasksTab fieldId={field.id} orgId={field.org_id} />}
+      {tab === "operations" && <OperationsTab fieldId={field.id} />}
+      {tab === "yields" && <YieldsTab fieldId={field.id} />}
+    </div>
+  );
 
-      <div>
-        {tab === "overview" && <OverviewTab field={field} onNavigate={(x) => setTab(x)} />}
-        {tab === "sentinel2" && <SatelliteTab field={field} sensor="S2" />}
-        {tab === "nasa" && <SatelliteTab field={field} sensor="HLS" />}
-        {tab === "ai" && (
-          <div className="space-y-6">
-            <AiTab fieldId={field.id} />
-            <PhotoDiagnose fieldId={field.id} />
-            <FertilizerCard fieldId={field.id} />
-          </div>
-        )}
-        {tab === "metadata" && <MetadataTab fieldId={field.id} />}
-        {tab === "scouting" && <ScoutingTab fieldId={field.id} />}
-        {tab === "tasks" && <TasksTab fieldId={field.id} orgId={field.org_id} />}
-        {tab === "operations" && <OperationsTab fieldId={field.id} />}
-        {tab === "yields" && <YieldsTab fieldId={field.id} />}
-      </div>
+  if (v2) {
+    return (
+      <>
+        {undoBar}
+        <FieldMapSheet
+          field={field}
+          onCamera={() => setTab("ai")}
+          header={
+            <>
+              {titleRow}
+              {editing && <div className="mt-3">{editPanel}</div>}
+            </>
+          }
+          tabNav={tabNav}
+        >
+          {tabContent}
+        </FieldMapSheet>
+      </>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {undoBar}
+      {titleRow}
+      {editing && editPanel}
+      {tabNav}
+      {tabContent}
     </div>
   );
 }
