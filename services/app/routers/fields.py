@@ -186,6 +186,59 @@ async def diagnose_field(field_id: str, file: UploadFile = File(...),
             raise HTTPException(status_code=503, detail=f"ai_unavailable: {exc}")
 
 
+@router.post("/{field_id}/soil-lab")
+async def upload_soil_lab(field_id: str, file: UploadFile = File(...),
+                          user_id: str = Depends(get_current_user_id)):
+    """Lab soil-analysis OCR (T24): vision-parse an uploaded soil-report image into structured
+    values, store it, and promote it to the field's soil passport (lab > SoilGrids). Business tier
+    (shares the vision feature gate); AI must be configured."""
+    from .. import tiers
+    from ..ai import llm, soil_lab
+    if not llm.is_configured():
+        raise HTTPException(status_code=503, detail="ai_not_configured")
+    data = await file.read()
+    if not data:
+        raise HTTPException(status_code=400, detail="empty_file")
+    if len(data) > 8_000_000:
+        raise HTTPException(status_code=413, detail="file_too_large")
+    media = file.content_type or "image/jpeg"
+    if media not in ("image/jpeg", "image/png", "image/webp", "image/gif"):
+        raise HTTPException(status_code=415, detail="unsupported_media_type")
+    async with connection(user_id) as conn:
+        org_id = await _org_of_field(conn, field_id)
+        await require_member(conn, user_id, org_id)
+        tier = await tiers.org_tier(conn, org_id)
+        if tiers.limit(tier, "photo_per_month") <= 0:  # vision features = business tier
+            raise HTTPException(status_code=402, detail="soil_lab_not_in_plan")
+        try:
+            return await soil_lab.parse_and_store(conn, field_id, org_id, [(media, data)],
+                                                  model=tiers.model_for(tier))
+        except llm.LLMUnavailable as exc:
+            raise HTTPException(status_code=503, detail=f"ai_unavailable: {exc}")
+
+
+@router.get("/{field_id}/soil-lab")
+async def list_soil_lab(field_id: str, user_id: str = Depends(get_current_user_id)):
+    """Recent lab soil analyses for the field (newest first)."""
+    async with connection(user_id) as conn:
+        org_id = await _org_of_field(conn, field_id)
+        await require_member(conn, user_id, org_id)
+        rows = await conn.fetch(
+            """select id, source, ph, organic_matter_pct, nitrogen, phosphorus, potassium,
+                      texture, ec, caco3_pct, notes, confidence, created_at
+               from public.soil_profiles where field_id=$1::uuid
+               order by created_at desc limit 10""", field_id)
+    def f(v):
+        return float(v) if v is not None else None
+    return {"profiles": [
+        {"id": str(r["id"]), "source": r["source"], "ph": f(r["ph"]),
+         "organic_matter_pct": f(r["organic_matter_pct"]), "nitrogen": r["nitrogen"],
+         "phosphorus": r["phosphorus"], "potassium": r["potassium"], "texture": r["texture"],
+         "ec": f(r["ec"]), "caco3_pct": f(r["caco3_pct"]), "notes": r["notes"],
+         "confidence": r["confidence"], "created_at": r["created_at"].isoformat()}
+        for r in rows]}
+
+
 @router.get("/{field_id}/fertilizer")
 async def fertilizer_plan(field_id: str, user_id: str = Depends(get_current_user_id)):
     """Removal-based N-P-K fertilizer plan + stage splits (T11). Business tier."""

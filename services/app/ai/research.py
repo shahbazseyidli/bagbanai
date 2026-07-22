@@ -181,7 +181,13 @@ async def research_field(conn, field_id: str, blocks: Optional[list[str]] = None
     written.append("field_context")
 
     # --- FIELD structured: SoilGrids → soil_profile (keyless) ---
-    if wants("soil_profile"):
+    # T24: a lab soil analysis takes precedence over SoilGrids — don't clobber it.
+    lab_soil = bool(await conn.fetchval(
+        "select 1 from public.soil_profiles where field_id=$1::uuid and source='lab' limit 1",
+        field_id)) if wants("soil_profile") else False
+    if wants("soil_profile") and lab_soil:
+        written.append("soil_profile:lab")
+    if wants("soil_profile") and not lab_soil:
         try:
             from .sources import soilgrids
             from . import soil as soil_calc

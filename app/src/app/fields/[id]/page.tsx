@@ -15,6 +15,7 @@ import AiTab from "@/components/field/AiTab";
 import MetadataTab from "@/components/field/MetadataTab";
 import FertilizerCard from "@/components/field/FertilizerCard";
 import PhotoDiagnose from "@/components/field/PhotoDiagnose";
+import SoilLabUpload from "@/components/field/SoilLabUpload";
 import ScoutingTab from "@/components/field/ScoutingTab";
 import TasksTab from "@/components/field/TasksTab";
 import OperationsTab from "@/components/field/OperationsTab";
@@ -299,6 +300,7 @@ function FieldDetailInner() {
         <div className="space-y-6">
           <AiTab fieldId={field.id} />
           <PhotoDiagnose fieldId={field.id} />
+          <SoilLabUpload fieldId={field.id} />
           <FertilizerCard fieldId={field.id} />
         </div>
       )}
