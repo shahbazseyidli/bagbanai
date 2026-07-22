@@ -66,17 +66,21 @@ export default function Nav() {
           )}
         </nav>
 
-        {/* Mobile: notification bell must be visible here — farmers' primary device (D0.2). */}
+        {/* Mobile: signed-in users navigate via the bottom nav (D2.1) — only the bell stays up top.
+            Signed-out visitors still get the hamburger for login/signup/pricing. */}
         <div className="flex items-center gap-1 md:hidden">
-          {user && <NotificationBell />}
-          <button
-            className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-700 hover:bg-emerald-50"
-            onClick={() => setOpen((v) => !v)}
-            aria-label={open ? "Menyunu bağla" : "Menyu"}
-            aria-expanded={open}
-          >
-            {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
+          {user ? (
+            <NotificationBell />
+          ) : (
+            <button
+              className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-700 hover:bg-emerald-50"
+              onClick={() => setOpen((v) => !v)}
+              aria-label={open ? "Menyunu bağla" : "Menyu"}
+              aria-expanded={open}
+            >
+              {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
+          )}
         </div>
       </div>
 

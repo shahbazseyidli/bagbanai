@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 import Nav from "@/components/Nav";
+import BottomNav from "@/components/BottomNav";
 import PwaRegister from "@/components/PwaRegister";
 
 // D1.2 — Inter Variable, self-hosted by Next; latin-ext covers Azerbaijani ə/ğ/ı/İ/ş/ç/ö/ü.
@@ -30,7 +31,8 @@ export default function RootLayout({
         <AuthProvider>
           <PwaRegister />
           <Nav />
-          <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+          <main className="mx-auto max-w-6xl px-4 py-6 pb-24 md:pb-6">{children}</main>
+          <BottomNav />
         </AuthProvider>
       </body>
     </html>
