@@ -117,7 +117,7 @@ bagbanai/
 ## Açıq işlər / TODO → **tək izləyici: `docs/ROADMAP.md`**
 Bütün gələcək tasklar (E0–E12 + platform mühəndislik + istifadəçidə bloklanan) statusla **`docs/ROADMAP.md`**-dədir (status kodu ⬜🔨🚀✅⏳❌). Task bitəndə statusu orada yenilə — burada təkrarlama. Gap-scan (kod-yoxlamalı) `wf_c498734d`, 2026-07-21.
 
-**Ən yüksək prioritet indi:** T0 partial-NDVI göstərmə · T1 qayda mühərriki + dispatcher · T4 GDD modeli · T5 foto diaqnoz (vision). **Sərt deadline-lar:** ⚠️ **EARTHDATA_TOKEN 2026-08-30 bitir** (yenilə, yoxsa HLS 401) · ⚠️ **EPPO API 2026-09-01 bağlanır** · **LLM açar rotate** (bir dəfə açıq görünüb).
+**2026-07-22: T0-T13 seçilmiş 12 task CANLI ✅** (T0/T1/T2/T4/T5/T6/T8/T9/T10/T11/T12/T13 — partial-reveal, rule engine, veg rules, GDD, foto vision, baseline, FAO-56, pest-risk, benchmark k-anon, gübrə, PWA). Migrations 0015→0023. Detal: `docs/ROADMAP.md` §C + memory [[v21-feature-expansion-plan]]. **Növbəti dalğa:** istifadəçi-bloklu §B + aşağı-prioritet T15-T26. **Sərt deadline-lar:** ⚠️ **EARTHDATA_TOKEN 2026-08-30 bitir** (yenilə, yoxsa HLS 401) · ⚠️ **EPPO API 2026-09-01 bağlanır** · **LLM açar rotate** (bir dəfə açıq görünüb).
 
 **İstifadəçi addımı gözləyən (ROADMAP §B):** Email/OTP (Resend açarı+DNS) · panel.agradex.com (CF A-record) · E3 Telegram bot token · EPPO_TOKEN · billing PSP · 2FA/firewall · Xudat crop_type=fındıq (M5/E0 kalibrasiya görünsün).
 
