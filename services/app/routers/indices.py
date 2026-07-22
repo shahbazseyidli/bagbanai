@@ -164,6 +164,24 @@ async def summary(field_id: str, sensor: str = Query("s2"),
     }
 
 
+@router.get("/{field_id}/water-balance")
+async def water_balance(field_id: str, user_id: str = Depends(get_current_user_id)):
+    """FAO-56 daily soil-water balance for the field (T8) — the 'Hesablamanı gör' transparency table."""
+    async with connection(user_id) as conn:
+        org_id = await _org_of_field(conn, field_id)
+        await require_member(conn, user_id, org_id)
+        rows = await conn.fetch(
+            """select date, et0_mm, kc, etc_mm, precip_mm, depletion_mm, raw_mm, taw_mm, reco_mm
+               from public.field_water_balance where field_id=$1::uuid order by date""", field_id)
+    def f(v):
+        return float(v) if v is not None else None
+    return {"days": [
+        {"date": r["date"].isoformat(), "et0": f(r["et0_mm"]), "kc": f(r["kc"]),
+         "etc": f(r["etc_mm"]), "precip": f(r["precip_mm"]), "depletion": f(r["depletion_mm"]),
+         "raw": f(r["raw_mm"]), "taw": f(r["taw_mm"]), "reco_mm": f(r["reco_mm"])}
+        for r in rows]}
+
+
 @router.get("/{field_id}/gdd")
 async def gdd(field_id: str, user_id: str = Depends(get_current_user_id)):
     """Growing-Degree-Days for the field's current season (T4): latest cumulative + daily series."""

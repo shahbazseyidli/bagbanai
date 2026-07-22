@@ -59,7 +59,11 @@ export default function KnowledgePassport({ fieldId }: { fieldId: string }) {
   const soilC = soil?.content as
     | (Record<string, { value: number; unit: string }> & { water_params?: { taw_mm: number; raw_mm: number } })
     | undefined;
-  const waterC = water?.content as { net_irrigation_mm?: number; recommendation?: string } | undefined;
+  const waterC = water?.content as {
+    net_irrigation_mm?: number;
+    recommendation?: string;
+    fao56?: { reco_mm?: number | null; reco_date?: string | null; ndmi_mismatch?: string | null };
+  } | undefined;
   const sprayC = spray?.content as
     | { best_window?: { start: string; end: string } | null; alerts?: { type: string; severity: string; detail: string }[] }
     | undefined;
@@ -135,8 +139,16 @@ export default function KnowledgePassport({ fieldId }: { fieldId: string }) {
           <div className="rounded-lg border border-slate-200 p-3">
             <div className="mb-1 flex items-center gap-1.5 text-sm font-medium text-slate-700">
               <Droplets className="h-4 w-4 text-sky-600" /> Su tələbatı (7 gün)
+              {waterC.fao56 && (
+                <span className="rounded-full bg-sky-50 px-1.5 py-0.5 text-[10px] font-medium text-sky-700">FAO-56</span>
+              )}
             </div>
             <p className="text-xs text-slate-600">{waterC.recommendation}</p>
+            {waterC.fao56?.ndmi_mismatch && (
+              <p className="mt-1 flex items-start gap-1 rounded bg-amber-50 p-1.5 text-[11px] text-amber-800">
+                <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" /> {waterC.fao56.ndmi_mismatch}
+              </p>
+            )}
             <Sources sources={water?.sources} />
           </div>
         )}

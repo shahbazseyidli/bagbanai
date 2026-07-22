@@ -63,6 +63,18 @@ async def refresh_field(conn, field_id: str, *, base: str = "https://api.open-me
 
     content = {"et0_total_mm": et0, "precip_total_mm": precip, "kc": kc, "etc_mm": etc,
                "net_irrigation_mm": net_need, "recommendation": rec, "horizon_days": 7}
+    # T8: upgrade the coarse net-need to a full FAO-56 daily depletion balance when the field has a
+    # soil profile (TAW/RAW). Falls back to the 7-day net-need above when soil data is absent.
+    try:
+        from . import irrigation
+        bal = await irrigation.compute_balance(conn, field_id, org_id, row["crop_type"])
+        if bal.get("ok"):
+            content["fao56"] = {k: bal.get(k) for k in
+                                ("reco_mm", "reco_date", "recommendation", "ndmi_mismatch",
+                                 "taw_mm", "raw_mm", "kc")}
+            content["recommendation"] = bal["recommendation"]
+    except Exception:  # noqa: BLE001 — irrigation upgrade is best-effort
+        pass
     await kb.upsert_field_block(
         conn, field_id, org_id, "water_requirements", content, [res.source],
         kb.input_hash({"et0": et0, "precip": precip, "kc": kc}), confidence=0.8)
