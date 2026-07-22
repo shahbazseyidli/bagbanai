@@ -219,7 +219,9 @@ function Dashboard() {
 
       <ErrorNote message={error} />
 
-      {/* Org selector */}
+      {/* Org selector — hidden for single-org smallholders (D0.4); org management moves to
+          "Daha çox" in D2/D4. */}
+      {orgs.length > 1 && (
       <div className="card">
         <div className="flex flex-wrap items-end gap-3">
           <div className="min-w-48 flex-1">
@@ -260,6 +262,7 @@ function Dashboard() {
           </form>
         )}
       </div>
+      )}
 
       {/* Farms + fields */}
       <div className="flex items-center justify-between">

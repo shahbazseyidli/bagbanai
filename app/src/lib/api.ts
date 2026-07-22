@@ -99,6 +99,41 @@ export const api = {
   },
 };
 
+// Backend detail-code → plain Azerbaijani (D0.5). Keeps raw "HTTP 500"/snake_case off the screen.
+const ERR_AZ: Record<string, string> = {
+  email_taken: "Bu email artıq qeydiyyatdadır.",
+  invalid_credentials: "Email və ya parol yanlışdır.",
+  email_not_verified: "Email təsdiqlənməyib — kodu daxil edin.",
+  invalid_otp: "Kod yanlışdır.",
+  otp_expired: "Kodun vaxtı bitib — yenidən göndərin.",
+  too_many_attempts: "Çox cəhd oldu — bir azdan yenidən yoxlayın.",
+  field_limit_reached: "Paketinizin sahə limiti doldu — paketi yüksəldin.",
+  field_too_small: "Sahə çox kiçikdir (minimum ~0.05 ha). Sərhədi yenidən çəkin.",
+  not_a_polygon: "Sahə sərhədi düzgün deyil.",
+  invalid_polygon_self_intersection: "Sərhəd özü ilə kəsişir — yenidən çəkin.",
+  need_at_least_3_vertices: "Ən azı 3 nöqtə lazımdır.",
+  farm_not_found: "Ferma tapılmadı.",
+  field_not_found: "Sahə tapılmadı.",
+  photo_not_in_plan: "Foto diaqnoz Paket 3-dədir.",
+  photo_quota_exceeded: "Bu ay foto diaqnoz limiti doldu.",
+  ai_not_configured: "AI hazırda əlçatan deyil.",
+  unauthorized: "Sessiya bitib — yenidən daxil olun.",
+};
+
+/** Turn any thrown error into a friendly Azerbaijani message. */
+export function azError(err: unknown): string {
+  if (err instanceof ApiError) {
+    if (ERR_AZ[err.detail]) return ERR_AZ[err.detail];
+    if (err.status === 401) return "Sessiya bitib — yenidən daxil olun.";
+    if (err.status === 403) return "Bu əməliyyata icazəniz yoxdur.";
+    if (err.status === 404) return "Tapılmadı.";
+    if (err.status >= 500) return "Server xətası — bir azdan yenidən cəhd edin.";
+    // Never surface a raw snake_case code or "HTTP 500" to a farmer.
+    return /^[a-z0-9_]+$/.test(err.detail) ? "Xəta baş verdi. Yenidən cəhd edin." : err.detail;
+  }
+  return "Xəta baş verdi. Yenidən cəhd edin.";
+}
+
 export function apiAsset(path: string): string {
   // Stored photos come back like "uploads/xxx.jpg"; prefix the base best-effort.
   if (!path) return "";

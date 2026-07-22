@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { Suspense, useEffect, useState } from "react";
+import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Settings } from "lucide-react";
+import { api, azError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { t, type I18nKey } from "@/lib/i18n";
 import { ErrorNote, Spinner } from "@/components/ui";
@@ -11,6 +12,7 @@ import SatelliteTab from "@/components/field/SatelliteTab";
 import AiTab from "@/components/field/AiTab";
 import MetadataTab from "@/components/field/MetadataTab";
 import FertilizerCard from "@/components/field/FertilizerCard";
+import PhotoDiagnose from "@/components/field/PhotoDiagnose";
 import ScoutingTab from "@/components/field/ScoutingTab";
 import TasksTab from "@/components/field/TasksTab";
 import OperationsTab from "@/components/field/OperationsTab";
@@ -34,13 +36,32 @@ const TABS: { key: TabKey; labelKey: I18nKey }[] = [
 ];
 
 export default function FieldDetailPage() {
+  // useSearchParams (tab state) requires a Suspense boundary under the app router.
+  return (
+    <Suspense fallback={<Spinner />}>
+      <FieldDetailInner />
+    </Suspense>
+  );
+}
+
+function FieldDetailInner() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { user, loading } = useAuth();
 
   const [field, setField] = useState<FieldDetail | null>(null);
   const [error, setError] = useState("");
-  const [tab, setTab] = useState<TabKey>("overview");
+  // Tab lives in the URL (?tab=) so notifications/Telegram can deep-link and the back button steps
+  // through tabs instead of leaving the field (D0.3).
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const urlTab = searchParams.get("tab");
+  const tab: TabKey = TABS.some((tb) => tb.key === urlTab) ? (urlTab as TabKey) : "overview";
+  function setTab(key: TabKey) {
+    const sp = new URLSearchParams(searchParams.toString());
+    sp.set("tab", key);
+    router.push(`${pathname}?${sp.toString()}`, { scroll: false });
+  }
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
   const [saving, setSaving] = useState(false);
@@ -63,7 +84,7 @@ export default function FieldDetailPage() {
       setField({ ...field, name });
       setEditing(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("common.error"));
+      setError(azError(err));
     } finally {
       setSaving(false);
     }
@@ -77,7 +98,7 @@ export default function FieldDetailPage() {
       // Redirect to the dashboard (a /farms/{id} page doesn't exist — that 404 was the bug).
       router.push("/");
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("common.error"));
+      setError(azError(err));
       setDeleting(false);
       setConfirmDel(false);
     }
@@ -92,7 +113,7 @@ export default function FieldDetailPage() {
       try {
         setField(await api.get<FieldDetail>(`/api/fields/${params.id}`));
       } catch (err) {
-        setError(err instanceof Error ? err.message : t("common.error"));
+        setError(azError(err));
       }
     })();
   }, [params.id]);
@@ -106,19 +127,16 @@ export default function FieldDetailPage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{field.name}</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-slate-600">
             {field.area_ha?.toFixed(2)} {t("field.ha")}
-            {field.mgrs_tiles && field.mgrs_tiles.length > 0 && (
-              <span> · {t("field.mgrs")}: {field.mgrs_tiles.join(", ")}</span>
-            )}
           </p>
         </div>
         {!editing && (
           <button
             onClick={openEdit}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
+            className="inline-flex min-h-12 items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
           >
-            ⚙️ Redaktə
+            <Settings className="h-4 w-4" /> Redaktə
           </button>
         )}
       </div>
@@ -181,12 +199,12 @@ export default function FieldDetailPage() {
         </div>
       )}
 
-      <div className="flex flex-wrap gap-1 border-b border-slate-200">
+      <div className="flex flex-nowrap gap-1 overflow-x-auto border-b border-slate-200">
         {TABS.map((tb) => (
           <button
             key={tb.key}
             onClick={() => setTab(tb.key)}
-            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${
+            className={`-mb-px shrink-0 whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium ${
               tab === tb.key
                 ? "border-emerald-600 text-emerald-700"
                 : "border-transparent text-slate-500 hover:text-slate-700"
@@ -201,13 +219,14 @@ export default function FieldDetailPage() {
         {tab === "overview" && <OverviewTab field={field} onNavigate={(x) => setTab(x)} />}
         {tab === "sentinel2" && <SatelliteTab field={field} sensor="S2" />}
         {tab === "nasa" && <SatelliteTab field={field} sensor="HLS" />}
-        {tab === "ai" && <AiTab fieldId={field.id} />}
-        {tab === "metadata" && (
+        {tab === "ai" && (
           <div className="space-y-6">
-            <MetadataTab fieldId={field.id} />
+            <AiTab fieldId={field.id} />
+            <PhotoDiagnose fieldId={field.id} />
             <FertilizerCard fieldId={field.id} />
           </div>
         )}
+        {tab === "metadata" && <MetadataTab fieldId={field.id} />}
         {tab === "scouting" && <ScoutingTab fieldId={field.id} />}
         {tab === "tasks" && <TasksTab fieldId={field.id} orgId={field.org_id} />}
         {tab === "operations" && <OperationsTab fieldId={field.id} />}
