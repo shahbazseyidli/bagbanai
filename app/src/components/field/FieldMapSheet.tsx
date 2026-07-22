@@ -97,9 +97,11 @@ export default function FieldMapSheet({
 
   return (
     <>
-      {/* Full-bleed field map — sits at z-0 behind the semi-opaque sticky header and the bottom nav. */}
+      {/* Full-bleed field map — sits at z-0 behind the semi-opaque sticky header and the bottom nav.
+          DisplayMap wraps its map div in a height:auto `relative` wrapper, so an explicit viewport
+          height (h-screen) is required — `h-full` collapses to ~0 against the auto-height wrapper. */}
       <div className="fixed inset-0 z-0 bg-slate-100">
-        <DisplayMap polygon={field.geom} rasterUrl={rasterUrl} heightClass="h-full" />
+        <DisplayMap polygon={field.geom} rasterUrl={rasterUrl} heightClass="h-screen" />
       </div>
 
       {/* Camera FAB (D2.6) — hidden when the sheet is fully open (it would float at the top). */}
