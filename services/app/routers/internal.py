@@ -80,10 +80,16 @@ async def drain_research(limit: int = 1):
 
 @router.post("/weather/run")
 async def run_weather(field_id: str):
-    """Refresh the Open-Meteo forecast + water_requirements block for one field (M8)."""
+    """Refresh the Open-Meteo forecast + water_requirements block for one field (M8), then run the
+    rule engine so any fresh weather alerts get dispatched (T1)."""
     from ..ai import weather as weather_svc
+    from ..rules import run_rules
     async with connection(None) as conn:
         result = await weather_svc.refresh_field(conn, field_id)
+        try:
+            result["rules"] = await run_rules(conn, field_id)
+        except Exception as exc:  # noqa: BLE001 — dispatch is best-effort
+            result["rules"] = {"ok": False, "error": str(exc)[:200]}
     return result
 
 
@@ -100,6 +106,7 @@ async def drain_weather(limit: int = 50):
     """Refresh weather (+ GDD) for the least-recently-updated fields (called by the daily cron)."""
     from ..ai import gdd as gdd_svc
     from ..ai import weather as weather_svc
+    from ..rules import run_rules
     async with connection(None) as conn:
         ids = await conn.fetch(
             """select f.id from public.fields f
@@ -113,6 +120,8 @@ async def drain_weather(limit: int = 50):
                 res = await weather_svc.refresh_field(conn, str(r["id"]))
                 if res.get("ok"):
                     done += 1
+                # Dispatch any fresh weather alerts through the rule engine (T1).
+                await run_rules(conn, str(r["id"]))
             # GDD refresh is independent + best-effort — a failure must not stall the batch.
             async with connection(None) as conn:
                 await gdd_svc.refresh_field_gdd(conn, str(r["id"]))
@@ -122,6 +131,9 @@ async def drain_weather(limit: int = 50):
 
 
 @router.post("/rules/run")
-async def run_rules(field_id: str):
-    # Rule engine is Phase 2 (notifications are PAID). Placeholder contract.
-    raise HTTPException(status_code=501, detail="rules_phase_2")
+async def run_rules_endpoint(field_id: str):
+    """Evaluate all alert rules for a field and dispatch surviving alerts (T1). Called after a
+    weather refresh or a new satellite scene."""
+    from ..rules import run_rules
+    async with connection(None) as conn:
+        return await run_rules(conn, field_id)

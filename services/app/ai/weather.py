@@ -175,14 +175,9 @@ async def refresh_spray(conn, field_id: str, org_id: str, lat: float, lon: float
     content = {"best_window": sw["best_window"], "hours": sw["hours"], "alerts": alerts}
     await kb.upsert_field_block(conn, field_id, org_id, "spray_window", content, [res.source],
                                kb.input_hash({"n": len(hours)}), confidence=0.85)
-    # In-app notification for a critical (frost) alert.
-    for a in alerts:
-        if a["severity"] == "critical":
-            await conn.execute(
-                """insert into public.notifications
-                     (field_id, org_id, source, type, severity, title, body, delivered_channels)
-                   values ($1::uuid,$2::uuid,'weather','frost','critical',$3,$4,array['inapp'])""",
-                field_id, org_id, "🥶 Şaxta xəbərdarlığı", a["detail"])
+    # Notifications are NOT inserted here anymore — the rule engine (services/app/rules) reads these
+    # stored alerts and dispatches them through one deduped/quiet-hours/cooldown path (T1). Callers
+    # run rules.run_rules(conn, field_id) after refreshing weather.
     return {"ok": True, "alerts": len(alerts), "best_window": sw["best_window"] is not None}
 
 
