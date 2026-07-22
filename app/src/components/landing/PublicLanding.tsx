@@ -8,7 +8,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { MapPin, Sparkles, Loader2, ArrowRight, Hand } from "lucide-react";
+import { MapPin, Sparkles, Loader2, ArrowRight, Hand, Thermometer, Calculator } from "lucide-react";
 import { area as turfArea } from "@turf/turf";
 import { api } from "@/lib/api";
 import type { Polygon } from "@/lib/types";
@@ -21,6 +21,17 @@ const DrawMap = dynamic(() => import("@/components/FieldMap").then((m) => m.Draw
 
 const DRAFT_KEY = "bagban_draft_field";
 
+/** WMO weather code → short Azerbaijani description. */
+function wmoDesc(code: number): string {
+  if (code === 0) return "Aydın";
+  if (code <= 3) return "Az buludlu";
+  if (code <= 48) return "Dumanlı";
+  if (code <= 67) return "Yağışlı";
+  if (code <= 77) return "Qarlı";
+  if (code <= 82) return "Leysan";
+  return "Tufan";
+}
+
 export default function PublicLanding() {
   const router = useRouter();
   const [polygon, setPolygon] = useState<Polygon | null>(null);
@@ -28,14 +39,35 @@ export default function PublicLanding() {
   const [importSeq, setImportSeq] = useState(0);
   const [detecting, setDetecting] = useState(false);
   const [hint, setHint] = useState<string>("");
+  const [weather, setWeather] = useState<{ temp: number; desc: string } | null>(null);
+
+  // Live current weather at the field centroid — keyless Open-Meteo, best-effort (D3.2 instant value).
+  async function loadWeather(p: Polygon) {
+    try {
+      const ring = p.coordinates[0] ?? [];
+      if (!ring.length) return;
+      const lon = ring.reduce((s, c) => s + c[0], 0) / ring.length;
+      const lat = ring.reduce((s, c) => s + c[1], 0) / ring.length;
+      const r = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&timezone=auto`,
+      );
+      const d = await r.json();
+      const t = d?.current?.temperature_2m;
+      if (typeof t === "number") setWeather({ temp: Math.round(t), desc: wmoDesc(d.current.weather_code) });
+    } catch {
+      /* weather is a bonus, never blocks */
+    }
+  }
 
   function onPolygon(p: Polygon | null) {
     setPolygon(p);
     if (p) {
       const m2 = turfArea({ type: "Feature", geometry: p, properties: {} } as GeoJSON.Feature);
       setAreaHa(m2 / 10000);
+      loadWeather(p);
     } else {
       setAreaHa(null);
+      setWeather(null);
     }
   }
 
@@ -123,6 +155,20 @@ export default function PublicLanding() {
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
                   <Sparkles className="h-5 w-5" />
                 </span>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {weather && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-800">
+                    <Thermometer className="h-3.5 w-3.5" aria-hidden="true" />
+                    {weather.temp}°C · {weather.desc}
+                  </span>
+                )}
+                <a
+                  href="/subsidy"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800 hover:bg-emerald-100"
+                >
+                  <Calculator className="h-3.5 w-3.5" aria-hidden="true" /> Subsidiya hesabla
+                </a>
               </div>
               <p className="mt-2 text-sm text-slate-600">
                 Pulsuz qeydiyyatdan keçin — bu tarlanı peykdən izləyək: bitki sağlamlığı, su stresi və
