@@ -203,6 +203,29 @@ async def gdd(field_id: str, user_id: str = Depends(get_current_user_id)):
     }
 
 
+@router.get("/{field_id}/season-features")
+async def season_features(field_id: str, user_id: str = Depends(get_current_user_id)):
+    """Per-season vegetation + weather feature history for the field (T16): NDVI peak/mean/integral,
+    GDD total, precipitation total. Groundwork for the future NDVI-integral ↔ yield correlation."""
+    async with connection(user_id) as conn:
+        org_id = await _org_of_field(conn, field_id)
+        await require_member(conn, user_id, org_id)
+        rows = await conn.fetch(
+            """select season_year, crop_type, ndvi_peak, ndvi_mean, ndvi_integral,
+                      gdd_total, precip_total_mm, n_scenes, sensor, computed_at
+               from public.field_season_features where field_id=$1::uuid
+               order by season_year desc""", field_id)
+    def f(v):
+        return float(v) if v is not None else None
+    return {"seasons": [
+        {"season_year": r["season_year"], "crop_type": r["crop_type"],
+         "ndvi_peak": f(r["ndvi_peak"]), "ndvi_mean": f(r["ndvi_mean"]),
+         "ndvi_integral": f(r["ndvi_integral"]), "gdd_total": f(r["gdd_total"]),
+         "precip_total_mm": f(r["precip_total_mm"]), "n_scenes": r["n_scenes"],
+         "sensor": r["sensor"], "computed_at": r["computed_at"].isoformat()}
+        for r in rows]}
+
+
 @router.get("/{field_id}/insights")
 async def insights(field_id: str, user_id: str = Depends(get_current_user_id)):
     """Per-index trend snapshot (latest, ~3-weeks-ago prior, delta, % change, direction) for

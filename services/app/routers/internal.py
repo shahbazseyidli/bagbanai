@@ -115,6 +115,17 @@ async def enqueue_seasonal(limit: int = 200, stale_days: int = 120):
     return {"enqueued": n, "candidates": len(rows)}
 
 
+@router.post("/season/compute")
+async def compute_season(season_year: int, limit: int = 2000):
+    """Compute per-field season features (T16) for `season_year` — vegetation (NDVI peak/mean/
+    integral) + GDD total + precipitation total aggregates → field_season_features. Groundwork for
+    a future NDVI-integral ↔ yield correlation. Driven by deploy/compute-season-features.sh."""
+    from ..ai import season
+    async with connection(None) as conn:
+        n = await season.compute_all(conn, season_year, limit)
+    return {"computed": n, "season_year": season_year}
+
+
 @router.post("/weather/run")
 async def run_weather(field_id: str):
     """Refresh the Open-Meteo forecast + water_requirements block for one field (M8), then run the
