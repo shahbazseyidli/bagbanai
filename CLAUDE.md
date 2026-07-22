@@ -20,7 +20,7 @@ Bu CLAUDE.md **qısa iş konteksti**; dərin detal ayrı sənədlərdədir:
 - `docs/API_REFERENCE.md` — endpoint-lərin siyahısı və müqavilələri.
 - `docs/OPERATIONS.md` — deploy, cron, redeploy, secrets, monitorinq əməliyyatları.
 - `docs/ROADMAP.md` — **tək funksional task-izləyici** (§A bitmiş · §B istifadəçi-bloklu U1-U12 · §C vahid backlog T0-T26 statusla). Görülənlər + açıq işlər.
-- `docs/DESIGN_IMPLEMENTATION_PLAN.md` — **redizayn tracker (D0-D5)**: dizayn araşdırması (`wf_68ea40bc`) → İА/dizayn-sistem/onboarding icra planı. §A feature-parity matrisi, §K status. **D0 ✅ D1 ✅ D2 🔨 (2 dilim canlı)**.
+- `docs/DESIGN_IMPLEMENTATION_PLAN.md` — **redizayn tracker (D0-D5)**: dizayn araşdırması (`wf_68ea40bc`) → İА/dizayn-sistem/onboarding icra planı. §A feature-parity matrisi, §K status. **D0 ✅ D1 ✅ D2 ✅ (3 dilim canlı, 3-cü `?ui=v2` altında)**.
 - `docs/DECISIONS.md` — memarlıq qərarları (nə üçün Supabase yox, TiTiler seçimi, native-draw və s.).
 
 ## Dil qaydası
@@ -121,8 +121,8 @@ Bütün gələcək tasklar (E0–E12 + platform mühəndislik + istifadəçidə 
 **2026-07-22 CANLI vəziyyət (detal: `docs/ROADMAP.md` + `docs/DESIGN_IMPLEMENTATION_PLAN.md` + memory [[v21-feature-expansion-plan]] / [[design-redesign]]):**
 - **T0-T13 12 task ✅** (partial-reveal, rule engine, veg rules, GDD, foto vision, baseline, FAO-56, pest-risk, benchmark k-anon, gübrə, PWA, rayon dropdown).
 - **U3 email/OTP (Resend) + U4/T22 Telegram bot — KODU HAZIR, deploy olunub**, açar/token düşəndə aktivləşir (səliqəli dormant).
-- **Redizayn D0 ✅ D1 ✅ D2 🔨:** D0 (səssiz tenancy+FieldOnboarding svopu, mobil zəng, tab URL, azError lüğəti, 48px, moves) · D1 (token qatı emerald-600→#15803D, Inter font, StatusChip, Skeleton, focus ring) · D2 (sahə tabları 9→3 qrup + soft-delete/undo + **bottom nav** + yeni marşrutlar /fields /more /notifications). D2 qalan: "Bu gün" home + sürüşən map-sheet (`?ui=v2`, brauzer-test).
-- **Növbəti:** D2 3-cü dilim və ya D3 onboarding hunisi; funksional T15-T26; istifadəçi-bloklu §B.
+- **Redizayn D0 ✅ D1 ✅ D2 ✅:** D0 (səssiz tenancy+FieldOnboarding svopu, mobil zəng, tab URL, azError lüğəti, 48px, moves) · D1 (token qatı emerald-600→#15803D, Inter font, StatusChip, Skeleton, focus ring) · D2 3 dilim: (1) sahə tabları 9→3 qrup + soft-delete/undo, (2) **bottom nav** + /fields /more /notifications, (3) **`?ui=v2` arxasında** "Bu gün" kart-home (`TodayHome`) + **map-first sahə görünüşü** (`FieldMapSheet` — tam-ekran xəritə + sürüşən 3-snap sheet) + kamera FAB (`lib/uiFlag.ts` yapışqan bayraq; `?ui=v1` geri çıxarır). Canlı test edilib (map bug h-full→h-screen düzəldilib). D2.4 (S2/NASA birləşmə) QƏSDƏN edilmədi — user ayrı tablar istəyir.
+- **Növbəti:** D3 onboarding hunisi; funksional T15-T26; istifadəçi-bloklu §B.
 - **Sərt deadline-lar:** ⚠️ **EARTHDATA_TOKEN 2026-08-30 bitir** (yenilə, yoxsa HLS 401) · ⚠️ **EPPO API 2026-09-01 bağlanır** · **LLM açar rotate** (bir dəfə açıq görünüb).
 
 **İstifadəçi addımı gözləyən (ROADMAP §B):** Email/OTP (Resend açarı+DNS) · panel.agradex.com (CF A-record) · E3 Telegram bot token · EPPO_TOKEN · billing PSP · 2FA/firewall · Xudat crop_type=fındıq (M5/E0 kalibrasiya görünsün).
