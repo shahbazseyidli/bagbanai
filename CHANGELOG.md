@@ -3,6 +3,13 @@
 Bütün əhəmiyyətli dəyişikliklər burada qeyd olunur. Format [Keep a Changelog](https://keepachangelog.com/),
 versiyalar [SemVer](https://semver.org/).
 
+## [1.7.0] — 2026-07-22 — Email/OTP (Resend, U3) + Telegram alert bot (U4/T22) — kod hazır (CANLI)
+
+### Added (CANLI, main — açarsız səliqəli dormant)
+- **U3 — Email təsdiqi (OTP) + Resend:** migration 0024 `users.email_verified/otp_code/otp_expires_at/otp_attempts`; `notify.py` Resend HTTP transport (Resend→SMTP→log) + `email_configured()`; `auth` signup — email konfiqurasiya olunubsa OTP göndərir + `{needs_verification}`, **yoxdursa avtomatik verify (signup pozulmur)**; `/verify-otp` + `/resend-otp`; login `email_not_verified` 403; `OtpVerify.tsx` signup+login-də. Canlı: açarsız auto-verify + OTP verify (yanlış→400 attempt++ persistent, doğru→200).
+- **U4 — Telegram bir-tərəfli alert bot:** migration 0024 `messaging_channels` + `message_log`; `messaging/telegram.py`; `routers/messaging.py` (status + deep-link opt-in + `/telegram/webhook` `/start`-bind + `/stop`); qayda dispatcher-i (T1) alertləri bağlı+opt-in chatlara göndərir; `/internal/telegram/setup`; dashboard-da `TelegramConnect` kartı. Tokensiz dormant. Canlı: `configured:false` doğrulandı.
+- **İstifadəçi addımları (aktivləşdirmə):** U3 → Resend hesabı + `RESEND_API_KEY` + CF SPF/DKIM. U4 → @BotFather bot → `.env`-ə token/username/secret → `POST /api/internal/telegram/setup`.
+
 ## [1.6.0] — 2026-07-22 — Sprint 3-4: pest-risk (T9) + benchmark (T10) + fertilizer (T11) + PWA (T12) (CANLI)
 
 ### Added (CANLI, main)
