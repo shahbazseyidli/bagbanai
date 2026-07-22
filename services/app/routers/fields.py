@@ -174,6 +174,19 @@ async def diagnose_field(field_id: str, file: UploadFile = File(...),
             raise HTTPException(status_code=503, detail=f"ai_unavailable: {exc}")
 
 
+@router.get("/{field_id}/fertilizer")
+async def fertilizer_plan(field_id: str, user_id: str = Depends(get_current_user_id)):
+    """Removal-based N-P-K fertilizer plan + stage splits (T11). Business tier."""
+    from .. import tiers
+    from ..ai import fertilizer as fert
+    async with connection(user_id) as conn:
+        org_id = await _org_of_field(conn, field_id)
+        await require_member(conn, user_id, org_id)
+        if not tiers.allows(await tiers.org_tier(conn, org_id), "fertilizer"):
+            return {"gated": True}
+        return await fert.compute_plan(conn, field_id, org_id)
+
+
 @router.post("/{field_id}/pest-mute")
 async def pest_mute(field_id: str, body: dict, user_id: str = Depends(get_current_user_id)):
     """Farmer confirms a pest is absent → mute its risk alerts for N days (T9, Rule 12)."""

@@ -10,6 +10,7 @@ import OverviewTab from "@/components/field/OverviewTab";
 import SatelliteTab from "@/components/field/SatelliteTab";
 import AiTab from "@/components/field/AiTab";
 import MetadataTab from "@/components/field/MetadataTab";
+import FertilizerCard from "@/components/field/FertilizerCard";
 import ScoutingTab from "@/components/field/ScoutingTab";
 import TasksTab from "@/components/field/TasksTab";
 import OperationsTab from "@/components/field/OperationsTab";
@@ -201,7 +202,12 @@ export default function FieldDetailPage() {
         {tab === "sentinel2" && <SatelliteTab field={field} sensor="S2" />}
         {tab === "nasa" && <SatelliteTab field={field} sensor="HLS" />}
         {tab === "ai" && <AiTab fieldId={field.id} />}
-        {tab === "metadata" && <MetadataTab fieldId={field.id} />}
+        {tab === "metadata" && (
+          <div className="space-y-6">
+            <MetadataTab fieldId={field.id} />
+            <FertilizerCard fieldId={field.id} />
+          </div>
+        )}
         {tab === "scouting" && <ScoutingTab fieldId={field.id} />}
         {tab === "tasks" && <TasksTab fieldId={field.id} orgId={field.org_id} />}
         {tab === "operations" && <OperationsTab fieldId={field.id} />}
