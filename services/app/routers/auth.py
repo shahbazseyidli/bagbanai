@@ -65,25 +65,29 @@ async def signup(body: SignupIn, response: Response):
 
 @router.post("/verify-otp")
 async def verify_otp(body: VerifyOtpIn, response: Response):
-    """Confirm the emailed code → mark verified + log in."""
+    """Confirm the emailed code → mark verified + log in. Reads and each write run in their own
+    committed transaction so a failed-attempt counter persists (raising inside a tx would roll it
+    back)."""
     async with connection() as conn:
         row = await conn.fetchrow(
             """select id, email, full_name, locale, is_admin, email_verified,
                       otp_code, otp_expires_at, otp_attempts
                from public.users where lower(email)=lower($1)""", body.email)
-        if not row:
-            raise HTTPException(status_code=404, detail="user_not_found")
-        if not row["email_verified"]:
-            if not row["otp_code"] or not row["otp_expires_at"]:
-                raise HTTPException(status_code=400, detail="no_otp")
-            if row["otp_attempts"] >= _MAX_OTP_ATTEMPTS:
-                raise HTTPException(status_code=429, detail="too_many_attempts")
-            if row["otp_expires_at"] < datetime.now(timezone.utc):
-                raise HTTPException(status_code=400, detail="otp_expired")
-            if body.code.strip() != row["otp_code"]:
+    if not row:
+        raise HTTPException(status_code=404, detail="user_not_found")
+    if not row["email_verified"]:
+        if not row["otp_code"] or not row["otp_expires_at"]:
+            raise HTTPException(status_code=400, detail="no_otp")
+        if row["otp_attempts"] >= _MAX_OTP_ATTEMPTS:
+            raise HTTPException(status_code=429, detail="too_many_attempts")
+        if row["otp_expires_at"] < datetime.now(timezone.utc):
+            raise HTTPException(status_code=400, detail="otp_expired")
+        if body.code.strip() != row["otp_code"]:
+            async with connection() as conn:
                 await conn.execute(
                     "update public.users set otp_attempts=otp_attempts+1 where id=$1::uuid", row["id"])
-                raise HTTPException(status_code=400, detail="invalid_otp")
+            raise HTTPException(status_code=400, detail="invalid_otp")
+        async with connection() as conn:
             await conn.execute(
                 """update public.users set email_verified=true, otp_code=null,
                           otp_expires_at=null, otp_attempts=0 where id=$1::uuid""", row["id"])
