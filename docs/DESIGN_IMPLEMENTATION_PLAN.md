@@ -174,6 +174,8 @@ Hər gələcək task artıq yeni İA-da yeri müəyyən — ayrıca redizayn tə
 
 ## §K. Status izləyici (hər addım bitəndə yenilə)
 
-**D0 🚀 (98e43cb, canlı)** · D1 ⬜ · D2 ⬜ · D3 ⬜ · D4 ⬜ · D5 ⬜ — hər addım (D0.1…D5.5) bitəndə commit hash + ✅ ilə işarələ. Bu sənəd `ROADMAP.md` §C ilə paralel işləyir (T-backlog funksional, bu — dizayn/İA).
+**D0 ✅ (98e43cb)** · **D1 🚀 (0f57db2, canlı)** · D2 ⬜ · D3 ⬜ · D4 ⬜ · D5 ⬜ — hər addım (D0.1…D5.5) bitəndə commit hash + ✅ ilə işarələ. Bu sənəd `ROADMAP.md` §C ilə paralel işləyir (T-backlog funksional, bu — dizayn/İA).
+
+**D1 detal (2026-07-22):** D1.1 ✅ (token qatı — emerald-600→#15803D global lift, ink/warn/bad/good/info tokenlər, card border-1.5, 16px floor; CSS-də təsdiq) · D1.2 ✅ (Inter Variable next/font, latin-ext) · D1.3 ✅ (StatusChip ikon+söz+rəng+aria; SatelliteTab summary-də) · D1.4 ✅ (Skeleton kit, dashboard yükləmə) · D1.5 ✅ (qlobal focus-visible ring). **D2-ə köçdü:** D1.6 (i18n sweep — mexaniki, T18-dən əvvəl), D0.7 (boş-hal düymələri — D2 empty-as-onboarding), D0.9 (useFieldDataStatus — D2 sheet işi ilə). Deploy: web-only, build gate (Inter fetch daxil) keçdi, marşrutlar 200.
 
 **D0 detal (2026-07-22):** D0.1 ✅ (onboarding→səssiz tenancy + FieldOnboarding) · D0.2 ✅ (mobil zəng) · D0.3 ✅ (tab URL `?tab=` + skroller) · D0.4 ✅ (avto org/farm, tək-org chrome gizli) · D0.5 ✅ (`azError()` lüğəti + inline field xətaları) · D0.6 ✅ (.btn/.input min-h-44 + 16px input) · D0.8 ✅ (PhotoDiagnose+FertilizerCard→AI, MGRS header-dən, ⚙️→lucide). **D1-ə köçdü:** D0.7 (boş-hal action düymələri — D1 komponent kitində), D0.9 (`useFieldDataStatus` poller dedupe — D1 skeleton işi ilə). Deploy: web-only, `next build` gate keçdi, marşrutlar 200.
