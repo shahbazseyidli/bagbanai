@@ -3,6 +3,14 @@
 Bütün əhəmiyyətli dəyişikliklər burada qeyd olunur. Format [Keep a Changelog](https://keepachangelog.com/),
 versiyalar [SemVer](https://semver.org/).
 
+## [1.6.0] — 2026-07-22 — Sprint 3-4: pest-risk (T9) + benchmark (T10) + fertilizer (T11) + PWA (T12) (CANLI)
+
+### Added (CANLI, main)
+- **T9 — Pest/xəstəlik risk engine:** migration 0022 `pest_risk_models` (seed: fındıq/alma/üzüm/buğda) + `field_pest_mutes`; `ai/pest.py` GDD-pəncərə + yarpaq-nəmliyi → risk qaydalar mühərriki (T1) üzərindən; Qayda 7 (problem tipi + qeydiyyatlı-siyahı + aqronom, doza yox), fermer mute-u. `POST /pest-mute`. Canlı: pəncərədə→fired=1, mute→0.
+- **T10 — D2 benchmark hardening:** migration 0021 `index_benchmark()` → p10/p50/p90 + **k-anonimlik n≥5 (HARD-CODED)** + consent (`organizations.benchmark_opt_in`); endpoint business-tier gate. Canlı: free→gated, k-anon<5→suppress.
+- **T11 — Gübrə plan engine:** migration 0023 `crop_nutrient_norms` (seed) + `fertilizer_plans` + splits; `ai/fertilizer.py` N-P-K = norm×hədəf məhsuldarlıq, mərhələ üzrə bölgü; Qayda 7 (element kq, məhsul/doza yox); `GET /fertilizer` (business) + `FertilizerCard`. Canlı: fındıq ty=3→N90/P18/K75.
+- **T12 — PWA/offline sahə rejimi:** web manifest + icon.svg + service worker (cache-first tile/asset, network-first API/nav) + `PwaRegister` + theme-color → **quraşdırıla bilən PWA**; offline skautinq outbox (`lib/offlineQueue.ts`, localStorage → reconnect-də avtomatik sync). Canlı: manifest/sw/icon 200 (CF-dən də). Web-push (VAPID) təxirə.
+
 ## [1.5.0] — 2026-07-22 — Sprint 1-3: rule engine (T1) + veg rules (T2) + baseline (T6) + photo AI (T5) (CANLI)
 
 ### Added (CANLI, main)
