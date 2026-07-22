@@ -174,7 +174,19 @@ Hər gələcək task artıq yeni İA-da yeri müəyyən — ayrıca redizayn tə
 
 ## §K. Status izləyici (hər addım bitəndə yenilə)
 
-**D0 ✅ (98e43cb)** · **D1 ✅ (0f57db2)** · **D2 ✅ (0e801a4 — 3 dilim canlı, `?ui=v2` altında)** · D3 ⬜ · D4 ⬜ · D5 ⬜ — hər addım (D0.1…D5.5) bitəndə commit hash + ✅ ilə işarələ. Bu sənəd `ROADMAP.md` §C ilə paralel işləyir (T-backlog funksional, bu — dizayn/İA).
+**D0 ✅ (98e43cb)** · **D1 ✅ (0f57db2)** · **D2 ✅ (0e801a4 — 3 dilim canlı, `?ui=v2` altında)** · **D3 🚀 (əsas hissə canlı)** · **D4 🚀 (əsas hissə canlı)** · **D5 🚀 (səs+offline+chips canlı; kanal dormant)** — hər addım (D0.1…D5.5) bitəndə commit hash + ✅ ilə işarələ. Bu sənəd `ROADMAP.md` §C ilə paralel işləyir (T-backlog funksional, bu — dizayn/İA).
+
+**D3–D5 detal (2026-07-23, autonomous run — hər biri build-gate + deploy + canlı test):**
+- **D3.1 ✅ (1852227):** public landing xəritəsi — anonim toxun-tap (`/api/geo/segment-public`, auth-suz/yazımsız) → sərhəd + sahə + CTA; çəkilən tarla localStorage draft → onboarding prefill. MapLibre lazy (next/dynamic). Canlı: segment-public `{ok:true,polygon}`, draft prefill 13.869 ha. **D3.4 (səssiz tenancy) D0-da bitib.** Landing vizualı signed-out — istifadəçi yoxlamalı.
+- **D3.2 ✅ (925d7fe):** landing detected-kartında canlı hava (keyless Open-Meteo, sahə mərkəzi) + subsidiya CTA. Crop seçimi onboarding-də; dəqiq subsidiya kalkulyatorda (yanlış rəqəm riski yox).
+- **D4.4 ✅ (525f5cd):** qiymət 3 yığılmış kart (lucide ikon, emoji/cədvəl yox), per-tier check bulletlər, free-core xətti. Canlı doğrulandı.
+- **D4.1/D4.2 ✅ (30d07e2):** SatelliteTab-da bölgə **p10–p90 kölgəli zolağı** (ComposedChart range Area; backend T10 hazır idi) + benchmark xətti/cloud filtr/multi-seriya onsuz var idi. Canlı: chart xətasız (zolaq business-gated).
+- **D5.2 ✅ (525f5cd):** `SpeakButton` (brauzer Web Speech API, asılılıqsız/offline) — İcmal verdict + AI məsləhət səsləndirilir (az→tr→ru səs). Canlı: klik `speaking=true`, 199 səs.
+- **D5.3 ✅ (925d7fe):** qlobal `OfflineIndicator` (Oflayn/göndərilməyib/sinxronlaşdı çip; offlineQueue T12 üzərində). Canlı: offline hadisəsi çipi göstərir.
+- **D5.4 ✅ (30d07e2):** `ChoiceChips` click-first — Operations (növ+valyuta), Yields (vahid), Tasks (növ). Canlı: chip-lər render (Suvarma/Gübrələmə/… + AZN/USD/EUR).
+- **D4.3 (desktop iş sahəsi):** field görünüşü desktop sidebar D2-də bitib; dashboard-workspace refinement qismən.
+- **D4.5 (perf):** landing MapLibre lazy-load edildi (əsas qazanc). Data-saver toggle təxirə.
+- **SKIP (asılılıq — istifadəçi göstərişi ilə):** **D5.1 Telegram iki-tərəf** (T23 — Telegram token) · **D5.2 STT** (mikrofon-transkripsiya — STT provayder; TTS oxuma hissəsi bitib) · **D3.3 telefon-OTP** (SMS/Telegram delivery; email-OTP U3 onsuz var) · **D5.5 çöl testi** (real fermer — insan addımı). D3.5/D3.6 (hazırlanır ekranı PreparingBanner onsuz var + checklist) minor, təxirə.
 
 **D2 detal (2026-07-22):**
 - **1-ci dilim ✅ (013802a):** D2.3-lite (sahə tabları **9→3 niyyət qrupu** + ikinci-səviyyə chip; `?tab=` saxlanıldı) · D2.7 (soft-delete/undo, migration 0025 — canlı test sil→404→restore→200).

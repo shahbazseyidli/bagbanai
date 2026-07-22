@@ -3,6 +3,20 @@
 Bütün əhəmiyyətli dəyişikliklər burada qeyd olunur. Format [Keep a Changelog](https://keepachangelog.com/),
 versiyalar [SemVer](https://semver.org/).
 
+## [1.10.0] — 2026-07-23 — Redizayn D3/D4/D5 əsas hissə (autonomous run) (CANLI)
+
+Hər biri build-gate + deploy + canlı test. SKIP olunanlar asılılıqla bloklanıb (aşağıda).
+
+### Added / Changed (CANLI, main)
+- **D3.1 — Public landing xəritəsi:** signed-out home tam-ekran peyk xəritəsi (`PublicLanding`) — Nominatim axtarış + geolokasiya + **anonim toxun-tap** → sərhəd (yeni auth-suz/yazımsız `/api/geo/segment-public`) → sahə + tək CTA; çəkilən tarla localStorage draft → **onboarding-ə prefill** (dəyər→hesab döngüsü). MapLibre lazy (next/dynamic). Canlı: segment-public real sərhəd, draft prefill 13.869 ha.
+- **D3.2 — Landing ani-dəyər:** detected-kartda canlı hava (keyless Open-Meteo, sahə mərkəzi) + subsidiya CTA.
+- **D4.4 — Qiymət redizaynı:** `PricingTable` 3 yığılmış kart (lucide ikon+söz, emoji/cədvəl/scroll yox), per-tier check bulletlər, **free-core xətti** (peyk xəritəsi + hava həmişə pulsuz). Canlı doğrulandı.
+- **D4.1/D4.2 — Chart cilası:** SatelliteTab-a bölgə **p10–p90 kölgəli zolağı** (ComposedChart range Area; T10 onsuz p10/p90 qaytarırdı); benchmark xətti + cloud filtr + multi-seriya onsuz var. Canlı: chart xətasız.
+- **D5.2 — Səsləndir (TTS):** `SpeakButton` (brauzer Web Speech API, **asılılıqsız/offline**) — İcmal verdict + AI məsləhət səsləndirilir (az→tr→ru). Aşağı-savadlı/yaşlı fermerlər üçün əlçatanlıq. Canlı: klik `speaking=true`.
+- **D5.3 — Offline UX:** qlobal `OfflineIndicator` (Oflayn + gözləyən-say / göndərilməyib / sinxronlaşdı çip; offlineQueue T12). Canlı: offline hadisəsi çipi göstərir.
+- **D5.4 — İŞLƏR click-first:** `ChoiceChips` (tap-seç + "Digər") — Operations (növ+valyuta), Yields (vahid), Tasks (növ). Fermer sahədə kateqoriya yazmır. Canlı doğrulandı.
+- **SKIP (asılılıq — istifadəçi göstərişi "asılılıq çıxarsa skip et"):** D5.1/T23 Telegram iki-tərəf (Telegram token) · D5.2-STT mikrofon-transkripsiya (STT provayder; TTS oxuma bitib) · D3.3 telefon-OTP (SMS delivery; email-OTP U3 onsuz var) · D5.5 çöl testi (real fermer — insan addımı).
+
 ## [1.9.0] — 2026-07-23 — T16/T17/T19/T24 + D2 qalıqları (CANLI)
 
 ### Added / Changed (CANLI, main — hər biri build gate + canlı doğrulama)
