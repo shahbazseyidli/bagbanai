@@ -52,8 +52,62 @@ async def _weather_candidates(conn, field_id: str) -> list[dict]:
     return out
 
 
-# Registered producers. Vegetation (T2), pest (T9), irrigation (T8) append here.
-_PRODUCERS = [_weather_candidates]
+def _fmt(v) -> str:
+    return f"{float(v):.3f}"
+
+
+async def _vegetation_candidates(conn, field_id: str) -> list[dict]:
+    """Vegetation alerts VG-1..VG-4 from the field's Sentinel-2 index trends (T2)."""
+    from ..ai import analytics
+    from ..ai.context import index_trends
+    trends = await index_trends(conn, field_id, sensor="S2", indices=["NDVI", "NDMI", "NBR"])
+    by = {t["index"]: t for t in trends}
+    ndvi, ndmi, nbr = by.get("NDVI"), by.get("NDMI"), by.get("NBR")
+    out: list[dict] = []
+
+    # VG-1 — NDVI dropping fast (canopy stress).
+    if ndvi and ndvi.get("delta") is not None:
+        d, pct = ndvi["delta"], ndvi.get("pct")
+        if d <= -0.12 or (pct is not None and pct <= -15):
+            sev = "critical" if d <= -0.20 else "warning"
+            out.append({"rule_type": "ndvi_drop", "severity": sev, "source": "vegetation",
+                        "title": "📉 Bitki sağlamlığı düşür",
+                        "body": f"NDVI {_fmt(ndvi['prior'])}→{_fmt(ndvi['latest'])}"
+                                + (f" ({pct}%)" if pct is not None else "")
+                                + " — çətir stresi. Sahəni yoxlayın: su, zərərverici, qidalanma.",
+                        "dedup_key": ""})
+
+    # VG-2 — NDMI low (water stress).
+    if ndmi and ndmi.get("latest") is not None and ndmi["latest"] < 0.15:
+        out.append({"rule_type": "ndmi_low", "severity": "warning", "source": "vegetation",
+                    "title": "💧 Su stresi (nəmlik aşağı)",
+                    "body": f"Bitki nəmliyi (NDMI) {_fmt(ndmi['latest'])} — aşağı. Suvarma ehtiyacını yoxlayın.",
+                    "dedup_key": ""})
+
+    # VG-4 — NDVI + NBR both dropping (burn / rapid senescence).
+    if (ndvi and nbr and ndvi.get("delta") is not None and nbr.get("delta") is not None
+            and ndvi["delta"] <= -0.10 and nbr["delta"] <= -0.10):
+        out.append({"rule_type": "ndvi_nbr", "severity": "warning", "source": "vegetation",
+                    "title": "🔥 Kəskin dəyişim (yanıq/senescens?)",
+                    "body": "NDVI və NBR birlikdə kəskin düşüb — yanıq, biçin və ya sürətli quruma ola bilər.",
+                    "dedup_key": ""})
+
+    # VG-3 — NDVI anomalously below the field's own seasonal baseline.
+    try:
+        an = await analytics.anomaly_for(conn, field_id, "NDVI")
+    except Exception:  # noqa: BLE001
+        an = None
+    if an and an.get("is_anomaly") and an.get("direction") == "low":
+        out.append({"rule_type": "veg_anomaly", "severity": "warning", "source": "vegetation",
+                    "title": "⚠️ NDVI normadan aşağı",
+                    "body": f"NDVI {_fmt(an['latest'])} bu həftə üçün sahənizin adi həddindən "
+                            f"(p10 {_fmt(an['p10'])}) aşağıdır — anomaliya.",
+                    "dedup_key": ""})
+    return out
+
+
+# Registered producers. Pest (T9), irrigation (T8) append here.
+_PRODUCERS = [_weather_candidates, _vegetation_candidates]
 
 
 async def evaluate(conn, field_id: str) -> list[dict]:

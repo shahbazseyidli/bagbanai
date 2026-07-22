@@ -78,6 +78,16 @@ def _trigger_advice(field_id: str) -> None:
             print(f"  advice trigger: {_json.loads(resp.read() or b'{}')}")
     except Exception as exc:  # noqa: BLE001
         print(f"  advice trigger skipped: {exc}", file=sys.stderr)
+    # Refresh the anomaly baseline (T6) then run the rule engine (T1/T2) so vegetation alerts from
+    # the new scene get dispatched. Best-effort — never fail the pipeline over a notification.
+    for hook in ("baseline/run", "rules/run"):
+        try:
+            req = urllib.request.Request(f"{base}/api/internal/{hook}?field_id={field_id}",
+                                         method="POST", headers={"X-Internal-Token": token})
+            with urllib.request.urlopen(req, timeout=90) as resp:
+                print(f"  {hook} trigger: {_json.loads(resp.read() or b'{}')}")
+        except Exception as exc:  # noqa: BLE001
+            print(f"  {hook} trigger skipped: {exc}", file=sys.stderr)
 
 
 def run_field(field_id: str, days_back: int = 120, max_cloud: int = 70,

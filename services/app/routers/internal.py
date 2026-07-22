@@ -137,3 +137,11 @@ async def run_rules_endpoint(field_id: str):
     from ..rules import run_rules
     async with connection(None) as conn:
         return await run_rules(conn, field_id)
+
+
+@router.post("/baseline/run")
+async def run_baseline(field_id: str):
+    """Recompute the per-week index baseline for a field (T6), so anomaly rules have a norm."""
+    from ..ai import analytics
+    async with connection(None) as conn:
+        return await analytics.refresh_baseline(conn, field_id)
