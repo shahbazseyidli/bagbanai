@@ -4,6 +4,7 @@
 import { useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { ErrorNote } from "@/components/ui";
+import { t } from "@/lib/i18n";
 import type { User } from "@/lib/types";
 
 export default function OtpVerify({ email, onVerified }: { email: string; onVerified: (u: User) => void }) {
@@ -22,10 +23,10 @@ export default function OtpVerify({ email, onVerified }: { email: string; onVeri
     } catch (err) {
       const d = err instanceof ApiError ? err.detail : "";
       setError(
-        d === "invalid_otp" ? "Kod yanlışdır." :
-        d === "otp_expired" ? "Kodun vaxtı bitib — yenidən göndərin." :
-        d === "too_many_attempts" ? "Çox cəhd oldu — bir azdan yenidən yoxlayın." :
-        "Təsdiq alınmadı.",
+        d === "invalid_otp" ? t("otp.invalid") :
+        d === "otp_expired" ? t("otp.expired") :
+        d === "too_many_attempts" ? t("otp.tooMany") :
+        t("otp.failed"),
       );
     } finally {
       setBusy(false);
@@ -39,14 +40,14 @@ export default function OtpVerify({ email, onVerified }: { email: string; onVeri
       await api.post("/api/auth/resend-otp", { email });
       setResent(true);
     } catch {
-      setError("Kod göndərilmədi.");
+      setError(t("otp.sendFailed"));
     }
   }
 
   return (
     <form onSubmit={verify} className="space-y-3">
       <p className="text-sm text-slate-600">
-        <b>{email}</b> ünvanına göndərilən 6 rəqəmli təsdiq kodunu daxil edin.
+        {t("otp.promptPre")}<b>{email}</b>{t("otp.promptPost")}
       </p>
       <input
         className="input text-center text-lg tracking-[0.4em]"
@@ -58,12 +59,12 @@ export default function OtpVerify({ email, onVerified }: { email: string; onVeri
         autoFocus
       />
       <ErrorNote message={error} />
-      {resent && <p className="text-xs text-emerald-700">Kod yenidən göndərildi.</p>}
+      {resent && <p className="text-xs text-emerald-700">{t("otp.resent")}</p>}
       <button className="btn-primary w-full" type="submit" disabled={busy || code.length < 6}>
-        {busy ? "Yoxlanılır…" : "Təsdiq et"}
+        {busy ? t("otp.verifying") : t("otp.verify")}
       </button>
       <button type="button" onClick={resend} className="block w-full text-center text-sm text-emerald-700 hover:underline">
-        Kodu yenidən göndər
+        {t("otp.resend")}
       </button>
     </form>
   );

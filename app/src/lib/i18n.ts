@@ -322,6 +322,30 @@ export const az = {
   "wmo.snow": "Qarlı",
   "wmo.shower": "Leysan",
   "wmo.storm": "Tufan",
+
+  // upgrade CTA (free-tier limit)
+  "upgrade.eyebrow": "Paketi yüksəlt",
+  "upgrade.title": "Pulsuz paketin sahə limitinə çatdınız 🎉",
+  "upgrade.subtitle": "Pulsuz paketdə 1 sahə var. Daha çox sahə əlavə etmək və peşəkar alətləri açmaq üçün paketi yüksəldin.",
+  "upgrade.benefit1": "5 sahə (~25 ha) — birdən çox sahəni bir yerdən idarə edin",
+  "upgrade.benefit2": "Sentinel-2 10m + NDRE/CIre — daha kəskin, red-edge analiz",
+  "upgrade.benefit3": "AI aqronom məsləhəti (8/ay) + AI chatbot",
+  "upgrade.benefit4": "Bilik Pasportu: torpaq, su balansı, çiləmə pəncərəsi, frost/heat xəbərdarlıq",
+  "upgrade.priceLine": "Paket 2 — cəmi 10 AZN/ay",
+  "upgrade.viewPlans": "Paketlərə bax",
+
+  // OTP email verification (U3)
+  "otp.promptPre": "",
+  "otp.promptPost": " ünvanına göndərilən 6 rəqəmli təsdiq kodunu daxil edin.",
+  "otp.invalid": "Kod yanlışdır.",
+  "otp.expired": "Kodun vaxtı bitib — yenidən göndərin.",
+  "otp.tooMany": "Çox cəhd oldu — bir azdan yenidən yoxlayın.",
+  "otp.failed": "Təsdiq alınmadı.",
+  "otp.sendFailed": "Kod göndərilmədi.",
+  "otp.resent": "Kod yenidən göndərildi.",
+  "otp.verifying": "Yoxlanılır…",
+  "otp.verify": "Təsdiq et",
+  "otp.resend": "Kodu yenidən göndər",
 } as const;
 
 export type I18nKey = keyof typeof az;
