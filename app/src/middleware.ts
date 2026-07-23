@@ -5,8 +5,9 @@ import type { NextRequest } from "next/server";
 //   (Phase 4) Locale path-prefix: /en, /tr, /de → strip the prefix, remember the locale (cookie +
 //     x-locale request header the server layout reads), serve the underlying route. First-time
 //     visitors with a non-az browser language are redirected once to their prefixed URL.
-//   (Phase 2) Panel/marketing host split: agradex.com=marketing, panel.agradex.com=app. DORMANT
-//     until NEXT_PUBLIC_PANEL_HOST is set (no-op when empty).
+//   (Phase 2) App/marketing host split: agradex.com=marketing, app.agradex.com=app. DORMANT
+//     until NEXT_PUBLIC_PANEL_HOST is set to app.agradex.com (no-op when empty). The env var keeps
+//     its legacy name; only its value is app.agradex.com. See deploy/APP_ACTIVATION.md.
 const PANEL_HOST = (process.env.NEXT_PUBLIC_PANEL_HOST || "").toLowerCase();
 const AUTH_COOKIE = "bagban_session";
 const LOCALE_COOKIE = "bagban_locale";
