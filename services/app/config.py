@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     jwt_secret: str = "change-me"
     jwt_expires_hours: int = 168
     cookie_name: str = "bagban_session"
+    # Empty in dev; set to ".agradex.com" in prod so the session cookie is shared between the
+    # marketing apex and panel.agradex.com (Phase 2 panel split).
+    cookie_domain: str = ""
 
     # URLs
     next_public_app_url: str = "http://localhost:3000"

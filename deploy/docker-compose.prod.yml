@@ -47,7 +47,10 @@ services:
     entrypoint: ["bash", "-lc"]
 
   web:
-    build: ../app
+    build:
+      context: ../app
+      args:
+        NEXT_PUBLIC_PANEL_HOST: ${NEXT_PUBLIC_PANEL_HOST:-}   # Phase 2: set to activate panel split
     restart: unless-stopped
     environment:
       NODE_ENV: production

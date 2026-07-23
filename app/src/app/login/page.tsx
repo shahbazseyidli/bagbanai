@@ -16,6 +16,15 @@ function mapAuthError(detail: string): string {
   return detail || t("common.error");
 }
 
+// After login go to ?next= (a panel path the middleware bounced through the apex login), else home.
+function postLoginDest(): string {
+  try {
+    const next = new URLSearchParams(window.location.search).get("next");
+    if (next && next.startsWith("/")) return next;
+  } catch { /* noop */ }
+  return "/";
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const { setUser } = useAuth();
@@ -27,7 +36,7 @@ export default function LoginPage() {
 
   function onVerified(user: User) {
     setUser(user);
-    router.push("/");
+    router.push(postLoginDest());
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -37,7 +46,7 @@ export default function LoginPage() {
     try {
       const user = await api.post<User>("/api/auth/login", { email, password });
       setUser(user);
-      router.push("/");
+      router.push(postLoginDest());
     } catch (err) {
       const detail = err instanceof ApiError ? err.detail : "";
       if (detail === "email_not_verified") {

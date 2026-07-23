@@ -26,6 +26,7 @@ def _set_cookie(resp: Response, token: str) -> None:
         key=settings.cookie_name, value=token, httponly=True, samesite="lax",
         secure=settings.next_public_app_url.startswith("https"),
         max_age=COOKIE_MAX_AGE, path="/",
+        domain=settings.cookie_domain or None,
     )
 
 
@@ -126,7 +127,7 @@ async def login(body: LoginIn, response: Response):
 
 @router.post("/logout")
 async def logout(response: Response):
-    response.delete_cookie(settings.cookie_name, path="/")
+    response.delete_cookie(settings.cookie_name, path="/", domain=settings.cookie_domain or None)
     return {"ok": True}
 
 

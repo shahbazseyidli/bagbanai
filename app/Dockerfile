@@ -10,6 +10,10 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# Phase 2 panel split — empty by default (middleware no-op); set to "panel.agradex.com" to activate.
+# NEXT_PUBLIC_* must be present at build time to be inlined into the (edge) middleware bundle.
+ARG NEXT_PUBLIC_PANEL_HOST=""
+ENV NEXT_PUBLIC_PANEL_HOST=$NEXT_PUBLIC_PANEL_HOST
 RUN npm run build
 
 FROM node:20-slim AS run
