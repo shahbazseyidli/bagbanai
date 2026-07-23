@@ -13,12 +13,23 @@ class OrgRole(str, Enum):
     viewer = "viewer"
 
 
+class UserRole(str, Enum):
+    """Global marketplace persona (0031), distinct from OrgRole membership."""
+    farmer = "farmer"
+    lab = "lab"
+    consultant = "consultant"
+    supplier = "supplier"
+
+
 # ---- auth ----
 class SignupIn(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8)
     full_name: Optional[str] = None
     locale: str = "az"
+    role: UserRole = UserRole.farmer
+    country: Optional[str] = None
+    region: Optional[str] = None
 
 
 class LoginIn(BaseModel):
@@ -41,6 +52,9 @@ class UserOut(BaseModel):
     full_name: Optional[str] = None
     locale: str = "az"
     is_admin: bool = False
+    role: UserRole = UserRole.farmer
+    country: Optional[str] = None
+    region: Optional[str] = None
 
 
 # ---- organizations / membership ----
@@ -191,3 +205,104 @@ class YieldIn(BaseModel):
     yield_unit: Optional[str] = None    # t_ha|kg|t
     area_ha: Optional[float] = None
     notes: Optional[str] = None
+
+
+# ---- marketplace: provider profiles + catalog (0031) ----
+class ProviderIn(BaseModel):
+    kind: UserRole                       # lab | consultant | supplier
+    company: str = Field(min_length=1)
+    bio: Optional[str] = None
+    specializations: list[str] = []
+    country: Optional[str] = None
+    region: Optional[str] = None
+    address: Optional[str] = None
+    coverage: Optional[str] = None
+    phone: Optional[str] = None
+
+
+class ProviderOut(BaseModel):
+    id: str
+    user_id: str
+    kind: str
+    company: str
+    bio: Optional[str] = None
+    specializations: list[str] = []
+    country: Optional[str] = None
+    region: Optional[str] = None
+    address: Optional[str] = None
+    coverage: Optional[str] = None
+    phone: Optional[str] = None
+    rating: Optional[float] = None
+    order_count: int = 0
+    featured: bool = False
+
+
+class CatalogItemIn(BaseModel):
+    name: str = Field(min_length=1)
+    category: Optional[str] = None
+    unit: Optional[str] = None
+    price: Optional[float] = None
+    currency: str = "AZN"
+    description: Optional[str] = None
+
+
+class CatalogItemOut(CatalogItemIn):
+    id: str
+    provider_id: str
+
+
+# ---- marketplace: messaging (0031) ----
+class StartConversationIn(BaseModel):
+    other_user_id: str
+    kind: str = "peer"                   # peer | provider
+    body: Optional[str] = None           # optional first message
+
+
+class MessageIn(BaseModel):
+    body: str = Field(min_length=1)
+
+
+class MessageOut(BaseModel):
+    id: str
+    sender_id: str
+    body: str
+    created_at: str
+    mine: bool = False
+
+
+class ConversationOut(BaseModel):
+    id: str
+    other_user_id: str
+    other_name: Optional[str] = None
+    other_role: Optional[str] = None
+    kind: str = "peer"
+    last_text: Optional[str] = None
+    last_at: Optional[str] = None
+
+
+# ---- fertilizer plans (E8, 0031) ----
+class FertilizerPlanIn(BaseModel):
+    product: str = Field(min_length=1)
+    category: Optional[str] = None
+    zone: Optional[str] = None
+    dose: Optional[str] = None
+    planned_on: Optional[str] = None     # ISO date
+    status: str = "planned"
+    source: str = "manual"
+    notes: Optional[str] = None
+
+
+class FertilizerPlanOut(FertilizerPlanIn):
+    id: str
+    field_id: str
+
+
+# ---- field photos (E10, 0031) ----
+class FieldPhotoOut(BaseModel):
+    id: str
+    field_id: str
+    photo_path: str
+    ai_label: Optional[str] = None
+    ai_condition: Optional[str] = None
+    ai_notes: Optional[str] = None
+    created_at: str

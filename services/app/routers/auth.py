@@ -52,16 +52,19 @@ async def signup(body: SignupIn, response: Response):
         if exists:
             raise HTTPException(status_code=409, detail="email_taken")
         row = await conn.fetchrow(
-            """insert into public.users (email, password_hash, full_name, locale)
-               values ($1,$2,$3,$4) returning id, email, full_name, locale""",
-            body.email, hash_password(body.password), body.full_name, body.locale)
+            """insert into public.users (email, password_hash, full_name, locale, role, country, region)
+               values ($1,$2,$3,$4,$5::user_role,$6,$7)
+               returning id, email, full_name, locale, role, country, region""",
+            body.email, hash_password(body.password), body.full_name, body.locale,
+            body.role.value, body.country, body.region)
         uid = str(row["id"])
         if notify.email_configured():
             await _issue_otp(conn, uid, row["email"])
             return {"needs_verification": True, "email": row["email"]}
     _set_cookie(response, create_token(uid))
     return {"needs_verification": False, "user": UserOut(
-        id=uid, email=row["email"], full_name=row["full_name"], locale=row["locale"])}
+        id=uid, email=row["email"], full_name=row["full_name"], locale=row["locale"],
+        role=row["role"], country=row["country"], region=row["region"])}
 
 
 @router.post("/verify-otp")
@@ -72,7 +75,7 @@ async def verify_otp(body: VerifyOtpIn, response: Response):
     async with connection() as conn:
         row = await conn.fetchrow(
             """select id, email, full_name, locale, is_admin, email_verified,
-                      otp_code, otp_expires_at, otp_attempts
+                      otp_code, otp_expires_at, otp_attempts, role, country, region
                from public.users where lower(email)=lower($1)""", body.email)
     if not row:
         raise HTTPException(status_code=404, detail="user_not_found")
@@ -94,7 +97,8 @@ async def verify_otp(body: VerifyOtpIn, response: Response):
                           otp_expires_at=null, otp_attempts=0 where id=$1::uuid""", row["id"])
     _set_cookie(response, create_token(str(row["id"])))
     return {"ok": True, "user": UserOut(id=str(row["id"]), email=row["email"],
-            full_name=row["full_name"], locale=row["locale"], is_admin=row["is_admin"])}
+            full_name=row["full_name"], locale=row["locale"], is_admin=row["is_admin"],
+            role=row["role"], country=row["country"], region=row["region"])}
 
 
 @router.post("/resend-otp")
@@ -114,15 +118,16 @@ async def resend_otp(body: ResendOtpIn):
 async def login(body: LoginIn, response: Response):
     async with connection() as conn:
         row = await conn.fetchrow(
-            "select id, email, password_hash, full_name, locale, is_admin, email_verified "
-            "from public.users where lower(email)=lower($1)", body.email)
+            "select id, email, password_hash, full_name, locale, is_admin, email_verified, "
+            "role, country, region from public.users where lower(email)=lower($1)", body.email)
     if not row or not verify_password(body.password, row["password_hash"]):
         raise HTTPException(status_code=401, detail="invalid_credentials")
     if not row["email_verified"] and notify.email_configured():
         raise HTTPException(status_code=403, detail="email_not_verified")
     _set_cookie(response, create_token(str(row["id"])))
     return UserOut(id=str(row["id"]), email=row["email"], full_name=row["full_name"],
-                   locale=row["locale"], is_admin=row["is_admin"])
+                   locale=row["locale"], is_admin=row["is_admin"],
+                   role=row["role"], country=row["country"], region=row["region"])
 
 
 @router.post("/logout")
@@ -135,11 +140,13 @@ async def logout(response: Response):
 async def me(user_id: str = Depends(get_current_user_id)):
     async with connection(user_id) as conn:
         row = await conn.fetchrow(
-            "select id, email, full_name, locale, is_admin from public.users where id=$1::uuid", user_id)
+            "select id, email, full_name, locale, is_admin, role, country, region "
+            "from public.users where id=$1::uuid", user_id)
     if not row:
         raise HTTPException(status_code=401, detail="unauthorized")
     return UserOut(id=str(row["id"]), email=row["email"], full_name=row["full_name"],
-                   locale=row["locale"], is_admin=row["is_admin"])
+                   locale=row["locale"], is_admin=row["is_admin"],
+                   role=row["role"], country=row["country"], region=row["region"])
 
 
 @router.get("/email-alerts")
