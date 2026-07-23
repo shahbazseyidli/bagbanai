@@ -211,6 +211,8 @@ export const de: Dict = {
   "team.role.viewer": "Betrachter",
 
   "nav.pricing": "Preise",
+  "nav.catalog": "Katalog",
+  "nav.community": "Community",
   "nav.admin": "Admin",
   "bnav.today": "Heute",
   "bnav.fields": "Felder",
@@ -219,6 +221,7 @@ export const de: Dict = {
   "bnav.mainNav": "Hauptnavigation",
   "bnav.addField": "Feld hinzufügen",
   "more.title": "Mehr",
+  "more.account": "Konto / Einstellungen",
   "more.pricingPlans": "Preise / Pakete",
   "more.language": "Sprache / Dil",
   "today.title": "Heute",

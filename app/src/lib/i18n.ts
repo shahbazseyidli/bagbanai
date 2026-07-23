@@ -6,6 +6,8 @@ export const az = {
   "brand": "Bağban AI",
   "nav.dashboard": "Sahələrim",
   "nav.pricing": "Qiymətlər",
+  "nav.catalog": "Kataloq",
+  "nav.community": "İcma",
   "nav.team": "Komanda",
   "nav.logout": "Çıxış",
   "nav.login": "Daxil ol",
@@ -239,6 +241,7 @@ export const az = {
   // "more" overflow page
   "more.title": "Daha çox",
   "more.pricingPlans": "Qiymətlər / paketlər",
+  "more.account": "Hesab / parametrlər",
   "more.language": "Dil / Language",
 
   // "today" home (D2.2)

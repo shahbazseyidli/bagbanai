@@ -3,7 +3,7 @@
 // D2.1 — "Daha çox": the overflow menu (bottom-nav destination). Large rows, one screen.
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Tag, Users, Shield, LogOut, ChevronRight } from "lucide-react";
+import { Tag, Users, Shield, LogOut, ChevronRight, Store, MessageCircle, UserCog } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { t } from "@/lib/i18n";
 import DataSaverToggle from "@/components/DataSaverToggle";
@@ -15,6 +15,9 @@ export default function MorePage() {
   const { user, logout } = useAuth();
 
   const items = [
+    { href: "/catalog", label: t("nav.catalog"), Icon: Store, authOnly: true },
+    { href: "/chat", label: t("nav.community"), Icon: MessageCircle, authOnly: true },
+    { href: "/account", label: t("more.account"), Icon: UserCog, authOnly: true },
     { href: "/pricing", label: t("more.pricingPlans"), Icon: Tag, authOnly: false },
     { href: "/team", label: t("nav.team"), Icon: Users, authOnly: true },
     ...(user?.is_admin ? [{ href: "/admin", label: t("nav.admin"), Icon: Shield, authOnly: true }] : []),

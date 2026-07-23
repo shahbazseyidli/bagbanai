@@ -1,11 +1,17 @@
 // Shared API types.
 
+// Marketplace persona (0031) — distinct from the org membership Role below.
+export type UserRole = "farmer" | "lab" | "consultant" | "supplier";
+
 export interface User {
   id: string;
   email: string;
   full_name?: string | null;
   locale?: string | null;
   is_admin?: boolean;
+  role?: UserRole;
+  country?: string | null;
+  region?: string | null;
 }
 
 export type Role = "owner" | "admin" | "member" | "viewer";

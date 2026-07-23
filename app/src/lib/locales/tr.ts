@@ -211,6 +211,8 @@ export const tr: Dict = {
   "team.role.viewer": "İzleyici",
 
   "nav.pricing": "Fiyatlar",
+  "nav.catalog": "Katalog",
+  "nav.community": "Topluluk",
   "nav.admin": "Admin",
   "bnav.today": "Bugün",
   "bnav.fields": "Tarlalar",
@@ -219,6 +221,7 @@ export const tr: Dict = {
   "bnav.mainNav": "Ana navigasyon",
   "bnav.addField": "Tarla ekle",
   "more.title": "Daha fazla",
+  "more.account": "Hesap / ayarlar",
   "more.pricingPlans": "Fiyatlar / paketler",
   "more.language": "Dil / Language",
   "today.title": "Bugün",
