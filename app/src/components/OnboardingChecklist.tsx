@@ -52,6 +52,9 @@ export default function OnboardingChecklist() {
           hasCrop = !!meta?.crop_type;
           hasData = !!ds && ["ready", "partial", "processing"].includes(ds.status);
         }
+        // Only offer the Telegram step when the bot is actually configured (otherwise it can never
+        // be completed and the checklist would never finish).
+        const tg = await api.get<{ configured?: boolean }>("/api/messaging/telegram").catch(() => null);
         const flag = (k: string) => {
           try { return localStorage.getItem(`bagban_done_${k}`) === "1"; } catch { return false; }
         };
@@ -65,7 +68,9 @@ export default function OnboardingChecklist() {
             href: first ? `/fields/${first.id}` : undefined, hint: first && !hasData ? "hazırlanır" : undefined },
           { key: "advice", label: "AI aqronom məsləhətini aç", done: flag("advice"),
             href: first ? `/fields/${first.id}?tab=ai` : undefined },
-          { key: "telegram", label: "Bildirişləri Telegram-a bağla", done: flag("telegram"), href: "/" },
+          ...(tg?.configured
+            ? [{ key: "telegram", label: "Bildirişləri Telegram-a bağla", done: flag("telegram"), href: "/" }]
+            : []),
         ];
         if (!active) return;
         setSteps(s);
