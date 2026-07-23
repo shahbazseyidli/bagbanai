@@ -6,6 +6,7 @@
 // installed / unsupported browser / iOS), the app is already running standalone, or it was dismissed.
 import { useEffect, useState } from "react";
 import { Download, X } from "lucide-react";
+import { t } from "@/lib/i18n";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -54,16 +55,16 @@ export default function InstallPrompt({ show = true }: { show?: boolean }) {
         <Download className="h-5 w-5" aria-hidden="true" />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-bold text-slate-900">Bağban AI-ı telefona quraşdırın</p>
-        <p className="text-xs text-slate-600">Tətbiq kimi açılır — offline işləyir, tarlada daha sürətli.</p>
+        <p className="text-sm font-bold text-slate-900">{t("install.title")}</p>
+        <p className="text-xs text-slate-600">{t("install.body")}</p>
       </div>
       <button
         onClick={install}
         className="min-h-10 shrink-0 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-bold text-white hover:bg-emerald-700"
       >
-        Quraşdır
+        {t("install.cta")}
       </button>
-      <button onClick={close} aria-label="Bağla" className="shrink-0 rounded-lg p-1 text-slate-400 hover:text-slate-600">
+      <button onClick={close} aria-label={t("common.close")} className="shrink-0 rounded-lg p-1 text-slate-400 hover:text-slate-600">
         <X className="h-4 w-4" aria-hidden="true" />
       </button>
     </div>

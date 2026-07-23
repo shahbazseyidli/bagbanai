@@ -9,6 +9,7 @@ import Link from "next/link";
 import { Check, Circle, ChevronRight, X, PartyPopper } from "lucide-react";
 import { api } from "@/lib/api";
 import { track } from "@/lib/track";
+import { t } from "@/lib/i18n";
 import type { Farm, Field, Org } from "@/lib/types";
 
 interface Step {
@@ -60,16 +61,16 @@ export default function OnboardingChecklist() {
         };
 
         const s: Step[] = [
-          { key: "account", label: "Hesab yaradıldı", done: true },
-          { key: "field", label: "İlk tarlanı əlavə et", done: fields.length > 0, href: "/onboarding" },
-          { key: "crop", label: "Məhsul növünü təyin et", done: hasCrop,
+          { key: "account", label: t("onb.check.account"), done: true },
+          { key: "field", label: t("onb.check.field"), done: fields.length > 0, href: "/onboarding" },
+          { key: "crop", label: t("onb.check.crop"), done: hasCrop,
             href: first ? `/fields/${first.id}?tab=metadata` : "/onboarding" },
-          { key: "data", label: "İlk peyk məlumatını gör", done: hasData,
-            href: first ? `/fields/${first.id}` : undefined, hint: first && !hasData ? "hazırlanır" : undefined },
-          { key: "advice", label: "AI aqronom məsləhətini aç", done: flag("advice"),
+          { key: "data", label: t("onb.check.data"), done: hasData,
+            href: first ? `/fields/${first.id}` : undefined, hint: first && !hasData ? t("onb.check.dataHint") : undefined },
+          { key: "advice", label: t("onb.check.advice"), done: flag("advice"),
             href: first ? `/fields/${first.id}?tab=ai` : undefined },
           ...(tg?.configured
-            ? [{ key: "telegram", label: "Bildirişləri Telegram-a bağla", done: flag("telegram"), href: "/" }]
+            ? [{ key: "telegram", label: t("onb.check.telegram"), done: flag("telegram"), href: "/" }]
             : []),
         ];
         if (!active) return;
@@ -96,9 +97,9 @@ export default function OnboardingChecklist() {
     <div className="rounded-2xl border-[1.5px] border-emerald-200 bg-emerald-50/50 p-4">
       <div className="flex items-center justify-between gap-2">
         <h2 className="flex items-center gap-2 text-base font-bold text-slate-900">
-          <PartyPopper className="h-4 w-4 text-emerald-600" aria-hidden="true" /> Başlanğıc — {done}/{steps.length}
+          <PartyPopper className="h-4 w-4 text-emerald-600" aria-hidden="true" /> {t("onb.check.title")} — {done}/{steps.length}
         </h2>
-        <button onClick={close} aria-label="Bağla" className="rounded-lg p-1 text-slate-400 hover:text-slate-600">
+        <button onClick={close} aria-label={t("common.close")} className="rounded-lg p-1 text-slate-400 hover:text-slate-600">
           <X className="h-4 w-4" aria-hidden="true" />
         </button>
       </div>

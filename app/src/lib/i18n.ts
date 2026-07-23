@@ -33,6 +33,7 @@ export const az = {
   "common.no": "Xeyr",
   "common.other": "Digər…",
   "common.otherSpecify": "Digər (əl ilə yazın)",
+  "common.close": "Bağla",
 
   // auth
   "auth.email": "E-poçt",
@@ -255,6 +256,35 @@ export const az = {
   "today.fieldsOnMap": "Sahələr xəritədə",
   "today.noFields": "Hələ sahəniz yoxdur.",
   "today.addFirst": "İlk sahənizi əlavə edin",
+
+  // onboarding activation checklist (D3.6)
+  "onb.check.title": "Başlanğıc",
+  "onb.check.account": "Hesab yaradıldı",
+  "onb.check.field": "İlk tarlanı əlavə et",
+  "onb.check.crop": "Məhsul növünü təyin et",
+  "onb.check.data": "İlk peyk məlumatını gör",
+  "onb.check.dataHint": "hazırlanır",
+  "onb.check.advice": "AI aqronom məsləhətini aç",
+  "onb.check.telegram": "Bildirişləri Telegram-a bağla",
+
+  // PWA install card (D3.5)
+  "install.title": "Bağban AI-ı telefona quraşdırın",
+  "install.body": "Tətbiq kimi açılır — offline işləyir, tarlada daha sürətli.",
+  "install.cta": "Quraşdır",
+
+  // email-alerts toggle (#4)
+  "emailAlerts.title": "Email bildirişləri",
+  "emailAlerts.body": "Kritik və xəbərdarlıq siqnalları email-ə gəlsin",
+
+  // data-saver toggle (D4.5)
+  "dataSaver.title": "Data qənaəti",
+  "dataSaver.body": "Peyk təbəqəsini avtomatik yükləmə (3G-də sərfəli)",
+
+  // offline indicator (D5.3)
+  "offline.pill": "Oflayn",
+  "offline.pending": "qeyd gözləyir",
+  "offline.synced": "Sinxronlaşdı",
+  "offline.unsent": "qeyd göndərilməyib",
 } as const;
 
 export type I18nKey = keyof typeof az;

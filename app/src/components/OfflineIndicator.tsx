@@ -8,6 +8,7 @@
 import { useEffect, useState } from "react";
 import { WifiOff, RefreshCw, Check } from "lucide-react";
 import { getQueue } from "@/lib/offlineQueue";
+import { t } from "@/lib/i18n";
 
 export default function OfflineIndicator() {
   const [online, setOnline] = useState(true);
@@ -57,15 +58,15 @@ export default function OfflineIndicator() {
         {!online ? (
           <>
             <WifiOff className="h-4 w-4" aria-hidden="true" />
-            Oflayn{pending > 0 ? ` · ${pending} qeyd gözləyir` : ""}
+            {t("offline.pill")}{pending > 0 ? ` · ${pending} ${t("offline.pending")}` : ""}
           </>
         ) : justSynced ? (
           <>
-            <Check className="h-4 w-4" aria-hidden="true" /> Sinxronlaşdı
+            <Check className="h-4 w-4" aria-hidden="true" /> {t("offline.synced")}
           </>
         ) : (
           <>
-            <RefreshCw className="h-4 w-4" aria-hidden="true" /> {pending} qeyd göndərilməyib
+            <RefreshCw className="h-4 w-4" aria-hidden="true" /> {pending} {t("offline.unsent")}
           </>
         )}
       </div>
