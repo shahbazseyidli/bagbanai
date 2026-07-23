@@ -93,3 +93,16 @@
 - Gizli qiymət (bizdə şəffaf AZN qalır — satış komandası yoxdur, AZ fermerində "contact us" inamsızlıq yaradır).
 - Mapbox/vendor kilidli stack (MapLibre qalır), John Deere/METOS inteqrasiyaları (AZ parkında yoxdur — gələcəkdə).
 - Per-seat heç vaxt; workspace/hektar modeli onsuz da bizdədir (hectare_cap).
+
+## 7. Açıq suallar (ikinci araşdırma / hibrid mərhələ üçün)
+Kritik agentin doldurmadığı boşluqlar — növbəti benchmark-da nəzərə al:
+- **Rəqib triangulyasiyası:** xarvio / Climate FieldView / EOSDA / Plantix qarşı OneSoil pozisiyası — Bağban positioning copy-si üçün (ikinci araşdırmanın əsas namizədləri).
+- **Yield-prediction ziddiyyəti:** Yield app "prediction" reklam edir, Capterra "modellər yoxdur" deyir — hansı doğrudur, dəqiqləşdirilmədi.
+- **map.onesoil.ai statusu:** viral public map hələ işləyirmi, AZ krop datası göstərirmi.
+- **Global Analytics qiymət kalkulyatoru** (get-data.onesoil.ai) — rəqəmlər tutulmadı.
+- **Hava stack-i:** "virtual weather stations" öz modelidir, yoxsa lisenziyalı radar — müəyyən edilmədi.
+- **Education/retention kanalları:** YouTube dərsləri, vebinarlar, email onboarding kursu — sorğulanmadı.
+- **Hüquqi sənədlər:** fermer data-ownership bəndləri, "depersonalized data for model improvement" lisenziyası oxunmadı.
+
+## 8. Status
+**2026-07-23: ARAŞDIRMA TAMAM — İCRA GÖZLƏYİR.** İstifadəçi qərarı: heç nə qurulmur; ikinci benchmark araşdırması gələcək, sonra iki araşdırma **hibrid plan**da birləşdiriləcək və O-backloq yenidən prioritetləşdiriləcək.
