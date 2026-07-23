@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Tag, Users, Shield, LogOut, ChevronRight } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import DataSaverToggle from "@/components/DataSaverToggle";
+import EmailAlertsToggle from "@/components/EmailAlertsToggle";
 
 export default function MorePage() {
   const router = useRouter();
@@ -42,6 +43,7 @@ export default function MorePage() {
       </ul>
 
       <DataSaverToggle />
+      {user && <EmailAlertsToggle />}
 
       {user && (
         <>

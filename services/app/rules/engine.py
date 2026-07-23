@@ -163,6 +163,7 @@ async def dispatch(conn, field_id: str, org_id: str, candidates: list[dict]) -> 
                  last_severity=excluded.last_severity, last_fired_at=now(), active=true""",
             field_id, rt, c.get("dedup_key", ""), sev)
         await _deliver_telegram(conn, org_id, c["title"], c["body"])
+        await _deliver_email(conn, org_id, c["title"], c["body"], sev)
         fired += 1
     return {"candidates": len(candidates), "fired": fired, "quiet_hours": quiet}
 
@@ -184,6 +185,32 @@ async def _deliver_telegram(conn, org_id: str, title: str, body: str) -> None:
                 "insert into public.message_log (channel_id, text, status) values ($1,$2,$3)",
                 r["id"], title, "sent" if ok else "failed")
     except Exception:  # noqa: BLE001 — never let delivery break dispatch
+        pass
+
+
+async def _deliver_email(conn, org_id: str, title: str, body: str, severity: str) -> None:
+    """Best-effort email of a dispatched alert to opted-in org members (#4). Only critical/warning
+    (quiet-hours already held non-critical during 22:00–07:00). Dormant until Resend is configured."""
+    if severity not in ("critical", "warning"):
+        return
+    from ..ai import notify
+    if not notify.email_configured():
+        return
+    try:
+        rows = await conn.fetch(
+            """select distinct u.email from public.users u
+               join public.organization_members m on m.user_id = u.id
+               where m.org_id=$1::uuid and m.status='active'
+                 and u.email is not null and u.email_alerts is true""", org_id)
+        subject = f"[Bağban AI] {title}"
+        text = (f"{title}\n\n{body}\n\n— Bağban AI\n"
+                "Bu bildirişləri Parametrlərdə (Daha çox) söndürə bilərsiniz.")
+        for r in rows:
+            try:
+                await notify.send_email(r["email"], subject, text)
+            except Exception:  # noqa: BLE001
+                pass
+    except Exception:  # noqa: BLE001 — delivery must never break dispatch
         pass
 
 
