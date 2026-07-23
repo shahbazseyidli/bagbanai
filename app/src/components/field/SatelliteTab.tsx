@@ -24,8 +24,9 @@ import {
   type IndexNorms,
 } from "@/lib/indexStatus";
 import StatusChip from "@/components/StatusChip";
+import { useFieldDataStatus } from "@/lib/useFieldDataStatus";
 import type {
-  FieldDetail, IndexPoint, IndexSeries, IndexBenchmark, RasterScene, RasterScenes, FieldDataStatus,
+  FieldDetail, IndexPoint, IndexSeries, IndexBenchmark, RasterScene, RasterScenes,
 } from "@/lib/types";
 
 interface IndexSummaryEntry { index: string; latest: number | null; date: string | null; }
@@ -64,33 +65,18 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
   const [compare, setCompare] = useState(false);
   const [cmpA, setCmpA] = useState(0);
   const [cmpB, setCmpB] = useState(1);
-  const [status, setStatus] = useState<FieldDataStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState<IndexSummaryEntry[] | null>(null);
   const [norms, setNorms] = useState<IndexNorms | null>(null);
   const [normsCrop, setNormsCrop] = useState<{ crop_type: string | null; calibrated: boolean } | null>(null);
 
+  // Shared processing-status poller (D0.9) — drives the "preparing" note.
+  const status = useFieldDataStatus(field.id);
+
   // Keep the index valid for this sensor (NDRE/CIre are S2-only, TVI is HLS-only).
   useEffect(() => {
     if (!indexAvailable(sensor, index)) setIndex(firstIndex === "TVI" ? "NDVI" : firstIndex);
   }, [sensor, index, firstIndex]);
-
-  // Poll processing status until ready (drives the preparing note).
-  useEffect(() => {
-    let active = true;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    async function poll() {
-      try {
-        const s = await api.get<FieldDataStatus>(`/api/fields/${field.id}/data-status`);
-        if (!active) return;
-        setStatus(s);
-        if (s.status === "queued" || s.status === "processing" || s.status === "partial")
-          timer = setTimeout(poll, 6000);
-      } catch { /* keep last */ }
-    }
-    poll();
-    return () => { active = false; if (timer) clearTimeout(timer); };
-  }, [field.id]);
 
   const effectiveStatus = status?.status ?? field.data_status ?? "ready";
   // 'partial' = HLS ready, S2 still coming → for a sensor with no data yet the wait card should

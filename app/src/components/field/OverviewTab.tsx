@@ -17,6 +17,7 @@ import { api } from "@/lib/api";
 import { DisplayMap } from "@/components/FieldMap";
 import { Spinner } from "@/components/ui";
 import SpeakButton from "@/components/SpeakButton";
+import { useFieldDataStatus } from "@/lib/useFieldDataStatus";
 import ClarificationBlock from "@/components/field/ClarificationBlock";
 import { SENSOR_PARAM, sensorFamily } from "@/lib/sensors";
 import { TONE, INDEX_LABELS, interpret, type IndexNorms, type Tone } from "@/lib/indexStatus";
@@ -106,30 +107,12 @@ export default function OverviewTab({
 }) {
   const [insights, setInsights] = useState<InsightsResponse | null>(null);
   const [norms, setNorms] = useState<IndexNorms | null>(null);
-  const [status, setStatus] = useState<FieldDataStatus | null>(null);
   const [heroUrl, setHeroUrl] = useState<string | null>(null);
   const [spark, setSpark] = useState<{ date: string; v: number }[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Poll processing status until ready.
-  useEffect(() => {
-    let active = true;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    async function poll() {
-      try {
-        const s = await api.get<FieldDataStatus>(`/api/fields/${field.id}/data-status`);
-        if (!active) return;
-        setStatus(s);
-        // Keep polling through 'partial' too (HLS shown, S2 still processing) so the page
-        // auto-upgrades to full when Sentinel-2 finishes.
-        if (s.status === "queued" || s.status === "processing" || s.status === "partial")
-          timer = setTimeout(poll, 6000);
-      } catch { /* keep last */ }
-    }
-    poll();
-    return () => { active = false; if (timer) clearTimeout(timer); };
-  }, [field.id]);
-
+  // Shared processing-status poller (D0.9) — polls until ready, drives the auto-upgrade to full.
+  const status = useFieldDataStatus(field.id);
   const ready = status?.status === "ready";
 
   // Insights (both sensors) + crop norms.

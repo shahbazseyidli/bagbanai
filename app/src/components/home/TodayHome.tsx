@@ -18,6 +18,7 @@ import { ErrorNote } from "@/components/ui";
 import { ListSkeleton } from "@/components/Skeleton";
 import StatusChip from "@/components/StatusChip";
 import OnboardingChecklist from "@/components/OnboardingChecklist";
+import InstallPrompt from "@/components/InstallPrompt";
 import { fetchFieldToday, type FieldToday } from "@/lib/today";
 import type { Tone } from "@/lib/indexStatus";
 import type { Farm, Field, Org } from "@/lib/types";
@@ -167,6 +168,7 @@ export default function TodayHome() {
 
   const resolved = fields.map((f) => todays[f.id]).filter((t): t is FieldToday => t != null);
   const attn = resolved.filter(needsAttention).length;
+  const hasReady = resolved.some((t) => t.status === "ready" || t.status === "partial");
   const today = new Date();
 
   return (
@@ -196,6 +198,9 @@ export default function TodayHome() {
 
       {/* D3.6 — activation checklist (hides itself once complete) */}
       <OnboardingChecklist />
+
+      {/* D3.5 — PWA install nudge at a value moment (satellite data ready) */}
+      <InstallPrompt show={hasReady} />
 
       {/* Attention strip — active alerts, each deep-links to its field */}
       {alerts.length > 0 && (
