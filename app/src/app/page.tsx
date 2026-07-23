@@ -53,9 +53,9 @@ function Landing() {
 
       <section id="pricing" className="space-y-5">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-slate-900">Paketlər və qiymətlər</h2>
+          <h2 className="text-2xl font-bold text-slate-900">{t("landing.pricingTitle")}</h2>
           <p className="mx-auto mt-2 max-w-2xl text-sm text-slate-600">
-            Pulsuz başlayın — sahənizi peykdən izləyin. Hazır olanda AI aqronom məsləhətinə keçin.
+            {t("landing.pricingSub")}
           </p>
         </div>
         <PricingTable />

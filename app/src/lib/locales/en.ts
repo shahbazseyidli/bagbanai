@@ -277,6 +277,8 @@ export const en: Dict = {
   "price.tag.free": "To get started",
   "price.tag.pro": "Most popular",
   "price.tag.business": "Professional / farm",
+  "landing.pricingTitle": "Plans and pricing",
+  "landing.pricingSub": "Start free — monitor your field from satellite. Upgrade to AI agronomist advice when you're ready.",
   "wmo.clear": "Clear",
   "wmo.partly": "Partly cloudy",
   "wmo.fog": "Foggy",

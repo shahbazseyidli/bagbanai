@@ -311,6 +311,8 @@ export const az = {
   "price.tag.free": "Başlamaq üçün",
   "price.tag.pro": "Ən populyar",
   "price.tag.business": "Peşəkar / təsərrüfat",
+  "landing.pricingTitle": "Paketlər və qiymətlər",
+  "landing.pricingSub": "Pulsuz başlayın — sahənizi peykdən izləyin. Hazır olanda AI aqronom məsləhətinə keçin.",
 
   // WMO weather codes (short)
   "wmo.clear": "Aydın",

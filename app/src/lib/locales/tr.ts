@@ -277,6 +277,8 @@ export const tr: Dict = {
   "price.tag.free": "Başlamak için",
   "price.tag.pro": "En popüler",
   "price.tag.business": "Profesyonel / çiftlik",
+  "landing.pricingTitle": "Paketler ve fiyatlar",
+  "landing.pricingSub": "Ücretsiz başlayın — tarlanızı uydudan izleyin. Hazır olduğunuzda AI ziraat danışmanı tavsiyesine geçin.",
   "wmo.clear": "Açık",
   "wmo.partly": "Az bulutlu",
   "wmo.fog": "Sisli",
