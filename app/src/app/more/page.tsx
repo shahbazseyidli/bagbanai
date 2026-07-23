@@ -7,6 +7,7 @@ import { Tag, Users, Shield, LogOut, ChevronRight } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import DataSaverToggle from "@/components/DataSaverToggle";
 import EmailAlertsToggle from "@/components/EmailAlertsToggle";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default function MorePage() {
   const router = useRouter();
@@ -42,6 +43,10 @@ export default function MorePage() {
         ))}
       </ul>
 
+      <div className="flex min-h-14 items-center justify-between gap-3 rounded-xl border-[1.5px] border-slate-300 bg-white px-4 py-3">
+        <span className="text-base font-medium text-slate-900">Dil / Language</span>
+        <LanguageSwitcher />
+      </div>
       <DataSaverToggle />
       {user && <EmailAlertsToggle />}
 

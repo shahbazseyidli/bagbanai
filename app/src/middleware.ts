@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-// Phase 2 — panel/marketing split via host routing (single app).
-//   agradex.com        → marketing (landing, pricing, login, signup)
-//   panel.agradex.com  → the app (dashboard, fields, …)
-// DORMANT until NEXT_PUBLIC_PANEL_HOST is set (e.g. "panel.agradex.com"): with it empty the
-// middleware is a no-op, so everything is served from the apex exactly as today. Activated once
-// the panel DNS/nginx/cert are in place.
+// Two concerns in one middleware:
+//   (Phase 4) Locale path-prefix: /en, /tr, /de → strip the prefix, remember the locale (cookie +
+//     x-locale request header the server layout reads), serve the underlying route. First-time
+//     visitors with a non-az browser language are redirected once to their prefixed URL.
+//   (Phase 2) Panel/marketing host split: agradex.com=marketing, panel.agradex.com=app. DORMANT
+//     until NEXT_PUBLIC_PANEL_HOST is set (no-op when empty).
 const PANEL_HOST = (process.env.NEXT_PUBLIC_PANEL_HOST || "").toLowerCase();
-const COOKIE = "bagban_session";
-
-// App routes belong on the panel; everything else on the apex is marketing.
+const AUTH_COOKIE = "bagban_session";
+const LOCALE_COOKIE = "bagban_locale";
+const PREFIXED = ["en", "tr", "de"]; // az is the default (no prefix)
 const APP_PREFIXES = ["/fields", "/farms", "/more", "/notifications", "/onboarding", "/team", "/admin"];
 
 function isAppPath(path: string): boolean {
@@ -18,38 +18,55 @@ function isAppPath(path: string): boolean {
 }
 
 export function middleware(req: NextRequest) {
-  if (!PANEL_HOST) return NextResponse.next(); // split disabled → serve as-is
+  const url = req.nextUrl;
+  const search = url.search;
+  let path = url.pathname;
 
-  const host = (req.headers.get("host") || "").toLowerCase();
-  const apexHost = PANEL_HOST.replace(/^panel\./, "");
-  const isPanel = host === PANEL_HOST || host.startsWith("panel.");
-  const path = req.nextUrl.pathname;
-  const hasAuth = req.cookies.has(COOKIE);
-
-  if (isPanel) {
-    // Panel = the app. Logged-out visitors → marketing login (remember where they were going).
-    if (!hasAuth) {
-      const url = new URL(`https://${apexHost}/login`);
-      if (path !== "/") url.searchParams.set("next", path);
-      return NextResponse.redirect(url);
+  // --- Resolve the locale (prefix > cookie > browser) ---
+  let locale = req.cookies.get(LOCALE_COOKIE)?.value || "";
+  const m = path.match(/^\/(en|tr|de)(\/.*)?$/);
+  if (m) {
+    locale = m[1];
+    path = m[2] || "/"; // strip the prefix for internal routing
+  } else if (!locale) {
+    const al = (req.headers.get("accept-language") || "").slice(0, 2).toLowerCase();
+    if (PREFIXED.includes(al)) {
+      return NextResponse.redirect(new URL(`/${al}${url.pathname}${search}`, req.url));
     }
-    // Marketing-only pages requested on the panel → send to the apex.
-    if (path === "/pricing") return NextResponse.redirect(new URL(`https://${apexHost}${path}`));
-    return NextResponse.next();
+    locale = "az";
   }
 
-  // Apex = marketing. Logged-in users at an app path (incl. "/") → the panel app.
-  if (hasAuth && isAppPath(path)) {
-    return NextResponse.redirect(new URL(`https://${PANEL_HOST}${path}`));
+  // --- Panel/marketing host split (dormant unless PANEL_HOST set); operates on the stripped path ---
+  if (PANEL_HOST) {
+    const host = (req.headers.get("host") || "").toLowerCase();
+    const apexHost = PANEL_HOST.replace(/^panel\./, "");
+    const isPanel = host === PANEL_HOST || host.startsWith("panel.");
+    const hasAuth = req.cookies.has(AUTH_COOKIE);
+    if (isPanel) {
+      if (!hasAuth) {
+        const u = new URL(`https://${apexHost}/login`);
+        if (path !== "/") u.searchParams.set("next", path);
+        return NextResponse.redirect(u);
+      }
+      if (path === "/pricing") return NextResponse.redirect(new URL(`https://${apexHost}${path}`));
+    } else if ((hasAuth && isAppPath(path)) || (path !== "/" && isAppPath(path))) {
+      return NextResponse.redirect(new URL(`https://${PANEL_HOST}${path}${search}`));
+    }
   }
-  // App routes hit on the apex (even logged-out) belong on the panel.
-  if (path !== "/" && isAppPath(path)) {
-    return NextResponse.redirect(new URL(`https://${PANEL_HOST}${path}`));
+
+  // Pass the resolved locale to the server layout via a request header.
+  const headers = new Headers(req.headers);
+  headers.set("x-locale", locale || "az");
+
+  const res = m
+    ? NextResponse.rewrite(new URL(`${path}${search}`, req.url), { request: { headers } })
+    : NextResponse.next({ request: { headers } });
+  if (locale && req.cookies.get(LOCALE_COOKIE)?.value !== locale) {
+    res.cookies.set(LOCALE_COOKIE, locale, { path: "/", maxAge: 31536000, sameSite: "lax" });
   }
-  return NextResponse.next();
+  return res;
 }
 
 export const config = {
-  // Skip API, Next internals, service worker, and static assets.
   matcher: ["/((?!api|_next|sw.js|manifest.webmanifest|icon.svg|favicon.ico|.*\\..*).*)"],
 };

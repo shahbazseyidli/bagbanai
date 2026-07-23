@@ -227,7 +227,44 @@ export const az = {
 } as const;
 
 export type I18nKey = keyof typeof az;
+export type Dict = Partial<Record<I18nKey, string>>;
+
+// Phase 4 — 4 locales. az is the complete source of truth; en/tr/de are machine-translated and fall
+// back to az for any missing key. Translations live in lib/locales/{en,tr,de}.ts.
+export type Locale = "az" | "en" | "tr" | "de";
+export const LOCALES: Locale[] = ["az", "en", "tr", "de"];
+export const LOCALE_NAMES: Record<Locale, string> = {
+  az: "Azərbaycan", en: "English", tr: "Türkçe", de: "Deutsch",
+};
+
+// Registered lazily by LocaleProvider so this module has no import cycle with the big dicts.
+const DICTS: Partial<Record<Locale, Dict>> = { az };
+export function registerDict(locale: Locale, dict: Dict): void {
+  DICTS[locale] = dict;
+}
+
+// Client-side current locale (per browser). SSR renders in az; the client sets the real locale in
+// LocaleProvider before the app's (client-gated) content renders, so visible text is correct.
+let _locale: Locale = "az";
+export function setLocale(l: Locale): void {
+  if (LOCALES.includes(l)) _locale = l;
+}
+export function getLocale(): Locale {
+  return _locale;
+}
+
+/** Best locale for a first-time visitor: explicit cookie/localStorage → browser language → az. */
+export function detectLocale(): Locale {
+  try {
+    const stored = (localStorage.getItem("bagban_locale") || "") as Locale;
+    if (LOCALES.includes(stored)) return stored;
+    const nav = (navigator.language || "").slice(0, 2).toLowerCase() as Locale;
+    if (LOCALES.includes(nav)) return nav;
+  } catch { /* SSR / private mode */ }
+  return "az";
+}
 
 export function t(key: I18nKey): string {
-  return az[key] ?? (key as string);
+  const d = DICTS[_locale];
+  return (d && d[key]) || az[key] || (key as string);
 }

@@ -7,6 +7,7 @@ import { Leaf, Menu, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { t } from "@/lib/i18n";
 import NotificationBell from "@/components/NotificationBell";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default function Nav() {
   const { user, logout } = useAuth();
@@ -45,6 +46,7 @@ export default function Nav() {
                 {l.label}
               </Link>
             ))}
+          <LanguageSwitcher className="ml-2" />
           {user ? (
             <div className="ml-2 flex items-center gap-2">
               <NotificationBell />
