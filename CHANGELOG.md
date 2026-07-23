@@ -3,6 +3,16 @@
 Bütün əhəmiyyətli dəyişikliklər burada qeyd olunur. Format [Keep a Changelog](https://keepachangelog.com/),
 versiyalar [SemVer](https://semver.org/).
 
+## [1.12.0] — 2026-07-23 — Subsidiya çıxarıldı + panel-split (dormant) + email bildiriş (CANLI)
+
+### Removed
+- **Subsidiya kalkulyatoru məhsuldan çıxarıldı** (#1): `/subsidy` səhifə, Nav/Daha-çox/landing/qiymət istinadları, subsidiya i18n açar+label-ları (+ `labelFor`), Subsidy tiplər, `routers/subsidy.py` + qeydiyyat. DB cədvəlləri (0008 subsidy_*) **dormant** saxlanılır (drop yox, geri dönümlü). Landing feature kartı "AI aqronom məsləhəti"nə keçdi.
+
+### Added / Changed
+- **panel.agradex.com bölünməsi (#2) — kod hazır, DORMANT:** tək-app **host-routing middleware** (agradex.com=marketing, panel.agradex.com=app), `NEXT_PUBLIC_PANEL_HOST` boş olanda no-op; session cookie `COOKIE_DOMAIN` (=.agradex.com prod-da) subdomain-lər arası paylaşılır; login `?next=`; **v2 (Bu gün home + map-sheet) DEFAULT** oldu (`?ui=v1` geri çıxarır). Aktivləşmə: `deploy/PANEL_ACTIVATION.md` (CF A-record `panel` + env + nginx + certbot --expand).
+- **Email bildirişləri (#4):** rule-engine dispatcher-i critical/warning alertləri opt-in org üzvlərinə email göndərir (`_deliver_email`; quiet-hours 22-07 onsuz gate edir); migration 0030 `users.email_alerts` (default açıq) + `GET/POST /api/auth/email-alerts` + `EmailAlertsToggle` (Daha çox). **Resend açarına qədər dormant.** Canlı: endpoint true→false→true.
+- **Email doğrulama (#3):** U3 (OTP/Resend) onsuz hazırdır — eyni `RESEND_API_KEY` ilə aktivləşir.
+
 ## [1.11.0] — 2026-07-23 — Redizayn 2-ci dalğa: D3.5/D3.6/D4.3/D4.5/D0.9 (CANLI)
 
 Hər biri build-gate + deploy + canlı test.
