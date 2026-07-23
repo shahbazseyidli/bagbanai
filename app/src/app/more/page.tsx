@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Tag, Users, Shield, LogOut, ChevronRight } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { t } from "@/lib/i18n";
 import DataSaverToggle from "@/components/DataSaverToggle";
 import EmailAlertsToggle from "@/components/EmailAlertsToggle";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
@@ -14,9 +15,9 @@ export default function MorePage() {
   const { user, logout } = useAuth();
 
   const items = [
-    { href: "/pricing", label: "Qiymətlər / paketlər", Icon: Tag, authOnly: false },
-    { href: "/team", label: "Komanda", Icon: Users, authOnly: true },
-    ...(user?.is_admin ? [{ href: "/admin", label: "Admin", Icon: Shield, authOnly: true }] : []),
+    { href: "/pricing", label: t("more.pricingPlans"), Icon: Tag, authOnly: false },
+    { href: "/team", label: t("nav.team"), Icon: Users, authOnly: true },
+    ...(user?.is_admin ? [{ href: "/admin", label: t("nav.admin"), Icon: Shield, authOnly: true }] : []),
   ].filter((i) => !i.authOnly || user);
 
   async function onLogout() {
@@ -26,7 +27,7 @@ export default function MorePage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold text-slate-900">Daha çox</h1>
+      <h1 className="text-2xl font-bold text-slate-900">{t("more.title")}</h1>
 
       <ul className="space-y-2">
         {items.map(({ href, label, Icon }) => (
@@ -44,7 +45,7 @@ export default function MorePage() {
       </ul>
 
       <div className="flex min-h-14 items-center justify-between gap-3 rounded-xl border-[1.5px] border-slate-300 bg-white px-4 py-3">
-        <span className="text-base font-medium text-slate-900">Dil / Language</span>
+        <span className="text-base font-medium text-slate-900">{t("more.language")}</span>
         <LanguageSwitcher />
       </div>
       <DataSaverToggle />
@@ -58,7 +59,7 @@ export default function MorePage() {
             className="flex min-h-14 w-full items-center gap-3 rounded-xl border-[1.5px] border-slate-300 bg-white px-4 py-3 text-left hover:border-red-300"
           >
             <LogOut className="h-5 w-5 shrink-0 text-red-600" aria-hidden="true" />
-            <span className="text-base font-medium text-slate-900">Çıxış</span>
+            <span className="text-base font-medium text-slate-900">{t("nav.logout")}</span>
           </button>
         </>
       )}

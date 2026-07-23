@@ -5,6 +5,7 @@ export const az = {
   // brand / nav
   "brand": "Bağban AI",
   "nav.dashboard": "Sahələrim",
+  "nav.pricing": "Qiymətlər",
   "nav.team": "Komanda",
   "nav.logout": "Çıxış",
   "nav.login": "Daxil ol",
@@ -224,6 +225,36 @@ export const az = {
   "team.role.admin": "Administrator",
   "team.role.member": "Üzv",
   "team.role.viewer": "İzləyici",
+
+  // bottom nav + admin (D2.1)
+  "nav.admin": "Admin",
+  "bnav.today": "Bu gün",
+  "bnav.fields": "Sahələr",
+  "bnav.notifications": "Bildiriş",
+  "bnav.more": "Daha çox",
+  "bnav.mainNav": "Əsas naviqasiya",
+  "bnav.addField": "Sahə əlavə et",
+
+  // "more" overflow page
+  "more.title": "Daha çox",
+  "more.pricingPlans": "Qiymətlər / paketlər",
+  "more.language": "Dil / Language",
+
+  // "today" home (D2.2)
+  "today.title": "Bu gün",
+  "today.tone.good": "Sağlam",
+  "today.tone.warn": "Diqqət",
+  "today.tone.bad": "Zəif",
+  "today.preparing": "Peyk məlumatı hazırlanır…",
+  "today.noAnalysis": "Hələ peyk təhlili yoxdur — məlumat gələn kimi burada görünəcək.",
+  "today.waterReco": "Suvarma tövsiyə olunur",
+  "today.fieldsWord": "sahə",
+  "today.needAttention": "diqqət tələb edir",
+  "today.allGood": "hamısı qaydasındadır",
+  "today.org": "Təşkilat",
+  "today.fieldsOnMap": "Sahələr xəritədə",
+  "today.noFields": "Hələ sahəniz yoxdur.",
+  "today.addFirst": "İlk sahənizi əlavə edin",
 } as const;
 
 export type I18nKey = keyof typeof az;

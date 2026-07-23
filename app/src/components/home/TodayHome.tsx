@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { api, azError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { t, getLocale, type Locale } from "@/lib/i18n";
 import { ErrorNote } from "@/components/ui";
 import { ListSkeleton } from "@/components/Skeleton";
 import StatusChip from "@/components/StatusChip";
@@ -24,7 +25,9 @@ import { fetchFieldToday, type FieldToday } from "@/lib/today";
 import type { Tone } from "@/lib/indexStatus";
 import type { Farm, Field, Org } from "@/lib/types";
 
-const TONE_WORD: Record<Tone, string> = { good: "Sağlam", warn: "Diqqət", bad: "Zəif" };
+function toneWord(tone: Tone): string {
+  return t(tone === "good" ? "today.tone.good" : tone === "warn" ? "today.tone.warn" : "today.tone.bad");
+}
 
 const AZ_MONTHS = [
   "yanvar", "fevral", "mart", "aprel", "may", "iyun",
@@ -36,6 +39,16 @@ const AZ_WEEKDAYS = [
 function azDate(d: Date): string {
   const s = `${AZ_WEEKDAYS[d.getDay()]}, ${d.getDate()} ${AZ_MONTHS[d.getMonth()]}`;
   return s.charAt(0).toLocaleUpperCase("az") + s.slice(1);
+}
+// Localized "weekday, day month" — manual AZ arrays (reliable), Intl for en/tr/de.
+function formatToday(d: Date, locale: Locale): string {
+  if (locale === "az") return azDate(d);
+  try {
+    const s = new Intl.DateTimeFormat(locale, { weekday: "long", day: "numeric", month: "long" }).format(d);
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  } catch {
+    return azDate(d);
+  }
 }
 
 interface Notif {
@@ -51,10 +64,10 @@ function needsAttention(t: FieldToday): boolean {
   return (t.verdict != null && t.verdict.tone !== "good") || t.waterReco != null;
 }
 
-function FieldCard({ t }: { t: FieldToday }) {
-  const f = t.field;
-  const preparing = t.status === "queued" || t.status === "processing";
-  const v = t.verdict;
+function FieldCard({ t: ft }: { t: FieldToday }) {
+  const f = ft.field;
+  const preparing = ft.status === "queued" || ft.status === "processing";
+  const v = ft.verdict;
   return (
     <Link
       href={`/fields/${f.id}`}
@@ -72,27 +85,27 @@ function FieldCard({ t }: { t: FieldToday }) {
         {preparing ? (
           <p className="mt-2 flex items-center gap-1.5 text-sm text-slate-600">
             <Loader2 className="h-4 w-4 animate-spin text-emerald-600" aria-hidden="true" />
-            Peyk məlumatı hazırlanır…
+            {t("today.preparing")}
           </p>
         ) : v ? (
           <p className="mt-1.5 text-sm text-slate-700">{v.title}</p>
         ) : (
           <p className="mt-1.5 text-sm text-slate-500">
-            Hələ peyk təhlili yoxdur — məlumat gələn kimi burada görünəcək.
+            {t("today.noAnalysis")}
           </p>
         )}
 
-        {t.waterReco != null && (
+        {ft.waterReco != null && (
           <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-warn-tint px-2.5 py-1 text-xs font-bold text-warn">
             <Droplets className="h-3.5 w-3.5" aria-hidden="true" />
-            Suvarma tövsiyə olunur (~{Math.round(t.waterReco)} mm)
+            {t("today.waterReco")} (~{Math.round(ft.waterReco)} mm)
           </p>
         )}
       </div>
 
       <div className="flex flex-col items-end justify-between">
         {v && !preparing ? (
-          <StatusChip tone={v.tone} label={TONE_WORD[v.tone]} />
+          <StatusChip tone={v.tone} label={toneWord(v.tone)} />
         ) : (
           <span />
         )}
@@ -178,27 +191,28 @@ export default function TodayHome() {
 
   if (loading || fields === null) return <ListSkeleton count={4} />;
 
-  const resolved = fields.map((f) => todays[f.id]).filter((t): t is FieldToday => t != null);
+  const resolved = fields.map((f) => todays[f.id]).filter((x): x is FieldToday => x != null);
   const attn = resolved.filter(needsAttention).length;
-  const hasReady = resolved.some((t) => t.status === "ready" || t.status === "partial");
+  const hasReady = resolved.some((x) => x.status === "ready" || x.status === "partial");
   const today = new Date();
+  const locale = getLocale();
 
   return (
     <div className="space-y-5">
       {/* Dated greeting + one-line status roll-up */}
       <div>
-        <p className="text-sm font-medium text-slate-500">{azDate(today)}</p>
-        <h1 className="mt-0.5 text-2xl font-bold text-slate-900">Bu gün</h1>
+        <p className="text-sm font-medium text-slate-500">{formatToday(today, locale)}</p>
+        <h1 className="mt-0.5 text-2xl font-bold text-slate-900">{t("today.title")}</h1>
         {fields.length > 0 && (
           <p className="mt-1 text-sm text-slate-600">
-            {fields.length} sahə
+            {fields.length} {t("today.fieldsWord")}
             {resolved.length > 0 && (
               <>
                 {" · "}
                 {attn > 0 ? (
-                  <span className="font-bold text-warn">{attn} diqqət tələb edir</span>
+                  <span className="font-bold text-warn">{attn} {t("today.needAttention")}</span>
                 ) : (
-                  <span className="font-bold text-good">hamısı qaydasındadır</span>
+                  <span className="font-bold text-good">{t("today.allGood")}</span>
                 )}
               </>
             )}
@@ -210,7 +224,7 @@ export default function TodayHome() {
             value={orgId}
             onChange={(e) => setOrgId(e.target.value)}
             className="input mt-3 max-w-xs"
-            aria-label="Təşkilat"
+            aria-label={t("today.org")}
           >
             {orgs.map((o) => (
               <option key={o.id} value={o.id}>{o.name}</option>
@@ -230,7 +244,7 @@ export default function TodayHome() {
       {/* D4.3 — desktop agronomist workspace: all fields on one map (click a polygon to open). */}
       {geoFields.length >= 1 && (
         <div className="hidden md:block">
-          <h2 className="mb-2 text-base font-bold text-slate-800">Sahələr xəritədə</h2>
+          <h2 className="mb-2 text-base font-bold text-slate-800">{t("today.fieldsOnMap")}</h2>
           <div className="h-[380px]">
             <FieldsOverviewMap fields={geoFields} heightClass="h-full" />
           </div>
@@ -268,17 +282,17 @@ export default function TodayHome() {
       {fields.length === 0 ? (
         <div className="card text-center">
           <Sprout className="mx-auto h-8 w-8 text-emerald-600" />
-          <p className="mt-2 text-slate-700">Hələ sahəniz yoxdur.</p>
+          <p className="mt-2 text-slate-700">{t("today.noFields")}</p>
           <Link href="/onboarding" className="btn-primary mt-3 inline-flex">
-            <Plus className="h-4 w-4" /> İlk sahənizi əlavə edin
+            <Plus className="h-4 w-4" /> {t("today.addFirst")}
           </Link>
         </div>
       ) : (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-slate-800">Sahələrim</h2>
+            <h2 className="text-base font-bold text-slate-800">{t("nav.dashboard")}</h2>
             <Link href="/onboarding" className="inline-flex items-center gap-1 text-sm font-bold text-emerald-700">
-              <Plus className="h-4 w-4" /> Əlavə et
+              <Plus className="h-4 w-4" /> {t("common.add")}
             </Link>
           </div>
           {fields.map((f) =>
