@@ -9,6 +9,7 @@
 - **Bağban AI hibridi** — hər ikisinin bağlamadığı dövrəni bağlayır:
   **peyk anomaliyası → AI məsləhət → tapşırıq → əməliyyat (xərc AZN) → məhsul (qiymət AZN) → sahə-mövsüm mənfəət kartı → növbəti mövsüm planı.**
   Gözü OneSoil-dan, dəftəri Farmbrite-dan, beyni (AI aqronom) yalnız bizdə.
+- **2026-07-23 genişlənmə (bax §E):** üstəlik **çox-tərəfli platforma** — 4 rol (Fermer · Laboratoriya · Konsultant · Təchizatçı) + kataloq/directory + rol-arası & fermer-fermer mesajlaşma + kontekstual peer suggestion. Fermer sahə problemində eyni-məhsul/yaxın-zona fermerlərlə və ya xidmət provayderləri ilə platformada bağlanır. OneSoil "grow/help-to-grow" bölgüsü məhsulun içindədir. Yeni app modulları: **Gübrə** (qrafik + AI təklif), **Torpaq analizi** (upload + AI kontekst), **Foto** (AI auto-ID + analizə daxil).
 
 ## 1. BİZDƏ ÇATIŞMAYANLAR — birləşdirilmiş siyahı
 
@@ -69,15 +70,47 @@
 ### D. Bilərəkdən SONRAYA (Later/watchlist)
 Storefront/POS/e-commerce · tam livestock ERP (yalnız lite-notes watchlist) · Public developer API (Farmbrite patterni — Faza 5+) · maşın teleметriyası/John Deere · OneSoil-style Global Analytics data məhsulu (toxum ONESOIL_BENCHMARK §5 O22-də).
 
-## 2. İcra dalğaları (təsdiqdən sonra sıra ilə)
+### E. ÇOX-TƏRƏFLİ PLATFORMA MODELİ (istifadəçi tələbləri, 2026-07-23) — VİZYON DƏYİŞİKLİYİ
+Tək-tərəfli fermer alətindən → **4 rollu marketplace + icma platforması**. OneSoil-un "grow / help-to-grow" bölgüsü məhsulun İÇİNƏ qoşulur.
 
-- **W0 — `app.agradex.com` keçidi (portal→app rename)**: dormant panel host-routing kodunda/docs-da `panel.agradex.com` → **`app.agradex.com`** (NEXT_PUBLIC_PANEL_HOST env dəyəri onsuz da user tərəfindən veriləcək; kod host-agnostikdir — dəyişən yalnız sənədlər/aktivasiya təlimatı + CF A-record adı). — *istifadəçi qərarı, 30 dəq*
-- **W1 — Peyk quick-win paketi** (A1-A4, A9 + C11, C12): mövcud data üstündə, günlər.
-- **W2 — Hibrid dövrənin nüvəsi** (B1-B6, B10, B11, B15, B18): mövsüm entity + P&L-lite + avto tapşırıqlar + PHI + Quick Add. Ən böyük differensiasiya.
-- **W3 — Peyk analitika dərinliyi** (A5, A8, B8/A3 birləşik, B9): müqayisə + backfill + wellness + hesabatlar.
-- **W4 — Onboarding/marketinq/qiymət** (C1-C10, C5-C7 landing): konversiya + trust.
-- **W5 — Dəftər genişlənməsi** (B7, B12-B14, B16, B17, B19): satış-log, inventar, texnika, bulk.
-- **W6 — Böyük mərclər** (A6, A7, A10, A11 + partner proqramı O22/O17-dən): zonalar, VRA-lite, share/viral, koop kanalı.
+**4 rol (qeydiyyatda seçilir):**
+1. **Fermer** — sahələri, məhsulları, monitorinq, AI, dəftər.
+2. **Laboratoriya** (Soil Sampling Services) — nümunə xidmətləri təklif edir.
+3. **Aqro-konsultant** (Agro Consulting) — məsləhət/çox-müştəri xidməti.
+4. **Təchizatçı** (Input Supplier) — toxum/gübrə/dərman/texnika satıcısı.
+
+| # | Tələb | Feature | Backend (yüksək səviyyə) | Effort |
+|---|---|---|---|---|
+| E1 | Rol-əsaslı qeydiyyat sihirbazı | signup: rol seç → **ölkə (məcburi) + region/ərazi** → rol-spesifik profil | `users.role` enum + `provider_profiles` cədvəli; migration | M |
+| E2 | Təchizatçı profili | **multi-select ixtisaslaşma** (toxum/gübrə/dərman/texnika/xidmət) + şirkət adı + ünvan + kataloq/məhsullar | `provider_profiles.specializations[]`, `catalog_items` | M |
+| E3 | Laboratoriya & konsultant profili | xidmətlər, əhatə zonası, qiymət, kredensiallar, şirkət | `provider_profiles` (type=lab/consultant) | M |
+| E4 | **Kataloq / directory** | fermer laboratoriya/konsultant/təchizatçını axtarır, filtrləyir (ölkə/region/ixtisas), profilə baxır | `GET /providers` + filtr | M |
+| E5 | **Rol-arası mesajlaşma** | fermer → provider müraciət + yazışma; provider gələn sorğuları görür | `conversations`, `messages` (RLS) | M |
+| E6 | **Fermer icması (farmer↔farmer)** | fermerlər bir-biri ilə məsləhətləşir | eyni chat infrastrukturu, peer tipli | M |
+| E7 | **Kontekstual peer suggestion** | AI analiz bloku yanında: "eyni məhsulu əkən / yaxın zonada N fermer bununla üzləşib — məsləhətləş" | məhsul + region + geo yaxınlıq sorğusu | M |
+| E8 | **Gübrə modulu** | user gübrələmə qrafiki əlavə edir + görür; **AI gübrə təklifi** (T13 kalkulyator + torpaq analizi + NDVI əsasında) | `fertilizer_plans` + mövcud fertilizer engine | M |
+| E9 | **Torpaq analizi modulu** | lab analizini upload (T24 OCR var) → `soil_profiles`; **AI məsləhətdə nəzərə alır** | mövcud 0027 + AI kontekstə soil əlavəsi | S |
+| E10 | **Foto modulu** | fermer sahə/məhsul/ağac şəklini çəkir → **AI auto-ID + adlandırır**; analizdə bu şəkillərin vəziyyəti nəzərə alınır | PhotoDiagnose genişlənir → `field_photos` + vision auto-label | M |
+| E11 | **Solutions səhifələri (4)** | hər seqment üçün cəlbedici landing (fermer/laboratoriya/konsultant/təchizatçı) | marketinq (Next.js landing) | M |
+| E12 | **Home daha canlı/vurucu** | onesoil.ai səviyyəli: video/motion hero, foto-qapılar, marquee, testimonial, real screenshot | landing redizayn | M |
+| E13 | **Detallı account səhifəsi** | OneSoil settings-grid: email/parol/dil/vahid/download data/delete + workspace/komanda/rol-profil/inteqrasiya | mövcud + UI | S |
+| E14 | **Qlobal qeydiyyat** | BÜTÜN rollarda ölkə məcburi + region/ərazi dəqiqləşdirmə | signup + geo | S |
+
+**Data modeli (yeni cədvəllər — planlama):** `users.role` + `provider_profiles` (type, company, specializations[], address, country, region, coverage, services jsonb) · `catalog_items` (supplier məhsulları) · `conversations`+`messages` (marketplace + peer) · `fertilizer_plans` · `field_photos` (auto-label + condition) · (soil_profiles 0027 mövcud).
+
+**Prinsip:** hər yeni rol/qeyd tipi (provider profili, mesaj, foto, torpaq analizi, gübrə qrafiki) **AI aqronom kontekstinə qoşulur** — bu, heç bir rəqibdə olmayan hibrid moat-dır.
+
+## 2. İcra dalğaları (təsdiqdən sonra sıra ilə) — E-seriya ilə yenilənib
+
+- **W0 — `app.agradex.com` keçidi (portal→app rename)**: dormant panel host-routing kodunda/docs-da `panel.agradex.com` → **`app.agradex.com`** (kod host-agnostikdir — dəyişən yalnız sənədlər/aktivasiya + CF A-record). — *30 dəq*
+- **W1 — Rol modeli + qeydiyyat + account** (E1, E2, E3, E13, E14): `users.role` enum + `provider_profiles` migration + rol-əsaslı signup sihirbazı (ölkə/region məcburi + rol-spesifik profil) + detallı account səhifəsi. **Marketplace-in təməli — birinci.**
+- **W2 — Landing redizayn + 4 solution səhifəsi** (E11, E12 + C5-C7): canlı home + Fermer/Laboratoriya/Konsultant/Təchizatçı səhifələri + big-number/testimonial/FAQ. Cəlbetmə qatı.
+- **W3 — Peyk quick-win** (A1-A4, A9 + C11): kontrast, sahə balı, timeline delta, yağış nowcast, freemium xətti. Mövcud data üstündə.
+- **W4 — App yeni modullar** (E8 Gübrə, E9 Torpaq analizi, E10 Foto): hər üçü rail-a + AI kontekstinə qoşulur.
+- **W5 — Marketplace + icma** (E4 Kataloq, E5 rol-arası mesaj, E6 fermer chat, E7 peer suggestion): `conversations`/`messages` + directory + AI-blok yanı peer təklifi.
+- **W6 — Hibrid dövrənin nüvəsi** (B1-B6, B10, B15, B18): mövsüm entity + P&L-lite + avto tapşırıq zənciri + PHI. Dəftər×peyk birləşməsi.
+- **W7 — Peyk analitika + dəftər genişlənməsi** (A5, A8, B8, B9, B7, B12-B14, B16, B17, B19): müqayisə, wellness, hesabatlar, satış-log, inventar, texnika, bulk.
+- **W8 — Böyük mərclər** (A6, A7, A10, A11): zonalar, VRA-lite, share/viral.
 
 ## 3. Qorunacaq prinsiplər (hər iki rəqibin səhvlərindən)
 1. **Klik-dərinliyi əlavə etmə** — Farmbrite-ın #1 şikayəti mürəkkəblikdir; yeni modullar mövcud axınlara MƏCBURİ sahə əlavə etmir, opsional chip arxasında yaşayır.
