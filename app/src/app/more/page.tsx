@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Tag, Calculator, Users, Shield, LogOut, ChevronRight } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import DataSaverToggle from "@/components/DataSaverToggle";
 
 export default function MorePage() {
   const router = useRouter();
@@ -40,6 +41,8 @@ export default function MorePage() {
           </li>
         ))}
       </ul>
+
+      <DataSaverToggle />
 
       {user && (
         <>

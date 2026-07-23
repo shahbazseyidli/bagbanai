@@ -9,10 +9,11 @@
 // photo diagnosis. Ships behind ?ui=v2. Drag is plain pointer events + a CSS height transition.
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Camera } from "lucide-react";
+import { Camera, Layers } from "lucide-react";
 import { DisplayMap } from "@/components/FieldMap";
 import { api } from "@/lib/api";
 import { SENSOR_PARAM } from "@/lib/sensors";
+import { useDataSaver } from "@/lib/dataSaver";
 import type { FieldDetail, RasterScenes } from "@/lib/types";
 
 const PEEK = 210; // visible height that still shows the field title + verdict headline
@@ -36,6 +37,8 @@ export default function FieldMapSheet({
   const pathname = usePathname();
 
   const [rasterUrl, setRasterUrl] = useState<string | null>(null);
+  const dataSaver = useDataSaver();
+  const [forceRaster, setForceRaster] = useState(false);
   const [vh, setVh] = useState(720);
   const [w, setW] = useState(1024);
   const [height, setHeight] = useState(360);
@@ -118,8 +121,23 @@ export default function FieldMapSheet({
           div in a height:auto `relative` wrapper, so an explicit viewport height (h-screen) is
           required — `h-full` collapses to ~0 against the auto-height wrapper. */}
       <div className="fixed inset-0 z-0 bg-slate-100">
-        <DisplayMap polygon={field.geom} rasterUrl={rasterUrl} heightClass="h-screen" />
+        <DisplayMap
+          polygon={field.geom}
+          rasterUrl={dataSaver && !forceRaster ? null : rasterUrl}
+          heightClass="h-screen"
+        />
       </div>
+
+      {/* D4.5 — on data-saver the heavy raster tiles aren't auto-loaded; tap to load. */}
+      {dataSaver && !forceRaster && rasterUrl && (
+        <button
+          type="button"
+          onClick={() => setForceRaster(true)}
+          className="fixed left-4 top-16 z-30 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-xs font-bold text-slate-700 shadow-md ring-1 ring-slate-200 backdrop-blur"
+        >
+          <Layers className="h-3.5 w-3.5 text-emerald-600" aria-hidden="true" /> Peyk təbəqəsini göstər
+        </button>
+      )}
 
       {/* Camera FAB (D2.6) — mobile only; hidden when the sheet is fully open. */}
       {!isDesktop && snapIdx !== 2 && (

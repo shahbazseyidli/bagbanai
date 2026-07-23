@@ -97,6 +97,29 @@ async def list_fields(farm_id: str = Query(...), user_id: str = Depends(get_curr
                      mgrs_tiles=r["mgrs_tiles"]) for r in rows]
 
 
+@router.get("/geo")
+async def list_fields_geo(org_id: str = Query(...), user_id: str = Depends(get_current_user_id)):
+    """All fields in an org with geometry — for the desktop multi-field overview map (D4.3).
+    Declared before /{field_id} so the literal path wins over the param route."""
+    async with connection(user_id) as conn:
+        await require_member(conn, user_id, org_id)
+        rows = await conn.fetch(
+            """select f.id, f.name, f.area_ha, f.data_status,
+                      st_asgeojson(f.geom) as geom,
+                      st_asgeojson(coalesce(f.centroid, st_centroid(f.geom))) as centroid
+               from public.fields f
+               join public.farms fm on fm.id = f.farm_id
+               where fm.org_id=$1::uuid and f.deleted_at is null and f.geom is not null
+               order by f.created_at""", org_id)
+    return {"fields": [
+        {"id": str(r["id"]), "name": r["name"],
+         "area_ha": float(r["area_ha"]) if r["area_ha"] is not None else None,
+         "data_status": r["data_status"],
+         "geom": json.loads(r["geom"]) if r["geom"] else None,
+         "centroid": json.loads(r["centroid"]) if r["centroid"] else None}
+        for r in rows]}
+
+
 @router.get("/{field_id}")
 async def get_field(field_id: str, user_id: str = Depends(get_current_user_id)):
     async with connection(user_id) as conn:

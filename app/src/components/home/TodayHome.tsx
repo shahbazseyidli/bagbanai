@@ -19,6 +19,7 @@ import { ListSkeleton } from "@/components/Skeleton";
 import StatusChip from "@/components/StatusChip";
 import OnboardingChecklist from "@/components/OnboardingChecklist";
 import InstallPrompt from "@/components/InstallPrompt";
+import FieldsOverviewMap, { type GeoField } from "@/components/FieldsOverviewMap";
 import { fetchFieldToday, type FieldToday } from "@/lib/today";
 import type { Tone } from "@/lib/indexStatus";
 import type { Farm, Field, Org } from "@/lib/types";
@@ -111,43 +112,27 @@ export default function TodayHome() {
   const { user, loading } = useAuth();
   const [fields, setFields] = useState<Field[] | null>(null);
   const [todays, setTodays] = useState<Record<string, FieldToday>>({});
+  const [geoFields, setGeoFields] = useState<GeoField[]>([]);
+  const [orgs, setOrgs] = useState<Org[]>([]);
+  const [orgId, setOrgId] = useState<string>("");
   const [alerts, setAlerts] = useState<Notif[]>([]);
   const [error, setError] = useState("");
 
+  // Resolve the org list once + the high-severity alerts.
   useEffect(() => {
-    if (!loading && !user) {
-      router.replace("/login");
-      return;
-    }
+    if (!loading && !user) { router.replace("/login"); return; }
     if (!user) return;
     let active = true;
     (async () => {
       try {
-        const orgs = await api.get<Org[]>("/api/orgs");
-        if (orgs.length === 0) {
-          router.replace("/onboarding");
-          return;
-        }
-        const farms = await api.get<Farm[]>(`/api/farms?org_id=${orgs[0].id}`);
-        const lists = await Promise.all(
-          farms.map((f) => api.get<Field[]>(`/api/fields?farm_id=${f.id}`).catch(() => [])),
-        );
-        const flat = lists.flat();
+        const list = await api.get<Org[]>("/api/orgs");
         if (!active) return;
-        setFields(flat);
-        // Progressive: each field's verdict fills in as it resolves (names/areas show instantly).
-        flat.forEach((f) => {
-          fetchFieldToday(f).then((t) => {
-            if (active) setTodays((prev) => ({ ...prev, [f.id]: t }));
-          });
-        });
+        if (list.length === 0) { router.replace("/onboarding"); return; }
+        setOrgs(list);
+        setOrgId((cur) => cur || list[0].id);
       } catch (err) {
-        if (active) {
-          setError(azError(err));
-          setFields([]);
-        }
+        if (active) { setError(azError(err)); setFields([]); }
       }
-      // Active risk/weather alerts for the attention strip (unread, high-severity first).
       try {
         const r = await api.get<{ notifications: Notif[] }>("/api/notifications");
         if (active) {
@@ -157,12 +142,39 @@ export default function TodayHome() {
               .slice(0, 4),
           );
         }
-      } catch {
-        /* best-effort */
-      }
+      } catch { /* best-effort */ }
     })();
     return () => { active = false; };
   }, [loading, user, router]);
+
+  // Load the selected org's fields (+ verdicts + geometry for the desktop map).
+  useEffect(() => {
+    if (!orgId) return;
+    let active = true;
+    setFields(null);
+    setTodays({});
+    (async () => {
+      try {
+        const farms = await api.get<Farm[]>(`/api/farms?org_id=${orgId}`);
+        const lists = await Promise.all(
+          farms.map((f) => api.get<Field[]>(`/api/fields?farm_id=${f.id}`).catch(() => [])),
+        );
+        const flat = lists.flat();
+        if (!active) return;
+        setFields(flat);
+        flat.forEach((f) => {
+          fetchFieldToday(f).then((t) => { if (active) setTodays((prev) => ({ ...prev, [f.id]: t })); });
+        });
+      } catch (err) {
+        if (active) { setError(azError(err)); setFields([]); }
+      }
+      try {
+        const g = await api.get<{ fields: GeoField[] }>(`/api/fields/geo?org_id=${orgId}`);
+        if (active) setGeoFields(g?.fields ?? []);
+      } catch { /* map is a desktop bonus */ }
+    })();
+    return () => { active = false; };
+  }, [orgId]);
 
   if (loading || fields === null) return <ListSkeleton count={4} />;
 
@@ -192,6 +204,19 @@ export default function TodayHome() {
             )}
           </p>
         )}
+        {/* D4.3 — org switcher for agronomists managing more than one organization */}
+        {orgs.length > 1 && (
+          <select
+            value={orgId}
+            onChange={(e) => setOrgId(e.target.value)}
+            className="input mt-3 max-w-xs"
+            aria-label="Təşkilat"
+          >
+            {orgs.map((o) => (
+              <option key={o.id} value={o.id}>{o.name}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       <ErrorNote message={error} />
@@ -201,6 +226,16 @@ export default function TodayHome() {
 
       {/* D3.5 — PWA install nudge at a value moment (satellite data ready) */}
       <InstallPrompt show={hasReady} />
+
+      {/* D4.3 — desktop agronomist workspace: all fields on one map (click a polygon to open). */}
+      {geoFields.length > 1 && (
+        <div className="hidden md:block">
+          <h2 className="mb-2 text-base font-bold text-slate-800">Bütün sahələr xəritədə</h2>
+          <div className="h-[380px]">
+            <FieldsOverviewMap fields={geoFields} heightClass="h-full" />
+          </div>
+        </div>
+      )}
 
       {/* Attention strip — active alerts, each deep-links to its field */}
       {alerts.length > 0 && (
