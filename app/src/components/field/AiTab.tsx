@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { Spinner } from "@/components/ui";
 import KnowledgePassport from "@/components/field/KnowledgePassport";
 import SpeakButton from "@/components/SpeakButton";
+import { track, markDone } from "@/lib/track";
 
 interface Risk { title: string; severity: string; detail: string }
 interface Rec { title: string; detail: string }
@@ -54,6 +55,7 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
         setAdvice(a?.advice ?? null);
         setConfigured(a?.configured ?? true);
         setMsgs(c?.messages ?? []);
+        if (a?.advice) { markDone("advice"); track("advice_viewed"); } // D3.6 activation
       } catch {
         /* ignore */
       } finally {

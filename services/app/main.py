@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .db import close_pool, init_pool
-from .routers import (admin, advice, auth, farms, fields, geo, health, indices,
+from .routers import (admin, advice, auth, events, farms, fields, geo, health, indices,
                       internal, knowledge, messaging, mgmt, orgs, scouting, subsidy, uploads)
 
 
@@ -44,6 +44,7 @@ def create_app() -> FastAPI:
     app.include_router(internal.router)
     app.include_router(messaging.router)
     app.include_router(admin.router)
+    app.include_router(events.router)
     return app
 
 

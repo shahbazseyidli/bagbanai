@@ -14,6 +14,7 @@ import { ListSkeleton } from "@/components/Skeleton";
 import { useUiV2 } from "@/lib/uiFlag";
 import TodayHome from "@/components/home/TodayHome";
 import PublicLanding from "@/components/landing/PublicLanding";
+import OnboardingChecklist from "@/components/OnboardingChecklist";
 import type { Farm, Field, Org } from "@/lib/types";
 
 export default function HomePage() {
@@ -213,6 +214,8 @@ function Dashboard() {
           </Link>
         </div>
       )}
+
+      <OnboardingChecklist />
 
       <TelegramConnect />
 

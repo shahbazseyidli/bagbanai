@@ -17,6 +17,7 @@ import { useAuth } from "@/lib/auth";
 import { ErrorNote } from "@/components/ui";
 import { ListSkeleton } from "@/components/Skeleton";
 import StatusChip from "@/components/StatusChip";
+import OnboardingChecklist from "@/components/OnboardingChecklist";
 import { fetchFieldToday, type FieldToday } from "@/lib/today";
 import type { Tone } from "@/lib/indexStatus";
 import type { Farm, Field, Org } from "@/lib/types";
@@ -192,6 +193,9 @@ export default function TodayHome() {
       </div>
 
       <ErrorNote message={error} />
+
+      {/* D3.6 — activation checklist (hides itself once complete) */}
+      <OnboardingChecklist />
 
       {/* Attention strip — active alerts, each deep-links to its field */}
       {alerts.length > 0 && (

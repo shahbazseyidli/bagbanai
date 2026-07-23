@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react";
 import { Send } from "lucide-react";
 import { api } from "@/lib/api";
+import { track, markDone } from "@/lib/track";
 
 interface TgStatus {
   configured: boolean;
@@ -18,7 +19,9 @@ export default function TelegramConnect() {
 
   async function load() {
     try {
-      setS(await api.get<TgStatus>("/api/messaging/telegram"));
+      const st = await api.get<TgStatus>("/api/messaging/telegram");
+      setS(st);
+      if (st.connected) { markDone("telegram"); track("telegram_connected"); } // D3.6 activation
     } catch {
       setS(null);
     }

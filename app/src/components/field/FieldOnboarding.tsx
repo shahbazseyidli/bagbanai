@@ -14,6 +14,7 @@ import UpgradeCta from "@/components/UpgradeCta";
 import { ErrorNote, Field as FormField } from "@/components/ui";
 import { parseCoordinates, polygonFromRing, validatePolygon } from "@/lib/geo";
 import { parseGeoImport, parseShapefile } from "@/lib/geoio";
+import { track } from "@/lib/track";
 import type { Field, GeoSite, Polygon } from "@/lib/types";
 import {
   type Opt,
@@ -323,6 +324,9 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
       } catch {
         // Field is created; metadata is best-effort and editable later.
       }
+      // D3.6 funnel events — field created (+ crop set if chosen).
+      track("field_created");
+      if (payload.crop_type) track("crop_set");
       onCreated(field);
     } catch (err) {
       const msg = err instanceof Error ? err.message : t("common.error");
