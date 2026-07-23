@@ -111,6 +111,9 @@ export const az = {
   "field.tab.tasks": "Tapşırıqlar",
   "field.tab.operations": "Əməliyyatlar",
   "field.tab.yields": "Məhsuldarlıq",
+  "field.tab.fertilizer": "Gübrə",
+  "field.tab.photos": "Foto",
+  "field.tab.soil": "Torpaq",
   "field.mgrs": "MGRS xanaları",
 
   // indices

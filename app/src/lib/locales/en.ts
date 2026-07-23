@@ -103,6 +103,9 @@ export const en: Dict = {
   "field.tab.tasks": "Tasks",
   "field.tab.operations": "Operations",
   "field.tab.yields": "Yields",
+  "field.tab.fertilizer": "Fertilizer",
+  "field.tab.photos": "Photos",
+  "field.tab.soil": "Soil",
   "field.mgrs": "MGRS tiles",
 
   "idx.title": "Satellite indices",

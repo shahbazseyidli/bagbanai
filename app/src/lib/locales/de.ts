@@ -99,6 +99,9 @@ export const de: Dict = {
   "field.tab.tasks": "Aufgaben",
   "field.tab.operations": "Maßnahmen",
   "field.tab.yields": "Erträge",
+  "field.tab.fertilizer": "Dünger",
+  "field.tab.photos": "Fotos",
+  "field.tab.soil": "Boden",
   "field.mgrs": "MGRS-Kacheln",
 
   "idx.title": "Satellitenindizes",

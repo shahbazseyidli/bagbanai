@@ -13,9 +13,11 @@ import FieldMapSheet from "@/components/field/FieldMapSheet";
 import { useUiV2 } from "@/lib/uiFlag";
 import AiTab from "@/components/field/AiTab";
 import MetadataTab from "@/components/field/MetadataTab";
-import FertilizerCard from "@/components/field/FertilizerCard";
 import PhotoDiagnose from "@/components/field/PhotoDiagnose";
 import SoilLabUpload from "@/components/field/SoilLabUpload";
+import FertilizerTab from "@/components/field/FertilizerTab";
+import PhotosTab from "@/components/field/PhotosTab";
+import PeerSuggest from "@/components/field/PeerSuggest";
 import ScoutingTab from "@/components/field/ScoutingTab";
 import TasksTab from "@/components/field/TasksTab";
 import OperationsTab from "@/components/field/OperationsTab";
@@ -23,33 +25,37 @@ import YieldsTab from "@/components/field/YieldsTab";
 import type { FieldDetail } from "@/lib/types";
 
 type TabKey =
-  | "overview" | "sentinel2" | "nasa" | "ai" | "metadata"
-  | "scouting" | "tasks" | "operations" | "yields";
+  | "overview" | "sentinel2" | "nasa" | "ai" | "fertilizer" | "photos" | "metadata"
+  | "scouting" | "tasks" | "operations" | "yields" | "soil";
 
 const TABS: { key: TabKey; labelKey: I18nKey }[] = [
   { key: "overview", labelKey: "field.tab.overview" },
   { key: "sentinel2", labelKey: "field.tab.sentinel2" },
   { key: "nasa", labelKey: "field.tab.nasa" },
   { key: "ai", labelKey: "field.tab.ai" },
+  { key: "fertilizer", labelKey: "field.tab.fertilizer" },
+  { key: "photos", labelKey: "field.tab.photos" },
   { key: "metadata", labelKey: "field.tab.metadata" },
+  { key: "soil", labelKey: "field.tab.soil" },
   { key: "scouting", labelKey: "field.tab.scouting" },
   { key: "tasks", labelKey: "field.tab.tasks" },
   { key: "operations", labelKey: "field.tab.operations" },
   { key: "yields", labelKey: "field.tab.yields" },
 ];
 
-// D2.3 — collapse the 9 flat tabs into 3 farmer intents. Primary choice is one of 3; each group
-// reveals its own tabs as a secondary chip row.
+// D2.3 — collapse the flat tabs into 3 farmer intents. Primary choice is one of 3; each group
+// reveals its own tabs as a secondary chip row. (HYBRID_PLAN W4 added fertilizer/photos/soil.)
 type Group = "vaziyyet" | "isler" | "melumat";
 const GROUPS: { key: Group; label: string; tabs: TabKey[] }[] = [
   { key: "vaziyyet", label: "Vəziyyət", tabs: ["overview", "sentinel2", "nasa"] },
-  { key: "isler", label: "İşlər", tabs: ["ai", "scouting", "tasks", "operations", "yields"] },
-  { key: "melumat", label: "Məlumat", tabs: ["metadata"] },
+  { key: "isler", label: "İşlər", tabs: ["ai", "photos", "fertilizer", "scouting", "tasks", "operations", "yields"] },
+  { key: "melumat", label: "Məlumat", tabs: ["metadata", "soil"] },
 ];
 const GROUP_OF: Record<TabKey, Group> = {
   overview: "vaziyyet", sentinel2: "vaziyyet", nasa: "vaziyyet",
-  ai: "isler", scouting: "isler", tasks: "isler", operations: "isler", yields: "isler",
-  metadata: "melumat",
+  ai: "isler", photos: "isler", fertilizer: "isler", scouting: "isler", tasks: "isler",
+  operations: "isler", yields: "isler",
+  metadata: "melumat", soil: "melumat",
 };
 
 export default function FieldDetailPage() {
@@ -299,13 +305,15 @@ function FieldDetailInner() {
       {tab === "ai" && (
         <div className="space-y-6">
           <AiTab fieldId={field.id} />
+          <PeerSuggest fieldId={field.id} />
           <div id="photo-diagnose" className="scroll-mt-4">
             <PhotoDiagnose fieldId={field.id} />
           </div>
-          <SoilLabUpload fieldId={field.id} />
-          <FertilizerCard fieldId={field.id} />
         </div>
       )}
+      {tab === "fertilizer" && <FertilizerTab fieldId={field.id} />}
+      {tab === "photos" && <PhotosTab fieldId={field.id} />}
+      {tab === "soil" && <SoilLabUpload fieldId={field.id} />}
       {tab === "metadata" && <MetadataTab fieldId={field.id} />}
       {tab === "scouting" && <ScoutingTab fieldId={field.id} />}
       {tab === "tasks" && <TasksTab fieldId={field.id} orgId={field.org_id} />}
