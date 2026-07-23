@@ -5,7 +5,6 @@ export const az = {
   // brand / nav
   "brand": "Bağban AI",
   "nav.dashboard": "Sahələrim",
-  "nav.subsidy": "Subsidiya kalkulyatoru",
   "nav.team": "Komanda",
   "nav.logout": "Çıxış",
   "nav.login": "Daxil ol",
@@ -52,11 +51,10 @@ export const az = {
   "landing.subtitle":
     "Bağban AI Azərbaycanlı fermerlər üçün peyk indeksləri, hava proqnozu və AI köməkçisi ilə məhsul monitorinqi platformasıdır.",
   "landing.ctaSignup": "Pulsuz qeydiyyatdan keç",
-  "landing.ctaSubsidy": "Pulsuz subsidiya kalkulyatoru",
   "landing.feat1.title": "Peyk indeksləri",
   "landing.feat1.body": "NDVI, NDMI və daha çox indeks ilə bitkilərin sağlamlığını izləyin.",
-  "landing.feat2.title": "Subsidiya hesablanması",
-  "landing.feat2.body": "2026-cı il dövlət subsidiyalarını sürətlə hesablayın.",
+  "landing.feat2.title": "AI aqronom məsləhəti",
+  "landing.feat2.body": "Peyk və hava məlumatına əsasən sadə dildə tövsiyələr və xəbərdarlıqlar.",
   "landing.feat3.title": "Sahə idarəetməsi",
   "landing.feat3.body": "Skautinq, tapşırıqlar, əməliyyatlar və məhsuldarlıq bir yerdə.",
 
@@ -212,47 +210,6 @@ export const az = {
   "yield.empty": "Hələ məhsuldarlıq qeydi yoxdur.",
   "yield.chartTitle": "İllər üzrə məhsuldarlıq",
 
-  // subsidy
-  "sub.title": "Subsidiya kalkulyatoru",
-  "sub.subtitle": "2026-cı il dövlət subsidiyalarını addım-addım hesablayın.",
-  "sub.step.type": "Subsidiya növü",
-  "sub.step.group": "Bitki qrupu",
-  "sub.step.crop": "Bitki",
-  "sub.step.dims": "Parametrlər",
-  "sub.step.qty": "Miqdar",
-  "sub.step.mods": "Əlavələr",
-  "sub.intensity": "İntensivlik",
-  "sub.region_category": "Ərazi kateqoriyası",
-  "sub.region_rayon": "Rayon",
-  "sub.irrigation": "Suvarma",
-  "sub.planting_period": "Əkin dövrü",
-  "sub.qtyHa": "Sahə (ha)",
-  "sub.qtyTon": "Miqdar (ton)",
-  "sub.mod.boyuk_qayidis": "Böyük Qayıdış",
-  "sub.mod.certified_seed": "Sertifikatlı toxum",
-  "sub.mod.soil_analysis": "Torpaq analizi",
-  "sub.calc": "Hesabla",
-  "sub.calculating": "Hesablanır...",
-  "sub.result": "Nəticə",
-  "sub.total": "Ümumi subsidiya",
-  "sub.coefficient": "Əmsal",
-  "sub.perUnit": "Vahid dəyəri",
-  "sub.quantity": "Miqdar",
-  "sub.modsApplied": "Tətbiq olunan əlavələr",
-  "sub.warnings": "Xəbərdarlıqlar",
-  "sub.eligible": "Uyğundur",
-  "sub.notEligible": "Şərtlərə uyğun deyil",
-  "sub.noRate": "Bu parametrlər üçün tarif tapılmadı.",
-  "sub.source": "Mənbə: agro.gov.az",
-  "sub.disclaimer":
-    "Bu hesablama qeyri-rəsmidir və yalnız məlumat məqsədi daşıyır. Rəsmi məbləğ üçün aidiyyəti dövlət qurumuna müraciət edin.",
-  "sub.fullTable": "Tam cədvələ bax",
-  "sub.hideTable": "Cədvəli gizlət",
-  "sub.save": "Yadda saxla",
-  "sub.saved": "Yadda saxlanıldı",
-  "sub.fromField": "Sahədən doldur",
-  "sub.tableSearch": "Cədvəldə axtar...",
-
   // team
   "team.title": "Komanda",
   "team.members": "Üzvlər",
@@ -273,156 +230,4 @@ export type I18nKey = keyof typeof az;
 
 export function t(key: I18nKey): string {
   return az[key] ?? (key as string);
-}
-
-// ---- Code → AZ label maps for subsidy wizard ----
-
-export const subsidyTypeLabels: Record<string, string> = {
-  planting: "Əkin subsidiyası",
-  product: "Məhsul subsidiyası",
-  fallow: "Dincə qoyulmuş torpaq",
-};
-
-export const regionCategoryLabels: Record<string, string> = {
-  liberated: "İşğaldan azad edilmiş ərazilər",
-  nakhchivan: "Naxçıvan MR",
-  other: "Digər ərazilər",
-  all: "Bütün ərazilər",
-};
-
-export const irrigationLabels: Record<string, string> = {
-  modern: "Müasir suvarma",
-  non_modern: "Suvarmasız",
-  drip: "Damcı suvarma",
-  rainfed: "Dəmyə",
-};
-
-export const plantingPeriodLabels: Record<string, string> = {
-  new_2025_2026: "Yeni salınan (2025-09…2026-05)",
-  from_2021: "2021-09-01-dən",
-  before_2021: "2021-09-01-dən əvvəl",
-  from_2019: "2019-dan",
-  before_2019: "2019-dan əvvəl",
-  from_2022: "2022-dən",
-};
-
-export const intensityLabels: Record<string, string> = {
-  intensive: "İntensiv",
-  super_intensive: "Super-intensiv",
-  other: "Digər",
-  main: "Əsas əkin",
-  repeat: "Təkrar əkin",
-};
-
-// Covers every crop_group value in the 2026 subsidy seed (+ legacy aliases). Keep in sync with
-// `select distinct crop_group from subsidy_rates`. labelFor() falls back to the raw code, so any
-// gap surfaces as a snake_case value in the calculator — always add new seed groups here.
-export const cropGroupLabels: Record<string, string> = {
-  alfalfa: "Yonca",
-  berry: "Giləmeyvə",
-  cereals_legumes: "Dənli və paxlalı bitkilər",
-  corn: "Qarğıdalı",
-  fallow: "Dincə qoyulmuş torpaq",
-  fruit_intensive: "İntensiv meyvə",
-  fruit_other: "Digər meyvələr",
-  fruit_super_intensive: "Super-intensiv meyvə",
-  grape: "Üzüm",
-  groundnut: "Yerfındığı",
-  melon: "Bostan bitkiləri",
-  millet: "Darı",
-  other_crops: "Digər bitkilər",
-  potato: "Kartof",
-  product_apple: "Alma (məhsul)",
-  product_corn: "Qarğıdalı (məhsul)",
-  product_cotton: "Pambıq (məhsul)",
-  product_pomegranate: "Nar (məhsul)",
-  product_soy: "Soya (məhsul)",
-  product_sugar_beet: "Şəkər çuğunduru (məhsul)",
-  product_sunflower: "Günəbaxan (məhsul)",
-  product_tobacco: "Tütün (məhsul)",
-  product_wheat: "Buğda (məhsul)",
-  rice: "Çəltik",
-  saffron: "Zəfəran",
-  sorghum: "Sorqo",
-  sunflower: "Günəbaxan",
-  tea: "Çay",
-  vegetable: "Tərəvəz",
-  windbreak: "Küləkkəsən zolaq",
-  // legacy aliases
-  cereals: "Taxıl",
-  grain: "Dənli bitkilər",
-  fruit: "Meyvə",
-  vegetables: "Tərəvəz",
-  industrial: "Texniki bitkilər",
-  legumes: "Paxlalılar",
-  nuts: "Qərzəkli meyvələr",
-  citrus: "Sitrus",
-};
-
-// Covers every crop value in the 2026 subsidy seed. Keep in sync with
-// `select distinct crop from subsidy_rates`.
-export const cropLabels: Record<string, string> = {
-  alfalfa: "Yonca",
-  almond: "Badam",
-  apple: "Alma",
-  barley: "Arpa",
-  berry_other: "Digər giləmeyvə",
-  blackberry: "Böyürtkən",
-  blueberry_pot: "Qaragilə (substratda)",
-  blueberry_soil: "Qaragilə (torpaqda)",
-  cereals_legumes: "Dənli və paxlalı bitkilər",
-  cherry: "Gilas",
-  chestnut: "Şabalıd",
-  corn: "Qarğıdalı",
-  cotton: "Pambıq",
-  currant: "Qarağat",
-  fruit_other: "Digər meyvə",
-  grape: "Üzüm",
-  groundnut: "Yerfındığı",
-  hazelnut: "Fındıq",
-  kiwi: "Kivi",
-  lemon_kumquat: "Limon / kinkan",
-  mandarin_orange: "Mandarin / portağal",
-  melon: "Bostan (qarpız-yemiş)",
-  millet: "Darı",
-  olive: "Zeytun",
-  other_crops: "Digər bitkilər",
-  peach_apricot: "Şaftalı / ərik",
-  pear: "Armud",
-  persimmon: "Xurma",
-  pistachio: "Püstə",
-  pomegranate: "Nar",
-  potato: "Kartof",
-  raspberry: "Moruq",
-  rice: "Çəltik",
-  saffron: "Zəfəran",
-  sorghum: "Sorqo",
-  soy: "Soya",
-  sugar_beet: "Şəkər çuğunduru",
-  sunflower: "Günəbaxan",
-  tea: "Çay",
-  tobacco_other: "Tütün (digər)",
-  tobacco_virginia: "Tütün (Virciniya)",
-  vegetable: "Tərəvəz",
-  walnut: "Qoz",
-  wheat: "Buğda",
-  windbreak: "Küləkkəsən zolaq",
-  // legacy aliases
-  maize: "Qarğıdalı",
-  tomato: "Pomidor",
-  cucumber: "Xiyar",
-  tobacco: "Tütün",
-  peach: "Şaftalı",
-  fig: "Əncir",
-  hay: "Ot",
-  lentil: "Mərci",
-  chickpea: "Noxud",
-  fruit_intensive: "İntensiv meyvə",
-  fruit_super_intensive: "Super-intensiv meyvə",
-  berry: "Giləmeyvə",
-};
-
-export function labelFor(map: Record<string, string>, code: string | null | undefined): string {
-  if (!code) return "";
-  return map[code] ?? code;
 }

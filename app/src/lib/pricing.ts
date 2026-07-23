@@ -30,7 +30,6 @@ export const FEATURES: FeatureRow[] = [
   { label: "İndekslər (NDVI…NBR)", values: ["✅", "✅ + NDRE/CIre", "✅ + NDRE/CIre"] },
   { label: "Raster overlay, timeline, müqayisə", values: ["✅", "✅", "✅"] },
   { label: "Hava proqnozu (7 gün)", values: ["✅", "✅", "✅"] },
-  { label: "Subsidiya kalkulyatoru", values: ["✅", "✅", "✅"] },
   { label: "Sahə idarəetmə (skautinq/tapşırıq)", values: ["✅", "✅", "✅"] },
   { label: "AI aqronom məsləhəti", values: ["🎁 1/ay", "✅ 8/ay", "✅ 30/ay"] },
   { label: "AI chatbot", values: ["✕", "✅ 50/ay", "✅ 300/ay"] },

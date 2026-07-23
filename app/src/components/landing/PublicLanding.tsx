@@ -8,7 +8,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { MapPin, Sparkles, Loader2, ArrowRight, Hand, Thermometer, Calculator } from "lucide-react";
+import { MapPin, Sparkles, Loader2, ArrowRight, Hand, Thermometer } from "lucide-react";
 import { area as turfArea } from "@turf/turf";
 import { api } from "@/lib/api";
 import type { Polygon } from "@/lib/types";
@@ -156,20 +156,14 @@ export default function PublicLanding() {
                   <Sparkles className="h-5 w-5" />
                 </span>
               </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {weather && (
+              {weather && (
+                <div className="mt-3 flex flex-wrap gap-2">
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-800">
                     <Thermometer className="h-3.5 w-3.5" aria-hidden="true" />
                     {weather.temp}°C · {weather.desc}
                   </span>
-                )}
-                <a
-                  href="/subsidy"
-                  className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800 hover:bg-emerald-100"
-                >
-                  <Calculator className="h-3.5 w-3.5" aria-hidden="true" /> Subsidiya hesabla
-                </a>
-              </div>
+                </div>
+              )}
               <p className="mt-2 text-sm text-slate-600">
                 Pulsuz qeydiyyatdan keçin — bu tarlanı peykdən izləyək: bitki sağlamlığı, su stresi və
                 subsidiya hesablaması.

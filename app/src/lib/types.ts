@@ -205,60 +205,6 @@ export interface Yield {
   notes?: string | null;
 }
 
-// ---- Subsidy ----
-
-export interface SubsidyDimensions {
-  intensities?: string[];
-  region_categories?: string[];
-  irrigations?: string[];
-  planting_periods?: string[];
-  needs_region_rayon?: boolean;
-  eligible_regions?: string[];
-  units?: string[];
-}
-
-export interface SubsidyOptions {
-  level: string;
-  subsidy_types?: string[];
-  crop_groups?: string[];
-  crops?: string[];
-  dimensions?: SubsidyDimensions;
-}
-
-export interface SubsidyCalcResult {
-  matched_rate: {
-    coefficient: number;
-    amount_per_unit: number;
-    unit: string;
-    label_az: string;
-  } | null;
-  quantity: number;
-  subtotal: number;
-  modifiers_applied: string[];
-  total_amount: number;
-  currency: string;
-  eligibility_ok: boolean;
-  warnings: string[];
-  notes_az: string;
-  matched_rate_id?: string | null;
-}
-
-export interface SubsidyRate {
-  id?: string;
-  subsidy_type?: string;
-  crop_group?: string;
-  crop?: string;
-  intensity?: string;
-  region_category?: string;
-  irrigation?: string;
-  planting_period?: string;
-  coefficient?: number;
-  amount_per_unit?: number;
-  unit?: string;
-  label_az?: string;
-  [key: string]: unknown;
-}
-
 // ---- Admin panel ----
 
 // GET /api/admin/overview
