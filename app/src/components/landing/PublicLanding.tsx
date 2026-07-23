@@ -11,6 +11,7 @@ import dynamic from "next/dynamic";
 import { MapPin, Sparkles, Loader2, ArrowRight, Hand, Thermometer } from "lucide-react";
 import { area as turfArea } from "@turf/turf";
 import { api } from "@/lib/api";
+import { t } from "@/lib/i18n";
 import type { Polygon } from "@/lib/types";
 
 // Lazy-load the map (MapLibre is heavy) so it stays out of the landing's initial bundle (D4.5).
@@ -21,15 +22,15 @@ const DrawMap = dynamic(() => import("@/components/FieldMap").then((m) => m.Draw
 
 const DRAFT_KEY = "bagban_draft_field";
 
-/** WMO weather code → short Azerbaijani description. */
+/** WMO weather code → short localized description. */
 function wmoDesc(code: number): string {
-  if (code === 0) return "Aydın";
-  if (code <= 3) return "Az buludlu";
-  if (code <= 48) return "Dumanlı";
-  if (code <= 67) return "Yağışlı";
-  if (code <= 77) return "Qarlı";
-  if (code <= 82) return "Leysan";
-  return "Tufan";
+  if (code === 0) return t("wmo.clear");
+  if (code <= 3) return t("wmo.partly");
+  if (code <= 48) return t("wmo.fog");
+  if (code <= 67) return t("wmo.rain");
+  if (code <= 77) return t("wmo.snow");
+  if (code <= 82) return t("wmo.shower");
+  return t("wmo.storm");
 }
 
 export default function PublicLanding() {
@@ -83,10 +84,10 @@ export default function PublicLanding() {
         onPolygon(d.polygon);
         setImportSeq((s) => s + 1);
       } else {
-        setHint("Bu nöqtədə sərhəd aydın seçilmədi — xəritədə tarlanızın künclərinə toxunub özünüz çəkin.");
+        setHint(t("landing.detectFail"));
       }
     } catch {
-      setHint("Avtomatik seçim alınmadı — künclərə toxunaraq özünüz çəkin.");
+      setHint(t("landing.detectFail2"));
     } finally {
       setDetecting(false);
     }
@@ -122,10 +123,10 @@ export default function PublicLanding() {
         <div className="pointer-events-none absolute inset-x-0 top-3 z-[5] flex justify-center px-4">
           <div className="pointer-events-auto max-w-md rounded-2xl bg-white/95 px-4 py-3 text-center shadow-lg ring-1 ring-slate-200 backdrop-blur">
             <p className="flex items-center justify-center gap-2 text-base font-bold text-slate-900">
-              <MapPin className="h-4 w-4 text-emerald-600" /> Tarlanızı peykdən görün
+              <MapPin className="h-4 w-4 text-emerald-600" /> {t("landing.map.title")}
             </p>
             <p className="mt-1 text-sm text-slate-600">
-              Kəndinizi axtarın, sonra tarlanıza <b>toxunun</b> — sərhədini avtomatik çəkək. Qeydiyyat yoxdur.
+              {t("landing.map.sub")}
             </p>
           </div>
         </div>
@@ -135,7 +136,7 @@ export default function PublicLanding() {
       {detecting && (
         <div className="absolute inset-0 z-[6] flex items-center justify-center bg-slate-900/20">
           <div className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-bold text-slate-800 shadow-lg">
-            <Loader2 className="h-4 w-4 animate-spin text-emerald-600" /> Sərhəd çəkilir…
+            <Loader2 className="h-4 w-4 animate-spin text-emerald-600" /> {t("landing.detecting")}
           </div>
         </div>
       )}
@@ -147,7 +148,7 @@ export default function PublicLanding() {
             <>
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Sizin tarlanız</p>
+                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{t("landing.yourField")}</p>
                   <p className="text-2xl font-bold text-slate-900">
                     {areaHa != null ? areaHa.toFixed(2) : "—"} <span className="text-base font-semibold text-slate-500">ha</span>
                   </p>
@@ -165,20 +166,19 @@ export default function PublicLanding() {
                 </div>
               )}
               <p className="mt-2 text-sm text-slate-600">
-                Pulsuz qeydiyyatdan keçin — bu tarlanı peykdən izləyək: bitki sağlamlığı, su stresi və
-                subsidiya hesablaması.
+                {t("landing.ctaValue")}
               </p>
               <button
                 onClick={startTracking}
                 className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 text-base font-bold text-white hover:bg-emerald-700"
               >
-                Pulsuz izləməyə başla <ArrowRight className="h-5 w-5" />
+                {t("landing.ctaStart")} <ArrowRight className="h-5 w-5" />
               </button>
               <button
                 onClick={() => { onPolygon(null); setImportSeq((s) => s + 1); }}
                 className="mt-2 w-full text-center text-sm font-medium text-slate-500 hover:text-slate-700"
               >
-                Başqa tarla seç
+                {t("landing.otherField")}
               </button>
             </>
           ) : (
@@ -187,9 +187,9 @@ export default function PublicLanding() {
                 <Hand className="h-4 w-4" />
               </span>
               <div>
-                <p className="text-sm font-bold text-slate-900">Tarlanıza toxunun</p>
+                <p className="text-sm font-bold text-slate-900">{t("landing.tapTitle")}</p>
                 <p className="mt-0.5 text-sm text-slate-600">
-                  {hint || "Peyk şəklində tarlanızın ortasına toxunun — sərhədini sizin üçün çəkək."}
+                  {hint || t("landing.tapHint")}
                 </p>
               </div>
             </div>

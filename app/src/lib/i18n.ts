@@ -285,6 +285,41 @@ export const az = {
   "offline.pending": "qeyd gözləyir",
   "offline.synced": "Sinxronlaşdı",
   "offline.unsent": "qeyd göndərilməyib",
+
+  // public landing map (D3.1/D3.2)
+  "landing.map.title": "Tarlanızı peykdən görün",
+  "landing.map.sub": "Kəndinizi axtarın, sonra tarlanıza toxunun — sərhədini avtomatik çəkək. Qeydiyyat yoxdur.",
+  "landing.detecting": "Sərhəd çəkilir…",
+  "landing.yourField": "Sizin tarlanız",
+  "landing.ctaValue": "Pulsuz qeydiyyatdan keçin — bu tarlanı peykdən izləyək: bitki sağlamlığı və su stresi.",
+  "landing.ctaStart": "Pulsuz izləməyə başla",
+  "landing.otherField": "Başqa tarla seç",
+  "landing.tapTitle": "Tarlanıza toxunun",
+  "landing.tapHint": "Peyk şəklində tarlanızın ortasına toxunun — sərhədini sizin üçün çəkək.",
+  "landing.detectFail": "Bu nöqtədə sərhəd aydın seçilmədi — xəritədə tarlanızın künclərinə toxunub özünüz çəkin.",
+  "landing.detectFail2": "Avtomatik seçim alınmadı — künclərə toxunaraq özünüz çəkin.",
+
+  // pricing page + table (D4.4)
+  "price.hero.title": "Sizə uyğun paketi seçin",
+  "price.hero.sub": "Pulsuz peyk monitorinqi ilə başlayın, hazır olanda AI aqronom məsləhəti, çiləmə pəncərəsi və suvarma balansına keçin. İstənilən vaxt dəyişə bilərsiniz.",
+  "price.contact": "Sualınız var? Böyük təsərrüfat və ya kooperativ üçün fərdi təklif lazımdır?",
+  "price.freecore": "Peyk sağlamlıq xəritəsi və 7 günlük hava həmişə pulsuzdur — ilk sahənizi heç bir ödəniş etmədən izləyin.",
+  "price.cta.free": "Pulsuz başla",
+  "price.cta.select": "Bu paketi seç",
+  "price.soon": "tezliklə",
+  "price.footnote": "“tezliklə” funksiyalar Business paketinə mərhələli əlavə olunur. Qiymətlərə ƏDV daxildir.",
+  "price.tag.free": "Başlamaq üçün",
+  "price.tag.pro": "Ən populyar",
+  "price.tag.business": "Peşəkar / təsərrüfat",
+
+  // WMO weather codes (short)
+  "wmo.clear": "Aydın",
+  "wmo.partly": "Az buludlu",
+  "wmo.fog": "Dumanlı",
+  "wmo.rain": "Yağışlı",
+  "wmo.snow": "Qarlı",
+  "wmo.shower": "Leysan",
+  "wmo.storm": "Tufan",
 } as const;
 
 export type I18nKey = keyof typeof az;

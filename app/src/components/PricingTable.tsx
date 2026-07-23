@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Sprout, Leaf, Gem, Check, Sun } from "lucide-react";
 import { PACKAGES, FEATURES } from "@/lib/pricing";
+import { t, type I18nKey } from "@/lib/i18n";
 
 // D4.4 — 3 stacked cards, icon+word (no emoji), no comparison table, no horizontal scroll. Each
 // card lists what that tier INCLUDES as check bullets (excluded rows are simply omitted). A
@@ -27,10 +28,7 @@ export default function PricingTable({ showCta = true }: { showCta?: boolean }) 
       {/* Free-core reassurance */}
       <div className="flex items-start gap-2 rounded-xl border-[1.5px] border-emerald-200 bg-emerald-50 px-4 py-3">
         <Sun className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" aria-hidden="true" />
-        <p className="text-sm text-emerald-900">
-          <b>Peyk sağlamlıq xəritəsi</b> və <b>7 günlük hava</b> həmişə pulsuzdur — ilk sahənizi
-          heç bir ödəniş etmədən izləyin.
-        </p>
+        <p className="text-sm text-emerald-900">{t("price.freecore")}</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -46,7 +44,7 @@ export default function PricingTable({ showCta = true }: { showCta?: boolean }) 
             >
               {p.highlight && (
                 <span className="absolute -top-2.5 left-5 rounded-full bg-emerald-600 px-2.5 py-0.5 text-[11px] font-bold text-white">
-                  {p.tagline}
+                  {t(`price.tag.${p.id}` as I18nKey)}
                 </span>
               )}
               <div className="flex items-center gap-2">
@@ -55,7 +53,7 @@ export default function PricingTable({ showCta = true }: { showCta?: boolean }) 
                 </span>
                 <div>
                   <h3 className="text-lg font-bold text-slate-900">{p.name}</h3>
-                  {!p.highlight && <p className="text-xs text-slate-500">{p.tagline}</p>}
+                  {!p.highlight && <p className="text-xs text-slate-500">{t(`price.tag.${p.id}` as I18nKey)}</p>}
                 </div>
               </div>
 
@@ -73,7 +71,7 @@ export default function PricingTable({ showCta = true }: { showCta?: boolean }) 
                       : "border-[1.5px] border-slate-300 text-slate-700 hover:bg-slate-50"
                   }`}
                 >
-                  {p.id === "free" ? "Pulsuz başla" : "Bu paketi seç"}
+                  {p.id === "free" ? t("price.cta.free") : t("price.cta.select")}
                 </Link>
               )}
 
@@ -86,7 +84,7 @@ export default function PricingTable({ showCta = true }: { showCta?: boolean }) 
                       {b.detail && <span className="text-slate-500"> — {b.detail}</span>}
                       {b.soon && (
                         <span className="ml-1.5 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
-                          tezliklə
+                          {t("price.soon")}
                         </span>
                       )}
                     </span>
@@ -98,9 +96,7 @@ export default function PricingTable({ showCta = true }: { showCta?: boolean }) 
         })}
       </div>
 
-      <p className="text-xs text-slate-400">
-        “tezliklə” funksiyalar Business paketinə mərhələli əlavə olunur. Qiymətlərə ƏDV daxildir.
-      </p>
+      <p className="text-xs text-slate-400">{t("price.footnote")}</p>
     </div>
   );
 }
