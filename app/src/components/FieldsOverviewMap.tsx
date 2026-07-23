@@ -42,7 +42,8 @@ export default function FieldsOverviewMap({
     mapRef.current = map;
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
 
-    map.on("load", () => {
+    function draw() {
+      if (map.getSource("basemap")) return; // already drawn
       applyBasemap(map, getSavedBasemap());
       const feats = fieldsRef.current
         .filter((f) => f.geom)
@@ -75,6 +76,7 @@ export default function FieldsOverviewMap({
         );
         map.fitBounds(b, { padding: 44, maxZoom: 15, duration: 0 });
       }
+      map.resize();
 
       map.on("click", "fields-fill", (e) => {
         const id = e.features?.[0]?.properties?.id;
@@ -82,7 +84,11 @@ export default function FieldsOverviewMap({
       });
       map.on("mouseenter", "fields-fill", () => { map.getCanvas().style.cursor = "pointer"; });
       map.on("mouseleave", "fields-fill", () => { map.getCanvas().style.cursor = ""; });
-    });
+    }
+    // Draw when the style is ready; `idle` is a safety net if `load` was missed.
+    if (map.isStyleLoaded()) draw();
+    else map.on("load", draw);
+    map.on("idle", draw);
 
     return () => { map.remove(); mapRef.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
