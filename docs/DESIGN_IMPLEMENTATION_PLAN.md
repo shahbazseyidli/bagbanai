@@ -174,7 +174,17 @@ Hər gələcək task artıq yeni İA-da yeri müəyyən — ayrıca redizayn tə
 
 ## §K. Status izləyici (hər addım bitəndə yenilə)
 
-**D0 ✅ (98e43cb)** · **D1 ✅ (0f57db2)** · **D2 ✅ (0e801a4 — 3 dilim canlı, `?ui=v2` altında)** · **D3 🚀 (əsas hissə canlı)** · **D4 🚀 (əsas hissə canlı)** · **D5 🚀 (səs+offline+chips canlı; kanal dormant)** — hər addım (D0.1…D5.5) bitəndə commit hash + ✅ ilə işarələ. Bu sənəd `ROADMAP.md` §C ilə paralel işləyir (T-backlog funksional, bu — dizayn/İA).
+**D0 ✅ · D1 ✅ · D2 ✅ · D3 ✅ (əsas+checklist/preparing) · D4 ✅ (əsas+desktop map/perf) · D5 🚀 (səs/offline/chips ✅; iki-tərəf kanal + STT + çöl-testi asılılıqla bloklu)** — hər addım (D0.1…D5.5) bitəndə commit hash + ✅ ilə işarələ. Bu sənəd `ROADMAP.md` §C ilə paralel işləyir (T-backlog funksional, bu — dizayn/İA).
+
+**İkinci dizayn dalğası (2026-07-23, autonomous run 2 — hər biri build-gate + deploy + canlı test):**
+- **D3.6 ✅ (d653da5):** onboarding **aktivasiya checklist** (endowed 3/5 goal-gradient, server-state-dən auto-addımlar + action-link addımlar, Telegram dormant-da buraxılır, bağlana bilir) + **huni event-ləri** (migration 0029 `user_events` + `POST /api/events` allow-list + `lib/track`; field_created/crop_set/advice_viewed/telegram_connected/checklist_complete). Canlı: checklist 3/5 render, event DB-yə düşdü.
+- **D3.5 ✅ (966412b):** `InstallPrompt` — `beforeinstallprompt` tutub **data-hazır anında** install kartı göstərir (soyuq banner yox); standalone/dismissed-də gizli. "Hazırlanır" dəyər-kartları T0 partial-reveal + PreparingBanner ilə onsuz örtülü.
+- **D4.3 ✅ (56f646d):** **desktop çox-sahə xəritə** — `GET /api/fields/geo` + `FieldsOverviewMap` (bütün poliqonlar bir xəritədə, status-rəngli, fit-bounds, klik→aç), Bu-gün home-da md+ · **org switcher** (>1 org). Canlı: lecet poliqonu yaşıl-ready render (fix: `load` etibarsız → `idle` safety-net + resize).
+- **D4.5 ✅ (1c0f44f):** **data-saver** (`lib/dataSaver` — explicit toggle + brauzer Save-Data hint; `DataSaverToggle` "Daha çox"-da); FieldMapSheet ağır full-bleed rasteri avto-yükləmir, tap-to-load çipi. Tile-keş sw.js-də onsuz var.
+- **D0.9 ✅ (966412b):** paylaşılan `useFieldDataStatus` hook — OverviewTab+SatelliteTab dublikat 6s pollerlərini əvəz etdi. Canlı: İcmal pozulmadı.
+- **D5.4+ ✅ (966412b):** kamera FAB birbaşa foto-diaqnoz kartına scroll edir (guided capture). CropGrid/NumberSlider təxirə (ChoiceChips tezisi örtür).
+- **D1.6 (i18n sweep) — QƏRAR: T18 ilə birləşdirilir.** Tam çıxarış (~40 fayl, yüzlərlə sətir) tərcüməsiz churn + risk yaradır və T18 (RU/TR) onsuz eyni sətirlərə toxunacaq. i18n infrastrukturu (`i18n.ts` + `t()`) hazırdır. Çıxarış+tərcümə **T18-də birlikdə** ediləcək — daha təhlükəsiz, daha az risk.
+- **D5.5 çöl testi — insan addımı** (real fındıq/buğda fermeri 55+, 2 raund) — "redizayn bitdi" şərti; kod tərəfli hazırlıq tamamdır.
 
 **D3–D5 detal (2026-07-23, autonomous run — hər biri build-gate + deploy + canlı test):**
 - **D3.1 ✅ (1852227):** public landing xəritəsi — anonim toxun-tap (`/api/geo/segment-public`, auth-suz/yazımsız) → sərhəd + sahə + CTA; çəkilən tarla localStorage draft → onboarding prefill. MapLibre lazy (next/dynamic). Canlı: segment-public `{ok:true,polygon}`, draft prefill 13.869 ha. **D3.4 (səssiz tenancy) D0-da bitib.** Landing vizualı signed-out — istifadəçi yoxlamalı.

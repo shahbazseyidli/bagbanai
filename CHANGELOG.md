@@ -3,6 +3,19 @@
 Bütün əhəmiyyətli dəyişikliklər burada qeyd olunur. Format [Keep a Changelog](https://keepachangelog.com/),
 versiyalar [SemVer](https://semver.org/).
 
+## [1.11.0] — 2026-07-23 — Redizayn 2-ci dalğa: D3.5/D3.6/D4.3/D4.5/D0.9 (CANLI)
+
+Hər biri build-gate + deploy + canlı test.
+
+### Added / Changed (CANLI, main)
+- **D3.6 — Onboarding aktivasiya checklist + huni event-ləri:** `OnboardingChecklist` (endowed 3/5 goal-gradient; auto-addımlar sahə/məhsul/peyk-data server-state-dən + action-link addımlar AI/Telegram; Telegram dormant-da buraxılır; bağlana bilir; tamamlananda gizlənir). Huni: migration 0029 `user_events` + `POST /api/events` (allow-list, fire-and-forget, heç vaxt xəta qaytarmır) + `lib/track`; client field_created/crop_set/advice_viewed/telegram_connected/checklist_complete atır. Canlı: checklist render, event DB-yə düşdü.
+- **D3.5 — PWA install (data-hazır):** `InstallPrompt` `beforeinstallprompt`-i tutur, **yalnız dəyər anında** (peyk data hazır) install kartı göstərir; standalone/dismissed-də gizli.
+- **D4.3 — Desktop çox-sahə iş sahəsi:** `GET /api/fields/geo` (org-un bütün sahələri geom ilə) + `FieldsOverviewMap` (bütün poliqonlar bir xəritədə, status-rəngli, fit-bounds, klik→sahəni aç), Bu-gün home-da desktop (md+); **org switcher** (>1 org). Fix: `load` etibarsız işə düşürdü → `idle` safety-net + `resize`. Canlı: poliqon yaşıl-ready render.
+- **D4.5 — Data-saver:** `lib/dataSaver` (explicit toggle + brauzer Save-Data hint) + `DataSaverToggle` "Daha çox"-da; FieldMapSheet data-saver açıq olanda ağır full-bleed rasteri avto-yükləmir, "Peyk təbəqəsini göstər" tap-to-load çipi verir. Tile-keş sw.js-də (T12).
+- **D0.9 — Poller dedupe:** paylaşılan `useFieldDataStatus` hook OverviewTab+SatelliteTab dublikat 6s pollerlərini əvəz etdi.
+- **D5.4+ — Guided capture:** kamera FAB birbaşa foto-diaqnoz kartına scroll edir.
+- **D1.6 (i18n sweep) → T18-ə birləşdirildi:** tam çıxarış tərcüməsiz churn+risk; T18 (RU/TR) onsuz eyni sətirlərə toxunacaq — çıxarış+tərcümə birlikdə ediləcək. **D5.5 çöl testi** = insan addımı (real fermer).
+
 ## [1.10.0] — 2026-07-23 — Redizayn D3/D4/D5 əsas hissə (autonomous run) (CANLI)
 
 Hər biri build-gate + deploy + canlı test. SKIP olunanlar asılılıqla bloklanıb (aşağıda).
