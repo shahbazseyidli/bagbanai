@@ -228,9 +228,9 @@ export default function TodayHome() {
       <InstallPrompt show={hasReady} />
 
       {/* D4.3 — desktop agronomist workspace: all fields on one map (click a polygon to open). */}
-      {geoFields.length > 1 && (
+      {geoFields.length >= 1 && (
         <div className="hidden md:block">
-          <h2 className="mb-2 text-base font-bold text-slate-800">Bütün sahələr xəritədə</h2>
+          <h2 className="mb-2 text-base font-bold text-slate-800">Sahələr xəritədə</h2>
           <div className="h-[380px]">
             <FieldsOverviewMap fields={geoFields} heightClass="h-full" />
           </div>
