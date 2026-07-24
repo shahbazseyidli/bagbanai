@@ -9,6 +9,7 @@ import { api, azError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { ErrorNote } from "@/components/ui";
 import { ListSkeleton } from "@/components/Skeleton";
+import BulkActions from "@/components/BulkActions";
 import type { Farm, Field, Org } from "@/lib/types";
 
 export default function FieldsListPage() {
@@ -16,6 +17,9 @@ export default function FieldsListPage() {
   const { user, loading } = useAuth();
   const [fields, setFields] = useState<Field[] | null>(null);
   const [error, setError] = useState("");
+  // B14 — multi-select drives the bulk task/operation bar.
+  const [orgId, setOrgId] = useState("");
+  const [selected, setSelected] = useState<string[]>([]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -30,6 +34,7 @@ export default function FieldsListPage() {
           router.replace("/onboarding");
           return;
         }
+        setOrgId(orgs[0].id);
         const farms = await api.get<Farm[]>(`/api/farms?org_id=${orgs[0].id}`);
         const lists = await Promise.all(
           farms.map((f) => api.get<Field[]>(`/api/fields?farm_id=${f.id}`).catch(() => [])),
@@ -65,10 +70,23 @@ export default function FieldsListPage() {
       ) : (
         <ul className="space-y-2">
           {fields.map((f) => (
-            <li key={f.id}>
+            <li key={f.id} className="flex items-center gap-2">
+              <label className="flex h-11 w-11 shrink-0 items-center justify-center">
+                <input
+                  type="checkbox"
+                  className="h-5 w-5 accent-emerald-600"
+                  checked={selected.includes(f.id)}
+                  aria-label={`${f.name} seç`}
+                  onChange={(e) =>
+                    setSelected((prev) =>
+                      e.target.checked ? [...prev, f.id] : prev.filter((x) => x !== f.id),
+                    )
+                  }
+                />
+              </label>
               <Link
                 href={`/fields/${f.id}`}
-                className="flex min-h-14 items-center justify-between gap-3 rounded-xl border-[1.5px] border-slate-300 bg-white px-4 py-3 hover:border-emerald-300"
+                className="flex min-h-14 flex-1 items-center justify-between gap-3 rounded-xl border-[1.5px] border-slate-300 bg-white px-4 py-3 hover:border-emerald-300"
               >
                 <div className="min-w-0">
                   <p className="truncate text-base font-bold text-slate-900">{f.name}</p>
@@ -81,6 +99,10 @@ export default function FieldsListPage() {
             </li>
           ))}
         </ul>
+      )}
+
+      {orgId && selected.length > 0 && (
+        <BulkActions orgId={orgId} fieldIds={selected} onDone={() => setSelected([])} />
       )}
     </div>
   );

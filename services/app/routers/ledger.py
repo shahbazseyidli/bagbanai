@@ -65,8 +65,11 @@ async def field_pnl(field_id: str, season: Optional[int] = Query(default=None),
         area = await conn.fetchval("select area_ha from public.fields where id=$1::uuid", field_id)
         pnl = await _field_pnl(conn, field_id, season)
         pnl["by_category"] = await _expense_by_category(conn, field_id, season)
-    pnl["area_ha"] = _f(area)
-    pnl["profit_per_ha"] = round(pnl["profit"] / area, 1) if area else None
+    # area_ha is numeric → asyncpg hands back a Decimal, and float / Decimal raises TypeError.
+    # Divide by the already-floated value, never the raw column.
+    area_f = _f(area)
+    pnl["area_ha"] = area_f
+    pnl["profit_per_ha"] = round(pnl["profit"] / area_f, 1) if area_f else None
     return pnl
 
 

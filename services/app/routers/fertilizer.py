@@ -30,7 +30,7 @@ async def list_plans(field_id: str, user_id: str = Depends(get_current_user_id))
         org_id = await _org_of_field(conn, field_id)
         await require_member(conn, user_id, org_id)
         rows = await conn.fetch(
-            f"select {_SEL} from public.fertilizer_plans where field_id=$1::uuid "
+            f"select {_SEL} from public.fertilizer_schedule where field_id=$1::uuid "
             "order by planned_on asc nulls last, created_at desc", field_id)
     return [_plan_out(r) for r in rows]
 
@@ -41,7 +41,7 @@ async def add_plan(field_id: str, body: FertilizerPlanIn, user_id: str = Depends
         org_id = await _org_of_field(conn, field_id)
         await require_role(conn, user_id, org_id, ROLES_WORKER)
         r = await conn.fetchrow(
-            f"""insert into public.fertilizer_plans
+            f"""insert into public.fertilizer_schedule
                   (field_id, org_id, product, category, zone, dose, planned_on, status, source, notes)
                 values ($1::uuid,$2::uuid,$3,$4,$5,$6,$7::date,$8,$9,$10) returning {_SEL}""",
             field_id, org_id, body.product, body.category, body.zone, body.dose,
@@ -54,12 +54,12 @@ async def set_status(plan_id: str, body: dict, user_id: str = Depends(get_curren
     status = str(body.get("status") or "planned")
     async with connection(user_id) as conn:
         org_id = await conn.fetchval(
-            "select org_id from public.fertilizer_plans where id=$1::uuid", plan_id)
+            "select org_id from public.fertilizer_schedule where id=$1::uuid", plan_id)
         if not org_id:
             raise HTTPException(status_code=404, detail="plan_not_found")
         await require_role(conn, user_id, str(org_id), ROLES_WORKER)
         await conn.execute(
-            "update public.fertilizer_plans set status=$2 where id=$1::uuid", plan_id, status)
+            "update public.fertilizer_schedule set status=$2 where id=$1::uuid", plan_id, status)
     return {"ok": True}
 
 
@@ -67,11 +67,11 @@ async def set_status(plan_id: str, body: dict, user_id: str = Depends(get_curren
 async def delete_plan(plan_id: str, user_id: str = Depends(get_current_user_id)):
     async with connection(user_id) as conn:
         org_id = await conn.fetchval(
-            "select org_id from public.fertilizer_plans where id=$1::uuid", plan_id)
+            "select org_id from public.fertilizer_schedule where id=$1::uuid", plan_id)
         if not org_id:
             return {"ok": True}
         await require_role(conn, user_id, str(org_id), ROLES_WORKER)
-        await conn.execute("delete from public.fertilizer_plans where id=$1::uuid", plan_id)
+        await conn.execute("delete from public.fertilizer_schedule where id=$1::uuid", plan_id)
     return {"ok": True}
 
 

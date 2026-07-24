@@ -20,7 +20,7 @@ from pydantic import BaseModel
 
 from ..db import connection
 from ..deps import (ROLES_WORKER, ROLES_WRITE, get_current_user_id,
-                    require_member, require_role)
+                    require_member, require_role, safe_uuid)
 
 router = APIRouter(prefix="/api", tags=["inventory"])
 
@@ -319,9 +319,10 @@ async def move_item(item_id: str, body: MoveIn, user_id: str = Depends(get_curre
         await require_role(conn, user_id, org_id, ROLES_WRITE)
         field_id = None
         if body.field_id:
+            # Guard before the ::uuid cast — junk here would be 22P02 → 500 instead of 404.
             field_id = await conn.fetchval(
                 "select id from public.fields where id=$1::uuid and org_id=$2::uuid",
-                body.field_id, org_id)
+                safe_uuid(body.field_id, "field_not_found"), org_id)
             if not field_id:
                 raise HTTPException(status_code=404, detail="field_not_found")
             field_id = str(field_id)

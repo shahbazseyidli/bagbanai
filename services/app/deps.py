@@ -49,13 +49,28 @@ async def is_org_member(conn: asyncpg.Connection, user_id: str, org_id: str) -> 
         "select public.is_org_member($1::uuid, $2::uuid)", user_id, org_id))
 
 
+def safe_uuid(value, detail: str = "not_found") -> str:
+    """Canonicalise an id before it reaches SQL.
+
+    A malformed uuid cast with $1::uuid makes Postgres raise 22P02, which surfaces as an
+    unhandled asyncpg error → HTTP 500. Every id that came from a path/query/body must pass
+    through here so junk input is a clean 404 instead."""
+    import uuid as _uuid_mod
+    try:
+        return str(_uuid_mod.UUID(str(value)))
+    except (ValueError, AttributeError, TypeError):
+        raise HTTPException(status_code=404, detail=detail)
+
+
 async def require_member(conn: asyncpg.Connection, user_id: str, org_id: str) -> None:
+    org_id = safe_uuid(org_id, "org_not_found")
     if not await is_org_member(conn, user_id, org_id):
         raise HTTPException(status_code=403, detail="forbidden")
 
 
 async def require_role(conn: asyncpg.Connection, user_id: str, org_id: str,
                        roles: list[OrgRole]) -> None:
+    org_id = safe_uuid(org_id, "org_not_found")
     ok = await conn.fetchval(
         "select public.has_org_role($1::uuid, $2::uuid, $3::org_role[])",
         user_id, org_id, [r.value for r in roles])

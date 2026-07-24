@@ -13,7 +13,15 @@ from typing import Optional
 
 # Bound the work: a hand-drawn landing polygon is small. Bigger asks are refused rather than
 # silently downsampled, so the endpoint can never become an expensive open compute service.
+#
+# AREA ALONE IS NOT A BOUND. A thin sliver triangle can measure a few hectares while spanning
+# degrees of longitude, and the read window is built from the polygon's BOUNDING BOX — so an
+# unauthenticated caller could force a multi-gigabyte boundless read and OOM-kill this container
+# (which also serves tap-to-detect for every logged-in user). Cap the extent and the pixel budget
+# too; all three checks are cheap and happen before any raster is touched.
 MAX_AREA_HA = 200.0
+MAX_SPAN_DEG = 0.2          # ~22 km — far beyond any hand-drawn field
+MAX_WINDOW_PX = 4_000_000   # ~2000x2000 at 10 m; a 200 ha field is orders of magnitude smaller
 SEARCH_DAYS = 45
 MAX_CLOUD = 40
 
@@ -64,8 +72,12 @@ def probe_ndvi(polygon: dict, *, max_area_ha: float = MAX_AREA_HA) -> dict:
     if area_ha > max_area_ha:
         return {"ok": False, "reason": "area_too_large", "area_ha": round(area_ha, 2)}
 
-    prepare_gdal_for_public_cog()
     minx, miny, maxx, maxy = geom.bounds
+    # Extent guard — a sliver polygon passes the area cap but its bbox drives the read window.
+    if (maxx - minx) > MAX_SPAN_DEG or (maxy - miny) > MAX_SPAN_DEG:
+        return {"ok": False, "reason": "extent_too_large", "area_ha": round(area_ha, 2)}
+
+    prepare_gdal_for_public_cog()
     pad = 0.002  # ~200 m, so the search bbox never degenerates for a tiny polygon
     today = date.today()
     try:
@@ -90,6 +102,11 @@ def probe_ndvi(polygon: dict, *, max_area_ha: float = MAX_AREA_HA) -> dict:
                 l, b, r, t = transform_bounds("EPSG:4326", src.crs, minx, miny, maxx, maxy,
                                               densify_pts=21)
                 win = from_bounds(l, b, r, t, transform=src.transform)
+                # Final backstop: from_bounds does not validate against the dataset and
+                # boundless=True happily allocates an arbitrarily large array. Refuse instead.
+                if (win.width or 0) * (win.height or 0) > MAX_WINDOW_PX:
+                    return {"ok": False, "reason": "extent_too_large",
+                            "area_ha": round(area_ha, 2)}
                 red = src.read(1, window=win, boundless=True, fill_value=0).astype("float32")
                 win_tf = src.window_transform(win)
                 crs = src.crs
@@ -97,6 +114,26 @@ def probe_ndvi(polygon: dict, *, max_area_ha: float = MAX_AREA_HA) -> dict:
                 nir = src2.read(1, window=win, boundless=True, fill_value=0).astype("float32")
             if red.size == 0 or red.shape != nir.shape:
                 continue
+
+            # Per-pixel cloud mask. Scenes up to MAX_CLOUD% are accepted, so without this a cloud
+            # sitting over the drawn polygon would produce a confidently wrong verdict on a public
+            # page. Same SCL classes the main pipeline drops (read.SCL_MASK_VALUES).
+            cloud = None
+            scl_h = g.assets.get(km.get("scl", "scl"))
+            if scl_h:
+                try:
+                    from .read import SCL_MASK_VALUES
+                    with rasterio.open(scl_h) as ssrc:
+                        # SCL is 20 m; read it over the same geographic window and let rasterio
+                        # resample to the 10 m grid so the masks line up pixel-for-pixel.
+                        sl, sb, sr_, st = transform_bounds("EPSG:4326", ssrc.crs, minx, miny,
+                                                           maxx, maxy, densify_pts=21)
+                        swin = from_bounds(sl, sb, sr_, st, transform=ssrc.transform)
+                        scl = ssrc.read(1, window=swin, boundless=True, fill_value=0,
+                                        out_shape=red.shape)
+                    cloud = np.isin(scl, list(SCL_MASK_VALUES))
+                except Exception:  # noqa: BLE001 — no SCL is not fatal, just less accurate
+                    cloud = None
 
             red *= S2_SR_SCALE
             nir *= S2_SR_SCALE
@@ -110,7 +147,10 @@ def probe_ndvi(polygon: dict, *, max_area_ha: float = MAX_AREA_HA) -> dict:
             # invert=True → True for pixels INSIDE the geometry (the default marks them False,
             # because the helper is built for numpy masked arrays where True means "masked out").
             inside = geometry_mask([geom_p], out_shape=ndvi.shape, transform=win_tf, invert=True)
-            vals = ndvi[inside & np.isfinite(ndvi)]
+            usable = inside & np.isfinite(ndvi)
+            if cloud is not None and cloud.shape == ndvi.shape:
+                usable &= ~cloud
+            vals = ndvi[usable]
             vals = vals[(vals > -1.0) & (vals < 1.0)]
             if vals.size < 3:
                 continue

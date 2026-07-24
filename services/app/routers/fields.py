@@ -8,13 +8,15 @@ import json
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 
 from ..db import connection
-from ..deps import ROLES_WORKER, ROLES_WRITE, get_current_user_id, require_member, require_role
+from ..deps import (ROLES_WORKER, ROLES_WRITE, get_current_user_id, require_member,
+                    require_role, safe_uuid)
 from ..schemas import FieldIn, FieldMetadataIn, FieldOut
 
 router = APIRouter(prefix="/api/fields", tags=["fields"])
 
 
 async def _org_of_farm(conn, farm_id: str) -> str:
+    farm_id = safe_uuid(farm_id, "farm_not_found")
     org_id = await conn.fetchval("select org_id from public.farms where id=$1::uuid", farm_id)
     if not org_id:
         raise HTTPException(status_code=404, detail="farm_not_found")
@@ -22,6 +24,9 @@ async def _org_of_farm(conn, farm_id: str) -> str:
 
 
 async def _org_of_field(conn, field_id: str) -> str:
+    # Guard here rather than at ~20 call sites: this is the single funnel every field-scoped
+    # route uses, and a malformed id must be a 404, not a Postgres 22P02 → 500.
+    field_id = safe_uuid(field_id, "field_not_found")
     org_id = await conn.fetchval("select org_id from public.fields where id=$1::uuid", field_id)
     if not org_id:
         raise HTTPException(status_code=404, detail="field_not_found")
@@ -262,7 +267,10 @@ async def list_soil_lab(field_id: str, user_id: str = Depends(get_current_user_i
         for r in rows]}
 
 
-@router.get("/{field_id}/fertilizer")
+# Distinct path from the W4 fertilizer SCHEDULE CRUD in routers/fertilizer.py. Both used to be
+# GET /{field_id}/fertilizer; fields.router is registered first, so it shadowed the schedule list
+# and the Gübrə tab received an object where it expected a list.
+@router.get("/{field_id}/fertilizer-plan")
 async def fertilizer_plan(field_id: str, user_id: str = Depends(get_current_user_id)):
     """Removal-based N-P-K fertilizer plan + stage splits (T11). Business tier."""
     from .. import tiers

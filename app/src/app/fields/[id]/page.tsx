@@ -328,7 +328,7 @@ function FieldDetailInner() {
         <div className="space-y-6">
           <ZonesTab fieldId={field.id} />
           {/* A6 needs multi-season COGs, which only exist after an A8 backfill. */}
-          <BackfillCard fieldId={field.id} />
+          <BackfillCard fieldId={field.id} forZones />
         </div>
       )}
       {tab === "ai" && (

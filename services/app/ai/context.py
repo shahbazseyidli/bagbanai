@@ -121,7 +121,7 @@ async def build_field_context(conn, field_id: str) -> dict[str, Any]:
                from public.field_photos where field_id=$1::uuid and ai_label is not null
                order by created_at desc limit 6""", field_id)
         fert = await conn.fetch(
-            """select product, zone, dose, status, planned_on from public.fertilizer_plans
+            """select product, zone, dose, status, planned_on from public.fertilizer_schedule
                where field_id=$1::uuid order by planned_on desc nulls last limit 6""", field_id)
         # B6 active pre-harvest interval: latest spray whose safe date is still in the future.
         sr = await conn.fetchrow(

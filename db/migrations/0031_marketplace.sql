@@ -76,7 +76,11 @@ create table if not exists public.messages (
 create index if not exists messages_conv_idx on public.messages (conversation_id, created_at);
 
 -- 6) Fertilizer plans (E8) — user schedule + AI suggestion. Field-scoped, org denormalized.
-create table if not exists public.fertilizer_plans (
+-- NOTE: named fertilizer_SCHEDULE, not fertilizer_plans: public.fertilizer_plans already exists
+-- from 0023 with a totally different shape (T11 removal-based n/p/k totals per season). Reusing
+-- that name here would have been a silent no-op under "if not exists" (0023 runs first), leaving
+-- every write below pointed at columns that do not exist.
+create table if not exists public.fertilizer_schedule (
   id         uuid primary key default gen_random_uuid(),
   field_id   uuid not null references public.fields(id) on delete cascade,
   org_id     uuid not null,
@@ -90,7 +94,7 @@ create table if not exists public.fertilizer_plans (
   notes      text,
   created_at timestamptz not null default now()
 );
-create index if not exists fertilizer_plans_field_idx on public.fertilizer_plans (field_id, planned_on);
+create index if not exists fertilizer_schedule_field_idx on public.fertilizer_schedule (field_id, planned_on);
 
 -- 7) Field photos (E10) — farmer photo + AI auto-label + condition; feeds AI advice context.
 create table if not exists public.field_photos (

@@ -90,9 +90,15 @@ async def frost_dates(
     refresh: bool = Query(default=False, description="recompute even if cached (agronomist+)"),
     threshold_c: float = Query(default=frost_mod.DEFAULT_THRESHOLD_C, ge=-10.0, le=5.0),
     years: int = Query(default=frost_mod.DEFAULT_YEARS, ge=5, le=40),
+    # Quantized below so a member cannot mint unlimited distinct cache keys (each miss is an
+    # external 20-year archive call plus a write to the CROSS-ORG shared zone_knowledge row).
     user_id: str = Depends(get_current_user_id),
 ):
     """Frost climatology for the field's rayon. Cached per zone for a year; free for all members."""
+    # Snap the cache key space: rounding the threshold and whitelisting the window means a
+    # member cannot bypass the cache (and the write gate) just by nudging a query param.
+    threshold_c = round(float(threshold_c), 1)
+    years = min((10, 20, 30, 40), key=lambda y: abs(y - int(years)))
     async with connection(user_id) as conn:
         org_id = await _org_of_field(conn, field_id)
         # A forced recompute costs an external call → agronomist+; plain reads are free.
@@ -116,7 +122,11 @@ async def frost_dates(
                             "refreshed_at": cached.get("refreshed_at")})
             return content
 
-    # Cache miss → resolve the zone (network, outside the transaction) and compute.
+    # Cache miss → this is the same expensive work `refresh` is gated on (external archive call +
+    # a write to the shared zone_knowledge row), so it needs the same role, not just membership.
+    if not refresh:
+        async with connection(user_id) as conn:
+            await require_role(conn, user_id, org_id, ROLES_WRITE)
     if not zone_id:
         zone_id = await kb.resolve_zone(lat, lon, region)
     clim = await frost_mod.frost_climatology(lat, lon, years=years, threshold_c=threshold_c)

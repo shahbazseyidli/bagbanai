@@ -12,6 +12,7 @@ from __future__ import annotations
 import os
 import sys
 from datetime import date, timedelta
+from typing import Optional
 
 from . import persist
 from .indices import INDEX_NAMES, VI_BAND_SUFFIX, VI_FILL, VI_SCALE
@@ -370,14 +371,46 @@ MIN_BACKFILL_YEAR = 2015   # HLS v2.0: L30 from 2013, S30 from mid-2015 → 2015
 BACKFILL_SENSORS = ("hls", "s2", "all")
 
 
-def _backfill_year(field: dict, year: int, sensor: str = "hls", max_cloud: int = 70) -> dict:
-    """Ingest ONE calendar year of scene statistics for a field. Stats only: no COG writes,
-    no status updates, no notifications, no advice/rule triggers."""
+def _maybe_write_zone_cog(field_id: str, scene_id, g, stats_da: dict,
+                          zone_index: Optional[str], zone_months: tuple[int, int]) -> int:
+    """Write ONE index COG for a backfilled scene when it falls in the zone window. Returns 1 on
+    success, 0 otherwise. Best-effort: a raster failure must never lose the scene's stats."""
+    if not zone_index or not scene_id:
+        return 0
+    m = g.acquired_at.month
+    lo, hi = zone_months
+    if not (lo <= m <= hi):
+        return 0
+    entry = stats_da.get(zone_index)
+    if not entry or entry[1] is None:
+        return 0
+    from .read import write_cog
+    rdir = persist.raster_dir()
+    path = os.path.join(rdir, str(field_id), f"{scene_id}_{zone_index}.tif")
+    try:
+        if not os.path.exists(path):
+            write_cog(entry[1], path)
+        persist.persist_raster(scene_id, field_id, zone_index, path, g.acquired_at, sensor=g.sensor)
+        return 1
+    except Exception as exc:  # noqa: BLE001
+        print(f"  ! backfill raster {zone_index} {g.granule_id}: {exc}", file=sys.stderr)
+        return 0
+
+
+def _backfill_year(field: dict, year: int, sensor: str = "hls", max_cloud: int = 70,
+                   zone_index: Optional[str] = None, zone_months: tuple[int, int] = (5, 8)) -> dict:
+    """Ingest ONE calendar year of scene statistics for a field. Stats only by default: no COG
+    writes, no status updates, no notifications, no advice/rule triggers.
+
+    `zone_index` opts into writing per-pixel COGs for ONE index (e.g. "NDVI") and ONLY for scenes
+    inside `zone_months`. Productivity zones (A6) read exclusively from public.index_rasters, so
+    without this a backfill could never unblock them — but writing every index for every historical
+    scene would explode disk, hence the deliberate double bound (one index, peak-season only)."""
     today = date.today()
     d_from = date(year, 1, 1)
     d_to = min(date(year, 12, 31), today)
     res: dict = {"year": year, "granules_found": 0, "scenes_written": 0,
-                 "truncated": False, "errors": []}
+                 "rasters_written": 0, "truncated": False, "errors": []}
     if d_from > today:
         res["errors"].append("future_year")
         return res
@@ -398,8 +431,10 @@ def _backfill_year(field: dict, year: int, sensor: str = "hls", max_cloud: int =
                 stats = {k: v[0] for k, v in stats_da.items()}
                 if not stats:
                     continue
-                persist.persist_scene(fid, org_id, g.sensor, g.acquired_at, g.mgrs_tile,
-                                      g.cloud_pct, g.granule_id, stats)
+                scene_id = persist.persist_scene(fid, org_id, g.sensor, g.acquired_at,
+                                                 g.mgrs_tile, g.cloud_pct, g.granule_id, stats)
+                res["rasters_written"] += _maybe_write_zone_cog(
+                    fid, scene_id, g, stats_da, zone_index, zone_months)
                 res["scenes_written"] += 1
         except Exception as exc:  # noqa: BLE001 — one sensor failing must not kill the year
             print(f"  ! backfill HLS {year}: {exc}", file=sys.stderr)
@@ -423,8 +458,10 @@ def _backfill_year(field: dict, year: int, sensor: str = "hls", max_cloud: int =
                                            for v in stats_da.values()):
                     continue
                 stats = {k: v[0] for k, v in stats_da.items()}
-                persist.persist_scene(fid, org_id, g.sensor, g.acquired_at, g.mgrs_tile,
-                                      g.cloud_pct, g.granule_id, stats)
+                scene_id = persist.persist_scene(fid, org_id, g.sensor, g.acquired_at,
+                                                 g.mgrs_tile, g.cloud_pct, g.granule_id, stats)
+                res["rasters_written"] += _maybe_write_zone_cog(
+                    fid, scene_id, g, stats_da, zone_index, zone_months)
                 res["scenes_written"] += 1
         except Exception as exc:  # noqa: BLE001
             print(f"  ! backfill S2 {year}: {exc}", file=sys.stderr)
@@ -433,7 +470,9 @@ def _backfill_year(field: dict, year: int, sensor: str = "hls", max_cloud: int =
 
 
 def run_field_backfill(field_id: str, year_from: int, year_to: int, sensor: str = "hls",
-                       max_cloud: int = 70, newest_first: bool = True) -> dict:
+                       max_cloud: int = 70, newest_first: bool = True,
+                       zone_index: Optional[str] = None,
+                       zone_months: tuple[int, int] = (5, 8)) -> dict:
     """Backfill whole calendar years of scene statistics for one field.
 
     Years are processed ONE AT A TIME (never a single decade-wide search) and, by default,
@@ -468,7 +507,8 @@ def run_field_backfill(field_id: str, year_from: int, year_to: int, sensor: str 
     truncated_any = False
     for y in years:
         try:
-            r = _backfill_year(field, y, sensor=sensor, max_cloud=max_cloud)
+            r = _backfill_year(field, y, sensor=sensor, max_cloud=max_cloud,
+                               zone_index=zone_index, zone_months=zone_months)
         except Exception as exc:  # noqa: BLE001 — never abort the remaining years
             r = {"year": y, "granules_found": 0, "scenes_written": 0,
                  "truncated": False, "errors": [str(exc)[:200]]}
@@ -499,7 +539,10 @@ if __name__ == "__main__":
             b_from, b_to = int(sys.argv[3]), int(sys.argv[4])
         except ValueError:
             raise SystemExit("year_from / year_to must be integers")
-        out = run_field_backfill(sys.argv[2], b_from, b_to, sensor=b_sensor)
+        # Optional 6th arg: an index name (e.g. NDVI) to ALSO write peak-season COGs for, so a
+        # backfill can unblock productivity zones (A6), which read only public.index_rasters.
+        b_zone = sys.argv[6] if len(sys.argv) > 6 else None
+        out = run_field_backfill(sys.argv[2], b_from, b_to, sensor=b_sensor, zone_index=b_zone)
         # Machine-readable last line for deploy/process-backfill.sh (per-year detail dropped —
         # it is already on stdout above).
         print("BACKFILL_RESULT " + _json.dumps({k: v for k, v in out.items() if k != "years"}))

@@ -30,7 +30,7 @@ export default function FertilizerCard({ fieldId }: { fieldId: string }) {
     let active = true;
     (async () => {
       try {
-        const p = await api.get<Plan>(`/api/fields/${fieldId}/fertilizer`);
+        const p = await api.get<Plan>(`/api/fields/${fieldId}/fertilizer-plan`);
         if (active) setPlan(p);
       } catch {
         if (active) setPlan(null);

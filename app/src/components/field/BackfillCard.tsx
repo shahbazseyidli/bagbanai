@@ -34,7 +34,10 @@ const STATUS_AZ: Record<string, string> = {
   queued: "Növbədə", running: "İşlənir", done: "Tamamlandı", failed: "Uğursuz",
 };
 
-export default function BackfillCard({ fieldId }: { fieldId: string }) {
+/** `forZones` also requests peak-season NDVI rasters, which productivity zones (A6) need —
+ *  a plain stats-only backfill can never unblock them. */
+export default function BackfillCard({ fieldId, forZones = false }:
+  { fieldId: string; forZones?: boolean }) {
   const [data, setData] = useState<Resp | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -72,6 +75,7 @@ export default function BackfillCard({ fieldId }: { fieldId: string }) {
         year_from: Number(from),
         year_to: Number(to),
         sensor: "hls",
+        for_zones: forZones,
       });
       await load();
     } catch (err) {
@@ -93,8 +97,9 @@ export default function BackfillCard({ fieldId }: { fieldId: string }) {
         <h3 className="font-semibold text-slate-800">Keçmiş mövsümlər</h3>
       </div>
       <p className="text-sm text-slate-500">
-        Peyk arxivi {data.min_year}-ci ilə qədər gedir. Keçmiş illəri yükləsəniz, mövsüm müqayisəsi
-        və məhsuldarlıq zonaları işləyə bilər.
+        Peyk arxivi {data.min_year}-ci ilə qədər gedir. Keçmiş illəri yükləsəniz, mövsüm
+        müqayisəsi işləyə bilər.
+        {forZones && " Bu yükləmə həm də zonalar üçün lazım olan piksel şəkillərini hazırlayır."}
       </p>
 
       {data.covered_years.length > 0 && (

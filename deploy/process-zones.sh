@@ -14,6 +14,12 @@ COMPOSE="docker compose -f deploy/docker-compose.prod.yml"
 # Cap runs per tick: each run stacks up to ~90 windowed COG reads, so keep the tick bounded.
 MAX="${1:-2}"
 
+# Stale recovery FIRST: a container that died mid-run leaves status='running' forever, and the
+# UI disables "recompute" while a run is running — a crash would otherwise be a permanent dead end.
+$COMPOSE exec -T db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc \
+  "update public.field_zone_runs set status='queued', message='bərpa edildi (donmuş iş)'
+   where status='running' and computed_at < now() - interval '1 hour'" >/dev/null || true
+
 ids=$($COMPOSE exec -T db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc \
   "select id from public.field_zone_runs where status='queued' order by computed_at limit ${MAX}")
 if [ -z "$ids" ]; then exit 0; fi
@@ -24,7 +30,12 @@ for id in $ids; do
   # next cron tick (zones.py also sets running/ready/failed itself and is safe to re-enter).
   $COMPOSE exec -T db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc \
     "update public.field_zone_runs set status='running' where id='${id}' and status='queued'" >/dev/null
-  $COMPOSE --profile geo run --rm geo python -m geo_pipeline.zones "$id" \
-    || echo "  ! zone run $id failed (status set to failed), continuing"
+  if ! $COMPOSE --profile geo run --rm geo python -m geo_pipeline.zones "$id"; then
+    echo "  ! zone run $id failed, marking failed and continuing"
+    # zones.py sets 'failed' itself on a handled error, but a hard crash (OOM) leaves 'running'.
+    $COMPOSE exec -T db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc \
+      "update public.field_zone_runs set status='failed', message='hesablama dayandı'
+       where id='${id}' and status='running'" >/dev/null || true
+  fi
 done
 echo "zone queue drained."

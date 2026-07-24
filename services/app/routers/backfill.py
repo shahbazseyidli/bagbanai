@@ -38,7 +38,7 @@ SENSORS = ("hls", "s2", "all")
 MAX_ACTIVE_PER_ORG = 3
 
 _SELECT = ("id, field_id, org_id, year_from, year_to, sensor, status, years_done, years_total, "
-           "scenes_written, message, created_at, updated_at")
+           "scenes_written, message, zone_index, created_at, updated_at")
 
 
 # ---------- request models ----------
@@ -46,6 +46,9 @@ class BackfillIn(BaseModel):
     year_from: int
     year_to: int
     sensor: str = "hls"
+    # Also write peak-season per-pixel COGs for one index, so productivity zones (A6) — which read
+    # only public.index_rasters — actually become computable. Costs disk, hence opt-in.
+    for_zones: bool = False
     # A finished ('done') job is returned untouched unless the caller explicitly asks for a
     # re-run. A 'failed' job is always re-queued (retrying a failure is what the user means).
     restart: bool = False
@@ -74,6 +77,7 @@ def _job_out(r) -> dict:
         "years_done": done,
         "years_total": total,
         "scenes_written": int(r["scenes_written"] or 0),
+        "zone_index": r["zone_index"],
         "message": r["message"],
         "percent": round(100.0 * done / total) if total > 0 else 0,
         "active": r["status"] in ("queued", "running"),
@@ -131,11 +135,12 @@ async def enqueue_backfill(field_id: str, body: BackfillIn,
         # can fall through to "return the existing job" instead of erroring the user out.
         row = await conn.fetchrow(
             f"""insert into public.field_backfill_jobs
-                  (field_id, org_id, year_from, year_to, sensor, status, years_total, message)
-                values ($1::uuid,$2::uuid,$3,$4,$5,'queued',$6,$7)
+                  (field_id, org_id, year_from, year_to, sensor, status, years_total, message, zone_index)
+                values ($1::uuid,$2::uuid,$3,$4,$5,'queued',$6,$7,$8)
                 on conflict (field_id, year_from, year_to) do nothing
                 returning {_SELECT}""",
-            fid, org_id, y_from, y_to, sensor, years_total, "Növbədə gözləyir")
+            fid, org_id, y_from, y_to, sensor, years_total, "Növbədə gözləyir",
+            "NDVI" if body.for_zones else None)
         created = row is not None
 
         if row is None:

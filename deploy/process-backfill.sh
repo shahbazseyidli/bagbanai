@@ -5,9 +5,11 @@
 # truncated. One year per `docker compose run` also keeps memory bounded and makes progress
 # resumable (years_done is written after every year).
 #
-# The backfill is stats-only and silent: geo_pipeline.pipeline's backfill entrypoint writes NO
-# COGs, fires NO advice/rules, sends NO notifications and never touches fields.data_status —
-# the "Peyk məlumatı hazırlanır" banner belongs to process-queue.sh and must not lie.
+# The backfill is silent: it fires NO advice/rules, sends NO notifications and never touches
+# fields.data_status — the "Peyk məlumatı hazırlanır" banner belongs to process-queue.sh and must
+# not lie. It is stats-only UNLESS the job carries zone_index (e.g. 'NDVI'), in which case it also
+# writes peak-season per-pixel COGs for that one index — productivity zones (A6) read only
+# public.index_rasters, so without that opt-in a backfill could never unblock them.
 #
 # Cron (offset from the other workers), every ~5 min:
 #   */5 * * * * cd /opt/bagbanai && flock -n /tmp/bagban-backfill.lock bash deploy/process-backfill.sh >> /var/log/bagban-backfill.log 2>&1
@@ -52,11 +54,13 @@ claim=$(psqlq "update public.field_backfill_jobs j
                              where status='queued' order by created_at limit 1
                              for update skip locked)
                returning j.id||'|'||j.field_id||'|'||j.year_from||'|'||j.year_to||'|'||
-                         coalesce(j.sensor,'hls')||'|'||j.years_done||'|'||j.scenes_written")
+                         coalesce(j.sensor,'hls')||'|'||j.years_done||'|'||j.scenes_written||'|'||coalesce(j.zone_index,'')")
 claim=$(printf '%s' "$claim" | tr -d '[:space:]')
 if [ -z "$claim" ]; then echo "[$(date -u +%FT%TZ)] no queued backfill jobs"; exit 0; fi
 
-IFS='|' read -r job_id field_id y_from y_to sensor years_done scenes_written <<< "$claim"
+IFS='|' read -r job_id field_id y_from y_to sensor years_done scenes_written zone_index <<< "$claim"
+# Only NDVI is currently zonable; anything else is treated as stats-only.
+case "$zone_index" in NDVI) ;; *) zone_index="";; esac
 case "$years_done"     in ''|*[!0-9]*) years_done=0;;     esac
 case "$scenes_written" in ''|*[!0-9]*) scenes_written=0;; esac
 # Defensive: a malformed claim string must not turn into broken arithmetic below.
@@ -96,11 +100,14 @@ while [ "$i" -lt "$total" ]; do
 
   rc=0
   out=$($COMPOSE --profile geo run --rm geo \
-          python -m geo_pipeline.pipeline backfill "$field_id" "$year" "$year" "$sensor" 2>&1) || rc=$?
+          python -m geo_pipeline.pipeline backfill "$field_id" "$year" "$year" "$sensor" "$zone_index" 2>&1) || rc=$?
   printf '%s\n' "$out"
 
+  # `set -e` + a grep that matches nothing would abort the whole worker here, leaving the job
+  # stuck in status='running' and making the "year failed — continuing" branch below unreachable.
+  # `|| true` keeps a missing marker a normal (n=0) outcome.
   n=$(printf '%s\n' "$out" | grep -o 'BACKFILL_RESULT .*' | tail -1 \
-        | sed -E 's/.*"scenes_written": *([0-9]+).*/\1/')
+        | sed -E 's/.*"scenes_written": *([0-9]+).*/\1/' || true)
   case "$n" in ''|*[!0-9]*) n=0;; esac
 
   if [ "$rc" -ne 0 ]; then
