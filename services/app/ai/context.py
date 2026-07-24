@@ -107,8 +107,26 @@ async def build_field_context(conn, field_id: str) -> dict[str, Any]:
         """select summary, generated_at::date as date from public.advice
            where field_id=$1::uuid order by generated_at desc limit 1""", field_id)
 
+    # Marketplace-era inputs (0031): latest soil analysis, AI-labeled photos, fertilizer plan. The AI
+    # advice folds these in (req #4 soil, #6 photos). Defensive: if the tables are missing (migration
+    # not yet applied) fall back to empty so advice still runs.
+    soil = photos = fert = None
+    try:
+        soil = await conn.fetchrow(
+            """select ph, organic_matter_pct, nitrogen, phosphorus, potassium, texture, source
+               from public.soil_profiles where field_id=$1::uuid order by created_at desc limit 1""", field_id)
+        photos = await conn.fetch(
+            """select ai_label, ai_condition, ai_notes, created_at::date as date
+               from public.field_photos where field_id=$1::uuid and ai_label is not null
+               order by created_at desc limit 6""", field_id)
+        fert = await conn.fetch(
+            """select product, zone, dose, status, planned_on from public.fertilizer_plans
+               where field_id=$1::uuid order by planned_on desc nulls last limit 6""", field_id)
+    except Exception:  # noqa: BLE001 — pre-migration/degraded: advice continues satellite-only
+        pass
+
     def rows(rs):
-        return [dict(r) for r in rs]
+        return [dict(r) for r in (rs or [])]
 
     # AI reasons over Sentinel-2 (10m) trends ONLY — never HLS (product decision).
     s2_trends = await index_trends(conn, field_id, sensor="S2")
@@ -122,6 +140,9 @@ async def build_field_context(conn, field_id: str) -> dict[str, Any]:
         "operations": rows(operations),
         "open_tasks": rows(tasks),
         "yields": rows(yields),
+        "soil_analysis": dict(soil) if soil else None,
+        "recent_photos": rows(photos),
+        "fertilizer_plan": rows(fert),
         "previous_advice_summary": prior["summary"] if prior else None,
         # Knowledge Passport (M6): zone + field research blocks the advice reasons over
         # (crop norms, phenology, pests, soil, resolved clarifications). Empty until the
