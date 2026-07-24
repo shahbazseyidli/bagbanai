@@ -19,42 +19,42 @@ export default function Nav() {
     router.push("/login");
   }
 
-  const links = [
-    { href: "/", label: t("nav.dashboard"), authOnly: true },
-    { href: "/catalog", label: t("nav.catalog"), authOnly: true },
-    { href: "/chat", label: t("nav.community"), authOnly: true },
-    { href: "/solutions", label: t("nav.solutions"), authOnly: false },
-    { href: "/pricing", label: t("nav.pricing"), authOnly: false },
-    { href: "/team", label: t("nav.team"), authOnly: true },
-    ...(user?.is_admin ? [{ href: "/admin", label: t("nav.admin"), authOnly: true }] : []),
+  // W2 — the desktop left rail (AppShell) now owns app navigation, and /more carries Team/Admin,
+  // so repeating those up here only crowded the bar until it wrapped. Signed IN: the top bar is
+  // just account controls. Signed OUT: the marketing links. The mobile drawer (signed-out only)
+  // and BottomNav (signed-in) are unchanged.
+  const marketingLinks = [
+    { href: "/solutions", label: t("nav.solutions") },
+    { href: "/pricing", label: t("nav.pricing") },
   ];
+  const links = user ? [] : marketingLinks;
 
   return (
     <header className="sticky top-0 z-30 border-b border-emerald-100 bg-white/90 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <Link href="/" className="flex items-center gap-2 text-emerald-700">
-          <Leaf className="h-6 w-6" />
-          <span className="text-lg font-bold">{t("brand")}</span>
+        <Link href="/" className="flex shrink-0 items-center gap-2 text-emerald-700">
+          <Leaf className="h-6 w-6 shrink-0" />
+          <span className="whitespace-nowrap text-lg font-bold">{t("brand")}</span>
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
-          {links
-            .filter((l) => !l.authOnly || user)
-            .map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-emerald-50 hover:text-emerald-700"
-              >
-                {l.label}
-              </Link>
-            ))}
+          {links.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-emerald-50 hover:text-emerald-700"
+            >
+              {l.label}
+            </Link>
+          ))}
           <LanguageSwitcher className="ml-2" />
           {user ? (
             <div className="ml-2 flex items-center gap-2">
               <NotificationBell />
-              <span className="text-sm text-slate-500">{user.email}</span>
-              <button className="btn-ghost" onClick={onLogout}>
+              <span className="max-w-[168px] truncate text-sm text-slate-500" title={user.email}>
+                {user.email}
+              </span>
+              <button className="btn-ghost whitespace-nowrap" onClick={onLogout}>
                 {t("nav.logout")}
               </button>
             </div>
@@ -90,18 +90,16 @@ export default function Nav() {
 
       {open && (
         <div className="border-t border-emerald-100 bg-white px-4 py-2 md:hidden">
-          {links
-            .filter((l) => !l.authOnly || user)
-            .map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-emerald-50"
-                onClick={() => setOpen(false)}
-              >
-                {l.label}
-              </Link>
-            ))}
+          {links.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-emerald-50"
+              onClick={() => setOpen(false)}
+            >
+              {l.label}
+            </Link>
+          ))}
           {user ? (
             <button className="mt-1 w-full text-left rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-emerald-50" onClick={onLogout}>
               {t("nav.logout")} ({user.email})
