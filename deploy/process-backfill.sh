@@ -37,7 +37,7 @@ flock -n 200 || { echo "[$(date -u +%FT%TZ)] another backfill run holds the lock
 # Azerbaijani status text — no user input is interpolated.
 psqlq() {
   $COMPOSE exec -T -e PGCLIENTENCODING=UTF8 db \
-    psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -tAc "$1"
+    psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -q -tAc "$1"
 }
 
 # 1) Recover jobs whose worker died mid-flight (container OOM, host reboot). years_done is
@@ -56,6 +56,10 @@ claim=$(psqlq "update public.field_backfill_jobs j
                returning j.id||'|'||j.field_id||'|'||j.year_from||'|'||j.year_to||'|'||
                          coalesce(j.sensor,'hls')||'|'||j.years_done||'|'||j.scenes_written||'|'||coalesce(j.zone_index,'')")
 claim=$(printf '%s' "$claim" | tr -d '[:space:]')
+# An empty result may surface as psql's command tag (e.g. "UPDATE0") rather than an empty string;
+# a real claim is always pipe-delimited. Treat anything else as "nothing to do", not as an error —
+# this runs every 5 minutes and must stay silent when the queue is empty.
+case "$claim" in *"|"*) ;; *) claim="";; esac
 if [ -z "$claim" ]; then echo "[$(date -u +%FT%TZ)] no queued backfill jobs"; exit 0; fi
 
 IFS='|' read -r job_id field_id y_from y_to sensor years_done scenes_written zone_index <<< "$claim"
