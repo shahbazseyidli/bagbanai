@@ -216,6 +216,7 @@ export const tr: Dict = {
   "nav.pricing": "Fiyatlar",
   "nav.catalog": "Katalog",
   "nav.community": "Topluluk",
+  "nav.ledger": "Çiftlik defteri",
   "nav.admin": "Admin",
   "bnav.today": "Bugün",
   "bnav.fields": "Tarlalar",

@@ -204,6 +204,8 @@ class YieldIn(BaseModel):
     yield_value: Optional[float] = None
     yield_unit: Optional[str] = None    # t_ha|kg|t
     area_ha: Optional[float] = None
+    revenue: Optional[float] = None     # total revenue (AZN) — for per-field P&L (0032)
+    price: Optional[float] = None       # optional price per unit (AZN)
     notes: Optional[str] = None
 
 

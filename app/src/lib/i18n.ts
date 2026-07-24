@@ -8,6 +8,7 @@ export const az = {
   "nav.pricing": "Qiymətlər",
   "nav.catalog": "Kataloq",
   "nav.community": "İcma",
+  "nav.ledger": "Təsərrüfat dəftəri",
   "nav.team": "Komanda",
   "nav.logout": "Çıxış",
   "nav.login": "Daxil ol",

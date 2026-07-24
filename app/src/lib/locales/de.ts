@@ -216,6 +216,7 @@ export const de: Dict = {
   "nav.pricing": "Preise",
   "nav.catalog": "Katalog",
   "nav.community": "Community",
+  "nav.ledger": "Betriebsbuch",
   "nav.admin": "Admin",
   "bnav.today": "Heute",
   "bnav.fields": "Felder",

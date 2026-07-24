@@ -7,6 +7,7 @@ export const en: Dict = {
   "nav.pricing": "Pricing",
   "nav.catalog": "Catalog",
   "nav.community": "Community",
+  "nav.ledger": "Farm ledger",
   "nav.admin": "Admin",
   "nav.team": "Team",
   "nav.logout": "Log out",

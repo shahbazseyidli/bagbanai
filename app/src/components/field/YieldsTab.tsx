@@ -30,6 +30,7 @@ export default function YieldsTab({ fieldId }: { fieldId: string }) {
   const [value, setValue] = useState("");
   const [unit, setUnit] = useState("t/ha");
   const [area, setArea] = useState("");
+  const [revenue, setRevenue] = useState("");
   const [notes, setNotes] = useState("");
 
   async function load() {
@@ -66,11 +67,13 @@ export default function YieldsTab({ fieldId }: { fieldId: string }) {
         yield_value: value ? Number(value) : undefined,
         yield_unit: unit || undefined,
         area_ha: area ? Number(area) : undefined,
+        revenue: revenue ? Number(revenue) : undefined,
         notes: notes || undefined,
       });
       setCrop("");
       setValue("");
       setArea("");
+      setRevenue("");
       setNotes("");
       await load();
     } catch (err) {
@@ -116,6 +119,9 @@ export default function YieldsTab({ fieldId }: { fieldId: string }) {
           </FormField>
           <FormField label={t("yield.area")}>
             <input className="input" type="number" step="any" value={area} onChange={(e) => setArea(e.target.value)} />
+          </FormField>
+          <FormField label="Gəlir (₼)">
+            <input className="input" type="number" step="any" value={revenue} onChange={(e) => setRevenue(e.target.value)} placeholder="Satışdan ümumi gəlir" />
           </FormField>
         </div>
         <FormField label={t("yield.notes")}>

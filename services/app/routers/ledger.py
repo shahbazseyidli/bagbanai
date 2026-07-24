@@ -1,0 +1,68 @@
+"""Per-field & org P&L-lite (HYBRID_PLAN W6, B1). Expenses = Σ field_operations.cost;
+revenue = Σ yields.revenue (0032). Read-only aggregation, org-gated. Optional ?season=<year>."""
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+
+from ..db import connection
+from ..deps import get_current_user_id, require_member
+from .fields import _org_of_field
+
+router = APIRouter(prefix="/api", tags=["ledger"])
+
+
+def _f(v) -> float:
+    return float(v) if v is not None else 0.0
+
+
+async def _field_pnl(conn, field_id: str, season: Optional[int]) -> dict:
+    if season:
+        exp = await conn.fetchval(
+            "select coalesce(sum(cost),0) from public.field_operations "
+            "where field_id=$1::uuid and extract(year from performed_on)=$2", field_id, season)
+        rev = await conn.fetchval(
+            "select coalesce(sum(revenue),0) from public.yields where field_id=$1::uuid and season_year=$2",
+            field_id, season)
+    else:
+        exp = await conn.fetchval(
+            "select coalesce(sum(cost),0) from public.field_operations where field_id=$1::uuid", field_id)
+        rev = await conn.fetchval(
+            "select coalesce(sum(revenue),0) from public.yields where field_id=$1::uuid", field_id)
+    return {"expenses": _f(exp), "revenue": _f(rev), "profit": _f(rev) - _f(exp)}
+
+
+@router.get("/fields/{field_id}/pnl")
+async def field_pnl(field_id: str, season: Optional[int] = Query(default=None),
+                    user_id: str = Depends(get_current_user_id)):
+    async with connection(user_id) as conn:
+        org_id = await _org_of_field(conn, field_id)
+        await require_member(conn, user_id, org_id)
+        area = await conn.fetchval("select area_ha from public.fields where id=$1::uuid", field_id)
+        pnl = await _field_pnl(conn, field_id, season)
+    pnl["area_ha"] = _f(area)
+    pnl["profit_per_ha"] = round(pnl["profit"] / area, 1) if area else None
+    return pnl
+
+
+@router.get("/orgs/{org_id}/ledger")
+async def org_ledger(org_id: str, season: Optional[int] = Query(default=None),
+                     user_id: str = Depends(get_current_user_id)):
+    """Per-field P&L across the org + totals."""
+    async with connection(user_id) as conn:
+        await require_member(conn, user_id, org_id)
+        fields = await conn.fetch(
+            """select f.id, f.name, f.area_ha from public.fields f
+               join public.farms fa on fa.id = f.farm_id
+               where fa.org_id=$1::uuid and f.deleted_at is null order by f.name""", org_id)
+        rows = []
+        tot_exp = tot_rev = 0.0
+        for f in fields:
+            p = await _field_pnl(conn, str(f["id"]), season)
+            area = _f(f["area_ha"])
+            rows.append({
+                "field_id": str(f["id"]), "name": f["name"], "area_ha": area,
+                "expenses": p["expenses"], "revenue": p["revenue"], "profit": p["profit"],
+                "profit_per_ha": round(p["profit"] / area, 1) if area else None,
+            })
+            tot_exp += p["expenses"]; tot_rev += p["revenue"]
+    return {"fields": rows, "totals": {"expenses": tot_exp, "revenue": tot_rev, "profit": tot_rev - tot_exp}}

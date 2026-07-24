@@ -103,14 +103,15 @@ async def create_yield(body: YieldIn, user_id: str = Depends(get_current_user_id
         await require_role(conn, user_id, org_id, ROLES_WRITE)
         row = await conn.fetchrow(
             """insert into public.yields
-                 (field_id, org_id, season_year, crop_type, yield_value, yield_unit, area_ha, notes)
-               values ($1::uuid,$2::uuid,$3,$4,$5,$6,$7,$8)
+                 (field_id, org_id, season_year, crop_type, yield_value, yield_unit, area_ha, revenue, price, notes)
+               values ($1::uuid,$2::uuid,$3,$4,$5,$6,$7,$8,$9,$10)
                on conflict (field_id, season_year, crop_type) do update set
                  yield_value=excluded.yield_value, yield_unit=excluded.yield_unit,
-                 area_ha=excluded.area_ha, notes=excluded.notes
+                 area_ha=excluded.area_ha, revenue=excluded.revenue, price=excluded.price,
+                 notes=excluded.notes
                returning id""",
             body.field_id, org_id, body.season_year, body.crop_type, body.yield_value,
-            body.yield_unit, body.area_ha, body.notes)
+            body.yield_unit, body.area_ha, body.revenue, body.price, body.notes)
     return {"id": str(row["id"])}
 
 
@@ -120,12 +121,12 @@ async def list_yields(field_id: str = Query(...), user_id: str = Depends(get_cur
         org_id = await _org_of_field(conn, field_id)
         await require_member(conn, user_id, org_id)
         rows = await conn.fetch(
-            """select id, season_year, crop_type, yield_value, yield_unit, area_ha, notes
+            """select id, season_year, crop_type, yield_value, yield_unit, area_ha, revenue, price, notes
                from public.yields where field_id=$1::uuid order by season_year""", field_id)
     out = []
     for r in rows:
         d = dict(r); d["id"] = str(d["id"])
-        for k in ("yield_value", "area_ha"):
+        for k in ("yield_value", "area_ha", "revenue", "price"):
             d[k] = float(d[k]) if d[k] is not None else None
         out.append(d)
     return out

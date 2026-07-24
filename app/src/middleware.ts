@@ -13,7 +13,7 @@ const AUTH_COOKIE = "bagban_session";
 const LOCALE_COOKIE = "bagban_locale";
 const PREFIXED = ["en", "tr", "de"]; // az is the default (no prefix)
 const APP_PREFIXES = ["/fields", "/farms", "/more", "/notifications", "/onboarding", "/team", "/admin",
-  "/catalog", "/chat", "/account", "/provider"];
+  "/catalog", "/chat", "/account", "/provider", "/ledger"];
 
 function isAppPath(path: string): boolean {
   return path === "/" || APP_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`));
