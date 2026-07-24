@@ -1,5 +1,6 @@
 """Tasks + operation log + yields (FR-12/13, §15–16)."""
 import json
+import sys
 from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
@@ -167,7 +168,17 @@ async def create_op(body: OperationIn, user_id: str = Depends(get_current_user_i
                returning id, created_at""",
             body.field_id, org_id, body.type, body.performed_on, json.dumps(body.inputs),
             body.cost, body.currency, body.phi_days, user_id, body.notes)
-    return {"id": str(row["id"]), "created_at": row["created_at"].isoformat()}
+    op_id = str(row["id"])
+    # B12 — deduct the operation's free-text inputs from stock. Runs AFTER the insert transaction
+    # commits (the deduction opens its own connection and would not see an uncommitted row) and is
+    # best-effort: warehouse bookkeeping must never fail the operation log. Idempotent per operation.
+    deduction = None
+    try:
+        from .inventory import DeductIn, deduct_operation
+        deduction = await deduct_operation(org_id, DeductIn(operation_id=op_id), user_id=user_id)
+    except Exception as exc:  # noqa: BLE001 — inventory is best-effort
+        print(f"[inventory] deduct failed for operation {op_id}: {exc}", file=sys.stderr)
+    return {"id": op_id, "created_at": row["created_at"].isoformat(), "inventory": deduction}
 
 
 @router.get("/operations")

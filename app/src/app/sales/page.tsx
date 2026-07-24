@@ -675,8 +675,14 @@ function SalesInner() {
               <FormField label="Telefon">
                 <input className="input" type="tel" value={bPhone} onChange={(e) => setBPhone(e.target.value)} />
               </FormField>
+              <FormField label="Email">
+                <input className="input" type="email" value={bEmail} onChange={(e) => setBEmail(e.target.value)} />
+              </FormField>
               <FormField label="Rayon / bölgə">
                 <input className="input" value={bRegion} onChange={(e) => setBRegion(e.target.value)} />
+              </FormField>
+              <FormField label="Ünvan">
+                <input className="input" value={bAddress} onChange={(e) => setBAddress(e.target.value)} />
               </FormField>
             </div>
             <FormField label="Qeyd">

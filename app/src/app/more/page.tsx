@@ -3,7 +3,8 @@
 // D2.1 — "Daha çox": the overflow menu (bottom-nav destination). Large rows, one screen.
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Tag, Users, Shield, LogOut, ChevronRight, Store, MessageCircle, UserCog, BookOpen } from "lucide-react";
+import { Tag, Users, Shield, LogOut, ChevronRight, Store, MessageCircle, UserCog, BookOpen,
+  Receipt, Package, Wrench, FileText, MapPin } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { t } from "@/lib/i18n";
 import DataSaverToggle from "@/components/DataSaverToggle";
@@ -16,6 +17,11 @@ export default function MorePage() {
 
   const items = [
     { href: "/ledger", label: t("nav.ledger"), Icon: BookOpen, authOnly: true },
+    { href: "/sales", label: t("nav.sales"), Icon: Receipt, authOnly: true },
+    { href: "/inventory", label: t("nav.inventory"), Icon: Package, authOnly: true },
+    { href: "/equipment", label: t("nav.equipment"), Icon: Wrench, authOnly: true },
+    { href: "/reports", label: t("nav.reports"), Icon: FileText, authOnly: true },
+    { href: "/places", label: t("nav.places"), Icon: MapPin, authOnly: true },
     { href: "/catalog", label: t("nav.catalog"), Icon: Store, authOnly: true },
     { href: "/chat", label: t("nav.community"), Icon: MessageCircle, authOnly: true },
     { href: "/account", label: t("more.account"), Icon: UserCog, authOnly: true },

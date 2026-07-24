@@ -25,11 +25,14 @@ import YieldsTab from "@/components/field/YieldsTab";
 import SeasonTab from "@/components/field/SeasonTab";
 import DocumentsTab from "@/components/field/DocumentsTab";
 import WeatherHistoryTab from "@/components/field/WeatherHistoryTab";
+import HarvestTab from "@/components/field/HarvestTab";
+import WellnessCard from "@/components/field/WellnessCard";
+import SeasonCompareChart from "@/components/field/SeasonCompareChart";
 import type { FieldDetail } from "@/lib/types";
 
 type TabKey =
   | "overview" | "sentinel2" | "nasa" | "weather" | "ai" | "fertilizer" | "photos" | "metadata"
-  | "scouting" | "tasks" | "operations" | "yields" | "soil" | "season" | "documents";
+  | "scouting" | "tasks" | "operations" | "yields" | "harvest" | "soil" | "season" | "documents";
 
 const TABS: { key: TabKey; labelKey: I18nKey }[] = [
   { key: "overview", labelKey: "field.tab.overview" },
@@ -47,6 +50,7 @@ const TABS: { key: TabKey; labelKey: I18nKey }[] = [
   { key: "tasks", labelKey: "field.tab.tasks" },
   { key: "operations", labelKey: "field.tab.operations" },
   { key: "yields", labelKey: "field.tab.yields" },
+  { key: "harvest", labelKey: "field.tab.harvest" },
 ];
 
 // D2.3 — collapse the flat tabs into 3 farmer intents. Primary choice is one of 3; each group
@@ -54,13 +58,13 @@ const TABS: { key: TabKey; labelKey: I18nKey }[] = [
 type Group = "vaziyyet" | "isler" | "melumat";
 const GROUPS: { key: Group; label: string; tabs: TabKey[] }[] = [
   { key: "vaziyyet", label: "Vəziyyət", tabs: ["overview", "sentinel2", "nasa", "weather"] },
-  { key: "isler", label: "İşlər", tabs: ["ai", "photos", "fertilizer", "scouting", "tasks", "operations", "yields"] },
+  { key: "isler", label: "İşlər", tabs: ["ai", "photos", "fertilizer", "scouting", "tasks", "operations", "yields", "harvest"] },
   { key: "melumat", label: "Məlumat", tabs: ["metadata", "season", "soil", "documents"] },
 ];
 const GROUP_OF: Record<TabKey, Group> = {
   overview: "vaziyyet", sentinel2: "vaziyyet", nasa: "vaziyyet", weather: "vaziyyet",
   ai: "isler", photos: "isler", fertilizer: "isler", scouting: "isler", tasks: "isler",
-  operations: "isler", yields: "isler",
+  operations: "isler", yields: "isler", harvest: "isler",
   metadata: "melumat", season: "melumat", soil: "melumat", documents: "melumat",
 };
 
@@ -305,7 +309,13 @@ function FieldDetailInner() {
 
   const tabContent = (
     <div>
-      {tab === "overview" && <OverviewTab field={field} onNavigate={(x) => setTab(x)} compact={v2} />}
+      {tab === "overview" && (
+        <div className="space-y-6">
+          <WellnessCard fieldId={field.id} />
+          <OverviewTab field={field} onNavigate={(x) => setTab(x)} compact={v2} />
+          <SeasonCompareChart fieldId={field.id} />
+        </div>
+      )}
       {tab === "sentinel2" && <SatelliteTab field={field} sensor="S2" />}
       {tab === "nasa" && <SatelliteTab field={field} sensor="HLS" />}
       {tab === "weather" && <WeatherHistoryTab fieldId={field.id} />}
@@ -328,6 +338,7 @@ function FieldDetailInner() {
       {tab === "tasks" && <TasksTab fieldId={field.id} orgId={field.org_id} />}
       {tab === "operations" && <OperationsTab fieldId={field.id} />}
       {tab === "yields" && <YieldsTab fieldId={field.id} />}
+      {tab === "harvest" && <HarvestTab fieldId={field.id} />}
     </div>
   );
 

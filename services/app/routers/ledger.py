@@ -23,12 +23,20 @@ async def _field_pnl(conn, field_id: str, season: Optional[int]) -> dict:
         rev = await conn.fetchval(
             "select coalesce(sum(revenue),0) from public.yields where field_id=$1::uuid and season_year=$2",
             field_id, season)
+        # B7 — sales rows are the append-only revenue log; yields.revenue stays the season aggregate.
+        rev_sales = await conn.fetchval(
+            "select coalesce(sum(revenue),0) from public.sales where field_id=$1::uuid and season_year=$2",
+            field_id, season)
     else:
         exp = await conn.fetchval(
             "select coalesce(sum(cost),0) from public.field_operations where field_id=$1::uuid", field_id)
         rev = await conn.fetchval(
             "select coalesce(sum(revenue),0) from public.yields where field_id=$1::uuid", field_id)
-    return {"expenses": _f(exp), "revenue": _f(rev), "profit": _f(rev) - _f(exp)}
+        rev_sales = await conn.fetchval(
+            "select coalesce(sum(revenue),0) from public.sales where field_id=$1::uuid", field_id)
+    total_rev = _f(rev) + _f(rev_sales)
+    return {"expenses": _f(exp), "revenue": total_rev, "revenue_yields": _f(rev),
+            "revenue_sales": _f(rev_sales), "profit": total_rev - _f(exp)}
 
 
 async def _expense_by_category(conn, field_id: str, season: Optional[int]) -> list[dict]:
