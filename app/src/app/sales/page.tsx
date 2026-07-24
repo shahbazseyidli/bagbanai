@@ -9,7 +9,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, Receipt, Trash2, Users, X, Pencil } from "lucide-react";
 import { api, azError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { ErrorNote, Field as FormField, Placeholder, Spinner } from "@/components/ui";
+import { ErrorNote, Field as FormField, Spinner } from "@/components/ui";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { SupportCard } from "@/components/ui/SupportCard";
 import type { Org } from "@/lib/types";
 
 interface Buyer {
@@ -561,7 +563,15 @@ function SalesInner() {
           {sales === null ? (
             <Spinner />
           ) : sales.length === 0 ? (
-            <Placeholder>Hələ satış qeydi yoxdur.</Placeholder>
+            <div className="space-y-4">
+              <EmptyState
+                icon={Receipt}
+                title="Hələ satış qeydi yoxdur"
+                body="Kimə, nə qədər və hansı qiymətə satdığınızı yazın. Ümumi gəlir, gözləyən ödəniş və alıcı üzrə bölgü avtomatik hesablanacaq — kimin borcu qaldığını da görəcəksiniz."
+                action={showSaleForm ? undefined : { label: "Yeni satış", onClick: () => setShowSaleForm(true), icon: Plus }}
+              />
+              <SupportCard />
+            </div>
           ) : (
             <div className="card overflow-x-auto">
               <table className="w-full min-w-[720px] text-sm">
@@ -714,7 +724,11 @@ function SalesInner() {
           </form>
 
           {buyers.length === 0 ? (
-            <Placeholder>Hələ alıcı yoxdur. Məhsulu kimə satdığınızı bura yazın.</Placeholder>
+            <EmptyState
+              icon={Users}
+              title="Hələ alıcı yoxdur"
+              body="Məhsulu satdığınız alıcıları yuxarıdakı forma ilə əlavə edin. Sonra hər satışı alıcıya bağlaya, əlaqə və ödəniş tarixçəsini bir yerdə saxlaya bilərsiniz."
+            />
           ) : (
             <ul className="space-y-2">
               {buyers.map((b) => (

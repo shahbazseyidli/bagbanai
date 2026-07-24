@@ -16,7 +16,8 @@ import {
 } from "lucide-react";
 import { api, azError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { ErrorNote, Field as FormField, Placeholder, Spinner } from "@/components/ui";
+import { ErrorNote, Field as FormField, Spinner } from "@/components/ui";
+import { EmptyState } from "@/components/ui/EmptyState";
 import type { Org } from "@/lib/types";
 
 interface Service {
@@ -439,7 +440,12 @@ export default function EquipmentPage() {
           )}
 
           {items.length === 0 ? (
-            <Placeholder>Hələ texnika qeyd olunmayıb. “Texnika əlavə et” ilə başlayın.</Placeholder>
+            <EmptyState
+              icon={Tractor}
+              title="Hələ texnika yoxdur"
+              body="Traktor, çiləyici və digər texnikanı əlavə edin. İş saatını və servis qrafikini izləyin — vaxtı çatan servis avtomatik tapşırığa çevriləcək, texnika gözlənilmədən dayanmayacaq."
+              action={{ label: "Texnika əlavə et", onClick: () => setAddOpen(true), icon: Plus }}
+            />
           ) : (
             <div className="space-y-3">
               {items.map((eq) => (

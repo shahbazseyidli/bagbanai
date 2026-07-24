@@ -6,6 +6,7 @@ export const en: Dict = {
   "nav.dashboard": "My fields",
   "nav.pricing": "Pricing",
   "nav.solutions": "Solutions",
+  "nav.hazelnut": "Hazelnut",
   "nav.catalog": "Catalog",
   "nav.community": "Community",
   "nav.ledger": "Farm ledger",

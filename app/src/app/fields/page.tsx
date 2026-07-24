@@ -1,6 +1,8 @@
 "use client";
 
-// D2.1 — Sahələr: a flat, large-row list of all the user's fields (bottom-nav destination).
+// D2.1 / OneSoil-form — Sahələr as a MAP-FIRST screen: a tall multi-field map is the hero, the field
+// list sits beside it (desktop two-column) or below it (mobile stack). Multi-select checkboxes, the
+// bulk-actions bar and the per-row wellness score chips are all preserved from the flat-list version.
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -8,8 +10,11 @@ import { ChevronLeft, MapPin, Plus } from "lucide-react";
 import { api, azError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { ErrorNote } from "@/components/ui";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { SupportCard } from "@/components/ui/SupportCard";
 import { ListSkeleton } from "@/components/Skeleton";
 import BulkActions from "@/components/BulkActions";
+import FieldsOverviewMap, { type GeoField } from "@/components/FieldsOverviewMap";
 import type { Tone } from "@/lib/indexStatus";
 import type { Farm, Field, Org } from "@/lib/types";
 
@@ -67,6 +72,9 @@ export default function FieldsListPage() {
   const [selected, setSelected] = useState<string[]>([]);
   // A3 — field_id → latest stored wellness score (may stay empty; the chips are optional garnish).
   const [scores, setScores] = useState<Record<string, FieldScore>>({});
+  // Map hero — the org's field geometries (name + area + data_status + geom in one call). Best-effort:
+  // if it fails the list still stands on its own.
+  const [geoFields, setGeoFields] = useState<GeoField[]>([]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -88,9 +96,16 @@ export default function FieldsListPage() {
         );
         const flat = lists.flat();
         setFields(flat);
-        // A3 — one org-wide read for every chip (never one request per field). Runs AFTER the list
-        // is on screen and is best-effort: a failure just means no chips, never a broken list.
         if (flat.length > 0) {
+          // Map geometry for the hero — one org-wide read (never per field). A bonus over the list.
+          try {
+            const g = await api.get<{ fields: GeoField[] }>(`/api/fields/geo?org_id=${orgs[0].id}`);
+            setGeoFields(g?.fields ?? []);
+          } catch {
+            /* the map is a garnish — the list stands on its own */
+          }
+          // A3 — one org-wide read for every chip (never one request per field). Best-effort: a
+          // failure just means no chips, never a broken list.
           try {
             const w = await api.get<{ fields: FieldScore[] }>(`/api/orgs/${orgs[0].id}/wellness`);
             const map: Record<string, FieldScore> = {};
@@ -111,10 +126,19 @@ export default function FieldsListPage() {
 
   if (loading || fields === null) return <ListSkeleton count={4} />;
 
+  const totalHa = fields.reduce((sum, f) => sum + (f.area_ha ?? 0), 0);
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-slate-900">Sahələr</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-teal">Sahələr</h1>
+          {fields.length > 0 && (
+            <p className="mt-0.5 text-sm text-ink-soft">
+              {fields.length} sahə · {totalHa.toFixed(2)} ha
+            </p>
+          )}
+        </div>
         <Link href="/onboarding" className="btn-primary">
           <Plus className="h-4 w-4" /> Sahə əlavə et
         </Link>
@@ -122,49 +146,68 @@ export default function FieldsListPage() {
       <ErrorNote message={error} />
 
       {fields.length === 0 ? (
-        <div className="card text-center">
-          <MapPin className="mx-auto h-8 w-8 text-emerald-600" />
-          <p className="mt-2 text-slate-700">Hələ sahəniz yoxdur.</p>
-          <Link href="/onboarding" className="btn-primary mt-3 inline-flex">
-            <Plus className="h-4 w-4" /> İlk sahənizi əlavə edin
-          </Link>
-        </div>
+        <EmptyState
+          icon={MapPin}
+          title="Sahələrinizi əlavə edin"
+          body="Peyk monitorinqi, hava proqnozu və AI aqronom məsləhəti üçün ilk sahənizi xəritədə çəkin — bir neçə dəqiqə çəkir."
+          action={{ label: "Sahə əlavə et", href: "/onboarding", icon: Plus }}
+        >
+          <SupportCard />
+        </EmptyState>
       ) : (
-        <ul className="space-y-2">
-          {fields.map((f) => {
-            const s = scores[f.id];
-            return (
-              <li key={f.id} className="flex items-center gap-2">
-                <label className="flex h-11 w-11 shrink-0 items-center justify-center">
-                  <input
-                    type="checkbox"
-                    className="h-5 w-5 accent-emerald-600"
-                    checked={selected.includes(f.id)}
-                    aria-label={`${f.name} seç`}
-                    onChange={(e) =>
-                      setSelected((prev) =>
-                        e.target.checked ? [...prev, f.id] : prev.filter((x) => x !== f.id),
-                      )
-                    }
-                  />
-                </label>
-                <Link
-                  href={`/fields/${f.id}`}
-                  className="flex min-h-14 flex-1 items-center justify-between gap-3 rounded-xl border-[1.5px] border-slate-300 bg-white px-4 py-3 hover:border-emerald-300"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-base font-bold text-slate-900">{f.name}</p>
-                    <p className="text-sm text-slate-600">
-                      {f.area_ha != null ? `${f.area_ha.toFixed(2)} ha` : "—"}
-                    </p>
-                  </div>
-                  {s && <ScoreChip s={s} />}
-                  <ChevronLeft className="h-5 w-5 shrink-0 rotate-180 text-slate-400" aria-hidden="true" />
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
+          {/* Map hero — dominant, tall, sticky beside the list on wide screens. */}
+          <FieldsOverviewMap
+            fields={geoFields}
+            scores={scores}
+            heightClass="h-[48vh] min-h-[320px] lg:sticky lg:top-4 lg:h-[600px]"
+          />
+
+          {/* Field list — beside the map (desktop) / below it (mobile). */}
+          <div className="space-y-3">
+            <ul className="space-y-2">
+              {fields.map((f) => {
+                const s = scores[f.id];
+                return (
+                  <li key={f.id} className="flex items-center gap-2">
+                    <label className="flex h-11 w-11 shrink-0 items-center justify-center">
+                      <input
+                        type="checkbox"
+                        className="h-5 w-5 accent-emerald-600"
+                        checked={selected.includes(f.id)}
+                        aria-label={`${f.name} seç`}
+                        onChange={(e) =>
+                          setSelected((prev) =>
+                            e.target.checked ? [...prev, f.id] : prev.filter((x) => x !== f.id),
+                          )
+                        }
+                      />
+                    </label>
+                    <Link
+                      href={`/fields/${f.id}`}
+                      className="flex min-h-14 flex-1 items-center justify-between gap-3 rounded-xl2 border border-line bg-white px-4 py-3 transition hover:border-grass hover:shadow-soft"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-base font-bold text-ink">{f.name}</p>
+                        <p className="text-sm text-ink-soft">
+                          {f.area_ha != null ? `${f.area_ha.toFixed(2)} ha` : "—"}
+                        </p>
+                      </div>
+                      {s && <ScoreChip s={s} />}
+                      <ChevronLeft
+                        className="h-5 w-5 shrink-0 rotate-180 text-slate-400"
+                        aria-hidden="true"
+                      />
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+
+            {/* OneSoil-style "request a free call" support card, pinned under the list. */}
+            <SupportCard />
+          </div>
+        </div>
       )}
 
       {orgId && selected.length > 0 && (

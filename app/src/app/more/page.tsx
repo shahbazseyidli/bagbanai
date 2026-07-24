@@ -4,7 +4,7 @@
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Tag, Users, Shield, LogOut, ChevronRight, Store, MessageCircle, UserCog, BookOpen,
-  Receipt, Package, Wrench, FileText, MapPin } from "lucide-react";
+  Receipt, Package, Wrench, FileText, MapPin, GraduationCap } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { t } from "@/lib/i18n";
 import DataSaverToggle from "@/components/DataSaverToggle";
@@ -22,6 +22,7 @@ export default function MorePage() {
     { href: "/equipment", label: t("nav.equipment"), Icon: Wrench, authOnly: true },
     { href: "/reports", label: t("nav.reports"), Icon: FileText, authOnly: true },
     { href: "/places", label: t("nav.places"), Icon: MapPin, authOnly: true },
+    { href: "/guide", label: "Necə başlamalı", Icon: GraduationCap, authOnly: false },
     { href: "/catalog", label: t("nav.catalog"), Icon: Store, authOnly: true },
     { href: "/chat", label: t("nav.community"), Icon: MessageCircle, authOnly: true },
     { href: "/account", label: t("more.account"), Icon: UserCog, authOnly: true },

@@ -25,6 +25,7 @@ export default function Nav() {
   // and BottomNav (signed-in) are unchanged.
   const marketingLinks = [
     { href: "/solutions", label: t("nav.solutions") },
+    { href: "/finduq", label: t("nav.hazelnut") },
     { href: "/pricing", label: t("nav.pricing") },
   ];
   const links = user ? [] : marketingLinks;

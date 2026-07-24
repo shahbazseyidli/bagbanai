@@ -21,7 +21,8 @@ import {
 } from "lucide-react";
 import { api, azError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { ErrorNote, Field as FormField, Placeholder, Spinner } from "@/components/ui";
+import { ErrorNote, Field as FormField, Spinner } from "@/components/ui";
+import { EmptyState } from "@/components/ui/EmptyState";
 import type { Org } from "@/lib/types";
 
 interface PlaceProps {
@@ -416,7 +417,12 @@ export default function PlacesPage() {
       {places === null ? (
         <Spinner />
       ) : places.length === 0 ? (
-        <Placeholder>Hələ yer əlavə edilməyib.</Placeholder>
+        <EmptyState
+          icon={MapPin}
+          title="Hələ yer əlavə edilməyib"
+          body="Sahə olmayan obyektləri xəritəyə əlavə edin: tikili, su xətti, anbar, təhlükə və yollar. Hamısı bir xəritədə görünsün — texnika və işçilər üçün istiqamət olsun."
+          action={orgId ? { label: "Yer əlavə et", onClick: startAdd, icon: Plus } : undefined}
+        />
       ) : (
         <div className="space-y-4">
           {groups.map((g) => (

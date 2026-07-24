@@ -221,6 +221,7 @@ export const tr: Dict = {
 
   "nav.pricing": "Fiyatlar",
   "nav.solutions": "Çözümler",
+  "nav.hazelnut": "Fındık",
   "nav.catalog": "Katalog",
   "nav.community": "Topluluk",
   "nav.ledger": "Çiftlik defteri",

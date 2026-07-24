@@ -7,6 +7,7 @@ export const az = {
   "nav.dashboard": "Sahələrim",
   "nav.pricing": "Qiymətlər",
   "nav.solutions": "Həllər",
+  "nav.hazelnut": "Fındıq",
   "nav.catalog": "Kataloq",
   "nav.community": "İcma",
   "nav.ledger": "Təsərrüfat dəftəri",

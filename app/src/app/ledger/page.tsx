@@ -4,9 +4,12 @@
 // per field + org totals. Inline AZ copy (T18 extracts later).
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Plus, Wallet } from "lucide-react";
 import { api, azError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { ErrorNote, Spinner } from "@/components/ui";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { SupportCard } from "@/components/ui/SupportCard";
 import type { Org } from "@/lib/types";
 
 interface Row { field_id: string; name: string; area_ha: number; expenses: number; revenue: number; profit: number; profit_per_ha: number | null; }
@@ -47,7 +50,17 @@ export default function LedgerPage() {
       </div>
       <p className="text-sm text-slate-500">Sahə üzrə xərc, gəlir və mənfəət. Xərclər əməliyyat qeydlərindən, gəlir məhsuldarlıq qeydlərindən götürülür.</p>
       <ErrorNote message={error} />
-      {data === null ? <Spinner /> : (
+      {data === null ? <Spinner /> : data.fields.length === 0 ? (
+        <div className="space-y-4">
+          <EmptyState
+            icon={Wallet}
+            title="Dəftər hələ boşdur"
+            body="Əvvəlcə sahə əlavə edin. Sonra əməliyyat və məhsuldarlıq qeydləriniz avtomatik olaraq xərc, gəlir və sahə üzrə mənfəətə çevriləcək — hansı sahənin qazandırdığını rəqəmlə görəcəksiniz."
+            action={{ label: "Sahə əlavə et", href: "/onboarding", icon: Plus }}
+          />
+          <SupportCard />
+        </div>
+      ) : (
         <>
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="card"><div className="text-xs text-slate-500">Ümumi xərc</div><div className="mt-1 text-2xl font-bold text-red-600">{fmt(data.totals.expenses)}</div></div>

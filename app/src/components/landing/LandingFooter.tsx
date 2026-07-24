@@ -57,6 +57,10 @@ export default function LandingFooter() {
             <a href="#imkanlar" className="lp-flink">İmkanlar</a>
             <a href="#canli-demo" className="lp-flink">Canlı demo</a>
             <Link href="/pricing" className="lp-flink">Qiymətlər</Link>
+            <Link href="/finduq" className="lp-flink">Fındıq bağları</Link>
+            <Link href="/guide" className="lp-flink">Necə başlamalı</Link>
+            <Link href="/yenilikler" className="lp-flink">Yeniliklər</Link>
+            <Link href="/status" className="lp-flink">Status</Link>
           </div>
 
           <div>

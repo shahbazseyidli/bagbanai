@@ -5,6 +5,10 @@
 // the icon rail and the page stage, on wide screens only and only on the routes where a field
 // list is contextually useful ("/", "/fields", "/fields/{id}").
 //
+// Aligned to OneSoil's "My Fields" form (docs/ONESOIL_UX_SPEC.md): a header with an owner/role
+// subline + a collapse chevron, a season selector line (current year + Σ area), a search + sort
+// row, the score-dot field cards, and a "Request a free call" SupportCard pinned to the bottom.
+//
 // Cheap by construction:
 //   * TWO requests per org — /api/fields/geo (name + area + data_status in one call) and
 //     /api/orgs/{id}/wellness (the STORED 0-100 score per field, never computed on read);
@@ -18,7 +22,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   AlertTriangle,
+  ArrowUpDown,
+  Calendar,
   Check,
+  ChevronLeft,
+  ChevronRight,
   Loader2,
   MapPin,
   OctagonAlert,
@@ -28,11 +36,27 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { SupportCard } from "@/components/ui/SupportCard";
 import type { Tone } from "@/lib/indexStatus";
-import type { Farm, Field, Org } from "@/lib/types";
+import type { Farm, Field, Org, Role } from "@/lib/types";
 
 // Refetch at most once a minute, and only when the route changes (never on a timer).
 const STALE_MS = 60_000;
+
+// Collapsed preference — persisted so a farmer who wants the map wider keeps it that way across
+// navigations and reloads (mirrors the "bagban_" localStorage convention used elsewhere).
+const COLLAPSE_KEY = "bagban_fieldlist_collapsed";
+
+type SortKey = "score" | "name";
+
+// Owner/role subline — Azerbaijani labels for the org_role enum (mirrors Role in lib/types).
+const ROLE_AZ: Record<Role, string> = {
+  owner: "Sahibkar",
+  admin: "Administrator",
+  agronomist: "Aqronom",
+  worker: "İşçi",
+  viewer: "Baxış",
+};
 
 interface Row {
   id: string;
@@ -134,8 +158,14 @@ export default function FieldListPanel() {
 
   const [rows, setRows] = useState<Row[] | null>(null);
   const [orgName, setOrgName] = useState("");
+  const [orgRole, setOrgRole] = useState<Role | null>(null);
   const [scores, setScores] = useState<Record<string, ScoreRow>>({});
   const [q, setQ] = useState("");
+  const [sort, setSort] = useState<SortKey>("score");
+  // Collapse to a thin strip so the map can take the width. Starts expanded (the SSR default) and
+  // adopts the stored preference after mount — reading localStorage during render would both crash
+  // on the server and risk a hydration mismatch, so we defer it to an effect like InstallPrompt.
+  const [collapsed, setCollapsed] = useState(false);
 
   const loadedAt = useRef(0);
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -154,6 +184,23 @@ export default function FieldListPanel() {
   }, []);
 
   useEffect(() => {
+    try {
+      if (localStorage.getItem(COLLAPSE_KEY) === "1") setCollapsed(true);
+    } catch {
+      /* private mode / storage disabled — stay expanded */
+    }
+  }, []);
+
+  function toggleCollapsed(next: boolean) {
+    setCollapsed(next);
+    try {
+      localStorage.setItem(COLLAPSE_KEY, next ? "1" : "0");
+    } catch {
+      /* ignore — collapse still works for this session */
+    }
+  }
+
+  useEffect(() => {
     if (!user) return;
     const now = Date.now();
     if (loadedAt.current > 0 && now - loadedAt.current < STALE_MS) return;
@@ -169,6 +216,7 @@ export default function FieldListPanel() {
         }
         const org = orgs[0];
         setOrgName(org.name || "");
+        setOrgRole(org.role ?? null);
 
         // One call: name + area + data_status for every field of the org that has geometry.
         let list: Row[] = [];
@@ -227,11 +275,19 @@ export default function FieldListPanel() {
     })();
   }, [user, pathname]);
 
-  // Worst first ("ən pis birinci"): bad → warn → good → not yet scored, original order inside a
-  // group. The farmer's attention belongs at the top of a 336px column.
-  const ordered = useMemo(() => {
+  // Two sort orders (client-side only, no refetch):
+  //   * "score" — worst first ("ən pis birinci"): bad → warn → good → not yet scored, original
+  //     order inside a group. The farmer's attention belongs at the top of a 336px column.
+  //   * "name" — alphabetical (az collation) for a farmer who navigates by field name.
+  const sorted = useMemo(() => {
+    const base = rows ?? [];
+    if (sort === "name") {
+      return base
+        .slice()
+        .sort((a, b) => (a.name || "").localeCompare(b.name || "", "az", { numeric: true }));
+    }
     const rank: Record<Tone, number> = { bad: 0, warn: 1, good: 2 };
-    return (rows ?? [])
+    return base
       .map((r, i) => ({ r, i }))
       .sort((a, b) => {
         const sa = scores[a.r.id];
@@ -243,15 +299,16 @@ export default function FieldListPanel() {
         return a.i - b.i;
       })
       .map((x) => x.r);
-  }, [rows, scores]);
+  }, [rows, scores, sort]);
 
   const term = q.trim().toLocaleLowerCase("az");
   const shown = term
-    ? ordered.filter((r) => (r.name || "").toLocaleLowerCase("az").includes(term))
-    : ordered;
+    ? sorted.filter((r) => (r.name || "").toLocaleLowerCase("az").includes(term))
+    : sorted;
 
   // Reveal the open field inside the panel's own scroller — never scrolls the document.
   useEffect(() => {
+    if (collapsed) return;
     const el = selRef.current;
     const box = scrollRef.current;
     if (!el || !box) return;
@@ -261,15 +318,55 @@ export default function FieldListPanel() {
     else if (bottom > box.scrollTop + box.clientHeight) {
       box.scrollTop = bottom - box.clientHeight + 8;
     }
-  }, [activeId, shown.length]);
+  }, [activeId, shown.length, collapsed]);
 
   const total = rows?.length ?? 0;
-  const subtitle =
-    rows === null
+  const season = new Date().getFullYear();
+  const areaTotal = useMemo(
+    () =>
+      (rows ?? []).reduce(
+        (sum, r) =>
+          sum + (typeof r.area_ha === "number" && Number.isFinite(r.area_ha) ? r.area_ha : 0),
+        0,
+      ),
+    [rows],
+  );
+  const roleLabel = orgRole ? ROLE_AZ[orgRole] : "";
+  const ownerLine =
+    rows === null && !orgName
       ? "Yüklənir…"
-      : term
-        ? `${shown.length} / ${total} sahə`
-        : `${orgName ? `${orgName} · ` : ""}${total} sahə`;
+      : orgName
+        ? roleLabel
+          ? `${orgName} · ${roleLabel}`
+          : orgName
+        : "Sahələriniz";
+
+  // Collapsed: a thin strip that only offers to re-open. The panel simply gets narrower, so the
+  // AppShell flex row hands the extra width to the map stage — no AppShell change is needed (the
+  // xl:-mx full-bleed step only adds room, it can never force a sideways scroll when we shrink).
+  if (collapsed) {
+    return (
+      <nav
+        aria-label="Sahə siyahısı"
+        className="sticky top-[76px] z-30 hidden max-h-[calc(100vh_-_92px)] w-12 shrink-0 flex-col items-center gap-3 rounded-xl2 border border-line bg-panel py-3 shadow-soft xl:flex"
+      >
+        <button
+          type="button"
+          onClick={() => toggleCollapsed(false)}
+          aria-label="Sahə panelini aç"
+          aria-expanded={false}
+          title="Sahə panelini aç"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] text-ink-soft hover:bg-mint-soft hover:text-grass focus:border-grass"
+        >
+          <ChevronRight className="h-5 w-5" aria-hidden="true" />
+        </button>
+        <div className="flex flex-col items-center gap-1 text-ink-soft" aria-hidden="true">
+          <MapPin className="h-4 w-4" />
+          <span className="text-[12px] font-bold tabular-nums text-ink">{total}</span>
+        </div>
+      </nav>
+    );
+  }
 
   return (
     // z-30 (like the rail) keeps the panel above page content that paints itself `fixed inset-0`
@@ -278,27 +375,70 @@ export default function FieldListPanel() {
       aria-label="Sahə siyahısı"
       className="sticky top-[76px] z-30 hidden max-h-[calc(100vh_-_92px)] w-[336px] shrink-0 flex-col overflow-hidden rounded-xl2 border border-line bg-panel shadow-soft xl:flex"
     >
-      <div className="px-[18px] pb-2.5 pt-[18px]">
-        <h2 className="font-display text-xl font-bold text-ink">Sahələr</h2>
-        <p className="mt-[3px] text-[13px] text-ink-soft">{subtitle}</p>
+      <div className="flex items-start justify-between gap-2 px-[18px] pt-[18px]">
+        <div className="min-w-0">
+          <h2 className="font-display text-xl font-bold text-ink">Sahələr</h2>
+          <p className="mt-[3px] truncate text-[13px] text-ink-soft" title={ownerLine}>
+            {ownerLine}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => toggleCollapsed(true)}
+          aria-label="Sahə panelini yığ"
+          aria-expanded={true}
+          title="Sahə panelini yığ"
+          className="-mr-1 grid h-8 w-8 shrink-0 place-items-center rounded-[9px] text-ink-soft hover:bg-mint-soft hover:text-grass focus:border-grass"
+        >
+          <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+        </button>
       </div>
 
-      <div className="relative mx-[18px] mb-1.5 mt-2">
-        <Search
-          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-soft"
-          aria-hidden="true"
-        />
-        <input
-          type="search"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") setQ("");
-          }}
-          placeholder="Sahə axtar…"
-          aria-label="Sahə axtar"
-          className="h-10 w-full rounded-[10px] border-[1.5px] border-line bg-panel pl-9 pr-3 text-[13.5px] text-ink placeholder:text-ink-soft focus:border-grass"
-        />
+      {/* Season selector row — current season + honest Σ area + field count (OneSoil "Season 2026 ·
+          N.NN ha"). No new API: the total is just the sum of the areas we already loaded. */}
+      <div className="mx-[18px] mb-1 mt-2.5 flex items-center gap-2 rounded-[10px] border border-line bg-paper-2 px-3 py-2">
+        <Calendar className="h-4 w-4 shrink-0 text-grass" aria-hidden="true" />
+        <span className="text-[13px] font-semibold text-ink">Mövsüm {season}</span>
+        <span className="ml-auto shrink-0 text-[12.5px] tabular-nums text-ink-soft">
+          {rows === null ? "…" : `${total} sahə · ${areaTotal.toFixed(1)} ha`}
+        </span>
+      </div>
+
+      {/* Search + Sort row. */}
+      <div className="mx-[18px] mb-1.5 mt-1.5 flex items-center gap-2">
+        <div className="relative min-w-0 flex-1">
+          <Search
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-soft"
+            aria-hidden="true"
+          />
+          <input
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setQ("");
+            }}
+            placeholder="Sahə axtar…"
+            aria-label="Sahə axtar"
+            className="h-10 w-full rounded-[10px] border-[1.5px] border-line bg-panel pl-9 pr-3 text-[13.5px] text-ink placeholder:text-ink-soft focus:border-grass"
+          />
+        </div>
+        <div className="relative shrink-0">
+          <ArrowUpDown
+            className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-soft"
+            aria-hidden="true"
+          />
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as SortKey)}
+            aria-label="Sıralama"
+            title="Sıralama"
+            className="h-10 appearance-none rounded-[10px] border-[1.5px] border-line bg-panel pl-7 pr-2.5 text-[12.5px] font-medium text-ink focus:border-grass"
+          >
+            <option value="score">Bal üzrə</option>
+            <option value="name">Ad üzrə</option>
+          </select>
+        </div>
       </div>
 
       {/* min-h-0 is load-bearing: without it a flex child keeps its automatic content minimum and
@@ -366,6 +506,13 @@ export default function FieldListPanel() {
             );
           })
         )}
+      </div>
+
+      {/* Pinned to the bottom (outside the scroller) so it is always reachable — OneSoil's
+          "Request a free call". Forced to a stacked layout so the shared SupportCard reads cleanly
+          in this narrow column instead of squeezing icon+text+button into one row. */}
+      <div className="shrink-0 border-t border-line p-3">
+        <SupportCard className="!flex-col !items-stretch" />
       </div>
     </nav>
   );

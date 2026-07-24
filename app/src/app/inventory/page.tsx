@@ -9,6 +9,7 @@ import { AlertTriangle, History, Minus, Package, Pencil, Plus, Trash2, X } from 
 import { api, azError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { ErrorNote, Field as FormField, Placeholder, Spinner } from "@/components/ui";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface Org {
   id: string;
@@ -459,9 +460,12 @@ export default function InventoryPage() {
       {items === null ? (
         <Spinner />
       ) : items.length === 0 ? (
-        <Placeholder>
-          Anbar boşdur. “Yeni məhsul” düyməsi ilə toxum, gübrə və ya dərman əlavə edin.
-        </Placeholder>
+        <EmptyState
+          icon={Package}
+          title="Anbar boşdur"
+          body="Toxum, gübrə, dərman və yanacaq qalığını əlavə edin. Əməliyyat qeyd edəndə istifadə anbardan avtomatik çıxılacaq və ehtiyat həddin altına düşəndə xəbərdarlıq alacaqsınız."
+          action={{ label: "Yeni məhsul", onClick: openCreate, icon: Plus }}
+        />
       ) : (
         <div className="card overflow-x-auto">
           <table className="w-full min-w-[720px] text-sm">
