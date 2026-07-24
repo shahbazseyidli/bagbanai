@@ -119,8 +119,9 @@ Tək-tərəfli fermer alətindən → **4 rollu marketplace + icma platforması*
 - **W1 ✅ (backend+frontend)** — migration **0031_marketplace** (user_role enum + users.role/country/region; provider_profiles, catalog_items, conversations, messages, fertilizer_plans, field_photos). auth signup rol+ölkə+region qəbul edir. **Qeydiyyat sihirbazı** (rol→hesab+ölkə/region→provider profil, supplier multi-select). **Account** səhifəsi. **Provider** profil/kataloq redaktoru.
 - **W4 ✅ (backend+frontend)** — `providers.py`, `chat.py`, `fertilizer.py`, `photos.py` + `ai/photo_label.py`. Field tabları: **Gübrə** (qrafik+AI təklif), **Foto** (qalereya+AI auto-label), **Torpaq** (lab upload). Rail/nav: Kataloq, İcma.
 - **W5 ✅ (backend+frontend)** — Kataloq directory, Chat/icma (conversations+messages), **peer-suggestion** (E7 — AI blokunda yaxın/eyni-məhsul fermer).
-- **QALIR:** W6 (mövsüm entity + P&L-lite + avto tapşırıq zənciri + PHI), W7, W8. **+ Yoxlanılmayıb:** kod branch-də yazılıb, yerli build/test işlədilməyib (node yox) — `feat/hybrid-marketplace` review workflow ilə yoxlanır; səhər deploy: migration 0031 tətbiq + `bash deploy/update.sh`.
-- **AI kontekst wiring (follow-up):** yeni field_photos + fertilizer_plans hələ `ai/context.py`-yə qoşulmayıb (soil_profiles onsuz da passportda). Advice-in bunları nəzərə alması üçün kiçik follow-up.
+- **W6 (qismən) ✅** — **per-field P&L-lite**: migration **0032** (yields.revenue/price), `ledger.py` (GET /api/fields/{id}/pnl + /api/orgs/{id}/ledger), **/ledger** səhifəsi (org cəm + sahə-üzrə), YieldsTab-a gəlir sahəsi. **QALIR (W6):** mövsüm/planting entity + avto tapşırıq zənciri + PHI sayğac.
+- **AI kontekst ✅** — `ai/context.py` indi torpaq analizi (soil_profiles) + AI foto etiketləri (field_photos) + gübrə planlarını (fertilizer_plans) advice/chat kontekstinə qoşur (req #4, #6; defensiv — migration-suz boş).
+- **QALIR:** W6 qalığı (mövsüm entity + avto tapşırıq + PHI), W7 (analitika/hesabat), W8 (zonalar/VRA). **+ Yoxlanılmayıb:** yerli build/test işlədilməyib (node yox); `feat/hybrid-marketplace` review workflow ilə yoxlanır. **Deploy (səhər):** migration 0031 + 0032 tətbiq → `bash deploy/update.sh`.
 - **i18n (follow-up):** yeni səhifələr inline AZ mətndədir — T18 sweep 4-dilə çıxaracaq.
 
 ## 3. Qorunacaq prinsiplər (hər iki rəqibin səhvlərindən)
