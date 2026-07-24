@@ -10,7 +10,8 @@ import { ErrorNote, Spinner } from "@/components/ui";
 import type { Org } from "@/lib/types";
 
 interface Row { field_id: string; name: string; area_ha: number; expenses: number; revenue: number; profit: number; profit_per_ha: number | null; }
-interface Ledger { fields: Row[]; totals: { expenses: number; revenue: number; profit: number }; }
+interface Cat { category: string; amount: number; }
+interface Ledger { fields: Row[]; totals: { expenses: number; revenue: number; profit: number }; by_category?: Cat[]; }
 
 const fmt = (n: number) => `${Math.round(n).toLocaleString("az")} ₼`;
 
@@ -53,6 +54,27 @@ export default function LedgerPage() {
             <div className="card"><div className="text-xs text-slate-500">Ümumi gəlir</div><div className="mt-1 text-2xl font-bold text-emerald-700">{fmt(data.totals.revenue)}</div></div>
             <div className="card border-emerald-300 bg-emerald-50/40"><div className="text-xs text-slate-500">Xalis mənfəət</div><div className="mt-1 text-2xl font-bold text-emerald-700">{fmt(data.totals.profit)}</div></div>
           </div>
+          {data.by_category && data.by_category.length > 0 && (
+            <div className="card">
+              <h2 className="mb-3 text-lg font-semibold text-slate-800">Xərc kateqoriyaları</h2>
+              <div className="space-y-2">
+                {data.by_category.map((c) => {
+                  const pct = data.totals.expenses > 0 ? Math.round((c.amount / data.totals.expenses) * 100) : 0;
+                  return (
+                    <div key={c.category}>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="capitalize text-slate-700">{c.category}</span>
+                        <span className="tabular-nums text-slate-600">{fmt(c.amount)} · {pct}%</span>
+                      </div>
+                      <div className="mt-1 h-2 rounded-full bg-slate-100">
+                        <div className="h-2 rounded-full bg-red-400" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           <div className="card overflow-x-auto">
             <h2 className="mb-3 text-lg font-semibold text-slate-800">Sahə üzrə</h2>
             <table className="w-full text-sm">

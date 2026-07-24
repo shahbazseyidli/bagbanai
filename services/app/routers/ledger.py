@@ -31,6 +31,23 @@ async def _field_pnl(conn, field_id: str, season: Optional[int]) -> dict:
     return {"expenses": _f(exp), "revenue": _f(rev), "profit": _f(rev) - _f(exp)}
 
 
+async def _expense_by_category(conn, field_id: str, season: Optional[int]) -> list[dict]:
+    """B2-lite: expense breakdown by operation type (the de-facto cost category)."""
+    if season:
+        rows = await conn.fetch(
+            """select coalesce(nullif(type,''),'digər') as category, coalesce(sum(cost),0) as amount
+               from public.field_operations
+               where field_id=$1::uuid and cost is not null and extract(year from performed_on)=$2
+               group by 1 order by amount desc""", field_id, season)
+    else:
+        rows = await conn.fetch(
+            """select coalesce(nullif(type,''),'digər') as category, coalesce(sum(cost),0) as amount
+               from public.field_operations
+               where field_id=$1::uuid and cost is not null
+               group by 1 order by amount desc""", field_id)
+    return [{"category": r["category"], "amount": _f(r["amount"])} for r in rows]
+
+
 @router.get("/fields/{field_id}/pnl")
 async def field_pnl(field_id: str, season: Optional[int] = Query(default=None),
                     user_id: str = Depends(get_current_user_id)):
@@ -39,6 +56,7 @@ async def field_pnl(field_id: str, season: Optional[int] = Query(default=None),
         await require_member(conn, user_id, org_id)
         area = await conn.fetchval("select area_ha from public.fields where id=$1::uuid", field_id)
         pnl = await _field_pnl(conn, field_id, season)
+        pnl["by_category"] = await _expense_by_category(conn, field_id, season)
     pnl["area_ha"] = _f(area)
     pnl["profit_per_ha"] = round(pnl["profit"] / area, 1) if area else None
     return pnl
@@ -65,4 +83,18 @@ async def org_ledger(org_id: str, season: Optional[int] = Query(default=None),
                 "profit_per_ha": round(p["profit"] / area, 1) if area else None,
             })
             tot_exp += p["expenses"]; tot_rev += p["revenue"]
-    return {"fields": rows, "totals": {"expenses": tot_exp, "revenue": tot_rev, "profit": tot_rev - tot_exp}}
+        # Org-wide expense breakdown by operation type (B2-lite).
+        cat_sql = (
+            """select coalesce(nullif(o.type,''),'digər') as category, coalesce(sum(o.cost),0) as amount
+               from public.field_operations o
+               join public.fields f on f.id = o.field_id
+               join public.farms fa on fa.id = f.farm_id
+               where fa.org_id=$1::uuid and o.cost is not null and f.deleted_at is null""")
+        cat_args: list = [org_id]
+        if season:
+            cat_args.append(season); cat_sql += f" and extract(year from o.performed_on)=${len(cat_args)}"
+        cat_sql += " group by 1 order by amount desc"
+        cats = await conn.fetch(cat_sql, *cat_args)
+    by_category = [{"category": c["category"], "amount": _f(c["amount"])} for c in cats]
+    return {"fields": rows, "totals": {"expenses": tot_exp, "revenue": tot_rev, "profit": tot_rev - tot_exp},
+            "by_category": by_category}
