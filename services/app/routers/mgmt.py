@@ -1,9 +1,9 @@
 """Tasks + operation log + yields (FR-12/13, §15–16)."""
 import json
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
 from ..db import connection
 from ..deps import (ROLES_WORKER, ROLES_WRITE, get_current_user_id,
@@ -101,6 +101,46 @@ async def list_tasks(org_id: str = Query(...), field_id: Optional[str] = None,
         d["due_date"] = d["due_date"].isoformat() if d["due_date"] else None
         out.append(d)
     return out
+
+
+# Calendar export (HYBRID_PLAN B10): a field's dated tasks as an .ics file. Delivered as a plain
+# same-origin download — the httpOnly auth cookie rides along, so no token feed is exposed.
+def _ics_escape(s: str) -> str:
+    return (s or "").replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\n", "\\n")
+
+
+@router.get("/fields/{field_id}/tasks.ics")
+async def field_tasks_ics(field_id: str, user_id: str = Depends(get_current_user_id)):
+    async with connection(user_id) as conn:
+        org_id = await _org_of_field(conn, field_id)
+        await require_member(conn, user_id, org_id)
+        fname = await conn.fetchval("select name from public.fields where id=$1::uuid", field_id)
+        rows = await conn.fetch(
+            """select id, title, type, due_date, status, notes from public.tasks
+               where field_id=$1::uuid and due_date is not null and status <> 'cancelled'
+               order by due_date""", field_id)
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Agradex//Tasks//AZ", "CALSCALE:GREGORIAN"]
+    for r in rows:
+        due = r["due_date"]
+        lines += [
+            "BEGIN:VEVENT",
+            f"UID:task-{r['id']}@agradex.com",
+            f"DTSTAMP:{stamp}",
+            f"DTSTART;VALUE=DATE:{due.strftime('%Y%m%d')}",
+            f"DTEND;VALUE=DATE:{(due + timedelta(days=1)).strftime('%Y%m%d')}",
+            f"SUMMARY:{_ics_escape(r['title'])}",
+        ]
+        desc_bits = [b for b in [r["type"], r["notes"]] if b]
+        if desc_bits:
+            lines.append(f"DESCRIPTION:{_ics_escape(' · '.join(desc_bits))}")
+        lines += ["STATUS:" + ("COMPLETED" if r["status"] == "done" else "CONFIRMED"), "END:VEVENT"]
+    lines.append("END:VCALENDAR")
+    body = "\r\n".join(lines) + "\r\n"
+    safe = _ics_escape(str(fname or "sahe")).replace(" ", "_")[:40]
+    return Response(
+        content=body, media_type="text/calendar; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="agradex-{safe}.ics"'})
 
 
 @router.post("/tasks/{task_id}/status")

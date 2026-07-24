@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, CalendarPlus } from "lucide-react";
 import { api } from "@/lib/api";
 import { t, type I18nKey } from "@/lib/i18n";
 import { ErrorNote, Field as FormField, Placeholder } from "@/components/ui";
@@ -127,7 +127,17 @@ export default function TasksTab({ fieldId, orgId }: { fieldId: string; orgId: s
       </form>
 
       <div>
-        <h3 className="mb-3 font-semibold text-slate-800">{t("task.title")}</h3>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h3 className="font-semibold text-slate-800">{t("task.title")}</h3>
+          {items.some((x) => x.due_date) && (
+            <a
+              href={`/api/fields/${fieldId}/tasks.ics`}
+              className="inline-flex items-center gap-1.5 text-sm text-emerald-700 hover:underline"
+            >
+              <CalendarPlus className="h-4 w-4" /> Təqvimə əlavə et (.ics)
+            </a>
+          )}
+        </div>
         {items.length === 0 ? (
           <Placeholder>{t("task.empty")}</Placeholder>
         ) : (
