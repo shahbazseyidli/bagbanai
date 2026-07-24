@@ -166,7 +166,11 @@ function SalesInner() {
       .get<Org[]>("/api/orgs")
       .then((l) => {
         setOrgs(l);
-        if (l[0]) setOrgId(l[0].id);
+        // Honour ?org= from the Yığım tab (validated against the caller's own orgs); only fall
+        // back to the first org when it is absent or not one of theirs.
+        const wanted = params.get("org");
+        const match = wanted && l.some((o) => o.id === wanted) ? wanted : l[0]?.id;
+        if (match) setOrgId(match);
       })
       .catch((e) => setError(azError(e)));
   }, [user, loading, router]);
@@ -348,7 +352,16 @@ function SalesInner() {
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-slate-900">Satış və alıcılar</h1>
         {orgs.length > 1 && (
-          <select className="input max-w-xs" value={orgId} onChange={(e) => setOrgId(e.target.value)}>
+          <select
+            className="input max-w-xs"
+            value={orgId}
+            onChange={(e) => {
+              // Drop any prefilled field/lot — they belong to the org we are leaving.
+              setOrgId(e.target.value);
+              setSField("");
+              setSLot("");
+            }}
+          >
             {orgs.map((o) => (
               <option key={o.id} value={o.id}>{o.name}</option>
             ))}

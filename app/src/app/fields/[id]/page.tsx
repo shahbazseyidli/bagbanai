@@ -350,7 +350,7 @@ function FieldDetailInner() {
       {tab === "tasks" && <TasksTab fieldId={field.id} orgId={field.org_id} />}
       {tab === "operations" && <OperationsTab fieldId={field.id} />}
       {tab === "yields" && <YieldsTab fieldId={field.id} />}
-      {tab === "harvest" && <HarvestTab fieldId={field.id} />}
+      {tab === "harvest" && <HarvestTab fieldId={field.id} orgId={field.org_id} />}
     </div>
   );
 

@@ -32,7 +32,10 @@ const GRADES = ["1-ci sort", "2-ci sort", "3-cü sort", "Standart"].map((v) => (
 
 const num = (n: number | null | undefined) => (n == null ? "—" : Number(n).toLocaleString("az"));
 
-export default function HarvestTab({ fieldId }: { fieldId: string }) {
+// orgId is carried into the /sales links: a user can belong to several orgs (an invited
+// agronomist in a co-op), and the sales page would otherwise default to their FIRST org and
+// POST a foreign field/lot, which the backend rejects with 404.
+export default function HarvestTab({ fieldId, orgId }: { fieldId: string; orgId: string }) {
   const [lots, setLots] = useState<Lot[] | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -169,7 +172,7 @@ export default function HarvestTab({ fieldId }: { fieldId: string }) {
       <div>
         <div className="mb-3 flex items-center justify-between gap-3">
           <h3 className="font-semibold text-slate-800">Yığım partiyaları</h3>
-          <Link href={`/sales?field=${fieldId}`} className="btn-secondary">
+          <Link href={`/sales?field=${fieldId}&org=${orgId}`} className="btn-secondary">
             <Receipt className="h-4 w-4" /> Satışlar
           </Link>
         </div>
@@ -229,7 +232,7 @@ export default function HarvestTab({ fieldId }: { fieldId: string }) {
                   )}
                   {l.notes && <p className="text-sm text-slate-700">{l.notes}</p>}
 
-                  <Link href={`/sales?field=${l.field_id}&lot=${l.id}`} className="btn-primary">
+                  <Link href={`/sales?field=${l.field_id}&lot=${l.id}&org=${orgId}`} className="btn-primary">
                     <Receipt className="h-4 w-4" /> Satış qeyd et
                   </Link>
                 </li>
