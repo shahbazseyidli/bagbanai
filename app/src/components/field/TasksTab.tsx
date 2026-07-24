@@ -75,8 +75,26 @@ export default function TasksTab({ fieldId, orgId }: { fieldId: string; orgId: s
     }
   }
 
+  async function generateChain() {
+    setBusy(true);
+    setError("");
+    try {
+      await api.post(`/api/fields/${fieldId}/tasks/generate`, {});
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("common.error"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
+      {/* B5 — auto season task chain from crop + planting date */}
+      <div className="flex items-center gap-3 rounded-xl border-[1.5px] border-emerald-200 bg-emerald-50 p-3">
+        <p className="flex-1 text-sm text-emerald-900">Əkin tarixi və məhsula görə mövsüm tapşırıq zəncirini avtomatik yarat.</p>
+        <button className="btn-primary" onClick={generateChain} disabled={busy}>{busy ? "…" : "Zəncir yarat"}</button>
+      </div>
       <form onSubmit={onSubmit} className="card space-y-3">
         <h3 className="font-semibold text-slate-800">{t("task.add")}</h3>
         <div className="grid gap-3 sm:grid-cols-2">

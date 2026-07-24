@@ -1,5 +1,6 @@
 """Tasks + operation log + yields (FR-12/13, §15–16)."""
 import json
+from datetime import date, datetime, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -26,6 +27,58 @@ async def create_task(body: TaskIn, user_id: str = Depends(get_current_user_id))
             body.org_id, body.farm_id, body.field_id, body.title, body.type,
             body.assigned_to, body.due_date, body.priority, user_id, body.notes)
     return {"id": str(row["id"]), "created_at": row["created_at"].isoformat()}
+
+
+# Season task chain (HYBRID_PLAN B5): generate a set of dated tasks from the field's crop + planting
+# date. Marked [auto] so re-running replaces the prior chain (no duplicates).
+_AUTO_MARK = "[auto] mövsüm zənciri"
+_CHAIN = [
+    (20, "irrigation", "Suvarma yoxlaması"),
+    (30, "fertilizing", "Gübrələmə"),
+    (45, "spraying", "Çiləmə pəncərəsini yoxla"),
+    (120, "harvest", "Gözlənilən yığım"),
+]
+
+
+def _as_date(v) -> Optional[date]:
+    if isinstance(v, date):
+        return v
+    if isinstance(v, str) and v.strip():
+        try:
+            return datetime.fromisoformat(v[:10]).date()
+        except ValueError:
+            return None
+    return None
+
+
+@router.post("/fields/{field_id}/tasks/generate")
+async def generate_task_chain(field_id: str, user_id: str = Depends(get_current_user_id)):
+    """Regenerate the field's auto season task chain from crop + planting date."""
+    async with connection(user_id) as conn:
+        org_id = await _org_of_field(conn, field_id)
+        await require_role(conn, user_id, org_id, ROLES_WRITE)
+        meta = await conn.fetchrow(
+            "select crop_type, planting_date, expected_harvest, farm_id "
+            "from public.field_metadata m join public.fields f on f.id=m.field_id "
+            "where m.field_id=$1::uuid", field_id)
+        farm_id = await conn.fetchval("select farm_id from public.fields where id=$1::uuid", field_id)
+        base = _as_date(meta["planting_date"]) if meta else None
+        harvest = _as_date(meta["expected_harvest"]) if meta else None
+        base = base or date.today()
+        # Clear the prior auto chain (open tasks only — never touch completed history).
+        await conn.execute(
+            "delete from public.tasks where field_id=$1::uuid and notes=$2 and status <> 'done'",
+            field_id, _AUTO_MARK)
+        created = 0
+        for offset, ttype, title in _CHAIN:
+            due = harvest if (ttype == "harvest" and harvest) else base + timedelta(days=offset)
+            await conn.execute(
+                """insert into public.tasks
+                     (org_id, farm_id, field_id, title, type, due_date, priority, created_by, notes, status)
+                   values ($1::uuid,$2::uuid,$3::uuid,$4,$5,$6::date,$7,$8::uuid,$9,'todo')""",
+                org_id, farm_id, field_id, title, ttype, due, "medium", user_id, _AUTO_MARK)
+            created += 1
+    return {"ok": True, "created": created}
 
 
 @router.get("/tasks")
