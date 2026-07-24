@@ -55,6 +55,25 @@ async def segment_boundary_public(body: dict):
         return {"ok": False, "reason": f"geoapi_unavailable:{exc}", "polygon": None}
 
 
+@router.post("/ndvi-public")
+async def ndvi_public(body: dict):
+    """A11 — anonymous NDVI reading for a polygon drawn on the public landing page.
+
+    The visitor sees a REAL satellite number for their own field before signing up. No auth and
+    nothing is written; the geoapi microservice area-caps the request and does a single windowed
+    read. Degrades quietly (ok=False + reason) so the landing page never breaks."""
+    polygon = body.get("polygon")
+    if not isinstance(polygon, dict) or not polygon.get("type"):
+        return {"ok": False, "reason": "bad_polygon"}
+    try:
+        async with httpx.AsyncClient(timeout=50.0) as client:
+            r = await client.post(f"{_GEOAPI_URL}/ndvi", json={"polygon": polygon})
+            r.raise_for_status()
+            return r.json()
+    except Exception as exc:  # noqa: BLE001
+        return {"ok": False, "reason": f"geoapi_unavailable:{exc}"}
+
+
 _OCTANTS = ["Şimal", "Şimal-Şərq", "Şərq", "Cənub-Şərq",
             "Cənub", "Cənub-Qərb", "Qərb", "Şimal-Qərb"]
 

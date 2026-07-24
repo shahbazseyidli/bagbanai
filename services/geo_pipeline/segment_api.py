@@ -7,6 +7,8 @@ to it and enforces auth. Kept separate from the API image so the heavy geo deps 
 Start:  uvicorn geo_pipeline.segment_api:app --host 0.0.0.0 --port 8010 --workers 1"""
 from __future__ import annotations
 
+from typing import Any
+
 from fastapi import FastAPI
 from pydantic import BaseModel
 
@@ -20,6 +22,10 @@ class SegmentRequest(BaseModel):
     lat: float
 
 
+class NdviRequest(BaseModel):
+    polygon: dict[str, Any]      # GeoJSON geometry (Polygon/MultiPolygon)
+
+
 @app.get("/health")
 def health() -> dict:
     return {"ok": True, "service": "geo-segment"}
@@ -30,3 +36,11 @@ def segment(req: SegmentRequest) -> dict:
     # Sync (def) → FastAPI runs it in the threadpool; detect_boundary is CPU/IO heavy but
     # single-shot. Never raises for expected failures (returns ok=False + reason).
     return detect_boundary(req.lon, req.lat)
+
+
+@app.post("/ndvi")
+def ndvi(req: NdviRequest) -> dict:
+    # A11 — real NDVI for a polygon an anonymous visitor just drew. Area-capped inside
+    # probe_ndvi; nothing is persisted. Same never-raise contract as /segment.
+    from .ndvi_probe import probe_ndvi
+    return probe_ndvi(req.polygon)

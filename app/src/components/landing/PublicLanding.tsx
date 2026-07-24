@@ -8,7 +8,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { MapPin, Sparkles, Loader2, ArrowRight, Hand, Thermometer } from "lucide-react";
+import { MapPin, Sparkles, Loader2, ArrowRight, Hand, Thermometer, Leaf } from "lucide-react";
 import { area as turfArea } from "@turf/turf";
 import { api } from "@/lib/api";
 import { t } from "@/lib/i18n";
@@ -21,6 +21,14 @@ const DrawMap = dynamic(() => import("@/components/FieldMap").then((m) => m.Draw
 });
 
 const DRAFT_KEY = "bagban_draft_field";
+
+/** A11 — plain-Azerbaijani verdict for a raw NDVI reading (same bands as the in-app labels). */
+function ndviVerdict(v: number): string {
+  if (v < 0.2) return "çılpaq/zəif";
+  if (v < 0.4) return "seyrək";
+  if (v < 0.6) return "orta";
+  return "sağlam bitki";
+}
 
 /** WMO weather code → short localized description. */
 function wmoDesc(code: number): string {
@@ -41,6 +49,9 @@ export default function PublicLanding() {
   const [detecting, setDetecting] = useState(false);
   const [hint, setHint] = useState<string>("");
   const [weather, setWeather] = useState<{ temp: number; desc: string } | null>(null);
+  // A11 — a REAL satellite reading for the polygon the visitor just drew, before signup.
+  const [ndvi, setNdvi] = useState<{ ndvi: number; acquired_at?: string | null } | null>(null);
+  const [ndviBusy, setNdviBusy] = useState(false);
 
   // Live current weather at the field centroid — keyless Open-Meteo, best-effort (D3.2 instant value).
   async function loadWeather(p: Polygon) {
@@ -66,9 +77,27 @@ export default function PublicLanding() {
       const m2 = turfArea({ type: "Feature", geometry: p, properties: {} } as GeoJSON.Feature);
       setAreaHa(m2 / 10000);
       loadWeather(p);
+      void loadNdvi(p);
     } else {
       setAreaHa(null);
       setWeather(null);
+      setNdvi(null);
+    }
+  }
+
+  async function loadNdvi(p: Polygon) {
+    setNdvi(null);
+    setNdviBusy(true);
+    try {
+      const d = await api.post<{ ok: boolean; ndvi?: number; acquired_at?: string | null }>(
+        "/api/geo/ndvi-public",
+        { polygon: p },
+      );
+      if (d.ok && typeof d.ndvi === "number") setNdvi({ ndvi: d.ndvi, acquired_at: d.acquired_at });
+    } catch {
+      /* the real reading is a bonus — never block the landing flow */
+    } finally {
+      setNdviBusy(false);
     }
   }
 
@@ -157,12 +186,27 @@ export default function PublicLanding() {
                   <Sparkles className="h-5 w-5" />
                 </span>
               </div>
-              {weather && (
+              {(weather || ndvi || ndviBusy) && (
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-800">
-                    <Thermometer className="h-3.5 w-3.5" aria-hidden="true" />
-                    {weather.temp}°C · {weather.desc}
-                  </span>
+                  {weather && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-800">
+                      <Thermometer className="h-3.5 w-3.5" aria-hidden="true" />
+                      {weather.temp}°C · {weather.desc}
+                    </span>
+                  )}
+                  {/* A11 — real satellite reading before signup. */}
+                  {ndviBusy && !ndvi && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">
+                      Peykdən oxunur…
+                    </span>
+                  )}
+                  {ndvi && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800">
+                      <Leaf className="h-3.5 w-3.5" aria-hidden="true" />
+                      NDVI {ndvi.ndvi.toFixed(2)} · {ndviVerdict(ndvi.ndvi)}
+                      {ndvi.acquired_at && ` · ${ndvi.acquired_at}`}
+                    </span>
+                  )}
                 </div>
               )}
               <p className="mt-2 text-sm text-slate-600">
