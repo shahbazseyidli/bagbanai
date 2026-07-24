@@ -112,8 +112,12 @@ Tək-tərəfli fermer alətindən → **4 rollu marketplace + icma platforması*
 - **W7 — Peyk analitika + dəftər genişlənməsi** (A5, A8, B8, B9, B7, B12-B14, B16, B17, B19): müqayisə, wellness, hesabatlar, satış-log, inventar, texnika, bulk. — *✅ (branch)*
 - **W8 — Böyük mərclər** (A6, A7, A10, A11): zonalar, VRA-lite, share/viral. — *✅ (branch)*
 
-## 2.5 İCRA STATUSU — ✅ **CANLI** (2026-07-24)
-**W0-W8 TAM DEPLOY OLUNDU** — `main` @ 61cc694, miqrasiyalar 0031→0042 tətbiq edildi, geoapi restart, 2 yeni cron (`process-backfill.sh`, `process-zones.sh`) crontab-da. Pre-deploy DB backup: `/root/predeploy-20260724-143507.dump`. Doğrulandı: /api/health ok · /api/ready db:true · 11 yeni endpoint 401 (gated) · public share naməlum token → 404 · **A11 canlı: anonim poliqon → real NDVI 0.36 (S2, 2026-07-23, 1.3% bulud)** · sliver DoS cəhdi `extent_too_large` ilə rədd edildi, geoapi OOMKilled=false · API/web log-larında sıfır xəta.
+## 2.5 İCRA STATUSU — qismən CANLI (2026-07-24)
+> ⚠️ **DÜZƏLİŞ:** əvvəl burada "W0-W8 tam" yazılmışdı — **YANLIŞ idi**. Deploy olunan **funksional** dalğalardır.
+> **W2 (landing redizayn + 4 solution səhifəsi) və W3 (peyk quick-win) heç vaxt qurulmayıb.** Ona görə canlı sayt
+> hələ köhnə dizayndadır. W2 indi qurulur.
+
+**W0/W1/W4/W5/W6/W7/W8 DEPLOY OLUNDU** — `main` @ 61cc694, miqrasiyalar 0031→0042 tətbiq edildi, geoapi restart, 2 yeni cron (`process-backfill.sh`, `process-zones.sh`) crontab-da. Pre-deploy DB backup: `/root/predeploy-20260724-143507.dump`. Doğrulandı: /api/health ok · /api/ready db:true · 11 yeni endpoint 401 (gated) · public share naməlum token → 404 · **A11 canlı: anonim poliqon → real NDVI 0.36 (S2, 2026-07-23, 1.3% bulud)** · sliver DoS cəhdi `extent_too_large` ilə rədd edildi, geoapi OOMKilled=false · API/web log-larında sıfır xəta.
 
 - **W0 ✅** app.agradex.com rename (docs/middleware/ROADMAP; PANEL_ACTIVATION.md → APP_ACTIVATION.md).
 - **W1 ✅ (backend+frontend)** — migration **0031_marketplace** (user_role enum + users.role/country/region; provider_profiles, catalog_items, conversations, messages, fertilizer_plans, field_photos). auth signup rol+ölkə+region qəbul edir. **Qeydiyyat sihirbazı** (rol→hesab+ölkə/region→provider profil, supplier multi-select). **Account** səhifəsi. **Provider** profil/kataloq redaktoru.

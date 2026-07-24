@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Geologica } from "next/font/google";
 import { headers, cookies } from "next/headers";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
@@ -12,6 +12,14 @@ import type { Locale } from "@/lib/i18n";
 
 // D1.2 — Inter Variable, self-hosted by Next; latin-ext covers Azerbaijani ə/ğ/ı/İ/ş/ç/ö/ü.
 const inter = Inter({ subsets: ["latin", "latin-ext"], variable: "--font-inter", display: "swap" });
+// W2 — Geologica is the display face of the approved redesign; self-hosted by next/font so no
+// external request is made (the CSP and offline-first PWA both require that).
+const geologica = Geologica({
+  subsets: ["latin", "latin-ext"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-display",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Bağban AI",
@@ -33,7 +41,7 @@ export default async function RootLayout({
   const [h, c] = await Promise.all([headers(), cookies()]);
   const locale = ((h.get("x-locale") || c.get("bagban_locale")?.value || "az")) as Locale;
   return (
-    <html lang={locale} className={inter.variable}>
+    <html lang={locale} className={`${inter.variable} ${geologica.variable}`}>
       <body className="font-sans text-ink antialiased">
         <LocaleProvider initialLocale={locale}>
           <AuthProvider>

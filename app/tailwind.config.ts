@@ -26,9 +26,23 @@ const config: Config = {
         bad: { DEFAULT: "#B91C1C", tint: "#FEE2E2" },
         good: { DEFAULT: "#15803D", tint: "#DCFCE7" },
         info: { DEFAULT: "#0369A1", tint: "#E0F2FE" },
+        // W2 redesign palette (approved mockup) — used by the marketing surface + app shell.
+        paper: { DEFAULT: "#F6F4EF", 2: "#EFEAE2" },
+        panel: { DEFAULT: "#FFFFFF", 2: "#F3EFE8" },
+        line: { DEFAULT: "#E4DFD5", 2: "#D7D0C4" },
+        teal: { DEFAULT: "#0B4040" },
+        mint: { DEFAULT: "#8DE0A9", soft: "#E7F6EC" },
+        grass: { DEFAULT: "#1E9852", deep: "#14663A" },
+      },
+      borderRadius: { xl2: "20px" },
+      boxShadow: {
+        soft: "0 1px 2px rgba(20,15,10,.05), 0 8px 26px rgba(20,15,10,.07)",
+        lift: "0 20px 60px rgba(20,15,10,.14)",
       },
       fontFamily: {
         sans: ["var(--font-inter)", "ui-sans-serif", "system-ui", "sans-serif"],
+        // Display face for the redesign (headlines, brand). Body stays Inter.
+        display: ["var(--font-display)", "var(--font-inter)", "ui-sans-serif", "system-ui", "sans-serif"],
       },
     },
   },

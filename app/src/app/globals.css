@@ -8,6 +8,34 @@
 :root {
   --background: #f1f5f9; /* D1.1 surface-alt */
   --foreground: #0f172a; /* ink */
+
+  /* W2 — approved OneSoil-style redesign tokens (artifact c5e155e7). The marketing surface and
+     the app shell are painted from these; the existing emerald/ink Tailwind scale stays valid so
+     nothing already shipped has to be repainted at once. */
+  --paper: #F6F4EF;
+  --paper-2: #EFEAE2;
+  --panel: #FFFFFF;
+  --panel-2: #F3EFE8;
+  --line: #E4DFD5;
+  --line-2: #D7D0C4;
+  --brand-ink: #161513;
+  --brand-ink-2: #4C463D;
+  --brand-muted: #8B8478;
+  --green: #1E9852;
+  --green-deep: #14663A;
+  --mint: #8DE0A9;
+  --mint-soft: #E7F6EC;
+  --teal: #0B4040;
+  --amber: #C98A12;
+  --amber-soft: #FAF0D8;
+  --brand-red: #D6453E;
+  --red-soft: #F9E5E3;
+  /* NDVI ramp used by the map legend + zone colours */
+  --ndvi-1: #C64B3B; --ndvi-2: #E0A030; --ndvi-3: #E8D64C; --ndvi-4: #8DBE3F; --ndvi-5: #2E8B3D;
+  --r: 14px; --r-lg: 20px; --r-sm: 9px;
+  --sh: 0 1px 2px rgba(20,15,10,.05), 0 8px 26px rgba(20,15,10,.07);
+  --sh-sm: 0 1px 2px rgba(20,15,10,.05), 0 2px 8px rgba(20,15,10,.05);
+  --sh-lg: 0 20px 60px rgba(20,15,10,.14);
 }
 
 html,
