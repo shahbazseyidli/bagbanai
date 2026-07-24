@@ -112,6 +112,17 @@ Tək-tərəfli fermer alətindən → **4 rollu marketplace + icma platforması*
 - **W7 — Peyk analitika + dəftər genişlənməsi** (A5, A8, B8, B9, B7, B12-B14, B16, B17, B19): müqayisə, wellness, hesabatlar, satış-log, inventar, texnika, bulk.
 - **W8 — Böyük mərclər** (A6, A7, A10, A11): zonalar, VRA-lite, share/viral.
 
+## 2.5 İCRA STATUSU (branch `feat/hybrid-marketplace`, 2026-07-24 gecə autonom)
+**Prod-a DEPLOY OLUNMAYIB** — branch-də, səhər birlikdə review + deploy. Canlı app (agradex.com) toxunulmayıb.
+
+- **W0 ✅** app.agradex.com rename (docs/middleware/ROADMAP; PANEL_ACTIVATION.md → APP_ACTIVATION.md).
+- **W1 ✅ (backend+frontend)** — migration **0031_marketplace** (user_role enum + users.role/country/region; provider_profiles, catalog_items, conversations, messages, fertilizer_plans, field_photos). auth signup rol+ölkə+region qəbul edir. **Qeydiyyat sihirbazı** (rol→hesab+ölkə/region→provider profil, supplier multi-select). **Account** səhifəsi. **Provider** profil/kataloq redaktoru.
+- **W4 ✅ (backend+frontend)** — `providers.py`, `chat.py`, `fertilizer.py`, `photos.py` + `ai/photo_label.py`. Field tabları: **Gübrə** (qrafik+AI təklif), **Foto** (qalereya+AI auto-label), **Torpaq** (lab upload). Rail/nav: Kataloq, İcma.
+- **W5 ✅ (backend+frontend)** — Kataloq directory, Chat/icma (conversations+messages), **peer-suggestion** (E7 — AI blokunda yaxın/eyni-məhsul fermer).
+- **QALIR:** W6 (mövsüm entity + P&L-lite + avto tapşırıq zənciri + PHI), W7, W8. **+ Yoxlanılmayıb:** kod branch-də yazılıb, yerli build/test işlədilməyib (node yox) — `feat/hybrid-marketplace` review workflow ilə yoxlanır; səhər deploy: migration 0031 tətbiq + `bash deploy/update.sh`.
+- **AI kontekst wiring (follow-up):** yeni field_photos + fertilizer_plans hələ `ai/context.py`-yə qoşulmayıb (soil_profiles onsuz da passportda). Advice-in bunları nəzərə alması üçün kiçik follow-up.
+- **i18n (follow-up):** yeni səhifələr inline AZ mətndədir — T18 sweep 4-dilə çıxaracaq.
+
 ## 3. Qorunacaq prinsiplər (hər iki rəqibin səhvlərindən)
 1. **Klik-dərinliyi əlavə etmə** — Farmbrite-ın #1 şikayəti mürəkkəblikdir; yeni modullar mövcud axınlara MƏCBURİ sahə əlavə etmir, opsional chip arxasında yaşayır.
 2. **Mobil-first qalır** — Farmbrite webview-i uğursuzdur; hər yeni feature əvvəl telefonda test.
