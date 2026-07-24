@@ -4,11 +4,46 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from .. import tiers
 from ..db import connection
-from ..deps import ROLES_ADMIN, get_current_user_id, require_member, require_role
+from ..deps import ROLES_ADMIN, get_current_user_id, require_member, require_role, safe_uuid
 from ..schemas import InviteIn, OrgIn, OrgOut, RoleChangeIn
 
 router = APIRouter(prefix="/api/orgs", tags=["orgs"])
+
+
+async def _open_trial(conn, org_id) -> None:
+    """C2 — start the promised 1-month Pro trial for a BRAND-NEW org (creation path only).
+
+    The row is written once, at creation, and never revisited: tier='pro' with
+    valid_until = trial end (so the SQL-side public.org_is_paid() used by RLS agrees with
+    tiers.org_tier()), trial_ends_at = the same instant and source='trial'. When it lapses the org
+    silently falls back to free — the row stays put so the UI can say "sınaq bitdi".
+    Existing organisations are never touched (migration 0043 backfills nothing).
+
+    If migration 0043 has not been applied yet the trial columns are missing; rather than failing
+    org creation (which would break signup), fall back to the same 1-month Pro window expressed
+    only with valid_until — the farmer still gets what the marketing promised, just without the
+    "sınaq" banner metadata."""
+    has_trial_cols = bool(await conn.fetchval(
+        """select exists (select 1 from information_schema.columns
+                           where table_schema='public' and table_name='org_subscriptions'
+                             and column_name='trial_ends_at')"""))
+    if has_trial_cols:
+        await conn.execute(
+            f"""insert into public.org_subscriptions (org_id, tier, valid_until, trial_ends_at, source)
+                values ($1, $2,
+                        now() + interval '{tiers.TRIAL_INTERVAL_SQL}',
+                        now() + interval '{tiers.TRIAL_INTERVAL_SQL}',
+                        $3)
+                on conflict do nothing""",
+            org_id, tiers.TRIAL_TIER, tiers.TRIAL_SOURCE)
+    else:
+        await conn.execute(
+            f"""insert into public.org_subscriptions (org_id, tier, valid_until)
+                values ($1, $2, now() + interval '{tiers.TRIAL_INTERVAL_SQL}')
+                on conflict do nothing""",
+            org_id, tiers.TRIAL_TIER)
 
 
 @router.post("", response_model=OrgOut)
@@ -20,19 +55,20 @@ async def create_org(body: OrgIn, user_id: str = Depends(get_current_user_id)):
         await conn.execute(
             "insert into public.organization_members (org_id, user_id, role, status) values ($1,$2::uuid,'owner','active')",
             org["id"], user_id)
-        await conn.execute(
-            "insert into public.org_subscriptions (org_id, tier) values ($1,'free') on conflict do nothing",
-            org["id"])
+        await _open_trial(conn, org["id"])
     return OrgOut(id=str(org["id"]), name=org["name"], country=org["country"], role="owner")
 
 
 @router.get("/{org_id}/subscription")
 async def org_subscription(org_id: str, user_id: str = Depends(get_current_user_id)):
-    """The org's current package + this-month usage vs limits (user-facing account view)."""
-    from .. import tiers
+    """The org's current package + this-month usage vs limits (user-facing account view).
+
+    Also carries the C2 trial state (`trial`), so the banner needs no extra endpoint."""
+    org_id = safe_uuid(org_id, "org_not_found")
     async with connection(user_id) as conn:
         await require_member(conn, user_id, org_id)
         tier = await tiers.org_tier(conn, org_id)
+        trial = await tiers.trial_state(conn, org_id)
         fields = int(await conn.fetchval(
             "select count(*) from public.fields where org_id=$1::uuid", org_id) or 0)
         advice_used = await tiers.month_count(conn, org_id, "advice")
@@ -40,6 +76,7 @@ async def org_subscription(org_id: str, user_id: str = Depends(get_current_user_
     cfg = tiers.tier_config(tier)
     return {
         "tier": tier, "label": cfg["label_az"], "price_azn": cfg["price_azn"],
+        "trial": trial,
         "usage": {
             "fields": {"used": fields, "limit": cfg["max_fields"]},
             "advice": {"used": advice_used, "limit": cfg["advice_per_month"]},

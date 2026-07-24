@@ -14,6 +14,7 @@ import { useUiV2 } from "@/lib/uiFlag";
 import TodayHome from "@/components/home/TodayHome";
 import PublicLanding from "@/components/landing/PublicLanding";
 import OnboardingChecklist from "@/components/OnboardingChecklist";
+import TrialBanner from "@/components/TrialBanner";
 import type { Farm, Field, Org } from "@/lib/types";
 
 export default function HomePage() {
@@ -177,6 +178,8 @@ function Dashboard() {
           </Link>
         </div>
       )}
+
+      {selectedOrg && <TrialBanner orgId={selectedOrg} />}
 
       <OnboardingChecklist />
 

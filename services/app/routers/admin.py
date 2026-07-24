@@ -115,11 +115,12 @@ async def set_subscription(org_id: str, body: SubUpdate,
     async with connection(user_id) as conn:
         await require_platform_admin(conn, user_id)
         await conn.execute(
-            """insert into public.org_subscriptions (org_id, tier, valid_until, hectare_cap, seats, updated_at)
-               values ($1::uuid, $2, coalesce($3::timestamptz, 'infinity'), $4, coalesce($5, 1), now())
+            """insert into public.org_subscriptions (org_id, tier, valid_until, hectare_cap, seats, source, updated_at)
+               values ($1::uuid, $2, coalesce($3::timestamptz, 'infinity'), $4, coalesce($5, 1), 'manual', now())
                on conflict (org_id) do update set
                  tier=excluded.tier, valid_until=excluded.valid_until,
-                 hectare_cap=excluded.hectare_cap, seats=excluded.seats, updated_at=now()""",
+                 hectare_cap=excluded.hectare_cap, seats=excluded.seats,
+                 source='manual', updated_at=now()""",
             org_id, body.tier, body.valid_until, body.hectare_cap, body.seats)
     return {"ok": True, "tier": body.tier}
 

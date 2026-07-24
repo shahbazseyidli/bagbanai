@@ -6,28 +6,39 @@
 // Everything is deterministic (reuses the İcmal insight engine) so it renders without the LLM.
 // Ships behind ?ui=v2 (see lib/uiFlag) so it can be browser-tested before replacing the console-
 // style dashboard for everyone.
-import { useEffect, useState } from "react";
+//
+// W2 mockup parity (artifact c5e155e7) — the screen now follows the approved layout:
+//   weather bar (MOCK-app-today-weatherbar) → "Diqqət lazımdır" hero with the numeric score dot and
+//   the inline peer suggestion (MOCK-app-today-attention) → "Sahələrim" card grid with score pills
+//   (MOCK-app-today-fieldgrid) → "Bu günün işləri" checkable task list (MOCK-app-today-tasks).
+// Every number on the screen is real: wellness scores come from the STORED read model
+// (GET /api/orgs/{id}/wellness — one request per org, never a per-field computation), tasks from
+// GET /api/tasks, weather from the field centroid via keyless Open-Meteo + the rain-nowcast
+// endpoint. Missing data is omitted, never faked. The onboarding checklist, the desktop
+// multi-field map, the PWA nudge and the org switcher all stay.
+import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  Plus, MapPin, Droplets, ChevronRight, AlertTriangle, OctagonAlert, Sprout, Loader2,
+  Plus, ChevronRight, AlertTriangle, OctagonAlert, Sprout,
 } from "lucide-react";
 import { api, azError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { t, getLocale, type Locale } from "@/lib/i18n";
 import { ErrorNote } from "@/components/ui";
 import { ListSkeleton } from "@/components/Skeleton";
-import StatusChip from "@/components/StatusChip";
 import OnboardingChecklist from "@/components/OnboardingChecklist";
+import TrialBanner from "@/components/TrialBanner";
 import InstallPrompt from "@/components/InstallPrompt";
 import FieldsOverviewMap, { type GeoField } from "@/components/FieldsOverviewMap";
+import AttentionHero from "@/components/home/AttentionHero";
+import FieldGrid from "@/components/home/FieldGrid";
+import TodayTasks from "@/components/home/TodayTasks";
+import WeatherBar from "@/components/home/WeatherBar";
+import { bandOf, type FieldScore } from "@/components/home/ScoreBadge";
 import { fetchFieldToday, type FieldToday } from "@/lib/today";
 import type { Tone } from "@/lib/indexStatus";
 import type { Farm, Field, Org } from "@/lib/types";
-
-function toneWord(tone: Tone): string {
-  return t(tone === "good" ? "today.tone.good" : tone === "warn" ? "today.tone.warn" : "today.tone.bad");
-}
 
 const AZ_MONTHS = [
   "yanvar", "fevral", "mart", "aprel", "may", "iyun",
@@ -60,59 +71,53 @@ interface Notif {
   read: boolean;
 }
 
-function needsAttention(t: FieldToday): boolean {
-  return (t.verdict != null && t.verdict.tone !== "good") || t.waterReco != null;
+/** GET /api/fields/geo also returns the PostGIS centroid — used to place the weather bar. */
+interface GeoFieldFull extends GeoField {
+  centroid?: { type: string; coordinates: number[] } | null;
 }
 
-function FieldCard({ t: ft }: { t: FieldToday }) {
-  const f = ft.field;
-  const preparing = ft.status === "queued" || ft.status === "processing";
-  const v = ft.verdict;
-  return (
-    <Link
-      href={`/fields/${f.id}`}
-      className="flex items-stretch gap-3 rounded-2xl border-[1.5px] border-slate-300 bg-white p-4 hover:border-emerald-300"
-    >
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <MapPin className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
-          <p className="truncate text-base font-bold text-slate-900">{f.name}</p>
-          <span className="shrink-0 text-sm text-slate-500">
-            {f.area_ha != null ? `${f.area_ha.toFixed(2)} ha` : ""}
-          </span>
-        </div>
+function pointOf(g: GeoFieldFull | undefined): { lat: number; lon: number } | null {
+  if (!g) return null;
+  const c = g.centroid?.coordinates;
+  if (Array.isArray(c) && typeof c[0] === "number" && typeof c[1] === "number") {
+    return { lon: c[0], lat: c[1] };
+  }
+  // Fallback: the mean of the outer ring — good enough to ask "what is the weather over there".
+  const ring = g.geom?.coordinates?.[0];
+  if (Array.isArray(ring) && ring.length > 0) {
+    let lon = 0;
+    let lat = 0;
+    let n = 0;
+    for (const p of ring) {
+      if (typeof p?.[0] === "number" && typeof p?.[1] === "number") { lon += p[0]; lat += p[1]; n += 1; }
+    }
+    if (n > 0) return { lon: lon / n, lat: lat / n };
+  }
+  return null;
+}
 
-        {preparing ? (
-          <p className="mt-2 flex items-center gap-1.5 text-sm text-slate-600">
-            <Loader2 className="h-4 w-4 animate-spin text-emerald-600" aria-hidden="true" />
-            {t("today.preparing")}
-          </p>
-        ) : v ? (
-          <p className="mt-1.5 text-sm text-slate-700">{v.title}</p>
-        ) : (
-          <p className="mt-1.5 text-sm text-slate-500">
-            {t("today.noAnalysis")}
-          </p>
-        )}
+/** A field is flagged when the stored score is not "good", the index verdict is not "good", or the
+ *  water balance asks for irrigation. */
+function needsAttention(ft: FieldToday, score?: FieldScore): boolean {
+  if (score && bandOf(score) !== "good") return true;
+  return (ft.verdict != null && ft.verdict.tone !== "good") || ft.waterReco != null;
+}
 
-        {ft.waterReco != null && (
-          <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-warn-tint px-2.5 py-1 text-xs font-bold text-warn">
-            <Droplets className="h-3.5 w-3.5" aria-hidden="true" />
-            {t("today.waterReco")} (~{Math.round(ft.waterReco)} mm)
-          </p>
-        )}
-      </div>
+const TONE_RANK: Record<Tone, number> = { bad: 0, warn: 1, good: 2 };
 
-      <div className="flex flex-col items-end justify-between">
-        {v && !preparing ? (
-          <StatusChip tone={v.tone} label={toneWord(v.tone)} />
-        ) : (
-          <span />
-        )}
-        <ChevronRight className="h-5 w-5 text-slate-400" aria-hidden="true" />
-      </div>
-    </Link>
+/** The single worst flagged field — the stored score decides when there is one, otherwise the
+ *  deterministic verdict tone does. Returns null when nothing needs attention. */
+function worstOf(resolved: FieldToday[], scores: Record<string, FieldScore>): FieldToday | null {
+  const flagged = resolved.filter((ft) => needsAttention(ft, scores[ft.field.id]));
+  if (flagged.length === 0) return null;
+  const scored = flagged
+    .filter((ft) => scores[ft.field.id] != null)
+    .sort((a, b) => scores[a.field.id].score - scores[b.field.id].score);
+  if (scored.length > 0 && bandOf(scores[scored[0].field.id]) !== "good") return scored[0];
+  const byTone = [...flagged].sort(
+    (a, b) => TONE_RANK[a.verdict?.tone ?? "good"] - TONE_RANK[b.verdict?.tone ?? "good"],
   );
+  return byTone[0];
 }
 
 const SEV_ICON: Record<string, typeof AlertTriangle> = {
@@ -120,12 +125,18 @@ const SEV_ICON: Record<string, typeof AlertTriangle> = {
   warning: AlertTriangle,
 };
 
+/** The mockup's .sectitle — one compact heading style for every block on this screen. */
+function SectionTitle({ children }: { children: ReactNode }) {
+  return <h2 className="mb-2 mt-1 text-sm font-bold text-slate-600">{children}</h2>;
+}
+
 export default function TodayHome() {
   const router = useRouter();
   const { user, loading } = useAuth();
   const [fields, setFields] = useState<Field[] | null>(null);
   const [todays, setTodays] = useState<Record<string, FieldToday>>({});
-  const [geoFields, setGeoFields] = useState<GeoField[]>([]);
+  const [scores, setScores] = useState<Record<string, FieldScore>>({});
+  const [geoFields, setGeoFields] = useState<GeoFieldFull[]>([]);
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [orgId, setOrgId] = useState<string>("");
   const [alerts, setAlerts] = useState<Notif[]>([]);
@@ -160,12 +171,14 @@ export default function TodayHome() {
     return () => { active = false; };
   }, [loading, user, router]);
 
-  // Load the selected org's fields (+ verdicts + geometry for the desktop map).
+  // Load the selected org's fields (+ verdicts + wellness scores + geometry for the desktop map).
   useEffect(() => {
     if (!orgId) return;
     let active = true;
     setFields(null);
     setTodays({});
+    setScores({});
+    setGeoFields([]);
     (async () => {
       try {
         const farms = await api.get<Farm[]>(`/api/farms?org_id=${orgId}`);
@@ -182,9 +195,21 @@ export default function TodayHome() {
         if (active) { setError(azError(err)); setFields([]); }
       }
       try {
-        const g = await api.get<{ fields: GeoField[] }>(`/api/fields/geo?org_id=${orgId}`);
+        const g = await api.get<{ fields: GeoFieldFull[] }>(`/api/fields/geo?org_id=${orgId}`);
         if (active) setGeoFields(g?.fields ?? []);
-      } catch { /* map is a desktop bonus */ }
+      } catch { /* map + weather placement are a bonus */ }
+      try {
+        // A3 read model: ONE org-wide request for every score on the screen (never per field, never
+        // an on-demand computation). A field with no stored row simply gets no number.
+        const w = await api.get<{ fields: FieldScore[] }>(`/api/orgs/${orgId}/wellness`);
+        if (active) {
+          const map: Record<string, FieldScore> = {};
+          for (const s of w?.fields ?? []) {
+            if (s && s.field_id && typeof s.score === "number") map[s.field_id] = s;
+          }
+          setScores(map);
+        }
+      } catch { /* scores are optional garnish */ }
     })();
     return () => { active = false; };
   }, [orgId]);
@@ -192,10 +217,25 @@ export default function TodayHome() {
   if (loading || fields === null) return <ListSkeleton count={4} />;
 
   const resolved = fields.map((f) => todays[f.id]).filter((x): x is FieldToday => x != null);
-  const attn = resolved.filter(needsAttention).length;
+  const attn = resolved.filter((ft) => needsAttention(ft, scores[ft.field.id])).length;
   const hasReady = resolved.some((x) => x.status === "ready" || x.status === "partial");
   const today = new Date();
   const locale = getLocale();
+  const worst = worstOf(resolved, scores);
+
+  // Weather bar placement: the field that needs attention, else the first field we have a point for.
+  const geoById: Record<string, GeoFieldFull> = {};
+  for (const g of geoFields) geoById[g.id] = g;
+  const weatherField =
+    (worst && pointOf(geoById[worst.field.id]) ? worst.field : null) ??
+    fields.find((f) => pointOf(geoById[f.id]) != null) ??
+    null;
+  const weatherPoint = weatherField ? pointOf(geoById[weatherField.id]) : null;
+
+  const fieldNames: Record<string, string> = {};
+  for (const f of fields) fieldNames[f.id] = f.name;
+
+  const greeting = user?.full_name ? `Salam, ${user.full_name.split(" ")[0]}` : null;
 
   return (
     <div className="space-y-5">
@@ -205,6 +245,7 @@ export default function TodayHome() {
         <h1 className="mt-0.5 text-2xl font-bold text-slate-900">{t("today.title")}</h1>
         {fields.length > 0 && (
           <p className="mt-1 text-sm text-slate-600">
+            {greeting ? `${greeting} — ` : ""}
             {fields.length} {t("today.fieldsWord")}
             {resolved.length > 0 && (
               <>
@@ -236,19 +277,28 @@ export default function TodayHome() {
       <ErrorNote message={error} />
 
       {/* D3.6 — activation checklist (hides itself once complete) */}
+      {orgId && <TrialBanner orgId={orgId} />}
       <OnboardingChecklist />
 
       {/* D3.5 — PWA install nudge at a value moment (satellite data ready) */}
       <InstallPrompt show={hasReady} />
 
-      {/* D4.3 — desktop agronomist workspace: all fields on one map (click a polygon to open). */}
-      {geoFields.length >= 1 && (
-        <div className="hidden md:block">
-          <h2 className="mb-2 text-base font-bold text-slate-800">{t("today.fieldsOnMap")}</h2>
-          <div className="h-[380px]">
-            <FieldsOverviewMap fields={geoFields} heightClass="h-full" orgId={orgId} />
-          </div>
-        </div>
+      {/* MOCK-app-today-weatherbar — live conditions over the field that matters most today. */}
+      {weatherField && weatherPoint && (
+        <WeatherBar
+          lat={weatherPoint.lat}
+          lon={weatherPoint.lon}
+          placeLabel={weatherField.name}
+          fieldId={weatherField.id}
+        />
+      )}
+
+      {/* MOCK-app-today-attention — the hero for the single worst field. */}
+      {worst && (
+        <section>
+          <SectionTitle>Diqqət lazımdır</SectionTitle>
+          <AttentionHero ft={worst} score={scores[worst.field.id]} />
+        </section>
       )}
 
       {/* Attention strip — active alerts, each deep-links to its field */}
@@ -278,7 +328,19 @@ export default function TodayHome() {
         </div>
       )}
 
-      {/* Field feed */}
+      {/* D4.3 — desktop agronomist workspace: all fields on one map (click a polygon to open). */}
+      {geoFields.length >= 1 && (
+        <section className="hidden md:block">
+          <SectionTitle>{t("today.fieldsOnMap")}</SectionTitle>
+          <div className="h-[380px]">
+            {/* Pass the scores we already loaded so the map does not repeat the same org-wide
+                request; it repaints itself when they land. */}
+            <FieldsOverviewMap fields={geoFields} heightClass="h-full" scores={scores} />
+          </div>
+        </section>
+      )}
+
+      {/* MOCK-app-today-fieldgrid — "Sahələrim" */}
       {fields.length === 0 ? (
         <div className="card text-center">
           <Sprout className="mx-auto h-8 w-8 text-emerald-600" />
@@ -288,28 +350,23 @@ export default function TodayHome() {
           </Link>
         </div>
       ) : (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-slate-800">{t("nav.dashboard")}</h2>
+        <section>
+          <div className="mb-2 mt-1 flex items-center justify-between gap-3">
+            <h2 className="text-sm font-bold text-slate-600">Sahələrim</h2>
             <Link href="/onboarding" className="inline-flex items-center gap-1 text-sm font-bold text-emerald-700">
               <Plus className="h-4 w-4" /> {t("common.add")}
             </Link>
           </div>
-          {fields.map((f) =>
-            todays[f.id] ? (
-              <FieldCard key={f.id} t={todays[f.id]} />
-            ) : (
-              <div
-                key={f.id}
-                className="flex items-center gap-3 rounded-2xl border-[1.5px] border-slate-200 bg-white p-4"
-              >
-                <MapPin className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
-                <span className="truncate text-base font-bold text-slate-900">{f.name}</span>
-                <Loader2 className="ml-auto h-4 w-4 animate-spin text-slate-400" aria-hidden="true" />
-              </div>
-            ),
-          )}
-        </div>
+          <FieldGrid fields={fields} todays={todays} scores={scores} />
+        </section>
+      )}
+
+      {/* MOCK-app-today-tasks — "Bu günün işləri" */}
+      {orgId && fields.length > 0 && (
+        <section>
+          <SectionTitle>Bu günün işləri</SectionTitle>
+          <TodayTasks orgId={orgId} fieldNames={fieldNames} />
+        </section>
       )}
     </div>
   );

@@ -32,6 +32,7 @@ import ZonesTab from "@/components/field/ZonesTab";
 import ShareButton from "@/components/field/ShareButton";
 import BackfillCard from "@/components/field/BackfillCard";
 import RainNowcast from "@/components/field/RainNowcast";
+import FieldHeader from "@/components/field/FieldHeader";
 import type { FieldDetail } from "@/lib/types";
 
 type TabKey =
@@ -192,23 +193,24 @@ function FieldDetailInner() {
     </div>
   ) : null;
 
+  // W2 parity — mockup field header: back chip, name in the display face, "ha · məhsul · yer"
+  // subtitle and the 0-100 score pill (the pill renders only when a score actually exists).
   const titleRow = (
-    <div className="flex flex-wrap items-start justify-between gap-3">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">{field.name}</h1>
-        <p className="mt-1 text-sm text-slate-600">
-          {field.area_ha?.toFixed(2)} {t("field.ha")}
-        </p>
-      </div>
-      {!editing && (
-        <button
-          onClick={openEdit}
-          className="inline-flex min-h-12 items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
-        >
-          <Settings className="h-4 w-4" /> Redaktə
-        </button>
-      )}
-    </div>
+    <FieldHeader
+      fieldId={field.id}
+      name={field.name}
+      areaHa={field.area_ha}
+      actions={
+        !editing ? (
+          <button
+            onClick={openEdit}
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
+          >
+            <Settings className="h-4 w-4" /> Redaktə
+          </button>
+        ) : undefined
+      }
+    />
   );
 
   // Field settings/edit panel — rename + delete live here (delete no longer in the header).
