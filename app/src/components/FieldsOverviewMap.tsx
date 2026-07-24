@@ -228,6 +228,9 @@ export default function FieldsOverviewMap({
     if (map.isStyleLoaded()) draw();
     else map.on("load", draw);
     map.on("idle", draw);
+    // First idle = the earliest moment the container has certainly laid out; resize once here so
+    // the map paints promptly instead of waiting for the 250/800ms safety timers.
+    map.once("idle", () => map.resize());
 
     return () => {
       ro.disconnect();
