@@ -181,11 +181,16 @@ export default function FieldsOverviewMap({
     mapRef.current = map;
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
 
-    // Keep the GL viewport in sync with the container. Without this a map that mounts inside a
-    // grid/sticky column that has not finished laying out (e.g. the map-first /fields screen)
-    // initialises at 0-height and renders blank until something forces a resize.
+    // Keep the GL viewport in sync with the container. A map that mounts inside a grid/sticky
+    // column that has not finished laying out (the map-first /fields screen) otherwise paints once
+    // at the wrong size and stays blank until a stray window resize. The ResizeObserver catches
+    // later layout changes; the two deferred resizes catch the very first paint, when the observer
+    // has already fired with a pre-layout size and won't fire again.
     const ro = new ResizeObserver(() => map.resize());
     ro.observe(ref.current);
+    const raf = requestAnimationFrame(() => map.resize());
+    const t1 = setTimeout(() => map.resize(), 250);
+    const t2 = setTimeout(() => map.resize(), 800);
 
     function draw() {
       if (map.getSource("basemap")) return; // already drawn
@@ -224,7 +229,14 @@ export default function FieldsOverviewMap({
     else map.on("load", draw);
     map.on("idle", draw);
 
-    return () => { ro.disconnect(); map.remove(); mapRef.current = null; };
+    return () => {
+      ro.disconnect();
+      cancelAnimationFrame(raf);
+      clearTimeout(t1);
+      clearTimeout(t2);
+      map.remove();
+      mapRef.current = null;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
