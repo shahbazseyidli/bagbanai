@@ -156,11 +156,13 @@ export default function FieldsListPage() {
         </EmptyState>
       ) : (
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
-          {/* Map hero — dominant, tall, sticky beside the list on wide screens. */}
+          {/* Map hero — dominant, tall, beside the list on wide screens. NOT position:sticky:
+              a WebGL canvas inside a sticky layer isn't composited until a window resize forces
+              it, which left the map blank on first paint. A plain tall column renders correctly. */}
           <FieldsOverviewMap
             fields={geoFields}
             scores={scores}
-            heightClass="h-[48vh] min-h-[320px] lg:sticky lg:top-4 lg:h-[600px]"
+            heightClass="h-[48vh] min-h-[320px] lg:h-[70vh] lg:min-h-[520px]"
           />
 
           {/* Field list — beside the map (desktop) / below it (mobile). */}
