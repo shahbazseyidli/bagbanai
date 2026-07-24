@@ -220,6 +220,7 @@ export const tr: Dict = {
   "team.role.viewer": "İzleyici",
 
   "nav.pricing": "Fiyatlar",
+  "nav.solutions": "Çözümler",
   "nav.catalog": "Katalog",
   "nav.community": "Topluluk",
   "nav.ledger": "Çiftlik defteri",

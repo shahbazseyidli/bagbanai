@@ -5,6 +5,7 @@ import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 import Nav from "@/components/Nav";
 import BottomNav from "@/components/BottomNav";
+import AppShell from "@/components/shell/AppShell";
 import PwaRegister from "@/components/PwaRegister";
 import OfflineIndicator from "@/components/OfflineIndicator";
 import LocaleProvider from "@/components/LocaleProvider";
@@ -48,7 +49,9 @@ export default async function RootLayout({
             <PwaRegister />
             <OfflineIndicator />
             <Nav />
-            <main className="mx-auto max-w-6xl px-4 py-6 pb-24 md:pb-6">{children}</main>
+            <main className="mx-auto max-w-6xl px-4 py-6 pb-24 md:pb-6">
+              <AppShell>{children}</AppShell>
+            </main>
             <BottomNav />
           </AuthProvider>
         </LocaleProvider>

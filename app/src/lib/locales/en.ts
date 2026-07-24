@@ -5,6 +5,7 @@ export const en: Dict = {
   brand: "Bağban AI",
   "nav.dashboard": "My fields",
   "nav.pricing": "Pricing",
+  "nav.solutions": "Solutions",
   "nav.catalog": "Catalog",
   "nav.community": "Community",
   "nav.ledger": "Farm ledger",

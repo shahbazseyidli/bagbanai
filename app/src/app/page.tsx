@@ -3,12 +3,11 @@
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Satellite, Sparkles, ClipboardList, Plus, MapPin } from "lucide-react";
+import { Plus, MapPin } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { t } from "@/lib/i18n";
 import { ErrorNote, Placeholder, Spinner } from "@/components/ui";
-import PricingTable from "@/components/PricingTable";
 import TelegramConnect from "@/components/TelegramConnect";
 import { ListSkeleton } from "@/components/Skeleton";
 import { useUiV2 } from "@/lib/uiFlag";
@@ -34,46 +33,10 @@ function HomeInner() {
   return v2 ? <TodayHome /> : <Dashboard />;
 }
 
+// W2 — PublicLanding is now the complete redesigned marketing page (hero → live map → roles →
+// stats → modules → comparison → testimonials → FAQ → CTA + footer), so this is a thin delegate.
 function Landing() {
-  return (
-    <div className="space-y-10">
-      {/* D3.1 — value before account: tap your field on live satellite, see it, then sign up. */}
-      <PublicLanding />
-
-      <section className="text-center">
-        <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">{t("landing.title")}</h1>
-        <p className="mx-auto mt-3 max-w-2xl text-slate-600">{t("landing.subtitle")}</p>
-      </section>
-
-      <section className="grid gap-4 sm:grid-cols-3">
-        <Feature icon={<Satellite />} title={t("landing.feat1.title")} body={t("landing.feat1.body")} />
-        <Feature icon={<Sparkles />} title={t("landing.feat2.title")} body={t("landing.feat2.body")} />
-        <Feature icon={<ClipboardList />} title={t("landing.feat3.title")} body={t("landing.feat3.body")} />
-      </section>
-
-      <section id="pricing" className="space-y-5">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-slate-900">{t("landing.pricingTitle")}</h2>
-          <p className="mx-auto mt-2 max-w-2xl text-sm text-slate-600">
-            {t("landing.pricingSub")}
-          </p>
-        </div>
-        <PricingTable />
-      </section>
-    </div>
-  );
-}
-
-function Feature({ icon, title, body }: { icon: React.ReactNode; title: string; body: string }) {
-  return (
-    <div className="card">
-      <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
-        {icon}
-      </div>
-      <h3 className="font-semibold text-slate-900">{title}</h3>
-      <p className="mt-1 text-sm text-slate-600">{body}</p>
-    </div>
-  );
+  return <PublicLanding />;
 }
 
 function Dashboard() {

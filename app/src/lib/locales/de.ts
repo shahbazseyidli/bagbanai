@@ -220,6 +220,7 @@ export const de: Dict = {
   "team.role.viewer": "Betrachter",
 
   "nav.pricing": "Preise",
+  "nav.solutions": "Lösungen",
   "nav.catalog": "Katalog",
   "nav.community": "Community",
   "nav.ledger": "Betriebsbuch",

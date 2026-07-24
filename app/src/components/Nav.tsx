@@ -23,6 +23,7 @@ export default function Nav() {
     { href: "/", label: t("nav.dashboard"), authOnly: true },
     { href: "/catalog", label: t("nav.catalog"), authOnly: true },
     { href: "/chat", label: t("nav.community"), authOnly: true },
+    { href: "/solutions", label: t("nav.solutions"), authOnly: false },
     { href: "/pricing", label: t("nav.pricing"), authOnly: false },
     { href: "/team", label: t("nav.team"), authOnly: true },
     ...(user?.is_admin ? [{ href: "/admin", label: t("nav.admin"), authOnly: true }] : []),
