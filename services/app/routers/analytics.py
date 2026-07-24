@@ -5,6 +5,9 @@ Both endpoints are read-mostly and org-gated with require_member (RLS is defence
   GET /api/fields/{id}/wellness        — today's 0-100 score, computed on demand when stale/absent.
                                          Always ships `components` + `missing` so the UI can EXPLAIN
                                          the number instead of asserting it.
+  GET /api/orgs/{org_id}/wellness      — A3 read model: the latest STORED score per field of an org,
+                                         for the field-list chips + the multi-field map. Never
+                                         computes (see the docstring for why).
   GET /api/fields/{id}/season-compare  — per-season DOY-keyed NDVI curve + cumulative integral plus a
                                          same-day-of-year verdict against the previous season. When a
                                          prior season has no data the endpoint SAYS SO; it never
@@ -20,12 +23,16 @@ from fastapi import APIRouter, Depends, Query
 from ..ai import season as season_mod
 from ..ai import wellness as wellness_mod
 from ..db import connection
-from ..deps import get_current_user_id, require_member
+from ..deps import get_current_user_id, require_member, safe_uuid
 from .fields import _org_of_field
 
 router = APIRouter(prefix="/api", tags=["analytics"])
 
 _MAX_YEARS = 10  # upper bound on ?years= — validated by Query(ge/le), never trusted raw
+
+# A stored score older than this is still returned (an old reading beats no reading) but is flagged
+# so the UI can date it instead of implying it is today's.
+_STALE_DAYS = 7
 
 
 # ---------------------------------------------------------------- B8 wellness
@@ -43,6 +50,53 @@ async def field_wellness(field_id: str, refresh: bool = Query(default=False),
         result = await wellness_mod.compute_wellness(conn, field_id)
     result["computed_on"] = date.today().isoformat()
     return result
+
+
+@router.get("/orgs/{org_id}/wellness")
+async def org_wellness(org_id: str, user_id: str = Depends(get_current_user_id)):
+    """Latest STORED wellness score per field of one org — the read model behind the field-list
+    chips and the multi-field map colouring (A3).
+
+    READ-ONLY BY DESIGN: this endpoint never calls compute_wellness. One computation runs ~8 queries
+    (NDVI + baseline + trend + water balance + pest models + GDD), so computing for a list of fields
+    would turn opening a screen into a query stampede. A field with no stored row simply has no entry
+    here and the UI shows no chip — an absent score is never faked or back-filled on read.
+
+    One request per org, not per field."""
+    org_id = safe_uuid(org_id, "org_not_found")
+    today = date.today()
+    async with connection(user_id) as conn:
+        await require_member(conn, user_id, org_id)
+        # Guard for a DB that has not run migration 0037 yet: a missing relation would abort the
+        # open transaction and surface as a 500 on a screen where the score is only a garnish.
+        if not await conn.fetchval("select to_regclass('public.field_wellness') is not null"):
+            return {"org_id": org_id, "as_of": today.isoformat(), "fields": []}
+        rows = await conn.fetch(
+            """select distinct on (w.field_id)
+                      w.field_id, w.score, w.tone, w.headline, w.sensor, w.computed_on
+               from public.field_wellness w
+               join public.fields f on f.id = w.field_id
+               join public.farms fm on fm.id = f.farm_id
+               where fm.org_id=$1::uuid and f.deleted_at is null and w.score is not null
+               order by w.field_id, w.computed_on desc""", org_id)
+
+    out: list[dict[str, Any]] = []
+    for r in rows:
+        score = int(r["score"])
+        computed_on = r["computed_on"]
+        age = (today - computed_on).days if computed_on is not None else None
+        out.append({
+            "field_id": str(r["field_id"]),
+            "score": score,
+            # tone is NOT NULL in 0037; derive from the same thresholds if an old row lacks it.
+            "tone": r["tone"] or wellness_mod._tone(float(score)),
+            "headline": r["headline"],
+            "sensor": r["sensor"],
+            "computed_on": computed_on.isoformat() if computed_on is not None else None,
+            "age_days": age,
+            "stale": bool(age is not None and age > _STALE_DAYS),
+        })
+    return {"org_id": org_id, "as_of": today.isoformat(), "fields": out}
 
 
 # ------------------------------------------------------- A5 season comparison

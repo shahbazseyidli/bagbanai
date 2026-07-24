@@ -31,6 +31,7 @@ import SeasonCompareChart from "@/components/field/SeasonCompareChart";
 import ZonesTab from "@/components/field/ZonesTab";
 import ShareButton from "@/components/field/ShareButton";
 import BackfillCard from "@/components/field/BackfillCard";
+import RainNowcast from "@/components/field/RainNowcast";
 import type { FieldDetail } from "@/lib/types";
 
 type TabKey =
@@ -315,6 +316,7 @@ function FieldDetailInner() {
     <div>
       {tab === "overview" && (
         <div className="space-y-6">
+          <RainNowcast fieldId={field.id} />
           <WellnessCard fieldId={field.id} />
           <OverviewTab field={field} onNavigate={(x) => setTab(x)} compact={v2} />
           <SeasonCompareChart fieldId={field.id} />

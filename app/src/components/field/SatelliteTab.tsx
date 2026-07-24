@@ -10,7 +10,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
-import { GitCompareArrows, Cloud } from "lucide-react";
+import { GitCompareArrows, Cloud, Contrast } from "lucide-react";
 import { api } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import { DisplayMap, CompareMap } from "@/components/FieldMap";
@@ -32,6 +32,15 @@ import type {
 interface IndexSummaryEntry { index: string; latest: number | null; date: string | null; }
 interface IndexSummary { sensor?: string; indices: IndexSummaryEntry[]; }
 
+// /scenes also returns per-scene contrast fields (A1) and the selected index's field mean (A2).
+// types.ts is shared/frozen, so the extra (optional) fields are declared locally.
+type Scene = RasterScene & {
+  value?: number | null;
+  rescale_auto?: string | null;
+  tile_url_auto?: string | null;
+};
+type ScenesResponse = Omit<RasterScenes, "scenes"> & { scenes: Scene[] };
+
 const SUMMARY_INDICES = ["NDVI", "NDRE", "NDMI", "NDWI", "EVI", "SAVI", "NBR"];
 
 function weekKey(dateStr: string): string {
@@ -41,14 +50,71 @@ function weekKey(dateStr: string): string {
   return d.toISOString().slice(0, 10);
 }
 
-function IndexLegend({ index }: { index: string }) {
+// "lo,hi" (as TiTiler wants it) → numbers, or null when malformed/degenerate.
+function parseRescale(s?: string | null): [number, number] | null {
+  if (!s) return null;
+  const parts = s.split(",");
+  if (parts.length !== 2) return null;
+  const lo = Number(parts[0]);
+  const hi = Number(parts[1]);
+  if (!Number.isFinite(lo) || !Number.isFinite(hi) || hi <= lo) return null;
+  return [lo, hi];
+}
+
+// Swap the rescale= value of a TiTiler tile template. Only used for the two-date compare,
+// where BOTH panes must share one range or the comparison lies. The value is inserted raw
+// (URL-safe characters only, exactly the form the API emits) and anything else is rejected,
+// so a malformed range leaves the original URL untouched instead of breaking the tiles.
+const RESCALE_RE = /^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/;
+
+function withRescale(url: string, rescale: string): string {
+  if (!RESCALE_RE.test(rescale)) return url;
+  return url.replace(/([?&]rescale=)[^&]*/, `$1${rescale}`);
+}
+
+// Higher is better for the vegetation family and for canopy moisture (NDMI); for NDWI/NBR a
+// rise is not automatically good news, so those deltas stay neutral grey instead of lying.
+const HIGHER_IS_BETTER = new Set(["NDVI", "EVI", "SAVI", "MSAVI", "TVI", "NDRE", "CIre", "NDMI"]);
+const DELTA_EPS = 0.005; // rounds to 0.00 → show as flat, not as a direction
+
+function deltaClass(index: string, d: number): string {
+  if (Math.abs(d) < DELTA_EPS || !HIGHER_IS_BETTER.has(index)) return "text-slate-400";
+  return d > 0 ? "text-emerald-600" : "text-red-600";
+}
+
+function fmtDelta(d: number): string {
+  if (Math.abs(d) < DELTA_EPS) return "±0.00";
+  return `${d > 0 ? "+" : "−"}${Math.abs(d).toFixed(2)}`;
+}
+
+// Compare-mode <option> label — "2026-07-12 · 0.71 (☁12%)".
+function sceneOptionLabel(s: Scene): string {
+  return `${s.date}${s.value != null ? ` · ${s.value.toFixed(2)}` : ""}`
+    + `${s.cloud_pct != null ? ` (☁${s.cloud_pct.toFixed(0)}%)` : ""}`;
+}
+
+// Legend must describe the range ACTUALLY on the map: `range` is the rescale in use (fixed or
+// per-scene contrast), so the words keep their numbers instead of implying a fixed scale.
+function IndexLegend({ index, range, auto }: {
+  index: string;
+  range?: [number, number] | null;
+  auto?: boolean;
+}) {
   const lg = legendFor(index);
+  const fmt = (v: number) => (Math.abs(v) >= 10 ? v.toFixed(1) : v.toFixed(2));
   return (
     <div className="mt-3">
       <div className="h-3 w-full rounded" style={{ background: lg.grad }} />
-      <div className="mt-1 flex justify-between text-[11px] text-slate-500">
-        <span>{lg.low}</span><span>{lg.mid}</span><span>{lg.high}</span>
+      <div className="mt-1 flex justify-between gap-2 text-[11px] text-slate-500">
+        <span>{lg.low}{range && <span className="ml-1 tabular-nums text-slate-400">{fmt(range[0])}</span>}</span>
+        <span>{lg.mid}{range && <span className="ml-1 tabular-nums text-slate-400">{fmt((range[0] + range[1]) / 2)}</span>}</span>
+        <span>{lg.high}{range && <span className="ml-1 tabular-nums text-slate-400">{fmt(range[1])}</span>}</span>
       </div>
+      <p className="mt-1 text-[11px] text-slate-400">
+        {auto
+          ? "Kontrast açıq: rənglər bu tarixin öz aralığına görə gərilib — fərqlər daha aydın, amma tarixlər arasında rəng müqayisə edilə bilməz."
+          : "Sabit aralıq: rənglər bütün tarixlərdə eyni mənanı verir."}
+      </p>
     </div>
   );
 }
@@ -58,11 +124,13 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
   const [index, setIndex] = useState("NDVI");
   const [series, setSeries] = useState<IndexPoint[] | null>(null);
   const [benchmark, setBenchmark] = useState<Record<string, { p50: number; p10?: number; p90?: number }>>({});
-  const [scenes, setScenes] = useState<RasterScene[]>([]);
+  const [scenes, setScenes] = useState<Scene[]>([]);
   const [noData, setNoData] = useState(false); // this sensor has no rasters (ignoring fallback)
   const [sceneIdx, setSceneIdx] = useState(0);
   const [maxCloud, setMaxCloud] = useState(100);
   const [compare, setCompare] = useState(false);
+  const [contrast, setContrast] = useState(false);   // A1 — per-scene stretch instead of fixed range
+  const [fixedRescale, setFixedRescale] = useState<string | null>(null); // index family range from /scenes
   const [cmpA, setCmpA] = useState(0);
   const [cmpB, setCmpB] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -114,17 +182,18 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
     let active = true;
     (async () => {
       try {
-        const sc = await api.get<RasterScenes>(
+        const sc = await api.get<ScenesResponse>(
           `/api/fields/${field.id}/scenes?index=${index}&sensor=${SENSOR_PARAM[sensor]}`,
         );
         if (!active) return;
         const returned = sc?.sensor ? sensorFamily(sc.sensor) : null;
+        setFixedRescale(sc?.rescale ?? null);
         if (returned && returned !== sensor) { setScenes([]); setNoData(true); }
         else { setScenes(sc?.scenes ?? []); setNoData((sc?.scenes ?? []).length === 0); }
         setSceneIdx(0);
       } catch {
         if (!active) return;
-        setScenes([]); setNoData(true);
+        setScenes([]); setNoData(true); setFixedRescale(null);
       }
     })();
     return () => { active = false; };
@@ -175,8 +244,28 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
     if (visibleScenes.length < 2) setCompare(false);
   }, [visibleScenes.length]);
 
-  const activeScene: RasterScene | null = visibleScenes[sceneIdx] ?? visibleScenes[0] ?? null;
-  const rasterUrl = activeScene?.tile_url ?? null;
+  const activeScene: Scene | null = visibleScenes[sceneIdx] ?? visibleScenes[0] ?? null;
+  // A1 — with contrast on, the map uses the scene's own p10–p90 stretch (server-built URL).
+  const rasterUrl = (contrast
+    ? (activeScene?.tile_url_auto ?? activeScene?.tile_url)
+    : activeScene?.tile_url) ?? null;
+  // The stretch only exists when the scene had usable stats; otherwise it equals the fixed one.
+  const contrastAvailable = visibleScenes.some(
+    (s) => s.rescale_auto != null && s.rescale_auto !== fixedRescale);
+  const activeRange = parseRescale(
+    contrast ? (activeScene?.rescale_auto ?? fixedRescale) : fixedRescale);
+  const contrastOnActive = contrast && activeScene?.rescale_auto != null
+    && activeScene?.rescale_auto !== fixedRescale;
+
+  // A2 — per-scene delta vs the previous (older) scene IN THE VISIBLE list, so the number
+  // matches what the farmer actually sees after the cloud filter. Scenes are newest-first.
+  const sceneDeltas = useMemo(
+    () => visibleScenes.map((s, i) => {
+      const prev = visibleScenes[i + 1];
+      if (s.value == null || prev?.value == null) return null;
+      return s.value - prev.value;
+    }),
+    [visibleScenes]);
 
   // Pivot the two-sensor series → this sensor's line + weekly benchmark.
   const chartData = useMemo(() => {
@@ -211,6 +300,19 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
 
   const sceneA = visibleScenes[cmpA] ?? null;
   const sceneB = visibleScenes[cmpB] ?? null;
+
+  // Contrast + compare: both panes must share ONE range (the union of the two scenes'
+  // stretches). Two different stretches side by side would fake a change that isn't there.
+  const cmpRescale = useMemo(() => {
+    if (!contrast) return null;
+    const a = parseRescale(sceneA?.rescale_auto);
+    const b = parseRescale(sceneB?.rescale_auto);
+    if (!a || !b) return null;
+    const lo = Math.min(a[0], b[0]);
+    const hi = Math.max(a[1], b[1]);
+    return hi > lo ? `${lo.toFixed(3)},${hi.toFixed(3)}` : null;
+  }, [contrast, sceneA, sceneB]);
+  const cmpRange = parseRescale(cmpRescale ?? fixedRescale);
   const meta = SENSOR_META[sensor];
   const otherTab = sensor === "S2" ? "NASA (30m)" : "Sentinel-2 (10m)";
 
@@ -332,20 +434,33 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
 
         {/* Right — map with raster overlay + scene timeline / compare */}
         <div className="card">
-          <div className="mb-3 flex items-center justify-between gap-2">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h3 className="truncate font-semibold text-slate-800">{field.name}</h3>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {!compare && activeScene && (
                 <span className="text-xs text-slate-500">
-                  {activeScene.date}{activeScene.cloud_pct != null && ` · ☁ ${activeScene.cloud_pct.toFixed(0)}%`}
+                  {activeScene.date}
+                  {activeScene.value != null && ` · ${activeScene.value.toFixed(2)}`}
+                  {activeScene.cloud_pct != null && ` · ☁ ${activeScene.cloud_pct.toFixed(0)}%`}
                 </span>
+              )}
+              {contrastAvailable && (
+                <button type="button" onClick={() => setContrast((c) => !c)}
+                  title={contrast
+                    ? "Sabit rəng aralığına qayıt (tarixlər müqayisə edilə bilsin)"
+                    : "Kontrastı artır — rənglər bu tarixin öz aralığına görə gərilir"}
+                  className={`inline-flex min-h-[44px] items-center gap-1 rounded-md border px-2.5 py-1 text-xs ${
+                    contrast ? "border-emerald-600 bg-emerald-50 font-semibold text-emerald-700"
+                      : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
+                  <Contrast className="h-3.5 w-3.5 shrink-0" /> Kontrast
+                </button>
               )}
               {visibleScenes.length >= 2 && (
                 <button type="button" onClick={() => setCompare((c) => !c)} title="İki tarixi müqayisə et"
-                  className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs ${
+                  className={`inline-flex min-h-[44px] items-center gap-1 rounded-md border px-2.5 py-1 text-xs ${
                     compare ? "border-emerald-600 bg-emerald-50 font-semibold text-emerald-700"
                       : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
-                  <GitCompareArrows className="h-3.5 w-3.5" /> Müqayisə
+                  <GitCompareArrows className="h-3.5 w-3.5 shrink-0" /> Müqayisə
                 </button>
               )}
             </div>
@@ -358,7 +473,7 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
                   <span className="text-slate-500">Sol tarix</span>
                   <select className="input" value={cmpA} onChange={(e) => setCmpA(Number(e.target.value))}>
                     {visibleScenes.map((s, i) => (
-                      <option key={s.scene_id} value={i}>{s.date}{s.cloud_pct != null ? ` (☁${s.cloud_pct.toFixed(0)}%)` : ""}</option>
+                      <option key={s.scene_id} value={i}>{sceneOptionLabel(s)}</option>
                     ))}
                   </select>
                 </label>
@@ -366,14 +481,16 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
                   <span className="text-slate-500">Sağ tarix</span>
                   <select className="input" value={cmpB} onChange={(e) => setCmpB(Number(e.target.value))}>
                     {visibleScenes.map((s, i) => (
-                      <option key={s.scene_id} value={i}>{s.date}{s.cloud_pct != null ? ` (☁${s.cloud_pct.toFixed(0)}%)` : ""}</option>
+                      <option key={s.scene_id} value={i}>{sceneOptionLabel(s)}</option>
                     ))}
                   </select>
                 </label>
               </div>
               <CompareMap key={`${sceneA.scene_id}|${sceneB.scene_id}`} polygon={field.geom}
-                leftUrl={sceneA.tile_url} rightUrl={sceneB.tile_url} leftLabel={sceneA.date} rightLabel={sceneB.date} />
-              <IndexLegend index={index} />
+                leftUrl={cmpRescale ? withRescale(sceneA.tile_url, cmpRescale) : sceneA.tile_url}
+                rightUrl={cmpRescale ? withRescale(sceneB.tile_url, cmpRescale) : sceneB.tile_url}
+                leftLabel={sceneA.date} rightLabel={sceneB.date} />
+              <IndexLegend index={index} range={cmpRange} auto={cmpRescale != null} />
               <p className="mt-2 text-xs text-slate-400">Ortadakı dəstəyi sürüşdürün — sol/sağ tarixi tutuşdurun.</p>
             </>
           ) : (
@@ -393,7 +510,7 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
                 </div>
               ) : scenes.length > 0 ? (
                 <>
-                  <IndexLegend index={index} />
+                  <IndexLegend index={index} range={activeRange} auto={contrastOnActive} />
                   <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
                     <Cloud className="h-3.5 w-3.5 shrink-0" />
                     <span className="shrink-0">Maks. bulud: {maxCloud}%</span>
@@ -405,17 +522,29 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
                     <p className="mt-1 text-xs text-amber-600">Bu bulud həddində təmiz səhnə yoxdur — həddi artırın.</p>
                   ) : (
                     <div className="mt-1 flex gap-2 overflow-x-auto pb-1">
-                      {visibleScenes.map((s, i) => (
-                        <button key={s.scene_id} type="button"
-                          title={s.cloud_pct != null ? `${s.date} · bulud ${s.cloud_pct.toFixed(0)}%` : s.date}
-                          onClick={() => setSceneIdx(i)}
-                          className={`shrink-0 rounded-md border px-2 py-1 text-xs ${
-                            i === sceneIdx ? "border-emerald-600 bg-emerald-50 font-semibold text-emerald-700"
-                              : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
-                          {s.date.slice(5)}
-                          {s.cloud_pct != null && <span className="ml-1 text-slate-400">☁{s.cloud_pct.toFixed(0)}%</span>}
-                        </button>
-                      ))}
+                      {visibleScenes.map((s, i) => {
+                        const d = sceneDeltas[i];
+                        return (
+                          <button key={s.scene_id} type="button"
+                            title={`${s.date}`
+                              + (s.value != null ? ` · ${INDEX_LABELS[index] ?? index}: ${s.value.toFixed(3)}` : "")
+                              + (d != null ? ` · əvvəlki tarixə görə ${fmtDelta(d)}` : "")
+                              + (s.cloud_pct != null ? ` · bulud ${s.cloud_pct.toFixed(0)}%` : "")}
+                            onClick={() => setSceneIdx(i)}
+                            className={`flex min-h-[44px] shrink-0 flex-col items-start justify-center gap-0.5 rounded-md border px-2.5 py-1 text-xs leading-tight ${
+                              i === sceneIdx ? "border-emerald-600 bg-emerald-50 font-semibold text-emerald-700"
+                                : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
+                            <span className="flex items-center gap-1 whitespace-nowrap">
+                              {s.date.slice(5)}
+                              {s.cloud_pct != null && <span className="text-slate-400">☁{s.cloud_pct.toFixed(0)}%</span>}
+                            </span>
+                            <span className="flex items-center gap-1 whitespace-nowrap tabular-nums">
+                              <span>{s.value != null ? s.value.toFixed(2) : "—"}</span>
+                              {d != null && <span className={deltaClass(index, d)}>{fmtDelta(d)}</span>}
+                            </span>
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </>

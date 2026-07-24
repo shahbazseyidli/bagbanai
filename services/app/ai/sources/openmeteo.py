@@ -151,3 +151,73 @@ async def fetch_hourly(lat: float, lon: float, *, days: int = 5,
     return SourceResult(
         ok=True, data={"hours": rows},
         source=source_meta("https://open-meteo.com/", "Open-Meteo (hourly)", "structured_api", 0.9))
+
+
+# Only `precipitation` by default: it is the one variable the minutely_15 block is guaranteed to
+# carry, and an unsupported name makes Open-Meteo answer 400 — which would kill the whole nowcast
+# rather than just drop a column.
+_MINUTELY = ["precipitation"]
+
+# minutely_15 variable → our short row key (same convention as _ARCHIVE_ALIASES). Unmapped names
+# keep their API spelling so a caller may ask for new variables without touching this module.
+_MINUTELY_ALIASES = {
+    "precipitation": "precip",
+    "rain": "rain",
+    "snowfall": "snowfall_cm",
+    "temperature_2m": "temp",
+    "wind_speed_10m": "wind",
+    "wind_gusts_10m": "gust",
+}
+
+
+async def fetch_minutely(lat: float, lon: float, *, days: int = 2,
+                         variables: list[str] | None = None, timeout: float = 6.0,
+                         base: str = "https://api.open-meteo.com/v1") -> SourceResult:
+    """15-minute precipitation nowcast for the field centroid (A4 rain nowcast). Never raises.
+
+    Open-Meteo's `minutely_15` block starts at LOCAL MIDNIGHT of the first forecast day, so the
+    response also contains steps that are already in the past — the caller must slice from "now"
+    itself. Timestamps come back as naive local ISO strings under `timezone=auto`, so
+    `utc_offset_seconds` is returned alongside them for exactly that comparison.
+
+    Two forecast days are requested by default (~192 tiny rows) so a late-evening call still covers
+    the next couple of hours across midnight; `forecast_minutely_15` is deliberately NOT used
+    because its start-of-window semantics are ambiguous.
+
+    Short timeout on purpose: this feeds a decorative strip, and a slow weather API must not hold a
+    field page hostage."""
+    cols = list(variables) if variables else list(_MINUTELY)
+    days = max(1, min(int(days), 3))
+    try:
+        js = await get_json(
+            f"{base.rstrip('/')}/forecast",
+            params={"latitude": lat, "longitude": lon, "minutely_15": ",".join(cols),
+                    "forecast_days": days, "timezone": "auto"},
+            timeout=timeout, retries=1)
+    except Exception as exc:  # noqa: BLE001
+        return SourceResult(ok=False, error=f"openmeteo_unreachable: {exc}")
+
+    block = (js or {}).get("minutely_15") or {}
+    times = block.get("time") or []
+    if not times:
+        return SourceResult(ok=False, error="openmeteo_empty")
+
+    rows = []
+    for i, ts in enumerate(times):
+        row: dict = {"ts": ts}
+        for k in cols:
+            vals = block.get(k) or []
+            row[_MINUTELY_ALIASES.get(k, k)] = vals[i] if i < len(vals) else None
+        rows.append(row)
+
+    try:
+        offset = int((js or {}).get("utc_offset_seconds") or 0)
+    except (TypeError, ValueError):
+        offset = 0
+
+    return SourceResult(
+        ok=True,
+        data={"steps": rows, "variables": cols, "interval_minutes": 15,
+              "utc_offset_seconds": offset, "timezone": (js or {}).get("timezone")},
+        source=source_meta("https://open-meteo.com/", "Open-Meteo (minutely_15)",
+                           "structured_api", 0.85))

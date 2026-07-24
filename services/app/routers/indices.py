@@ -6,7 +6,8 @@ Sensor families for the API: 'hls' → HLS 30m, 's2' → Sentinel-2 10m (the def
 The map/latest/summary endpoints take ?sensor= (default s2) and fall back to the other family
 when the requested one has no rows (S2-only fields, or the pre-backfill/rollout window); the
 time-series endpoint returns BOTH sensors tagged so the chart can draw two labeled lines."""
-from typing import Optional
+import math
+from typing import Any, Optional
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -58,6 +59,38 @@ def _raster_style(index: str) -> tuple[str, str]:
     if index == "CIre":
         return "rdylgn", "0,3"      # chlorophyll ratio (~0-4), not bounded like NDVI
     return "rdylgn", "-0.1,0.9"  # vegetation (NDVI/EVI/SAVI/MSAVI/TVI/NDRE)
+
+
+# A1 — per-scene contrast stretch. The fixed family rescale above keeps colours comparable
+# ACROSS dates, but in a uniform orchard every pixel lands in the same green and the in-field
+# variation the farmer is looking for disappears. So for each scene we ALSO derive a stretch
+# from that scene's own distribution (index_stats), which the UI can switch to ("Kontrast").
+# Robust window = p10..p90 (ignores a handful of outlier pixels); if that is missing or
+# degenerate we try min..max, and failing that we return the fixed family rescale — the tile
+# URL must always be valid.
+_MIN_SPAN = 0.05  # below this the stretch just amplifies noise
+
+
+def _finite(v: Any) -> Optional[float]:
+    """Decimal/None/NaN-safe float (asyncpg returns numeric as Decimal; numeric can hold NaN,
+    which would serialize as invalid JSON)."""
+    if v is None:
+        return None
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return None
+    return f if math.isfinite(f) else None
+
+
+def _auto_rescale(p10: Any, p90: Any, vmin: Any, vmax: Any, fallback: str) -> str:
+    """Per-scene 'lo,hi' rescale string, falling back to the fixed family range."""
+    for lo, hi in ((_finite(p10), _finite(p90)), (_finite(vmin), _finite(vmax))):
+        if lo is None or hi is None:
+            continue
+        if hi - lo >= _MIN_SPAN:
+            return f"{lo:.3f},{hi:.3f}"
+    return fallback
 
 
 @router.get("/{field_id}/indices/latest")
@@ -262,7 +295,13 @@ async def scenes(field_id: str, index: str = Query("NDVI"), sensor: str = Query(
                  user_id: str = Depends(get_current_user_id)):
     """Scenes with a rendered raster for `index` + sensor (default s2), newest first, each with
     a TiTiler XYZ tile-URL template for the map overlay. Falls back to the other sensor family
-    when the requested one has no rasters (so the map is never empty if any sensor has data)."""
+    when the requested one has no rasters (so the map is never empty if any sensor has data).
+
+    Per scene, besides the fixed-range `tile_url` (unchanged — other callers depend on it):
+      * `value`         — that scene's field mean for `index` (timeline chip, A2), may be null
+      * `rescale_auto`  — contrast-stretched range from the scene's own p10..p90 (A1)
+      * `tile_url_auto` — the same tile template rendered with `rescale_auto`
+    """
     fam = _validate_sensor(sensor) or "s2"
     async with connection(user_id) as conn:
         org_id = await _org_of_field(conn, field_id)
@@ -270,12 +309,18 @@ async def scenes(field_id: str, index: str = Query("NDVI"), sensor: str = Query(
 
         async def q(codes):
             # One scene per date (least-cloudy), newest first — a clean timeline for the UI.
+            # index_stats is LEFT joined (unique per scene+index) so a raster without stats
+            # still shows up, just without a value/auto-stretch.
             return await conn.fetch(
-                """select storage_path, acquired_at, scene_id, cloud_pct, sensor from (
+                """select storage_path, acquired_at, scene_id, cloud_pct, sensor,
+                          mean, p10, p90, vmin, vmax from (
                      select distinct on (r.acquired_at)
-                            r.storage_path, r.acquired_at, r.scene_id, s.cloud_pct, r.sensor
+                            r.storage_path, r.acquired_at, r.scene_id, s.cloud_pct, r.sensor,
+                            st.mean, st.p10, st.p90, st.min as vmin, st.max as vmax
                      from public.index_rasters r
                      join public.scenes s on s.id = r.scene_id
+                     left join public.index_stats st
+                            on st.scene_id = r.scene_id and st.index_name = r.index_name
                      where r.field_id=$1::uuid and r.index_name=$2 and r.sensor = any($3)
                      order by r.acquired_at, s.cloud_pct asc nulls last
                    ) t order by acquired_at desc""", field_id, index, codes)
@@ -291,14 +336,18 @@ async def scenes(field_id: str, index: str = Query("NDVI"), sensor: str = Query(
     for r in rows:
         url_param = quote(r["storage_path"], safe="")
         # TiTiler needs the TileMatrixSet id (WebMercatorQuad) in the tile path.
-        tile_url = (f"{base}/cog/tiles/WebMercatorQuad/{{z}}/{{x}}/{{y}}.png"
-                    f"?url={url_param}&colormap_name={cmap}&rescale={rescale}")
+        tile_base = (f"{base}/cog/tiles/WebMercatorQuad/{{z}}/{{x}}/{{y}}.png"
+                     f"?url={url_param}&colormap_name={cmap}&rescale=")
+        auto = _auto_rescale(r["p10"], r["p90"], r["vmin"], r["vmax"], rescale)
         scenes_out.append({
             "scene_id": str(r["scene_id"]),
             "date": r["acquired_at"].isoformat(),
-            "cloud_pct": float(r["cloud_pct"]) if r["cloud_pct"] is not None else None,
+            "cloud_pct": _finite(r["cloud_pct"]),
             "sensor": _family_of(r["sensor"]),
-            "tile_url": tile_url,
+            "tile_url": tile_base + rescale,
+            "value": _finite(r["mean"]),
+            "rescale_auto": auto,
+            "tile_url_auto": tile_base + auto,
         })
     return {"index": index, "sensor": used, "colormap": cmap, "rescale": rescale, "scenes": scenes_out}
 

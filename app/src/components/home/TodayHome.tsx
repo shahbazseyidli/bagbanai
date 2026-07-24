@@ -246,7 +246,7 @@ export default function TodayHome() {
         <div className="hidden md:block">
           <h2 className="mb-2 text-base font-bold text-slate-800">{t("today.fieldsOnMap")}</h2>
           <div className="h-[380px]">
-            <FieldsOverviewMap fields={geoFields} heightClass="h-full" />
+            <FieldsOverviewMap fields={geoFields} heightClass="h-full" orgId={orgId} />
           </div>
         </div>
       )}
