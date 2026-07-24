@@ -106,6 +106,7 @@ export const de: Dict = {
   "field.tab.season": "Saison",
   "field.tab.documents": "Dokumente",
   "field.tab.weather": "Wetter",
+  "field.tab.zones": "Zonen",
   "field.mgrs": "MGRS-Kacheln",
 
   "idx.title": "Satellitenindizes",

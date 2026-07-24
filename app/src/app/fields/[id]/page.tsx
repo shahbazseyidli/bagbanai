@@ -28,10 +28,13 @@ import WeatherHistoryTab from "@/components/field/WeatherHistoryTab";
 import HarvestTab from "@/components/field/HarvestTab";
 import WellnessCard from "@/components/field/WellnessCard";
 import SeasonCompareChart from "@/components/field/SeasonCompareChart";
+import ZonesTab from "@/components/field/ZonesTab";
+import ShareButton from "@/components/field/ShareButton";
+import BackfillCard from "@/components/field/BackfillCard";
 import type { FieldDetail } from "@/lib/types";
 
 type TabKey =
-  | "overview" | "sentinel2" | "nasa" | "weather" | "ai" | "fertilizer" | "photos" | "metadata"
+  | "overview" | "sentinel2" | "nasa" | "weather" | "zones" | "ai" | "fertilizer" | "photos" | "metadata"
   | "scouting" | "tasks" | "operations" | "yields" | "harvest" | "soil" | "season" | "documents";
 
 const TABS: { key: TabKey; labelKey: I18nKey }[] = [
@@ -39,6 +42,7 @@ const TABS: { key: TabKey; labelKey: I18nKey }[] = [
   { key: "sentinel2", labelKey: "field.tab.sentinel2" },
   { key: "nasa", labelKey: "field.tab.nasa" },
   { key: "weather", labelKey: "field.tab.weather" },
+  { key: "zones", labelKey: "field.tab.zones" },
   { key: "ai", labelKey: "field.tab.ai" },
   { key: "fertilizer", labelKey: "field.tab.fertilizer" },
   { key: "photos", labelKey: "field.tab.photos" },
@@ -57,12 +61,12 @@ const TABS: { key: TabKey; labelKey: I18nKey }[] = [
 // reveals its own tabs as a secondary chip row. (HYBRID_PLAN W4 added fertilizer/photos/soil.)
 type Group = "vaziyyet" | "isler" | "melumat";
 const GROUPS: { key: Group; label: string; tabs: TabKey[] }[] = [
-  { key: "vaziyyet", label: "Vəziyyət", tabs: ["overview", "sentinel2", "nasa", "weather"] },
+  { key: "vaziyyet", label: "Vəziyyət", tabs: ["overview", "sentinel2", "nasa", "weather", "zones"] },
   { key: "isler", label: "İşlər", tabs: ["ai", "photos", "fertilizer", "scouting", "tasks", "operations", "yields", "harvest"] },
   { key: "melumat", label: "Məlumat", tabs: ["metadata", "season", "soil", "documents"] },
 ];
 const GROUP_OF: Record<TabKey, Group> = {
-  overview: "vaziyyet", sentinel2: "vaziyyet", nasa: "vaziyyet", weather: "vaziyyet",
+  overview: "vaziyyet", sentinel2: "vaziyyet", nasa: "vaziyyet", weather: "vaziyyet", zones: "vaziyyet",
   ai: "isler", photos: "isler", fertilizer: "isler", scouting: "isler", tasks: "isler",
   operations: "isler", yields: "isler", harvest: "isler",
   metadata: "melumat", season: "melumat", soil: "melumat", documents: "melumat",
@@ -314,11 +318,19 @@ function FieldDetailInner() {
           <WellnessCard fieldId={field.id} />
           <OverviewTab field={field} onNavigate={(x) => setTab(x)} compact={v2} />
           <SeasonCompareChart fieldId={field.id} />
+          <ShareButton fieldId={field.id} />
         </div>
       )}
       {tab === "sentinel2" && <SatelliteTab field={field} sensor="S2" />}
       {tab === "nasa" && <SatelliteTab field={field} sensor="HLS" />}
       {tab === "weather" && <WeatherHistoryTab fieldId={field.id} />}
+      {tab === "zones" && (
+        <div className="space-y-6">
+          <ZonesTab fieldId={field.id} />
+          {/* A6 needs multi-season COGs, which only exist after an A8 backfill. */}
+          <BackfillCard fieldId={field.id} />
+        </div>
+      )}
       {tab === "ai" && (
         <div className="space-y-6">
           <AiTab fieldId={field.id} />

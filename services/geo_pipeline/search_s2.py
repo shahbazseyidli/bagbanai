@@ -9,7 +9,7 @@ from typing import Optional
 
 from pystac_client import Client
 
-from .search import Granule
+from .search import GRANULE_CAP, Granule, SearchResult, resolve_window
 
 EARTH_SEARCH_URL = "https://earth-search.aws.element84.com/v1"
 S2_COLLECTION = "sentinel-2-l2a"
@@ -59,21 +59,57 @@ def _item_to_granule(item) -> Optional[Granule]:
                    assets=assets, band_meta=band_meta)
 
 
-def search_scenes_s2(field_bbox: tuple[float, float, float, float],
-                     date_from: date, date_to: date, max_cloud: int = 70) -> list[Granule]:
-    """Search Sentinel-2 L2A for the field bbox + date range (no auth). Granules whose MGRS
-    tile can't be resolved are skipped (idempotency needs a non-null tile)."""
+def search_scenes_s2_ex(field_bbox: tuple[float, float, float, float],
+                        date_from: Optional[date] = None, date_to: Optional[date] = None,
+                        max_cloud: int = 70, *, days_back: Optional[int] = None,
+                        limit: int = GRANULE_CAP) -> SearchResult:
+    """Search Sentinel-2 L2A and report cap/truncation (see search.SearchResult).
+
+    Truncation detection mirrors the HLS search: ask for `limit + 1` items, and if more than
+    `limit` come back the window does not fit in one request → trim + flag. The STAC
+    `numberMatched` (search.matched()) is recorded too when the server provides it."""
+    d_from, d_to = resolve_window(date_from, date_to, days_back)
+    per = max(1, int(limit))
     client = Client.open(EARTH_SEARCH_URL)
     search = client.search(
         collections=[S2_COLLECTION], bbox=list(field_bbox),
-        datetime=f"{date_from.isoformat()}/{date_to.isoformat()}",
-        query={"eo:cloud_cover": {"lte": max_cloud}}, max_items=200)
+        datetime=f"{d_from.isoformat()}/{d_to.isoformat()}",
+        query={"eo:cloud_cover": {"lte": max_cloud}}, max_items=per + 1)
+    items = list(search.items())
+    n = len(items)
+    truncated = n > per
+    if truncated:
+        items = items[:per]
+        print(f"  ! S2: search hit the {per}-item cap for {d_from.isoformat()}..{d_to.isoformat()}"
+              f" — history is TRUNCATED, chunk the window (one year at a time)", file=sys.stderr)
+    matched = None
+    try:                                    # optional STAC numberMatched; not all servers send it
+        matched = search.matched()
+    except Exception:                       # noqa: BLE001 — diagnostics only, never fail a search
+        matched = None
     out: list[Granule] = []
-    for item in search.items():
+    skipped = 0
+    for item in items:
         g = _item_to_granule(item)
         if g is None:
+            skipped += 1
             print(f"  ! S2 skip (no mgrs tile): {getattr(item, 'id', '?')}", file=sys.stderr)
             continue
         out.append(g)
     out.sort(key=lambda g: g.acquired_at)
-    return out
+    return SearchResult(granules=out, found=n, returned=len(out), truncated=truncated,
+                        date_from=d_from, date_to=d_to,
+                        detail={"S2": {"found": n, "kept": len(out), "skipped_no_tile": skipped,
+                                       "truncated": truncated, "matched": matched}})
+
+
+def search_scenes_s2(field_bbox: tuple[float, float, float, float],
+                     date_from: Optional[date] = None, date_to: Optional[date] = None,
+                     max_cloud: int = 70, *, days_back: Optional[int] = None,
+                     limit: int = GRANULE_CAP) -> list[Granule]:
+    """Search Sentinel-2 L2A for the field bbox + date range (no auth). Granules whose MGRS
+    tile can't be resolved are skipped (idempotency needs a non-null tile).
+
+    Unchanged for existing callers; use search_scenes_s2_ex() to see truncation."""
+    return search_scenes_s2_ex(field_bbox, date_from, date_to, max_cloud,
+                               days_back=days_back, limit=limit).granules

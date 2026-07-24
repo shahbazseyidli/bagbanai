@@ -124,6 +124,7 @@ export const az = {
   "field.tab.season": "Mövsüm",
   "field.tab.documents": "Sənədlər",
   "field.tab.weather": "Hava",
+  "field.tab.zones": "Zonalar",
   "field.mgrs": "MGRS xanaları",
 
   // indices

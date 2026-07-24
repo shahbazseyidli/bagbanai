@@ -1,8 +1,12 @@
 """Orchestrate the HLS-VI pipeline for one field (spec §10).
 
 search → for each granule: read each VI band (windowed) → Fmask → zonal stats → persist.
-Run:  DATABASE_URL=... python -m geo_pipeline.pipeline <field_id> [days_back]
-Or import run_field() from the API's internal trigger / n8n."""
+Run:  DATABASE_URL=... python -m geo_pipeline.pipeline <field_id> [days_back] [track] [sensor]
+
+Retrospective backfill of past seasons (A8) — stats only, silent:
+      DATABASE_URL=... python -m geo_pipeline.pipeline backfill <field_id> <year_from> <year_to> [sensor]
+
+Or import run_field() / run_field_backfill() from the API's internal trigger / n8n."""
 from __future__ import annotations
 
 import os
@@ -345,7 +349,162 @@ def run_field_all(field_id: str, days_back: int = 120, max_cloud: int = 70,
         raise
 
 
+# ── A8: retrospective backfill of past seasons (stats-only, silent) ────────────────────
+#
+# Why this is NOT just run_field(days_back=3650):
+#   1. the scene search caps at ~200 granules per collection → a decade-wide window is
+#      SILENTLY TRUNCATED (search.SearchResult.truncated now exposes this). We walk ONE
+#      CALENDAR YEAR per search so the cap is never reached.
+#   2. a raw re-run would write a clipped COG per scene per index (≈9 files × ~40 scenes ×
+#      10 years per field) and fire advice/rules/notifications on every pass. The backfill
+#      path deliberately writes NEITHER rasters NOR notifications and NEVER triggers advice:
+#      history feeds the charts / season compare (A5) / feature store, not the alert layer.
+#   3. it must never touch fields.data_status / data_progress_* — those belong to the live
+#      queue worker and drive the "Peyk məlumatı hazırlanır" banner, which must not lie.
+#
+# Idempotency comes for free from persist.persist_scene (upsert on
+# field_id+sensor+acquired_at+mgrs_tile) and persist_scene's index_stats upsert, so a
+# re-run of the same year is a no-op apart from the network reads.
+
+MIN_BACKFILL_YEAR = 2015   # HLS v2.0: L30 from 2013, S30 from mid-2015 → 2015 is the safe floor
+BACKFILL_SENSORS = ("hls", "s2", "all")
+
+
+def _backfill_year(field: dict, year: int, sensor: str = "hls", max_cloud: int = 70) -> dict:
+    """Ingest ONE calendar year of scene statistics for a field. Stats only: no COG writes,
+    no status updates, no notifications, no advice/rule triggers."""
+    today = date.today()
+    d_from = date(year, 1, 1)
+    d_to = min(date(year, 12, 31), today)
+    res: dict = {"year": year, "granules_found": 0, "scenes_written": 0,
+                 "truncated": False, "errors": []}
+    if d_from > today:
+        res["errors"].append("future_year")
+        return res
+    fid, org_id = str(field["id"]), str(field["org_id"])
+
+    if sensor in ("hls", "all"):
+        try:
+            from .search import search_scenes_ex
+            sr = search_scenes_ex(field["bbox"], d_from, d_to, max_cloud=max_cloud)
+            res["truncated"] = res["truncated"] or sr.truncated
+            res["granules_found"] += sr.returned
+            for g in sr.granules:
+                try:
+                    stats_da = process_granule(field["geom"], g)
+                except Exception as exc:  # noqa: BLE001 — skip a bad granule, keep the year
+                    print(f"  ! backfill HLS granule {g.granule_id}: {exc}", file=sys.stderr)
+                    continue
+                stats = {k: v[0] for k, v in stats_da.items()}
+                if not stats:
+                    continue
+                persist.persist_scene(fid, org_id, g.sensor, g.acquired_at, g.mgrs_tile,
+                                      g.cloud_pct, g.granule_id, stats)
+                res["scenes_written"] += 1
+        except Exception as exc:  # noqa: BLE001 — one sensor failing must not kill the year
+            print(f"  ! backfill HLS {year}: {exc}", file=sys.stderr)
+            res["errors"].append(f"hls: {str(exc)[:200]}")
+
+    if sensor in ("s2", "all"):
+        try:
+            from .search_s2 import search_scenes_s2_ex
+            sr = search_scenes_s2_ex(field["bbox"], d_from, d_to, max_cloud=max_cloud)
+            res["truncated"] = res["truncated"] or sr.truncated
+            res["granules_found"] += sr.returned
+            for g in sr.granules:
+                try:
+                    stats_da = process_granule_s2(field["geom"], g)
+                except Exception as exc:  # noqa: BLE001
+                    print(f"  ! backfill S2 granule {g.granule_id}: {exc}", file=sys.stderr)
+                    continue
+                # Same guard as the live S2 path: a neighbouring tile can intersect the bbox
+                # without covering a single field pixel — persisting those would fake a scene.
+                if not stats_da or not any((v[0] or {}).get("valid_pixels", 0)
+                                           for v in stats_da.values()):
+                    continue
+                stats = {k: v[0] for k, v in stats_da.items()}
+                persist.persist_scene(fid, org_id, g.sensor, g.acquired_at, g.mgrs_tile,
+                                      g.cloud_pct, g.granule_id, stats)
+                res["scenes_written"] += 1
+        except Exception as exc:  # noqa: BLE001
+            print(f"  ! backfill S2 {year}: {exc}", file=sys.stderr)
+            res["errors"].append(f"s2: {str(exc)[:200]}")
+    return res
+
+
+def run_field_backfill(field_id: str, year_from: int, year_to: int, sensor: str = "hls",
+                       max_cloud: int = 70, newest_first: bool = True) -> dict:
+    """Backfill whole calendar years of scene statistics for one field.
+
+    Years are processed ONE AT A TIME (never a single decade-wide search) and, by default,
+    newest first — the most recent seasons are what the season-compare UI needs first, and a
+    job interrupted half-way still leaves the useful end of the history in place.
+
+    Returns {ok, years:[{year, granules_found, scenes_written, truncated, errors}], ...}.
+    A failing year is recorded and the run continues; the caller decides what to do."""
+    field = persist.get_field(field_id)
+    if not field:
+        return {"ok": False, "error": "field_not_found"}
+    sensor = (sensor or "hls").strip().lower()
+    if sensor not in BACKFILL_SENSORS:
+        return {"ok": False, "error": "invalid_sensor"}
+    try:
+        y_from, y_to = int(year_from), int(year_to)
+    except (TypeError, ValueError):
+        return {"ok": False, "error": "invalid_year_range"}
+    if y_from > y_to:
+        y_from, y_to = y_to, y_from
+    y_from = max(y_from, MIN_BACKFILL_YEAR)
+    y_to = min(y_to, date.today().year)
+    if y_from > y_to:
+        return {"ok": False, "error": "invalid_year_range"}
+
+    years = list(range(y_from, y_to + 1))
+    if newest_first:
+        years.reverse()
+    per_year: list[dict] = []
+    written = 0
+    failed = 0
+    truncated_any = False
+    for y in years:
+        try:
+            r = _backfill_year(field, y, sensor=sensor, max_cloud=max_cloud)
+        except Exception as exc:  # noqa: BLE001 — never abort the remaining years
+            r = {"year": y, "granules_found": 0, "scenes_written": 0,
+                 "truncated": False, "errors": [str(exc)[:200]]}
+        if r.get("errors"):
+            failed += 1
+        written += int(r.get("scenes_written") or 0)
+        truncated_any = truncated_any or bool(r.get("truncated"))
+        per_year.append(r)
+        print(f"  · backfill {field_id} {y} [{sensor}]: {r['scenes_written']} scene(s) from "
+              f"{r['granules_found']} granule(s)"
+              + (" TRUNCATED" if r.get("truncated") else "")
+              + (f" errors={r['errors']}" if r.get("errors") else ""))
+    return {"ok": True, "field_id": str(field_id), "sensor": sensor,
+            "year_from": y_from, "year_to": y_to, "years": per_year,
+            "years_done": len(per_year), "years_failed": failed,
+            "scenes_written": written, "truncated": truncated_any}
+
+
 if __name__ == "__main__":
+    # Backfill sub-command (A8): python -m geo_pipeline.pipeline backfill <field_id> <from> <to> [sensor]
+    if len(sys.argv) > 1 and sys.argv[1] == "backfill":
+        if len(sys.argv) < 5:
+            raise SystemExit("usage: python -m geo_pipeline.pipeline backfill "
+                             "<field_id> <year_from> <year_to> [sensor]")
+        import json as _json
+        b_sensor = sys.argv[5].lower() if len(sys.argv) > 5 else "hls"
+        try:
+            b_from, b_to = int(sys.argv[3]), int(sys.argv[4])
+        except ValueError:
+            raise SystemExit("year_from / year_to must be integers")
+        out = run_field_backfill(sys.argv[2], b_from, b_to, sensor=b_sensor)
+        # Machine-readable last line for deploy/process-backfill.sh (per-year detail dropped —
+        # it is already on stdout above).
+        print("BACKFILL_RESULT " + _json.dumps({k: v for k, v in out.items() if k != "years"}))
+        raise SystemExit(0 if out.get("ok") else 1)
+
     if len(sys.argv) < 2:
         raise SystemExit("usage: python -m geo_pipeline.pipeline <field_id> [days_back] [track] [sensor]")
     fid = sys.argv[1]
