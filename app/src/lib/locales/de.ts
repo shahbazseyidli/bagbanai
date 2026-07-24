@@ -215,7 +215,8 @@ export const de: Dict = {
   "team.status": "Status",
   "team.role.owner": "Eigentümer",
   "team.role.admin": "Administrator",
-  "team.role.member": "Mitglied",
+  "team.role.agronomist": "Agronom",
+  "team.role.worker": "Mitarbeiter",
   "team.role.viewer": "Betrachter",
 
   "nav.pricing": "Preise",

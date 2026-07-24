@@ -215,7 +215,8 @@ export const tr: Dict = {
   "team.status": "Durum",
   "team.role.owner": "Sahip",
   "team.role.admin": "Yönetici",
-  "team.role.member": "Üye",
+  "team.role.agronomist": "Ziraat mühendisi",
+  "team.role.worker": "İşçi",
   "team.role.viewer": "İzleyici",
 
   "nav.pricing": "Fiyatlar",

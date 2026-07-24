@@ -9,7 +9,7 @@ import { t, type I18nKey } from "@/lib/i18n";
 import { ErrorNote, Field as FormField, Spinner } from "@/components/ui";
 import type { Invite, Member, Org, Role } from "@/lib/types";
 
-const ROLES: Role[] = ["owner", "admin", "member", "viewer"];
+const ROLES: Role[] = ["owner", "admin", "agronomist", "worker", "viewer"];
 
 function roleLabel(role: string): string {
   return t(`team.role.${role}` as I18nKey);
@@ -26,7 +26,7 @@ export default function TeamPage() {
   const [forbidden, setForbidden] = useState(false);
 
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState<Role>("member");
+  const [inviteRole, setInviteRole] = useState<Role>("worker");
   const [inviteLink, setInviteLink] = useState("");
 
   useEffect(() => {
@@ -187,7 +187,7 @@ export default function TeamPage() {
             <div>
               <FormField label={t("team.inviteRole")}>
                 <select className="input w-40" value={inviteRole} onChange={(e) => setInviteRole(e.target.value as Role)}>
-                  {(["admin", "member", "viewer"] as Role[]).map((r) => (
+                  {(["admin", "agronomist", "worker", "viewer"] as Role[]).map((r) => (
                     <option key={r} value={r}>
                       {roleLabel(r)}
                     </option>

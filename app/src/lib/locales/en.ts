@@ -225,7 +225,8 @@ export const en: Dict = {
   "team.status": "Status",
   "team.role.owner": "Owner",
   "team.role.admin": "Administrator",
-  "team.role.member": "Member",
+  "team.role.agronomist": "Agronomist",
+  "team.role.worker": "Worker",
   "team.role.viewer": "Viewer",
 
   "bnav.today": "Today",

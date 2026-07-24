@@ -240,7 +240,8 @@ export const az = {
   "team.status": "Status",
   "team.role.owner": "Sahib",
   "team.role.admin": "Administrator",
-  "team.role.member": "Üzv",
+  "team.role.agronomist": "Aqronom",
+  "team.role.worker": "İşçi",
   "team.role.viewer": "İzləyici",
 
   // bottom nav + admin (D2.1)

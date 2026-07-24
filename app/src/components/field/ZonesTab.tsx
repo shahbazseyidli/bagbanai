@@ -345,10 +345,18 @@ export default function ZonesTab({ fieldId }: { fieldId: string }) {
     setVraError("");
     try {
       const body: Record<string, unknown> = { nutrient, strategy };
+      // Mirror the server's bounds (VraIn: dose 0-2000, price 0-100) so an out-of-range entry
+      // gets a specific Azerbaijani message instead of a generic 422.
       const bd = parseFloat(baseDose.replace(",", "."));
-      if (!Number.isNaN(bd) && bd > 0) body.base_dose_kg_ha = bd;
+      if (!Number.isNaN(bd) && bd > 0) {
+        if (bd > 2000) { setVraError("Baza norması 2000 kq/ha-dan çox ola bilməz."); return; }
+        body.base_dose_kg_ha = bd;
+      }
       const pr = parseFloat(price.replace(",", "."));
-      if (!Number.isNaN(pr) && pr >= 0) body.price_azn_per_kg = pr;
+      if (!Number.isNaN(pr) && pr >= 0) {
+        if (pr > 100) { setVraError("Gübrə qiyməti 100 ₼/kq-dan çox ola bilməz."); return; }
+        body.price_azn_per_kg = pr;
+      }
       await api.post(`/api/fields/${fieldId}/vra`, body);
       const v = await api.get<VraResponse>(`/api/fields/${fieldId}/vra?nutrient=${nutrient}`);
       setVra(v);

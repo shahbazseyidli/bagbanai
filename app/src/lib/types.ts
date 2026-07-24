@@ -14,7 +14,9 @@ export interface User {
   region?: string | null;
 }
 
-export type Role = "owner" | "admin" | "member" | "viewer";
+// Mirrors services/app/schemas.py OrgRole / db org_role enum EXACTLY. "member" never existed
+// server-side: inviting with it 422s, and a real agronomist/worker had no matching <option>.
+export type Role = "owner" | "admin" | "agronomist" | "worker" | "viewer";
 
 export interface Org {
   id: string;

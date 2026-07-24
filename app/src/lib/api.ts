@@ -127,6 +127,9 @@ export function azError(err: unknown): string {
     if (err.status === 401) return "Sessiya bitib — yenidən daxil olun.";
     if (err.status === 403) return "Bu əməliyyata icazəniz yoxdur.";
     if (err.status === 404) return "Tapılmadı.";
+    // FastAPI 422 detail is a LIST of Pydantic errors; handle() stringifies it, so without this
+    // branch a raw JSON array would be rendered into the Azerbaijani UI.
+    if (err.status === 422) return "Daxil edilən dəyər düzgün deyil.";
     if (err.status >= 500) return "Server xətası — bir azdan yenidən cəhd edin.";
     // Never surface a raw snake_case code or "HTTP 500" to a farmer.
     return /^[a-z0-9_]+$/.test(err.detail) ? "Xəta baş verdi. Yenidən cəhd edin." : err.detail;
