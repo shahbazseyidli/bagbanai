@@ -1,5 +1,7 @@
 # QALAN İŞLƏR — kod-əsaslı audit (2026-07-24)
 
+> **YENİLƏNMƏ 2026-07-25:** audit-dən sonra icra edildi və CANLIDIR: C2 Pro sınağı (1 ay) · A1 kontrast · A2 timeline delta · A3 sahə balı çipi · A4 yağış nowcast · A9 yığım sırası · maket paritetı (3-sütun shell, "Bu gün" ekranı, sahə başlığı) · C3/C4 pricing FAQ+endirim+matris · C6 /finduq · C8 /guide · C10 /yenilikler+/status · C9 empty-state-lər · OneSoil forma (field paneli + xəritə-first /fields). Qalan: E4 kataloq filtrləri, B4 crop passport səthi, B11 quick-add FAB, B16 yer redaktoru, A10 share şəkli, C1/C7/C11/C12, i18n inline çıxarışı (T18).
+
 > 6 paralel yoxlayıcı **176 bənd**i real koda qarşı yoxladı: **35 qurulub**, **139 boşluq**.
 > Status yalnız kodla təsdiqlənib — sənəd iddiaları qəbul edilməyib (əvvəl bir dəfə yanlış çıxıb).
 
