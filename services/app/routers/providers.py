@@ -13,6 +13,10 @@ from ..schemas import CatalogItemIn, CatalogItemOut, ProviderIn, ProviderOut
 
 router = APIRouter(prefix="/api/providers", tags=["providers"])
 
+# Valid user_role enum labels (db/migrations/0031). Guards the free-text ?kind filter so a
+# bad value is ignored instead of casting to ::user_role and raising Postgres 22P02 → HTTP 500.
+_ROLE_LABELS = {"farmer", "lab", "consultant", "supplier"}
+
 
 def _provider_out(r) -> ProviderOut:
     return ProviderOut(
@@ -46,7 +50,7 @@ async def list_providers(
     """Public directory (any authenticated user). Filters: kind, country, region, spec, free-text q."""
     where = ["1=1"]
     args: list = []
-    if kind:
+    if kind and kind in _ROLE_LABELS:
         args.append(kind); where.append(f"kind = ${len(args)}::user_role")
     if country:
         args.append(country); where.append(f"country ilike ${len(args)}")
