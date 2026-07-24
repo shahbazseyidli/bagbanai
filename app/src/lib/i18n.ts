@@ -115,6 +115,9 @@ export const az = {
   "field.tab.fertilizer": "Gübrə",
   "field.tab.photos": "Foto",
   "field.tab.soil": "Torpaq",
+  "field.tab.season": "Mövsüm",
+  "field.tab.documents": "Sənədlər",
+  "field.tab.weather": "Hava",
   "field.mgrs": "MGRS xanaları",
 
   // indices

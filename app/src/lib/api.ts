@@ -135,8 +135,11 @@ export function azError(err: unknown): string {
 }
 
 export function apiAsset(path: string): string {
-  // Stored photos come back like "uploads/xxx.jpg"; prefix the base best-effort.
+  // Server-issued asset URLs are already absolute app paths ("/api/documents/<id>/download").
+  // Legacy stored paths look like "uploads/xxx.jpg" — those have NO route and are only kept
+  // working for callers that still pass them; prefer the authenticated /api/... serve routes.
   if (!path) return "";
   if (path.startsWith("http")) return path;
+  if (path.startsWith("/api/")) return `${API_BASE}${path}`;
   return `${API_BASE}/${path.replace(/^\//, "")}`;
 }

@@ -54,29 +54,66 @@ async def fetch_weather(lat: float, lon: float, *, days: int = 7,
         source=source_meta("https://open-meteo.com/", "Open-Meteo (FAO-56 ET0)", "structured_api", 0.9))
 
 
+_ARCHIVE_DAILY = ["temperature_2m_max", "temperature_2m_min"]
+
+# Open-Meteo daily variable → our short row key. Anything unmapped keeps its API name, so a
+# caller may ask for new variables without touching this module.
+_ARCHIVE_ALIASES = {
+    "temperature_2m_max": "t_max",
+    "temperature_2m_min": "t_min",
+    "temperature_2m_mean": "t_mean",
+    "precipitation_sum": "precip_mm",
+    "rain_sum": "rain_mm",
+    "snowfall_sum": "snowfall_cm",
+    "et0_fao_evapotranspiration": "et0_mm",
+    "wind_speed_10m_max": "wind_max",
+    "relative_humidity_2m_mean": "rh_mean",
+    "shortwave_radiation_sum": "radiation_mj",
+}
+
+
 async def fetch_archive(lat: float, lon: float, *, start: str, end: str,
+                        daily: list[str] | None = None, timeout: float = 25.0,
                         base: str = "https://archive-api.open-meteo.com/v1") -> SourceResult:
-    """Daily historical tmin/tmax for GDD accumulation (T4). Uses the keyless Open-Meteo *archive*
-    API (separate host, ~5-day lag on recent days). Never raises."""
+    """Daily historical weather from the keyless Open-Meteo *archive* API (separate host, ~5-day
+    lag on recent days). Never raises.
+
+    `daily` selects the requested variables (default: tmin/tmax, i.e. exactly what GDD needs, so
+    existing callers are unaffected). Rows are built generically from whatever daily columns come
+    back, with the well-known variables renamed to the short keys used across the codebase
+    (t_min/t_max/precip_mm/et0_mm…). Long windows (B18 needs ~20 years in one call) can raise the
+    per-request timeout."""
+    cols = list(daily) if daily else list(_ARCHIVE_DAILY)
     try:
         js = await get_json(
             f"{base.rstrip('/')}/archive",
             params={"latitude": lat, "longitude": lon, "start_date": start, "end_date": end,
-                    "daily": "temperature_2m_max,temperature_2m_min", "timezone": "auto"})
+                    "daily": ",".join(cols), "timezone": "auto"},
+            timeout=timeout)
     except Exception as exc:  # noqa: BLE001
         return SourceResult(ok=False, error=f"openmeteo_archive_unreachable: {exc}")
 
-    daily = (js or {}).get("daily") or {}
-    dates = daily.get("time") or []
+    block = (js or {}).get("daily") or {}
+    dates = block.get("time") or []
     if not dates:
         return SourceResult(ok=False, error="openmeteo_archive_empty")
-    tmax, tmin = daily.get("temperature_2m_max") or [], daily.get("temperature_2m_min") or []
-    rows = [{"date": d,
-             "t_max": tmax[i] if i < len(tmax) else None,
-             "t_min": tmin[i] if i < len(tmin) else None}
-            for i, d in enumerate(dates)]
+
+    # Every returned column (plus every requested one, so missing data reads as None).
+    keys = [k for k in block.keys() if k != "time"]
+    for k in cols:
+        if k not in keys:
+            keys.append(k)
+
+    rows = []
+    for i, d in enumerate(dates):
+        row: dict = {"date": d}
+        for k in keys:
+            vals = block.get(k) or []
+            row[_ARCHIVE_ALIASES.get(k, k)] = vals[i] if i < len(vals) else None
+        rows.append(row)
+
     return SourceResult(
-        ok=True, data={"days": rows},
+        ok=True, data={"days": rows, "variables": keys},
         source=source_meta("https://open-meteo.com/", "Open-Meteo Archive", "structured_api", 0.9))
 
 

@@ -102,6 +102,9 @@ export const tr: Dict = {
   "field.tab.fertilizer": "Gübre",
   "field.tab.photos": "Fotoğraflar",
   "field.tab.soil": "Toprak",
+  "field.tab.season": "Sezon",
+  "field.tab.documents": "Belgeler",
+  "field.tab.weather": "Hava",
   "field.mgrs": "MGRS karoları",
 
   "idx.title": "Uydu indeksleri",

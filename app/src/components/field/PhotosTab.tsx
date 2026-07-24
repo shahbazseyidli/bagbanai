@@ -59,7 +59,9 @@ export default function PhotosTab({ fieldId }: { fieldId: string }) {
               <div key={p.id} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
                 <div className="relative h-28 bg-slate-100">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={apiAsset(p.photo_path)} alt={p.ai_label || "Sahə şəkli"} className="h-full w-full object-cover" />
+                  {/* Bytes are served by the authenticated route (B15) — the stored
+                      "uploads/x.jpg" path has no route and 404s through nginx. */}
+                  <img src={apiAsset(`/api/photos/${p.id}/download`)} alt={p.ai_label || "Sahə şəkli"} className="h-full w-full object-cover" />
                   {cond && <span className={`absolute left-2 bottom-2 rounded px-1.5 py-0.5 text-[10px] font-bold ${cond.cls}`}>{cond.label}</span>}
                 </div>
                 <div className="p-2">

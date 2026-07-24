@@ -22,21 +22,27 @@ import ScoutingTab from "@/components/field/ScoutingTab";
 import TasksTab from "@/components/field/TasksTab";
 import OperationsTab from "@/components/field/OperationsTab";
 import YieldsTab from "@/components/field/YieldsTab";
+import SeasonTab from "@/components/field/SeasonTab";
+import DocumentsTab from "@/components/field/DocumentsTab";
+import WeatherHistoryTab from "@/components/field/WeatherHistoryTab";
 import type { FieldDetail } from "@/lib/types";
 
 type TabKey =
-  | "overview" | "sentinel2" | "nasa" | "ai" | "fertilizer" | "photos" | "metadata"
-  | "scouting" | "tasks" | "operations" | "yields" | "soil";
+  | "overview" | "sentinel2" | "nasa" | "weather" | "ai" | "fertilizer" | "photos" | "metadata"
+  | "scouting" | "tasks" | "operations" | "yields" | "soil" | "season" | "documents";
 
 const TABS: { key: TabKey; labelKey: I18nKey }[] = [
   { key: "overview", labelKey: "field.tab.overview" },
   { key: "sentinel2", labelKey: "field.tab.sentinel2" },
   { key: "nasa", labelKey: "field.tab.nasa" },
+  { key: "weather", labelKey: "field.tab.weather" },
   { key: "ai", labelKey: "field.tab.ai" },
   { key: "fertilizer", labelKey: "field.tab.fertilizer" },
   { key: "photos", labelKey: "field.tab.photos" },
   { key: "metadata", labelKey: "field.tab.metadata" },
+  { key: "season", labelKey: "field.tab.season" },
   { key: "soil", labelKey: "field.tab.soil" },
+  { key: "documents", labelKey: "field.tab.documents" },
   { key: "scouting", labelKey: "field.tab.scouting" },
   { key: "tasks", labelKey: "field.tab.tasks" },
   { key: "operations", labelKey: "field.tab.operations" },
@@ -47,15 +53,15 @@ const TABS: { key: TabKey; labelKey: I18nKey }[] = [
 // reveals its own tabs as a secondary chip row. (HYBRID_PLAN W4 added fertilizer/photos/soil.)
 type Group = "vaziyyet" | "isler" | "melumat";
 const GROUPS: { key: Group; label: string; tabs: TabKey[] }[] = [
-  { key: "vaziyyet", label: "Vəziyyət", tabs: ["overview", "sentinel2", "nasa"] },
+  { key: "vaziyyet", label: "Vəziyyət", tabs: ["overview", "sentinel2", "nasa", "weather"] },
   { key: "isler", label: "İşlər", tabs: ["ai", "photos", "fertilizer", "scouting", "tasks", "operations", "yields"] },
-  { key: "melumat", label: "Məlumat", tabs: ["metadata", "soil"] },
+  { key: "melumat", label: "Məlumat", tabs: ["metadata", "season", "soil", "documents"] },
 ];
 const GROUP_OF: Record<TabKey, Group> = {
-  overview: "vaziyyet", sentinel2: "vaziyyet", nasa: "vaziyyet",
+  overview: "vaziyyet", sentinel2: "vaziyyet", nasa: "vaziyyet", weather: "vaziyyet",
   ai: "isler", photos: "isler", fertilizer: "isler", scouting: "isler", tasks: "isler",
   operations: "isler", yields: "isler",
-  metadata: "melumat", soil: "melumat",
+  metadata: "melumat", season: "melumat", soil: "melumat", documents: "melumat",
 };
 
 export default function FieldDetailPage() {
@@ -302,6 +308,7 @@ function FieldDetailInner() {
       {tab === "overview" && <OverviewTab field={field} onNavigate={(x) => setTab(x)} compact={v2} />}
       {tab === "sentinel2" && <SatelliteTab field={field} sensor="S2" />}
       {tab === "nasa" && <SatelliteTab field={field} sensor="HLS" />}
+      {tab === "weather" && <WeatherHistoryTab fieldId={field.id} />}
       {tab === "ai" && (
         <div className="space-y-6">
           <AiTab fieldId={field.id} />
@@ -314,6 +321,8 @@ function FieldDetailInner() {
       {tab === "fertilizer" && <FertilizerTab fieldId={field.id} />}
       {tab === "photos" && <PhotosTab fieldId={field.id} />}
       {tab === "soil" && <SoilLabUpload fieldId={field.id} />}
+      {tab === "season" && <SeasonTab fieldId={field.id} />}
+      {tab === "documents" && <DocumentsTab fieldId={field.id} />}
       {tab === "metadata" && <MetadataTab fieldId={field.id} />}
       {tab === "scouting" && <ScoutingTab fieldId={field.id} />}
       {tab === "tasks" && <TasksTab fieldId={field.id} orgId={field.org_id} />}
