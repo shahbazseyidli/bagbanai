@@ -36,7 +36,10 @@ export function isPublicPath(pathname: string): boolean {
 // shell stays exactly as it shipped — rail + content.
 export function showsFieldList(pathname: string): boolean {
   const p = stripLocale(pathname || "/");
-  return p === "/" || p === "/fields" || p.startsWith("/fields/");
+  // NOT the exact "/fields" index — that page is itself the map-first field list, so the panel
+  // would duplicate it. The panel belongs on the home ("/") and on a field's detail ("/fields/{id}"),
+  // where a list beside the content is the OneSoil pattern.
+  return p === "/" || (p.startsWith("/fields/") && p !== "/fields");
 }
 
 // Width bookkeeping for the third column. AppShell lives inside

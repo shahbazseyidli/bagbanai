@@ -181,6 +181,12 @@ export default function FieldsOverviewMap({
     mapRef.current = map;
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
 
+    // Keep the GL viewport in sync with the container. Without this a map that mounts inside a
+    // grid/sticky column that has not finished laying out (e.g. the map-first /fields screen)
+    // initialises at 0-height and renders blank until something forces a resize.
+    const ro = new ResizeObserver(() => map.resize());
+    ro.observe(ref.current);
+
     function draw() {
       if (map.getSource("basemap")) return; // already drawn
       applyBasemap(map, getSavedBasemap());
@@ -218,7 +224,7 @@ export default function FieldsOverviewMap({
     else map.on("load", draw);
     map.on("idle", draw);
 
-    return () => { map.remove(); mapRef.current = null; };
+    return () => { ro.disconnect(); map.remove(); mapRef.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
