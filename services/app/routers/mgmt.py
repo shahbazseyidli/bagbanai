@@ -122,11 +122,11 @@ async def create_op(body: OperationIn, user_id: str = Depends(get_current_user_i
         await require_role(conn, user_id, org_id, ROLES_WORKER)
         row = await conn.fetchrow(
             """insert into public.field_operations
-                 (field_id, org_id, type, performed_on, inputs, cost, currency, performed_by, notes)
-               values ($1::uuid,$2::uuid,$3,$4::date,$5::jsonb,$6,$7,$8::uuid,$9)
+                 (field_id, org_id, type, performed_on, inputs, cost, currency, phi_days, performed_by, notes)
+               values ($1::uuid,$2::uuid,$3,$4::date,$5::jsonb,$6,$7,$8,$9::uuid,$10)
                returning id, created_at""",
             body.field_id, org_id, body.type, body.performed_on, json.dumps(body.inputs),
-            body.cost, body.currency, user_id, body.notes)
+            body.cost, body.currency, body.phi_days, user_id, body.notes)
     return {"id": str(row["id"]), "created_at": row["created_at"].isoformat()}
 
 
@@ -136,7 +136,7 @@ async def list_ops(field_id: str = Query(...), user_id: str = Depends(get_curren
         org_id = await _org_of_field(conn, field_id)
         await require_member(conn, user_id, org_id)
         rows = await conn.fetch(
-            """select id, type, performed_on, inputs, cost, currency, notes
+            """select id, type, performed_on, inputs, cost, currency, phi_days, notes
                from public.field_operations where field_id=$1::uuid order by performed_on desc""", field_id)
     out = []
     for r in rows:
@@ -146,6 +146,42 @@ async def list_ops(field_id: str = Query(...), user_id: str = Depends(get_curren
             d["inputs"] = json.loads(d["inputs"])
         out.append(d)
     return out
+
+
+# Spray safety (HYBRID_PLAN B6): pre-harvest interval countdown. For each spray op that carries a
+# phi_days, the crop is unsafe to harvest until performed_on + phi_days. The active restriction is
+# the one whose safe date is furthest in the future.
+@router.get("/fields/{field_id}/spray-safety")
+async def spray_safety(field_id: str, user_id: str = Depends(get_current_user_id)):
+    async with connection(user_id) as conn:
+        org_id = await _org_of_field(conn, field_id)
+        await require_member(conn, user_id, org_id)
+        rows = await conn.fetch(
+            """select id, type, performed_on, phi_days, inputs, notes
+               from public.field_operations
+               where field_id=$1::uuid and phi_days is not null and phi_days > 0
+               order by performed_on desc limit 50""", field_id)
+    today = date.today()
+    sprays = []
+    active = None
+    for r in rows:
+        performed = r["performed_on"]
+        safe = performed + timedelta(days=int(r["phi_days"]))
+        days_left = (safe - today).days
+        inputs = r["inputs"]
+        if isinstance(inputs, str):
+            inputs = json.loads(inputs)
+        products = [str(i.get("product")) for i in (inputs or []) if isinstance(i, dict) and i.get("product")]
+        item = {
+            "id": str(r["id"]), "type": r["type"], "performed_on": performed.isoformat(),
+            "phi_days": int(r["phi_days"]), "safe_date": safe.isoformat(),
+            "days_left": days_left, "safe": days_left <= 0, "products": products,
+        }
+        sprays.append(item)
+        # Active = the still-restricting spray with the latest safe date.
+        if days_left > 0 and (active is None or safe > date.fromisoformat(active["safe_date"])):
+            active = item
+    return {"active": active, "sprays": sprays}
 
 
 # ---------- yields ----------

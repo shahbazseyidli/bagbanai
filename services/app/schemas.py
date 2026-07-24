@@ -194,6 +194,7 @@ class OperationIn(BaseModel):
     inputs: list[Any] = []              # [{product,rate,unit}]
     cost: Optional[float] = None
     currency: str = "AZN"
+    phi_days: Optional[int] = None      # pre-harvest interval (days) — spray safety countdown (B6)
     notes: Optional[str] = None
 
 

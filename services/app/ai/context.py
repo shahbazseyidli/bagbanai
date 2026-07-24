@@ -111,6 +111,7 @@ async def build_field_context(conn, field_id: str) -> dict[str, Any]:
     # advice folds these in (req #4 soil, #6 photos). Defensive: if the tables are missing (migration
     # not yet applied) fall back to empty so advice still runs.
     soil = photos = fert = None
+    spray_restriction = None
     try:
         soil = await conn.fetchrow(
             """select ph, organic_matter_pct, nitrogen, phosphorus, potassium, texture, source
@@ -122,6 +123,19 @@ async def build_field_context(conn, field_id: str) -> dict[str, Any]:
         fert = await conn.fetch(
             """select product, zone, dose, status, planned_on from public.fertilizer_plans
                where field_id=$1::uuid order by planned_on desc nulls last limit 6""", field_id)
+        # B6 active pre-harvest interval: latest spray whose safe date is still in the future.
+        sr = await conn.fetchrow(
+            """select performed_on, phi_days,
+                      (performed_on + (phi_days || ' days')::interval)::date as safe_date
+               from public.field_operations
+               where field_id=$1::uuid and phi_days is not null and phi_days > 0
+                 and (performed_on + (phi_days || ' days')::interval)::date > current_date
+               order by safe_date desc limit 1""", field_id)
+        if sr:
+            spray_restriction = {
+                "last_spray": sr["performed_on"], "phi_days": sr["phi_days"],
+                "safe_harvest_date": sr["safe_date"], "harvest_blocked": True,
+            }
     except Exception:  # noqa: BLE001 — pre-migration/degraded: advice continues satellite-only
         pass
 
@@ -143,6 +157,7 @@ async def build_field_context(conn, field_id: str) -> dict[str, Any]:
         "soil_analysis": dict(soil) if soil else None,
         "recent_photos": rows(photos),
         "fertilizer_plan": rows(fert),
+        "spray_restriction": spray_restriction,
         "previous_advice_summary": prior["summary"] if prior else None,
         # Knowledge Passport (M6): zone + field research blocks the advice reasons over
         # (crop norms, phenology, pests, soil, resolved clarifications). Empty until the

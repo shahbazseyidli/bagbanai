@@ -197,7 +197,24 @@ export interface Operation {
   inputs?: Array<Record<string, unknown>> | null;
   cost?: number | null;
   currency?: string | null;
+  phi_days?: number | null;
   notes?: string | null;
+}
+
+export interface SpraySafetyItem {
+  id: string;
+  type: string;
+  performed_on: string;
+  phi_days: number;
+  safe_date: string;
+  days_left: number;
+  safe: boolean;
+  products: string[];
+}
+
+export interface SpraySafety {
+  active: SpraySafetyItem | null;
+  sprays: SpraySafetyItem[];
 }
 
 export interface Yield {

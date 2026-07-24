@@ -1,18 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, ShieldAlert, ShieldCheck } from "lucide-react";
 import { api } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import { ErrorNote, Field as FormField, Placeholder } from "@/components/ui";
 import ChoiceChips from "@/components/field/ChoiceChips";
-import type { Operation } from "@/lib/types";
+import type { Operation, SpraySafety } from "@/lib/types";
 
 // D5.4 — click-first: the common field operations + currencies as tap chips.
 const OP_TYPES = ["Suvarma", "Gübrələmə", "Çiləmə", "Şumlama", "Əkin", "Yığım", "Budama", "Alaqotu"].map(
   (v) => ({ value: v, label: v }),
 );
 const CURRENCIES = ["AZN", "USD", "EUR"].map((v) => ({ value: v, label: v }));
+
+// B6 — spray operations (pesticide) carry a pre-harvest interval; show a PHI field for these.
+const SPRAY_TYPES = new Set(["Çiləmə", "spraying", "Dərmanlama"]);
 
 interface InputRow {
   product: string;
@@ -21,6 +24,7 @@ interface InputRow {
 
 export default function OperationsTab({ fieldId }: { fieldId: string }) {
   const [items, setItems] = useState<Operation[]>([]);
+  const [safety, setSafety] = useState<SpraySafety | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -28,14 +32,22 @@ export default function OperationsTab({ fieldId }: { fieldId: string }) {
   const [performedOn, setPerformedOn] = useState("");
   const [cost, setCost] = useState("");
   const [currency, setCurrency] = useState("AZN");
+  const [phi, setPhi] = useState("");
   const [notes, setNotes] = useState("");
   const [inputs, setInputs] = useState<InputRow[]>([]);
+
+  const isSpray = SPRAY_TYPES.has(type);
 
   async function load() {
     try {
       setItems(await api.get<Operation[]>(`/api/operations?field_id=${fieldId}`));
     } catch (err) {
       setError(err instanceof Error ? err.message : t("common.error"));
+    }
+    try {
+      setSafety(await api.get<SpraySafety>(`/api/fields/${fieldId}/spray-safety`));
+    } catch {
+      // spray-safety is best-effort; ignore (e.g. pre-migration servers).
     }
   }
 
@@ -59,11 +71,13 @@ export default function OperationsTab({ fieldId }: { fieldId: string }) {
         inputs: cleanInputs,
         cost: cost ? Number(cost) : undefined,
         currency,
+        phi_days: isSpray && phi ? Number(phi) : undefined,
         notes: notes || undefined,
       });
       setType("");
       setPerformedOn("");
       setCost("");
+      setPhi("");
       setNotes("");
       setInputs([]);
       await load();
@@ -76,6 +90,29 @@ export default function OperationsTab({ fieldId }: { fieldId: string }) {
 
   return (
     <div className="space-y-6">
+      {/* B6 — pre-harvest interval (PHI) safety banner. */}
+      {safety?.active ? (
+        <div className="flex items-start gap-3 rounded-xl border-[1.5px] border-amber-300 bg-amber-50 p-3">
+          <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+          <div className="text-sm text-amber-900">
+            <p className="font-semibold">
+              Yığım hələ təhlükəsiz deyil — {safety.active.days_left} gün qalıb
+            </p>
+            <p className="mt-0.5 text-amber-800">
+              Son çiləmə {safety.active.performed_on}
+              {safety.active.products.length > 0 && ` (${safety.active.products.join(", ")})`} ·
+              gözləmə müddəti {safety.active.phi_days} gün · təhlükəsiz tarix{" "}
+              <span className="font-medium">{safety.active.safe_date}</span>.
+            </p>
+          </div>
+        </div>
+      ) : safety && safety.sprays.length > 0 ? (
+        <div className="flex items-center gap-3 rounded-xl border-[1.5px] border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+          <ShieldCheck className="h-5 w-5 shrink-0 text-emerald-600" />
+          <p className="font-medium">Yığım təhlükəsizdir — bütün çiləmə gözləmə müddətləri bitib.</p>
+        </div>
+      ) : null}
+
       <form onSubmit={onSubmit} className="card space-y-3">
         <h3 className="font-semibold text-slate-800">{t("op.add")}</h3>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -91,6 +128,18 @@ export default function OperationsTab({ fieldId }: { fieldId: string }) {
           <FormField label={t("op.currency")}>
             <ChoiceChips value={currency} onChange={setCurrency} options={CURRENCIES} />
           </FormField>
+          {isSpray && (
+            <FormField label="Gözləmə müddəti — PHI (gün)">
+              <input
+                className="input"
+                type="number"
+                min="0"
+                value={phi}
+                onChange={(e) => setPhi(e.target.value)}
+                placeholder="Dərman etiketindəki yığıma qədər gün"
+              />
+            </FormField>
+          )}
         </div>
 
         <div>
@@ -166,6 +215,11 @@ export default function OperationsTab({ fieldId }: { fieldId: string }) {
                     {op.inputs
                       .map((r) => `${(r as { product?: string }).product ?? ""} ${(r as { amount?: number }).amount ?? ""}`.trim())
                       .join(", ")}
+                  </p>
+                )}
+                {op.phi_days != null && (
+                  <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-amber-50 px-1.5 py-0.5 text-xs text-amber-700">
+                    <ShieldAlert className="h-3 w-3" /> PHI {op.phi_days} gün
                   </p>
                 )}
                 {op.notes && <p className="mt-1 text-sm text-slate-700">{op.notes}</p>}
