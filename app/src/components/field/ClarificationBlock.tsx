@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { HelpCircle, AlertTriangle } from "lucide-react";
 import { api } from "@/lib/api";
+import { t } from "@/lib/i18n";
 
 // One open clarification (knowledge layer M7). Farmer data is authoritative, but the AI does
 // not stay silent on a clear norm deviation — it asks, with structured options (spec §10).
@@ -64,14 +65,13 @@ export default function ClarificationBlock({ fieldId }: { fieldId: string }) {
         ) : (
           <HelpCircle className="h-5 w-5 text-emerald-600" />
         )}
-        <h3 className="font-semibold text-slate-800">Dəqiqləşdirilməli məsələlər</h3>
+        <h3 className="font-semibold text-slate-800">{t("app.field.clarificationBlock.heading")}</h3>
         <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-700">
           {items.length}
         </span>
       </div>
       <p className="mb-3 text-xs text-slate-500">
-        Cavabların analizi dəqiqləşdirir. Bu suallar bir dəfə verilir — cavab verdikdən sonra
-        təkrarlanmır.
+        {t("app.field.clarificationBlock.intro")}
       </p>
 
       <div className="flex flex-col gap-3">
@@ -80,7 +80,7 @@ export default function ClarificationBlock({ fieldId }: { fieldId: string }) {
             <p className="text-sm text-slate-800">{c.question_text}</p>
             {c.evidence?.index && (
               <p className="mt-1 text-[11px] text-slate-400">
-                {c.evidence.index} = {c.evidence.observed} · gözlənilən ≥ {c.evidence.expected_min}
+                {c.evidence.index} = {c.evidence.observed}{t("app.field.clarificationBlock.expectedSeparator")}{c.evidence.expected_min}
                 {c.evidence.date ? ` · ${c.evidence.date}` : ""}
               </p>
             )}

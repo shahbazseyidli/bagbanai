@@ -115,13 +115,13 @@ export default function YieldsTab({ fieldId }: { fieldId: string }) {
             <input className="input" type="number" step="any" value={value} onChange={(e) => setValue(e.target.value)} />
           </FormField>
           <FormField label={t("yield.unit")}>
-            <ChoiceChips value={unit} onChange={setUnit} options={YIELD_UNITS} other={{ placeholder: "Digər vahid" }} />
+            <ChoiceChips value={unit} onChange={setUnit} options={YIELD_UNITS} other={{ placeholder: t("app.field.yieldsTab.otherUnitPlaceholder") }} />
           </FormField>
           <FormField label={t("yield.area")}>
             <input className="input" type="number" step="any" value={area} onChange={(e) => setArea(e.target.value)} />
           </FormField>
-          <FormField label="Gəlir (₼)">
-            <input className="input" type="number" step="any" value={revenue} onChange={(e) => setRevenue(e.target.value)} placeholder="Satışdan ümumi gəlir" />
+          <FormField label={t("app.field.yieldsTab.revenueLabel")}>
+            <input className="input" type="number" step="any" value={revenue} onChange={(e) => setRevenue(e.target.value)} placeholder={t("app.field.yieldsTab.revenuePlaceholder")} />
           </FormField>
         </div>
         <FormField label={t("yield.notes")}>

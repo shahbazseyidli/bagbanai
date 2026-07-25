@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Sparkles, Send } from "lucide-react";
 import { api } from "@/lib/api";
-import { getLocale } from "@/lib/i18n";
+import { getLocale, t } from "@/lib/i18n";
 import { Spinner } from "@/components/ui";
 import KnowledgePassport from "@/components/field/KnowledgePassport";
 import SpeakButton from "@/components/SpeakButton";
@@ -30,8 +30,7 @@ const SEV_CLASS: Record<string, string> = {
 function NotConfigured() {
   return (
     <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-      AI hələ qoşulmayıb. Aktivləşdikdən sonra sahə üçün avtomatik məsləhətlər və söhbət
-      burada görünəcək.
+      {t("app.field.aiTab.notConfigured")}
     </div>
   );
 }
@@ -79,7 +78,7 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
       const r = await api.post<{ reply: string }>(`/api/fields/${fieldId}/chat`, { message: text, locale: getLocale() });
       setMsgs((m) => [...m, { role: "assistant", content: r.reply }]);
     } catch {
-      setMsgs((m) => [...m, { role: "assistant", content: "Bağışlayın, cavab alınmadı. Sonra yenidən yoxlayın." }]);
+      setMsgs((m) => [...m, { role: "assistant", content: t("app.field.aiTab.chatError") }]);
     } finally {
       setSending(false);
     }
@@ -104,7 +103,7 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
       <div className="card">
         <div className="mb-3 flex items-center justify-between gap-2">
           <h3 className="flex items-center gap-2 font-semibold text-slate-800">
-            <Sparkles className="h-4 w-4 text-emerald-600" /> AI məsləhəti
+            <Sparkles className="h-4 w-4 text-emerald-600" /> {t("app.field.aiTab.adviceHeading")}
           </h3>
           {advice && (
             <SpeakButton
@@ -120,7 +119,7 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
 
         {!advice ? (
           <p className="text-sm text-slate-500">
-            Hələ məsləhət yoxdur. Peyk məlumatı hazır olanda avtomatik yaranır.
+            {t("app.field.aiTab.noAdvice")}
           </p>
         ) : (
           <div className="space-y-4 text-sm">
@@ -128,7 +127,7 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
 
             {advice.risks?.length > 0 && (
               <div>
-                <h4 className="mb-1 font-medium text-slate-800">Risklər</h4>
+                <h4 className="mb-1 font-medium text-slate-800">{t("app.field.aiTab.risksHeading")}</h4>
                 <ul className="space-y-1.5">
                   {advice.risks.map((r, i) => (
                     <li key={i} className="flex gap-2">
@@ -144,7 +143,7 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
 
             {advice.recommendations?.length > 0 && (
               <div>
-                <h4 className="mb-1 font-medium text-slate-800">Məsləhətlər</h4>
+                <h4 className="mb-1 font-medium text-slate-800">{t("app.field.aiTab.recommendationsHeading")}</h4>
                 <ul className="list-disc space-y-1 pl-5 text-slate-700">
                   {advice.recommendations.map((r, i) => (
                     <li key={i}><b>{r.title}.</b> {r.detail}</li>
@@ -155,7 +154,7 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
 
             {advice.next_steps?.length > 0 && (
               <div>
-                <h4 className="mb-1 font-medium text-slate-800">Növbəti addımlar</h4>
+                <h4 className="mb-1 font-medium text-slate-800">{t("app.field.aiTab.nextStepsHeading")}</h4>
                 <ol className="list-decimal space-y-1 pl-5 text-slate-700">
                   {advice.next_steps.map((s, i) => <li key={i}>{s}</li>)}
                 </ol>
@@ -166,8 +165,8 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
               {advice.disclaimer} · {advice.generated_at.slice(0, 10)}
             </p>
             <p className="text-xs text-slate-400">
-              AI təhlili avtomatik yenilənir (15 gündə bir, son peyk məlumatı əsasında)
-              {advice.generated_at ? ` · son yenilənmə: ${advice.generated_at.slice(0, 10)}` : ""}.
+              {t("app.field.aiTab.autoRefresh")}
+              {advice.generated_at ? ` · ${t("app.field.aiTab.lastUpdateLabel")} ${advice.generated_at.slice(0, 10)}` : ""}.
             </p>
           </div>
         )}
@@ -175,11 +174,11 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
 
       {/* Chat */}
       <div className="card flex h-[32rem] flex-col">
-        <h3 className="mb-3 font-semibold text-slate-800">Bağban AI ilə söhbət</h3>
+        <h3 className="mb-3 font-semibold text-slate-800">{t("app.field.aiTab.chatHeading")}</h3>
         <div className="flex-1 space-y-3 overflow-y-auto pr-1">
           {msgs.length === 0 && (
             <p className="text-sm text-slate-400">
-              Sahəniz haqqında sual verin — məs. “NDVI niyə düşür?”, “Nə vaxt suvarım?”.
+              {t("app.field.aiTab.chatEmpty")}
             </p>
           )}
           {msgs.map((m, i) => (
@@ -200,7 +199,7 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
         <div className="mt-3 flex gap-2">
           <input
             className="input flex-1"
-            placeholder="Sualınızı yazın…"
+            placeholder={t("app.field.aiTab.inputPlaceholder")}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") send(); }}

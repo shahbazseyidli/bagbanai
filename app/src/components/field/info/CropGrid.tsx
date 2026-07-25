@@ -7,6 +7,7 @@
 import { useEffect, useState } from "react";
 import { CROP_OPTIONS, CROP_CYCLE } from "@/lib/metadataOptions";
 import { Chip } from "./chip";
+import { t } from "@/lib/i18n";
 
 export interface CropGridProps {
   /** Selected cycle used to soft-filter crops; null shows all. */
@@ -61,7 +62,7 @@ export default function CropGrid({ cycle, value, onChange }: CropGridProps) {
             if (!isCustom) onChange("");
           }}
         >
-          Digər
+          {t("app.field.info.cropGrid.other")}
         </Chip>
       </div>
       {canToggle && (
@@ -70,13 +71,13 @@ export default function CropGrid({ cycle, value, onChange }: CropGridProps) {
           className="text-sm font-medium text-emerald-700 hover:underline"
           onClick={() => setShowAll((s) => !s)}
         >
-          {showAll ? "Yalnız uyğun olanlar" : "Hamısını göstər"}
+          {showAll ? t("app.field.info.cropGrid.showMatchingOnly") : t("app.field.info.cropGrid.showAll")}
         </button>
       )}
       {(otherOpen || isCustom) && (
         <input
           className="input"
-          placeholder="Bitki adını daxil edin"
+          placeholder={t("app.field.info.cropGrid.cropNamePlaceholder")}
           value={isCustom ? value : ""}
           onChange={(e) => onChange(e.target.value)}
         />

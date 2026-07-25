@@ -18,6 +18,7 @@ import {
 import { CalendarRange, TrendingDown, TrendingUp, Minus } from "lucide-react";
 import { api, azError } from "@/lib/api";
 import { ErrorNote, Placeholder, Spinner } from "@/components/ui";
+import { t } from "@/lib/i18n";
 
 interface SeasonRow {
   season_year: number;
@@ -104,7 +105,7 @@ export default function SeasonCompareChart({ fieldId }: { fieldId: string }) {
   if (loading) {
     return (
       <div className="card">
-        <Spinner label="Mövsüm müqayisəsi yüklənir…" />
+        <Spinner label={t("app.field.seasonCompareChart.loading")} />
       </div>
     );
   }
@@ -126,17 +127,17 @@ export default function SeasonCompareChart({ fieldId }: { fieldId: string }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="flex items-center gap-2 font-semibold text-slate-800">
-            <CalendarRange className="h-4 w-4 text-emerald-700" /> Mövsüm müqayisəsi
+            <CalendarRange className="h-4 w-4 text-emerald-700" /> {t("app.field.seasonCompareChart.title")}
           </h3>
           <p className="mt-0.5 text-xs text-slate-500">
-            Hər mövsümün bitki inkişafı eyni təqvim günü üzrə üst-üstə qoyulur.
+            {t("app.field.seasonCompareChart.subtitle")}
           </p>
         </div>
         <div className="flex gap-2">
           {(
             [
-              ["ndvi", "NDVI əyrisi"],
-              ["integral", "Toplam artım"],
+              ["ndvi", t("app.field.seasonCompareChart.ndviCurve")],
+              ["integral", t("app.field.seasonCompareChart.totalGrowth")],
             ] as [Metric, string][]
           ).map(([key, label]) => (
             <button
@@ -164,8 +165,8 @@ export default function SeasonCompareChart({ fieldId }: { fieldId: string }) {
             <p className="font-medium">{v.sentence}</p>
             {v.available && v.doy !== null && (
               <p className="mt-0.5 text-xs opacity-80">
-                Müqayisə tarixi: {doyLabel(v.doy)} · {v.current_year} vs {v.prior_year} ·{" "}
-                {v.basis === "integral" ? "toplam artım (NDVI-gün)" : "NDVI dəyəri"}
+                {t("app.field.seasonCompareChart.compareDateLabel")}{doyLabel(v.doy)} · {v.current_year}{t("app.field.seasonCompareChart.vsSeparator")}{v.prior_year} ·{" "}
+                {v.basis === "integral" ? t("app.field.seasonCompareChart.basisIntegral") : t("app.field.seasonCompareChart.basisNdvi")}
               </p>
             )}
           </div>
@@ -173,7 +174,7 @@ export default function SeasonCompareChart({ fieldId }: { fieldId: string }) {
       )}
 
       {rows.length === 0 ? (
-        <Placeholder>Müqayisə üçün hələ peyk məlumatı yoxdur.</Placeholder>
+        <Placeholder>{t("app.field.seasonCompareChart.noData")}</Placeholder>
       ) : (
         <>
           <div className="h-64">
@@ -222,11 +223,11 @@ export default function SeasonCompareChart({ fieldId }: { fieldId: string }) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-xs uppercase tracking-wide text-slate-400">
-                  <th className="py-2 text-left font-semibold">Mövsüm</th>
-                  <th className="py-2 text-right font-semibold">Zirvə NDVI</th>
-                  <th className="py-2 text-right font-semibold">Zirvə tarixi</th>
-                  <th className="py-2 text-right font-semibold">Toplam artım</th>
-                  <th className="py-2 text-right font-semibold">Səhnə</th>
+                  <th className="py-2 text-left font-semibold">{t("app.field.seasonCompareChart.colSeason")}</th>
+                  <th className="py-2 text-right font-semibold">{t("app.field.seasonCompareChart.colPeakNdvi")}</th>
+                  <th className="py-2 text-right font-semibold">{t("app.field.seasonCompareChart.colPeakDate")}</th>
+                  <th className="py-2 text-right font-semibold">{t("app.field.seasonCompareChart.totalGrowth")}</th>
+                  <th className="py-2 text-right font-semibold">{t("app.field.seasonCompareChart.colScenes")}</th>
                 </tr>
               </thead>
               <tbody>

@@ -45,7 +45,7 @@ const PILL: Record<Tone, string> = {
 /** Hover/AT detail — the stored headline + the day it was computed (never faked). */
 function detail(s?: FieldScore | null): string | undefined {
   if (!s) return undefined;
-  const bits = [s.headline, s.computed_on ? `Hesablanma: ${s.computed_on}` : null].filter(Boolean);
+  const bits = [s.headline, s.computed_on ? `${t("app.home.scoreBadge.computedOn")}${s.computed_on}` : null].filter(Boolean);
   return bits.length ? bits.join(" · ") : undefined;
 }
 
@@ -65,7 +65,7 @@ export function ScoreDot({ score, className = "" }: { score?: FieldScore | null;
   return (
     <span
       title={detail(score)}
-      aria-label={`Sahə balı: ${score.score} / 100`}
+      aria-label={`${t("app.home.scoreBadge.fieldScoreLabel")}${score.score} / 100`}
       className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl text-base font-extrabold tabular-nums ${DOT[band]} ${
         score.stale ? "opacity-80" : ""
       } ${className}`}
@@ -80,10 +80,10 @@ export function ScorePill({ score, className = "" }: { score?: FieldScore | null
   if (!score) {
     return (
       <span
-        title="Sahə balı hələ hesablanmayıb"
+        title={t("app.home.scoreBadge.notComputedYet")}
         className={`shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-sm font-bold text-slate-500 ${className}`}
       >
-        <span className="sr-only">Sahə balı hələ yoxdur</span>
+        <span className="sr-only">{t("app.home.scoreBadge.noScoreYet")}</span>
         <span aria-hidden="true">—</span>
       </span>
     );
@@ -96,7 +96,7 @@ export function ScorePill({ score, className = "" }: { score?: FieldScore | null
         score.stale ? "opacity-70" : ""
       } ${className}`}
     >
-      <span className="sr-only">Sahə balı: </span>
+      <span className="sr-only">{t("app.home.scoreBadge.fieldScoreLabel")}</span>
       {score.score}
     </span>
   );

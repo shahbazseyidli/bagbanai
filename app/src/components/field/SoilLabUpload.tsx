@@ -7,6 +7,7 @@ import { useState } from "react";
 import { FlaskConical, Sparkles } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import UpgradeCta from "@/components/UpgradeCta";
+import { t } from "@/lib/i18n";
 
 interface SoilLab {
   ph: number | null;
@@ -20,17 +21,6 @@ interface SoilLab {
   notes: string | null;
   confidence: string;
 }
-
-const ROWS: { k: keyof SoilLab; label: string }[] = [
-  { k: "ph", label: "pH" },
-  { k: "organic_matter_pct", label: "Üzvi maddə %" },
-  { k: "nitrogen", label: "Azot (N)" },
-  { k: "phosphorus", label: "Fosfor (P₂O₅)" },
-  { k: "potassium", label: "Kalium (K₂O)" },
-  { k: "texture", label: "Mexaniki tərkib" },
-  { k: "ec", label: "Duzluluq (EC)" },
-  { k: "caco3_pct", label: "Karbonat CaCO₃ %" },
-];
 
 function has(v: SoilLab[keyof SoilLab]): boolean {
   return v != null && v !== "";
@@ -62,23 +52,33 @@ export default function SoilLabUpload({ fieldId }: { fieldId: string }) {
       setResult(await api.upload<SoilLab>(`/api/fields/${fieldId}/soil-lab`, file));
     } catch (err) {
       if (err instanceof ApiError && err.status === 402) setGated(true);
-      else if (err instanceof ApiError && err.status === 503) setError("AI hazırda əlçatan deyil.");
-      else setError(err instanceof Error ? err.message : "Analiz oxunmadı.");
+      else if (err instanceof ApiError && err.status === 503) setError(t("app.field.soilLabUpload.errUnavailable"));
+      else setError(err instanceof Error ? err.message : t("app.field.soilLabUpload.errFailed"));
     } finally {
       setBusy(false);
     }
   }
 
+  const ROWS: { k: keyof SoilLab; label: string }[] = [
+    { k: "ph", label: "pH" },
+    { k: "organic_matter_pct", label: t("app.field.soilLabUpload.rowOrganicMatter") },
+    { k: "nitrogen", label: t("app.field.soilLabUpload.rowNitrogen") },
+    { k: "phosphorus", label: t("app.field.soilLabUpload.rowPhosphorus") },
+    { k: "potassium", label: t("app.field.soilLabUpload.rowPotassium") },
+    { k: "texture", label: t("app.field.soilLabUpload.rowTexture") },
+    { k: "ec", label: t("app.field.soilLabUpload.rowSalinity") },
+    { k: "caco3_pct", label: t("app.field.soilLabUpload.rowCarbonate") },
+  ];
+
   return (
     <div className="card space-y-3">
       <div className="flex items-center gap-2">
         <FlaskConical className="h-4 w-4 text-emerald-600" />
-        <h3 className="font-semibold text-slate-800">Laboratoriya torpaq analizi (OCR)</h3>
-        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">Paket 3</span>
+        <h3 className="font-semibold text-slate-800">{t("app.field.soilLabUpload.title")}</h3>
+        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">{t("app.field.soilLabUpload.tierBadge")}</span>
       </div>
       <p className="text-xs text-slate-500">
-        Torpaq laboratoriya hesabatının şəklini yükləyin — AI göstəriciləri (pH, humus, N/P/K, tərkib)
-        oxuyub sahə pasportuna əlavə etsin. Lab nəticəsi peyk/SoilGrids qiymətindən üstün tutulur.
+        {t("app.field.soilLabUpload.intro")}
       </p>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -94,22 +94,22 @@ export default function SoilLabUpload({ fieldId }: { fieldId: string }) {
           disabled={!file || busy}
           className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
         >
-          <Sparkles className="h-4 w-4" /> {busy ? "Oxunur…" : "Analizi oxu"}
+          <Sparkles className="h-4 w-4" /> {busy ? t("app.field.soilLabUpload.reading") : t("app.field.soilLabUpload.readAnalysis")}
         </button>
       </div>
 
       {preview && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={preview} alt="seçilmiş" className="max-h-48 rounded-lg border border-slate-200 object-contain" />
+        <img src={preview} alt={t("app.field.soilLabUpload.previewAlt")} className="max-h-48 rounded-lg border border-slate-200 object-contain" />
       )}
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       {gated && (
         <UpgradeCta
-          title="Lab analizi OCR Paket 3-də açıqdır"
-          subtitle="Torpaq laboratoriya hesabatlarını AI ilə rəqəmsallaşdırmaq üçün Paket 3-ə keçin."
-          priceLine="Paket 3 — 25 AZN/ay"
+          title={t("app.field.soilLabUpload.gateTitle")}
+          subtitle={t("app.field.soilLabUpload.gateSubtitle")}
+          priceLine={t("app.field.soilLabUpload.gatePrice")}
           onDismiss={() => setGated(false)}
         />
       )}
@@ -117,9 +117,9 @@ export default function SoilLabUpload({ fieldId }: { fieldId: string }) {
       {result && (
         <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
           <div className="flex items-center gap-2">
-            <h4 className="font-semibold text-slate-800">Oxunan göstəricilər</h4>
+            <h4 className="font-semibold text-slate-800">{t("app.field.soilLabUpload.resultsTitle")}</h4>
             <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
-              əminlik: {result.confidence}
+              {t("app.field.soilLabUpload.confidenceLabel")} {result.confidence}
             </span>
           </div>
           {ROWS.some((r) => has(result[r.k])) ? (
@@ -132,7 +132,7 @@ export default function SoilLabUpload({ fieldId }: { fieldId: string }) {
               ))}
             </dl>
           ) : (
-            <p className="mt-2 text-sm text-slate-500">Şəkildən dəyər oxuna bilmədi — daha aydın foto sınayın.</p>
+            <p className="mt-2 text-sm text-slate-500">{t("app.field.soilLabUpload.noValues")}</p>
           )}
           {result.notes && <p className="mt-2 text-xs text-slate-600">{result.notes}</p>}
         </div>

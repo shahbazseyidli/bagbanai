@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { History, Loader2 } from "lucide-react";
 import { api, azError } from "@/lib/api";
+import { t } from "@/lib/i18n";
 import { ErrorNote, Field as FormField } from "@/components/ui";
 
 interface Job {
@@ -30,9 +31,17 @@ interface Resp {
   covered_years: Coverage[];
 }
 
-const STATUS_AZ: Record<string, string> = {
-  queued: "Növbədə", running: "İşlənir", done: "Tamamlandı", failed: "Uğursuz",
-};
+// status codes ("queued"/"running"/"done"/"failed") are API enum values — kept as-is; only the
+// human labels are translated, and at render time so the active locale is honored.
+function statusLabel(status: string): string {
+  switch (status) {
+    case "queued": return t("app.field.backfillCard.statusQueued");
+    case "running": return t("app.field.backfillCard.statusRunning");
+    case "done": return t("app.field.backfillCard.statusDone");
+    case "failed": return t("app.field.backfillCard.statusFailed");
+    default: return status;
+  }
+}
 
 /** `forZones` also requests peak-season NDVI rasters, which productivity zones (A6) need —
  *  a plain stats-only backfill can never unblock them. */
@@ -94,19 +103,18 @@ export default function BackfillCard({ fieldId, forZones = false }:
     <div className="card">
       <div className="mb-2 flex items-center gap-2">
         <History className="h-5 w-5 text-emerald-600" />
-        <h3 className="font-semibold text-slate-800">Keçmiş mövsümlər</h3>
+        <h3 className="font-semibold text-slate-800">{t("app.field.backfillCard.title")}</h3>
       </div>
       <p className="text-sm text-slate-500">
-        Peyk arxivi {data.min_year}-ci ilə qədər gedir. Keçmiş illəri yükləsəniz, mövsüm
-        müqayisəsi işləyə bilər.
-        {forZones && " Bu yükləmə həm də zonalar üçün lazım olan piksel şəkillərini hazırlayır."}
+        {t("app.field.backfillCard.archivePre")}{data.min_year}{t("app.field.backfillCard.archivePost")}
+        {forZones && t("app.field.backfillCard.forZonesNote")}
       </p>
 
       {data.covered_years.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-1.5">
           {data.covered_years.map((c) => (
             <span key={c.year} className="rounded-md bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
-              {c.year} · {c.scenes} səhnə
+              {c.year} · {c.scenes} {t("app.field.backfillCard.sceneWord")}
             </span>
           ))}
         </div>
@@ -116,7 +124,7 @@ export default function BackfillCard({ fieldId, forZones = false }:
         <div className="mt-3 rounded-xl border-[1.5px] border-emerald-200 bg-emerald-50 p-3">
           <div className="flex items-center gap-2 text-sm font-medium text-emerald-900">
             <Loader2 className="h-4 w-4 animate-spin" />
-            {cur!.year_from}–{cur!.year_to} yüklənir · {cur!.years_done}/{cur!.years_total} il
+            {cur!.year_from}–{cur!.year_to} {t("app.field.backfillCard.loadingWord")} · {cur!.years_done}/{cur!.years_total} {t("app.field.backfillCard.yearWord")}
           </div>
           <div className="mt-2 h-2 rounded-full bg-white">
             <div className="h-2 rounded-full bg-emerald-500" style={{ width: `${pct}%` }} />
@@ -127,12 +135,12 @@ export default function BackfillCard({ fieldId, forZones = false }:
         <div className="mt-3 space-y-3">
           {cur && (
             <p className="text-xs text-slate-500">
-              Sonuncu: {cur.year_from}–{cur.year_to} · {STATUS_AZ[cur.status] ?? cur.status}
-              {cur.scenes_written > 0 && ` · ${cur.scenes_written} səhnə`}
+              {t("app.field.backfillCard.lastLabel")} {cur.year_from}–{cur.year_to} · {statusLabel(cur.status)}
+              {cur.scenes_written > 0 && ` · ${cur.scenes_written} ${t("app.field.backfillCard.sceneWord")}`}
             </p>
           )}
           <div className="grid grid-cols-2 gap-3">
-            <FormField label="Başlanğıc il">
+            <FormField label={t("app.field.backfillCard.startYearLabel")}>
               <input
                 className="input"
                 type="number"
@@ -142,7 +150,7 @@ export default function BackfillCard({ fieldId, forZones = false }:
                 onChange={(e) => setFrom(e.target.value)}
               />
             </FormField>
-            <FormField label="Son il">
+            <FormField label={t("app.field.backfillCard.endYearLabel")}>
               <input
                 className="input"
                 type="number"
@@ -154,10 +162,10 @@ export default function BackfillCard({ fieldId, forZones = false }:
             </FormField>
           </div>
           <button className="btn-primary" onClick={start} disabled={busy}>
-            {busy ? "Göndərilir…" : "Keçmiş mövsümləri yüklə"}
+            {busy ? t("app.field.backfillCard.sending") : t("app.field.backfillCard.loadButton")}
           </button>
           <p className="text-xs text-slate-400">
-            Ən çox {data.max_span} il bir dəfəyə. Yükləmə arxa planda gedir — gözləmək lazım deyil.
+            {t("app.field.backfillCard.maxSpanPre")}{data.max_span}{t("app.field.backfillCard.maxSpanPost")}
           </p>
         </div>
       )}

@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { t } from "@/lib/i18n";
 import { SupportCard } from "@/components/ui/SupportCard";
 import type { Tone } from "@/lib/indexStatus";
 import type { Farm, Field, Org, Role } from "@/lib/types";
@@ -49,14 +50,22 @@ const COLLAPSE_KEY = "bagban_fieldlist_collapsed";
 
 type SortKey = "score" | "name";
 
-// Owner/role subline — Azerbaijani labels for the org_role enum (mirrors Role in lib/types).
-const ROLE_AZ: Record<Role, string> = {
-  owner: "Sahibkar",
-  admin: "Administrator",
-  agronomist: "Aqronom",
-  worker: "İşçi",
-  viewer: "Baxış",
-};
+// Owner/role subline — labels for the org_role enum (mirrors Role in lib/types). Resolved at render
+// time (not module load) so the active locale is honoured, like ScoreBadge's toneWord.
+function roleLabelOf(role: Role): string {
+  switch (role) {
+    case "owner":
+      return t("app.shell.fieldListPanel.roleOwner");
+    case "admin":
+      return t("app.shell.fieldListPanel.roleAdmin");
+    case "agronomist":
+      return t("app.shell.fieldListPanel.roleAgronomist");
+    case "worker":
+      return t("app.shell.fieldListPanel.roleWorker");
+    case "viewer":
+      return t("app.shell.fieldListPanel.roleViewer");
+  }
+}
 
 interface Row {
   id: string;
@@ -80,17 +89,33 @@ interface ScoreRow {
 const DOT: Record<Tone, string> = { good: "#15803D", warn: "#B45309", bad: "#B91C1C" };
 const DOT_NONE = "#8B8478"; // var(--brand-muted) — mockup's "—" dot
 
-const PILL: Record<Tone, { cls: string; Icon: LucideIcon; word: string }> = {
-  good: { cls: "bg-good-tint text-good", Icon: Check, word: "Sağlam" },
-  warn: { cls: "bg-warn-tint text-warn", Icon: AlertTriangle, word: "Diqqət" },
-  bad: { cls: "bg-bad-tint text-bad", Icon: OctagonAlert, word: "Zəif" },
+const PILL: Record<Tone, { cls: string; Icon: LucideIcon }> = {
+  good: { cls: "bg-good-tint text-good", Icon: Check },
+  warn: { cls: "bg-warn-tint text-warn", Icon: AlertTriangle },
+  bad: { cls: "bg-bad-tint text-bad", Icon: OctagonAlert },
 };
 
-const FALLBACK_LINE: Record<Tone, string> = {
-  good: "Vəziyyət sabitdir",
-  warn: "Yoxlamaq tövsiyə olunur",
-  bad: "Diqqət tələb edir",
-};
+// Status vocabulary resolved at render time so the active locale wins (a module-level t() would
+// freeze the default locale at import).
+function pillWord(tone: Tone): string {
+  return t(
+    tone === "good"
+      ? "app.shell.fieldListPanel.pillGood"
+      : tone === "warn"
+        ? "app.shell.fieldListPanel.pillWarn"
+        : "app.shell.fieldListPanel.pillBad",
+  );
+}
+
+function fallbackLine(tone: Tone): string {
+  return t(
+    tone === "good"
+      ? "app.shell.fieldListPanel.fallbackGood"
+      : tone === "warn"
+        ? "app.shell.fieldListPanel.fallbackWarn"
+        : "app.shell.fieldListPanel.fallbackBad",
+  );
+}
 
 // Same cut-offs as wellness.py (_GOOD_MIN / _WARN_MIN) — only used if an old row lacks a tone.
 function toneOf(s: ScoreRow): Tone {
@@ -125,9 +150,9 @@ function StatusLine({ row, score }: { row: Row; score?: ScoreRow }) {
           className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ${p.cls}`}
         >
           <Icon className="h-3 w-3 shrink-0" aria-hidden="true" />
-          {p.word}
+          {pillWord(tone)}
         </span>
-        <span className="truncate">{score.headline || FALLBACK_LINE[tone]}</span>
+        <span className="truncate">{score.headline || fallbackLine(tone)}</span>
       </>
     );
   }
@@ -138,14 +163,18 @@ function StatusLine({ row, score }: { row: Row; score?: ScoreRow }) {
     <>
       <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-paper-2 px-2 py-0.5 text-[11px] font-bold text-ink-soft">
         {preparing && <Loader2 className="h-3 w-3 shrink-0 animate-spin" aria-hidden="true" />}
-        {preparing ? "Hazırlanır" : failed ? "Alınmadı" : "Analiz yoxdur"}
+        {preparing
+          ? t("app.shell.fieldListPanel.statusPreparing")
+          : failed
+            ? t("app.shell.fieldListPanel.statusFailed")
+            : t("app.shell.fieldListPanel.statusNoAnalysis")}
       </span>
       <span className="truncate">
         {preparing
-          ? "Peyk məlumatı gəlir"
+          ? t("app.shell.fieldListPanel.subPreparing")
           : failed
-            ? "Peyk məlumatı alınmadı"
-            : "Hələ qiymətləndirilməyib"}
+            ? t("app.shell.fieldListPanel.subFailed")
+            : t("app.shell.fieldListPanel.subNotAssessed")}
       </span>
     </>
   );
@@ -331,15 +360,15 @@ export default function FieldListPanel() {
       ),
     [rows],
   );
-  const roleLabel = orgRole ? ROLE_AZ[orgRole] : "";
+  const roleLabel = orgRole ? roleLabelOf(orgRole) : "";
   const ownerLine =
     rows === null && !orgName
-      ? "Yüklənir…"
+      ? t("app.shell.fieldListPanel.loading")
       : orgName
         ? roleLabel
           ? `${orgName} · ${roleLabel}`
           : orgName
-        : "Sahələriniz";
+        : t("app.shell.fieldListPanel.yourFields");
 
   // Collapsed: a thin strip that only offers to re-open. The panel simply gets narrower, so the
   // AppShell flex row hands the extra width to the map stage — no AppShell change is needed (the
@@ -347,15 +376,15 @@ export default function FieldListPanel() {
   if (collapsed) {
     return (
       <nav
-        aria-label="Sahə siyahısı"
+        aria-label={t("app.shell.fieldListPanel.panelAria")}
         className="sticky top-[76px] z-30 hidden max-h-[calc(100vh_-_92px)] w-12 shrink-0 flex-col items-center gap-3 rounded-xl2 border border-line bg-panel py-3 shadow-soft xl:flex"
       >
         <button
           type="button"
           onClick={() => toggleCollapsed(false)}
-          aria-label="Sahə panelini aç"
+          aria-label={t("app.shell.fieldListPanel.expandPanel")}
           aria-expanded={false}
-          title="Sahə panelini aç"
+          title={t("app.shell.fieldListPanel.expandPanel")}
           className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] text-ink-soft hover:bg-mint-soft hover:text-grass focus:border-grass"
         >
           <ChevronRight className="h-5 w-5" aria-hidden="true" />
@@ -372,12 +401,14 @@ export default function FieldListPanel() {
     // z-30 (like the rail) keeps the panel above page content that paints itself `fixed inset-0`
     // — the map-first field view does exactly that.
     <nav
-      aria-label="Sahə siyahısı"
+      aria-label={t("app.shell.fieldListPanel.panelAria")}
       className="sticky top-[76px] z-30 hidden max-h-[calc(100vh_-_92px)] w-[336px] shrink-0 flex-col overflow-hidden rounded-xl2 border border-line bg-panel shadow-soft xl:flex"
     >
       <div className="flex items-start justify-between gap-2 px-[18px] pt-[18px]">
         <div className="min-w-0">
-          <h2 className="font-display text-xl font-bold text-ink">Sahələr</h2>
+          <h2 className="font-display text-xl font-bold text-ink">
+            {t("app.shell.fieldListPanel.heading")}
+          </h2>
           <p className="mt-[3px] truncate text-[13px] text-ink-soft" title={ownerLine}>
             {ownerLine}
           </p>
@@ -385,9 +416,9 @@ export default function FieldListPanel() {
         <button
           type="button"
           onClick={() => toggleCollapsed(true)}
-          aria-label="Sahə panelini yığ"
+          aria-label={t("app.shell.fieldListPanel.collapsePanel")}
           aria-expanded={true}
-          title="Sahə panelini yığ"
+          title={t("app.shell.fieldListPanel.collapsePanel")}
           className="-mr-1 grid h-8 w-8 shrink-0 place-items-center rounded-[9px] text-ink-soft hover:bg-mint-soft hover:text-grass focus:border-grass"
         >
           <ChevronLeft className="h-5 w-5" aria-hidden="true" />
@@ -398,9 +429,13 @@ export default function FieldListPanel() {
           N.NN ha"). No new API: the total is just the sum of the areas we already loaded. */}
       <div className="mx-[18px] mb-1 mt-2.5 flex items-center gap-2 rounded-[10px] border border-line bg-paper-2 px-3 py-2">
         <Calendar className="h-4 w-4 shrink-0 text-grass" aria-hidden="true" />
-        <span className="text-[13px] font-semibold text-ink">Mövsüm {season}</span>
+        <span className="text-[13px] font-semibold text-ink">
+          {t("app.shell.fieldListPanel.seasonLabel")} {season}
+        </span>
         <span className="ml-auto shrink-0 text-[12.5px] tabular-nums text-ink-soft">
-          {rows === null ? "…" : `${total} sahə · ${areaTotal.toFixed(1)} ha`}
+          {rows === null
+            ? "…"
+            : `${total} ${t("app.shell.fieldListPanel.fieldsUnit")} · ${areaTotal.toFixed(1)} ha`}
         </span>
       </div>
 
@@ -418,8 +453,8 @@ export default function FieldListPanel() {
             onKeyDown={(e) => {
               if (e.key === "Escape") setQ("");
             }}
-            placeholder="Sahə axtar…"
-            aria-label="Sahə axtar"
+            placeholder={t("app.shell.fieldListPanel.searchPlaceholder")}
+            aria-label={t("app.shell.fieldListPanel.searchAria")}
             className="h-10 w-full rounded-[10px] border-[1.5px] border-line bg-panel pl-9 pr-3 text-[13.5px] text-ink placeholder:text-ink-soft focus:border-grass"
           />
         </div>
@@ -431,12 +466,12 @@ export default function FieldListPanel() {
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value as SortKey)}
-            aria-label="Sıralama"
-            title="Sıralama"
+            aria-label={t("app.shell.fieldListPanel.sortAria")}
+            title={t("app.shell.fieldListPanel.sortAria")}
             className="h-10 appearance-none rounded-[10px] border-[1.5px] border-line bg-panel pl-7 pr-2.5 text-[12.5px] font-medium text-ink focus:border-grass"
           >
-            <option value="score">Bal üzrə</option>
-            <option value="name">Ad üzrə</option>
+            <option value="score">{t("app.shell.fieldListPanel.sortScore")}</option>
+            <option value="name">{t("app.shell.fieldListPanel.sortName")}</option>
           </select>
         </div>
       </div>
@@ -446,7 +481,11 @@ export default function FieldListPanel() {
           makes offsetTop of a card relative to THIS box (see the reveal effect above). */}
       <div ref={scrollRef} className="relative min-h-0 flex-1 overflow-y-auto px-3 pb-4 pt-1.5">
         {rows === null ? (
-          <div role="status" aria-label="Yüklənir" className="space-y-2.5 pt-1">
+          <div
+            role="status"
+            aria-label={t("app.shell.fieldListPanel.loadingAria")}
+            className="space-y-2.5 pt-1"
+          >
             {[0, 1, 2].map((i) => (
               <div
                 key={i}
@@ -458,16 +497,20 @@ export default function FieldListPanel() {
         ) : total === 0 ? (
           <div className="px-2 py-6 text-center">
             <MapPin className="mx-auto h-7 w-7 text-grass" aria-hidden="true" />
-            <p className="mt-2 text-[13px] text-ink-soft">Hələ sahəniz yoxdur.</p>
+            <p className="mt-2 text-[13px] text-ink-soft">
+              {t("app.shell.fieldListPanel.emptyNoFields")}
+            </p>
             <Link
               href="/onboarding"
               className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-grass px-3.5 py-2 text-[13px] font-bold text-white hover:bg-grass-deep"
             >
-              <Plus className="h-4 w-4" aria-hidden="true" /> Sahə əlavə et
+              <Plus className="h-4 w-4" aria-hidden="true" /> {t("app.shell.fieldListPanel.addField")}
             </Link>
           </div>
         ) : shown.length === 0 ? (
-          <p className="px-2 py-6 text-center text-[13px] text-ink-soft">Uyğun sahə tapılmadı.</p>
+          <p className="px-2 py-6 text-center text-[13px] text-ink-soft">
+            {t("app.shell.fieldListPanel.emptyNoMatch")}
+          </p>
         ) : (
           shown.map((r) => {
             const s = scores[r.id];
@@ -489,7 +532,7 @@ export default function FieldListPanel() {
                     className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[9px] text-[12.5px] font-bold tabular-nums text-white"
                     style={{ background: s ? DOT[toneOf(s)] : DOT_NONE }}
                   >
-                    <span className="sr-only">Sağlamlıq balı: </span>
+                    <span className="sr-only">{t("app.shell.fieldListPanel.healthScoreLabel")}</span>
                     {s ? s.score : "—"}
                   </span>
                   <span className="min-w-0 truncate text-[15px] font-semibold text-ink">

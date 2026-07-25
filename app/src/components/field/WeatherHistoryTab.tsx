@@ -18,6 +18,7 @@ import {
 } from "recharts";
 import { CloudRain, Download, RefreshCw, Snowflake, Trash2 } from "lucide-react";
 import { api, azError } from "@/lib/api";
+import { t } from "@/lib/i18n";
 import { ErrorNote, Field as FormField, Placeholder, Spinner } from "@/components/ui";
 
 interface FrostStat {
@@ -244,7 +245,7 @@ export default function WeatherHistoryTab({ fieldId }: { fieldId: string }) {
       <div className="card space-y-3">
         <div className="flex items-center justify-between gap-3">
           <h3 className="flex items-center gap-2 font-semibold text-slate-800">
-            <Snowflake className="h-4 w-4 text-sky-600" /> Bölgənin şaxta tarixləri
+            <Snowflake className="h-4 w-4 text-sky-600" /> {t("app.field.weatherHistoryTab.frostDatesHeading")}
           </h3>
           <button
             type="button"
@@ -252,35 +253,35 @@ export default function WeatherHistoryTab({ fieldId }: { fieldId: string }) {
             onClick={() => void loadFrost(true)}
             disabled={frostBusy}
           >
-            <RefreshCw className={`h-4 w-4 ${frostBusy ? "animate-spin" : ""}`} /> Yenilə
+            <RefreshCw className={`h-4 w-4 ${frostBusy ? "animate-spin" : ""}`} /> {t("app.field.weatherHistoryTab.refresh")}
           </button>
         </div>
 
         {frostBusy && !frost ? (
-          <Spinner label="Şaxta tarixçəsi hesablanır…" />
+          <Spinner label={t("app.field.weatherHistoryTab.frostCalculating")} />
         ) : frostErr ? (
           <ErrorNote message={frostErr} />
         ) : frost?.ok ? (
           <>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               <Stat
-                label="Son yaz şaxtası"
+                label={t("app.field.weatherHistoryTab.lastSpringFrost")}
                 value={mmddAz(frost.last_spring_frost?.p50_mmdd)}
-                sub={`Ehtiyatlı: ${mmddAz(frost.last_spring_frost?.safe_mmdd)} (10 ildən 9-u)`}
+                sub={`${t("app.field.weatherHistoryTab.cautiousPrefix")}${mmddAz(frost.last_spring_frost?.safe_mmdd)}${t("app.field.weatherHistoryTab.nineOfTenYears")}`}
               />
               <Stat
-                label="İlk payız şaxtası"
+                label={t("app.field.weatherHistoryTab.firstAutumnFrost")}
                 value={mmddAz(frost.first_autumn_frost?.p50_mmdd)}
-                sub={`Ehtiyatlı: ${mmddAz(frost.first_autumn_frost?.safe_mmdd)} (10 ildən 9-u)`}
+                sub={`${t("app.field.weatherHistoryTab.cautiousPrefix")}${mmddAz(frost.first_autumn_frost?.safe_mmdd)}${t("app.field.weatherHistoryTab.nineOfTenYears")}`}
               />
               <Stat
-                label="Şaxtasız günlər"
+                label={t("app.field.weatherHistoryTab.frostFreeDays")}
                 value={
-                  frost.frost_free_days?.p50 != null ? `${frost.frost_free_days.p50} gün` : "—"
+                  frost.frost_free_days?.p50 != null ? `${frost.frost_free_days.p50} ${t("app.field.weatherHistoryTab.dayUnit")}` : "—"
                 }
                 sub={
                   frost.frost_free_days?.min != null && frost.frost_free_days?.max != null
-                    ? `${frost.frost_free_days.min}–${frost.frost_free_days.max} gün aralığı`
+                    ? `${frost.frost_free_days.min}–${frost.frost_free_days.max}${t("app.field.weatherHistoryTab.dayRangeSuffix")}`
                     : undefined
                 }
               />
@@ -289,13 +290,13 @@ export default function WeatherHistoryTab({ fieldId }: { fieldId: string }) {
             {frost.planting_window?.start_mmdd && frost.planting_window?.end_mmdd && (
               <div className="rounded-xl border-[1.5px] border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
                 <p className="font-semibold">
-                  Təhlükəsiz əkin pəncərəsi: {mmddAz(frost.planting_window.start_mmdd)} –{" "}
+                  {t("app.field.weatherHistoryTab.safePlantingWindow")} {mmddAz(frost.planting_window.start_mmdd)} –{" "}
                   {mmddAz(frost.planting_window.end_mmdd)}
                 </p>
                 <p className="mt-0.5 text-emerald-800">
-                  {frost.planting_window.days} gün şaxtasız dövr
+                  {frost.planting_window.days} {t("app.field.weatherHistoryTab.frostFreePeriodDays")}
                   {frost.gdd_start_mmdd
-                    ? ` · istilik toplanmasının (GDD) başlanğıcı ${mmddAz(frost.gdd_start_mmdd)}`
+                    ? `${t("app.field.weatherHistoryTab.gddStartPrefix")}${mmddAz(frost.gdd_start_mmdd)}`
                     : ""}
                   .
                 </p>
@@ -305,27 +306,27 @@ export default function WeatherHistoryTab({ fieldId }: { fieldId: string }) {
             {frost.sentence_az && <p className="text-sm text-slate-700">{frost.sentence_az}</p>}
 
             <p className="text-xs text-slate-500">
-              Mənbə: Open-Meteo arxivi
+              {t("app.field.weatherHistoryTab.sourceOpenMeteo")}
               {frost.year_from && frost.year_to ? `, ${frost.year_from}–${frost.year_to}` : ""}
-              {frost.threshold_c != null ? ` · həddi ${frost.threshold_c}°C` : ""}
+              {frost.threshold_c != null ? `${t("app.field.weatherHistoryTab.thresholdPrefix")}${frost.threshold_c}°C` : ""}
               {frost.annual_precip_mm_mean != null
-                ? ` · illik orta yağıntı ${frost.annual_precip_mm_mean} mm`
+                ? `${t("app.field.weatherHistoryTab.annualPrecipPrefix")}${frost.annual_precip_mm_mean} mm`
                 : ""}
-              . Bu iqlim ortalamasıdır, proqnoz deyil.
+              . {t("app.field.weatherHistoryTab.climateAverageNote")}
             </p>
           </>
         ) : (
-          <Placeholder>Bu bölgə üçün şaxta məlumatı hələ hesablanmayıb.</Placeholder>
+          <Placeholder>{t("app.field.weatherHistoryTab.frostNotCalculated")}</Placeholder>
         )}
       </div>
 
       {/* ===== B19 — quick rain log ===== */}
       <form onSubmit={saveRain} className="card space-y-3">
         <h3 className="flex items-center gap-2 font-semibold text-slate-800">
-          <CloudRain className="h-4 w-4 text-sky-600" /> Yağış yağdı → neçə mm?
+          <CloudRain className="h-4 w-4 text-sky-600" /> {t("app.field.weatherHistoryTab.rainLogHeading")}
         </h3>
         <div className="grid gap-3 sm:grid-cols-2">
-          <FormField label="Tarix">
+          <FormField label={t("app.field.weatherHistoryTab.dateLabel")}>
             <input
               className="input"
               type="date"
@@ -334,7 +335,7 @@ export default function WeatherHistoryTab({ fieldId }: { fieldId: string }) {
               onChange={(e) => setObservedOn(e.target.value)}
             />
           </FormField>
-          <FormField label="Miqdar (mm)">
+          <FormField label={t("app.field.weatherHistoryTab.amountLabel")}>
             <input
               className="input"
               type="number"
@@ -343,20 +344,20 @@ export default function WeatherHistoryTab({ fieldId }: { fieldId: string }) {
               inputMode="decimal"
               value={amount}
               required
-              placeholder="məs. 12"
+              placeholder={t("app.field.weatherHistoryTab.amountPlaceholder")}
               onChange={(e) => setAmount(e.target.value)}
             />
           </FormField>
         </div>
         <button className="btn-primary min-h-[44px]" type="submit" disabled={busy || amount === ""}>
-          <CloudRain className="h-4 w-4" /> {busy ? "Yazılır…" : "Yağışı yaz"}
+          <CloudRain className="h-4 w-4" /> {busy ? t("app.field.weatherHistoryTab.saving") : t("app.field.weatherHistoryTab.saveRain")}
         </button>
         <ErrorNote message={error} />
 
         {rain.length > 0 && (
           <div>
             <p className="mb-2 text-xs text-slate-500">
-              Son qeydlər · cəmi {rainTotal} mm ({rain.length} gün)
+              {t("app.field.weatherHistoryTab.recentEntriesPrefix")}{rainTotal}{t("app.field.weatherHistoryTab.mmParenOpen")}{rain.length}{t("app.field.weatherHistoryTab.daysParenClose")}
             </p>
             <ul className="space-y-2">
               {rain.slice(0, 8).map((r) => (
@@ -370,7 +371,7 @@ export default function WeatherHistoryTab({ fieldId }: { fieldId: string }) {
                     <button
                       type="button"
                       className="btn-ghost min-h-[44px] text-red-600"
-                      aria-label="Sil"
+                      aria-label={t("app.field.weatherHistoryTab.delete")}
                       onClick={() => void removeRain(r.id)}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -386,7 +387,7 @@ export default function WeatherHistoryTab({ fieldId }: { fieldId: string }) {
       {/* ===== B19 — year-over-year precipitation ===== */}
       <div className="card space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="font-semibold text-slate-800">İllər üzrə yağıntı müqayisəsi</h3>
+          <h3 className="font-semibold text-slate-800">{t("app.field.weatherHistoryTab.yearlyPrecipHeading")}</h3>
           <div className="flex gap-2">
             {YEAR_CHOICES.map((y) => (
               <button
@@ -399,14 +400,14 @@ export default function WeatherHistoryTab({ fieldId }: { fieldId: string }) {
                     : "border-slate-200 text-slate-600"
                 }`}
               >
-                {y} il
+                {y} {t("app.field.weatherHistoryTab.yearUnit")}
               </button>
             ))}
           </div>
         </div>
 
         {loading ? (
-          <Spinner label="Hava tarixçəsi yüklənir…" />
+          <Spinner label={t("app.field.weatherHistoryTab.weatherHistoryLoading")} />
         ) : yearly?.has_archive ? (
           <>
             <div className="h-72">
@@ -420,7 +421,7 @@ export default function WeatherHistoryTab({ fieldId }: { fieldId: string }) {
                   {logYear && (
                     <Bar
                       dataKey="log"
-                      name={`Sizin ölçmə (${logYear})`}
+                      name={`${t("app.field.weatherHistoryTab.yourMeasurement")}${logYear})`}
                       fill="#94A3B8"
                       radius={[4, 4, 0, 0]}
                     />
@@ -441,22 +442,20 @@ export default function WeatherHistoryTab({ fieldId }: { fieldId: string }) {
               </ResponsiveContainer>
             </div>
             <p className="text-xs text-slate-500">
-              Aylıq yağıntı cəmi (Open-Meteo arxivi
-              {yearly.last_date ? `, son gün ${yearly.last_date}` : ""}). Sütunlar sizin öz yağış
-              ölçmələrinizdir — peyk/model məlumatı ilə fərq normaldır.
+              {t("app.field.weatherHistoryTab.monthlyPrecipNoteStart")}
+              {yearly.last_date ? `${t("app.field.weatherHistoryTab.lastDayPrefix")}${yearly.last_date}` : ""}). {t("app.field.weatherHistoryTab.monthlyPrecipNoteEnd")}
             </p>
             <button type="button" className="btn-secondary min-h-[44px]" onClick={() => void runBackfill()} disabled={busy}>
-              <Download className="h-4 w-4" /> {busy ? "Yüklənir…" : "Arxivi yenilə"}
+              <Download className="h-4 w-4" /> {busy ? t("app.field.weatherHistoryTab.loading") : t("app.field.weatherHistoryTab.refreshArchive")}
             </button>
           </>
         ) : (
           <>
             <Placeholder>
-              Bu sahə üçün hava arxivi hələ yüklənməyib. Bir dəfə yüklə — sonra hər il müqayisə edə
-              bilərsən.
+              {t("app.field.weatherHistoryTab.archiveNotLoaded")}
             </Placeholder>
             <button type="button" className="btn-primary min-h-[44px]" onClick={() => void runBackfill()} disabled={busy}>
-              <Download className="h-4 w-4" /> {busy ? "Yüklənir…" : "Hava arxivini yüklə"}
+              <Download className="h-4 w-4" /> {busy ? t("app.field.weatherHistoryTab.loading") : t("app.field.weatherHistoryTab.loadWeatherArchive")}
             </button>
           </>
         )}

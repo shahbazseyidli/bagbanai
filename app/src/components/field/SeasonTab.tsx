@@ -7,6 +7,7 @@ import { CalendarDays, ChevronDown, ChevronUp, Plus, Sprout, Star, Trash2 } from
 import { api, azError } from "@/lib/api";
 import { ErrorNote, Field as FormField, Placeholder, Spinner } from "@/components/ui";
 import ChoiceChips from "@/components/field/ChoiceChips";
+import { t } from "@/lib/i18n";
 
 type SeasonStatus = "preparation" | "planted" | "vegetation" | "harvest" | "fallow" | "closed";
 
@@ -34,7 +35,6 @@ interface Season {
 }
 
 interface StatusMeta {
-  label: string;
   chip: string;
   active: string;
 }
@@ -50,45 +50,46 @@ const STATUS_ORDER: SeasonStatus[] = [
 
 const STATUS: Record<string, StatusMeta> = {
   preparation: {
-    label: "Hazırlıq",
     chip: "border-slate-300 bg-slate-100 text-slate-700",
     active: "border-slate-500 bg-slate-700 text-white",
   },
   planted: {
-    label: "Səpin",
     chip: "border-sky-300 bg-sky-50 text-sky-800",
     active: "border-sky-600 bg-sky-600 text-white",
   },
   vegetation: {
-    label: "Vegetasiya",
     chip: "border-emerald-300 bg-emerald-50 text-emerald-800",
     active: "border-emerald-600 bg-emerald-600 text-white",
   },
   harvest: {
-    label: "Yığım",
     chip: "border-amber-300 bg-amber-50 text-amber-800",
     active: "border-amber-600 bg-amber-600 text-white",
   },
   fallow: {
-    label: "Herik",
     chip: "border-stone-300 bg-stone-100 text-stone-700",
     active: "border-stone-600 bg-stone-600 text-white",
   },
   closed: {
-    label: "Bağlanıb",
     chip: "border-slate-300 bg-white text-slate-500",
     active: "border-slate-600 bg-slate-600 text-white",
   },
 };
 
-const CYCLES = [
-  { value: "annual", label: "İllik" },
-  { value: "perennial", label: "Çoxillik" },
-  { value: "biennial", label: "İkiillik" },
-];
-
 function statusMeta(s: string): StatusMeta {
-  return STATUS[s] ?? { label: s, chip: "border-slate-300 bg-slate-100 text-slate-700", active: "border-slate-600 bg-slate-600 text-white" };
+  return STATUS[s] ?? { chip: "border-slate-300 bg-slate-100 text-slate-700", active: "border-slate-600 bg-slate-600 text-white" };
+}
+
+// Localized status label (resolved at render time, not module load, so locale switches apply).
+function statusLabel(s: string): string {
+  switch (s) {
+    case "preparation": return t("app.field.seasonTab.statusPreparation");
+    case "planted": return t("app.field.seasonTab.statusPlanted");
+    case "vegetation": return t("app.field.seasonTab.statusVegetation");
+    case "harvest": return t("app.field.seasonTab.statusHarvest");
+    case "fallow": return t("app.field.seasonTab.statusFallow");
+    case "closed": return t("app.field.seasonTab.statusClosed");
+    default: return s;
+  }
 }
 
 function fmtDate(v: string | null): string {
@@ -117,6 +118,12 @@ export default function SeasonTab({ fieldId }: { fieldId: string }) {
   const [targetYield, setTargetYield] = useState("");
   const [notes, setNotes] = useState("");
   const [makeCurrent, setMakeCurrent] = useState(true);
+
+  const cycleOptions = [
+    { value: "annual", label: t("app.field.seasonTab.cycleAnnual") },
+    { value: "perennial", label: t("app.field.seasonTab.cyclePerennial") },
+    { value: "biennial", label: t("app.field.seasonTab.cycleBiennial") },
+  ];
 
   async function load() {
     try {
@@ -215,9 +222,9 @@ export default function SeasonTab({ fieldId }: { fieldId: string }) {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h3 className="font-semibold text-slate-800">Mövsümlər</h3>
+          <h3 className="font-semibold text-slate-800">{t("app.field.seasonTab.heading")}</h3>
           <p className="text-sm text-slate-500">
-            Hər mövsümün öz məhsulu, tarixləri və nəticəsi olur — köhnə illər silinmir.
+            {t("app.field.seasonTab.subtitle")}
           </p>
         </div>
         <button
@@ -227,7 +234,7 @@ export default function SeasonTab({ fieldId }: { fieldId: string }) {
           aria-expanded={open}
         >
           {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          Yeni mövsüm
+          {t("app.field.seasonTab.newSeasonBtn")}
         </button>
       </div>
 
@@ -235,9 +242,9 @@ export default function SeasonTab({ fieldId }: { fieldId: string }) {
 
       {open && (
         <form onSubmit={onCreate} className="card space-y-3">
-          <h4 className="font-semibold text-slate-800">Yeni mövsüm əlavə et</h4>
+          <h4 className="font-semibold text-slate-800">{t("app.field.seasonTab.addSeasonHeading")}</h4>
           <div className="grid gap-3 sm:grid-cols-2">
-            <FormField label="Mövsüm ili" required>
+            <FormField label={t("app.field.seasonTab.yearLabel")} required>
               <input
                 className="input"
                 type="number"
@@ -248,21 +255,21 @@ export default function SeasonTab({ fieldId }: { fieldId: string }) {
                 onChange={(e) => setYear(e.target.value)}
               />
             </FormField>
-            <FormField label="Məhsul">
+            <FormField label={t("app.field.seasonTab.cropLabel")}>
               <input
                 className="input"
                 value={crop}
                 onChange={(e) => setCrop(e.target.value)}
-                placeholder="məs. fındıq, buğda"
+                placeholder={t("app.field.seasonTab.cropPlaceholder")}
               />
             </FormField>
-            <FormField label="Sort">
+            <FormField label={t("app.field.seasonTab.varietyLabel")}>
               <input className="input" value={variety} onChange={(e) => setVariety(e.target.value)} />
             </FormField>
-            <FormField label="Bitki dövrü">
-              <ChoiceChips value={cycle} onChange={setCycle} options={CYCLES} />
+            <FormField label={t("app.field.seasonTab.cycleLabel")}>
+              <ChoiceChips value={cycle} onChange={setCycle} options={cycleOptions} />
             </FormField>
-            <FormField label="Əkin tarixi">
+            <FormField label={t("app.field.seasonTab.plantingDateLabel")}>
               <input
                 className="input"
                 type="date"
@@ -270,7 +277,7 @@ export default function SeasonTab({ fieldId }: { fieldId: string }) {
                 onChange={(e) => setPlantingDate(e.target.value)}
               />
             </FormField>
-            <FormField label="Gözlənilən yığım">
+            <FormField label={t("app.field.seasonTab.expectedHarvestLabel")}>
               <input
                 className="input"
                 type="date"
@@ -278,15 +285,15 @@ export default function SeasonTab({ fieldId }: { fieldId: string }) {
                 onChange={(e) => setExpectedHarvest(e.target.value)}
               />
             </FormField>
-            <FormField label="İnkişaf mərhələsi">
+            <FormField label={t("app.field.seasonTab.growthStageLabel")}>
               <input
                 className="input"
                 value={growthStage}
                 onChange={(e) => setGrowthStage(e.target.value)}
-                placeholder="məs. çiçəkləmə"
+                placeholder={t("app.field.seasonTab.growthStagePlaceholder")}
               />
             </FormField>
-            <FormField label="Səpin norması">
+            <FormField label={t("app.field.seasonTab.densityLabel")}>
               <input
                 className="input"
                 type="number"
@@ -295,7 +302,7 @@ export default function SeasonTab({ fieldId }: { fieldId: string }) {
                 onChange={(e) => setDensity(e.target.value)}
               />
             </FormField>
-            <FormField label="Hədəf məhsuldarlıq">
+            <FormField label={t("app.field.seasonTab.targetYieldLabel")}>
               <input
                 className="input"
                 type="number"
@@ -305,7 +312,7 @@ export default function SeasonTab({ fieldId }: { fieldId: string }) {
               />
             </FormField>
           </div>
-          <FormField label="Qeyd">
+          <FormField label={t("app.field.seasonTab.notesLabel")}>
             <textarea className="input h-20" value={notes} onChange={(e) => setNotes(e.target.value)} />
           </FormField>
           <label className="flex min-h-11 items-center gap-2 text-sm text-slate-700">
@@ -315,19 +322,17 @@ export default function SeasonTab({ fieldId }: { fieldId: string }) {
               checked={makeCurrent}
               onChange={(e) => setMakeCurrent(e.target.checked)}
             />
-            Cari mövsüm kimi təyin et
+            {t("app.field.seasonTab.makeCurrentCheckbox")}
           </label>
           <button className="btn-primary" type="submit" disabled={busy}>
-            <Plus className="h-4 w-4" /> {busy ? "Saxlanır…" : "Mövsümü yarat"}
+            <Plus className="h-4 w-4" /> {busy ? t("app.field.seasonTab.savingBtn") : t("app.field.seasonTab.createSeasonBtn")}
           </button>
         </form>
       )}
 
       {items.length === 0 ? (
         <Placeholder>
-          Hələ mövsüm qeydi yoxdur. Hər mövsümün öz məhsulu, tarixləri və nəticəsi olur — mövsüm
-          açsanız, növbəti il əkin dəyişəndə bu ilin məlumatı itmir və növbə (rotasiya) tarixçəsi
-          yaranır.
+          {t("app.field.seasonTab.emptyState")}
         </Placeholder>
       ) : (
         <ul className="space-y-3">
@@ -344,17 +349,17 @@ export default function SeasonTab({ fieldId }: { fieldId: string }) {
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-lg font-bold text-slate-900">{s.season_year}</span>
                       <span className="text-sm font-medium text-slate-700">
-                        {s.crop_type || "Məhsul göstərilməyib"}
+                        {s.crop_type || t("app.field.seasonTab.noCropGiven")}
                       </span>
                       {s.variety && <span className="text-xs text-slate-500">({s.variety})</span>}
                     </div>
                     <div className="mt-1 flex flex-wrap items-center gap-2">
                       <span className={`rounded-full border-[1.5px] px-2 py-0.5 text-xs font-semibold ${meta.chip}`}>
-                        {meta.label}
+                        {statusLabel(s.status)}
                       </span>
                       {s.is_current && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-2 py-0.5 text-xs font-semibold text-white">
-                          <Star className="h-3 w-3" /> Cari mövsüm
+                          <Star className="h-3 w-3" /> {t("app.field.seasonTab.currentBadge")}
                         </span>
                       )}
                       {s.area_ha != null && (
@@ -370,14 +375,14 @@ export default function SeasonTab({ fieldId }: { fieldId: string }) {
                         disabled={rowBusy}
                         className="min-h-11 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-50"
                       >
-                        Cari et
+                        {t("app.field.seasonTab.makeCurrentBtn")}
                       </button>
                     )}
                     <button
                       type="button"
                       onClick={() => setConfirmId(confirmId === s.id ? "" : s.id)}
                       disabled={rowBusy}
-                      aria-label="Mövsümü sil"
+                      aria-label={t("app.field.seasonTab.deleteAriaLabel")}
                       className="min-h-11 rounded-lg px-3 py-1.5 text-red-600 hover:bg-red-50 disabled:opacity-50"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -387,12 +392,12 @@ export default function SeasonTab({ fieldId }: { fieldId: string }) {
 
                 <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-600">
                   <span className="inline-flex items-center gap-1">
-                    <Sprout className="h-4 w-4 text-emerald-600" /> Əkin: {fmtDate(s.planting_date)}
+                    <Sprout className="h-4 w-4 text-emerald-600" /> {t("app.field.seasonTab.plantingRowLabel")} {fmtDate(s.planting_date)}
                   </span>
                   <span className="inline-flex items-center gap-1">
-                    <CalendarDays className="h-4 w-4 text-amber-600" /> Yığım:{" "}
+                    <CalendarDays className="h-4 w-4 text-amber-600" /> {t("app.field.seasonTab.harvestRowLabel")}{" "}
                     {fmtDate(s.actual_harvest_date ?? s.expected_harvest)}
-                    {s.actual_harvest_date ? " (faktiki)" : ""}
+                    {s.actual_harvest_date ? t("app.field.seasonTab.actualSuffix") : ""}
                   </span>
                 </div>
 
@@ -400,19 +405,19 @@ export default function SeasonTab({ fieldId }: { fieldId: string }) {
                   {s.days_since_planting != null && (
                     <span>
                       {s.days_since_planting >= 0
-                        ? `Əkindən ${s.days_since_planting} gün keçib`
-                        : `Əkinə ${Math.abs(s.days_since_planting)} gün qalıb`}
+                        ? `${t("app.field.seasonTab.daysSincePlantingPre")}${s.days_since_planting}${t("app.field.seasonTab.daysSincePlantingPost")}`
+                        : `${t("app.field.seasonTab.daysToPlantingPre")}${Math.abs(s.days_since_planting)}${t("app.field.seasonTab.daysToPlantingPost")}`}
                     </span>
                   )}
                   {s.days_to_harvest != null && (
                     <span>
                       {s.days_to_harvest >= 0
-                        ? `Yığıma ${s.days_to_harvest} gün qalıb`
-                        : `Gözlənilən yığım ${Math.abs(s.days_to_harvest)} gün gecikib`}
+                        ? `${t("app.field.seasonTab.daysToHarvestPre")}${s.days_to_harvest}${t("app.field.seasonTab.daysToHarvestPost")}`
+                        : `${t("app.field.seasonTab.harvestLatePre")}${Math.abs(s.days_to_harvest)}${t("app.field.seasonTab.harvestLatePost")}`}
                     </span>
                   )}
-                  {s.growth_stage && <span>Mərhələ: {s.growth_stage}</span>}
-                  {s.target_yield != null && <span>Hədəf: {s.target_yield}</span>}
+                  {s.growth_stage && <span>{t("app.field.seasonTab.stageLabel")} {s.growth_stage}</span>}
+                  {s.target_yield != null && <span>{t("app.field.seasonTab.targetLabel")} {s.target_yield}</span>}
                 </div>
 
                 {s.notes && <p className="mt-2 text-sm text-slate-700">{s.notes}</p>}
@@ -420,7 +425,7 @@ export default function SeasonTab({ fieldId }: { fieldId: string }) {
                 {confirmId === s.id && (
                   <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
                     <span className="text-sm text-red-700">
-                      Bu mövsüm silinsin? Qeydlər (tapşırıq, əməliyyat, məhsuldarlıq) silinmir.
+                      {t("app.field.seasonTab.deleteConfirm")}
                     </span>
                     <button
                       type="button"
@@ -428,21 +433,21 @@ export default function SeasonTab({ fieldId }: { fieldId: string }) {
                       disabled={rowBusy}
                       className="min-h-11 rounded bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
                     >
-                      {rowBusy ? "Silinir…" : "Bəli, sil"}
+                      {rowBusy ? t("app.field.seasonTab.deletingBtn") : t("app.field.seasonTab.confirmDeleteBtn")}
                     </button>
                     <button
                       type="button"
                       onClick={() => setConfirmId("")}
                       className="min-h-11 rounded px-3 py-1.5 text-sm text-slate-600 hover:text-slate-800"
                     >
-                      Ləğv et
+                      {t("app.field.seasonTab.cancelBtn")}
                     </button>
                   </div>
                 )}
 
                 {s.is_current && (
                   <div className="mt-3 border-t border-emerald-200 pt-3">
-                    <p className="mb-2 text-xs font-medium text-slate-500">Mövsümün mərhələsi</p>
+                    <p className="mb-2 text-xs font-medium text-slate-500">{t("app.field.seasonTab.stagePickerLabel")}</p>
                     <div className="flex flex-wrap gap-2">
                       {STATUS_ORDER.map((st) => {
                         const m = statusMeta(st);
@@ -458,7 +463,7 @@ export default function SeasonTab({ fieldId }: { fieldId: string }) {
                               on ? m.active : "border-slate-300 bg-white text-slate-600 hover:border-emerald-300"
                             }`}
                           >
-                            {m.label}
+                            {statusLabel(st)}
                           </button>
                         );
                       })}

@@ -12,6 +12,7 @@ import Link from "next/link";
 import { Check, Loader2 } from "lucide-react";
 import { api, azError } from "@/lib/api";
 import { ErrorNote } from "@/components/ui";
+import { t } from "@/lib/i18n";
 import type { Task } from "@/lib/types";
 
 // Statuses that mean "no longer on the list". Both 'todo' (generated chain) and 'open' (manual
@@ -84,7 +85,7 @@ export default function TodayTasks({
     return (
       <div className="flex items-center gap-2 rounded-xl2 border-[1.5px] border-line bg-white p-4 text-sm text-slate-500">
         <Loader2 className="h-4 w-4 animate-spin text-emerald-600" aria-hidden="true" />
-        İşlər yüklənir…
+        {t("app.home.todayTasks.loading")}
       </div>
     );
   }
@@ -106,7 +107,7 @@ export default function TodayTasks({
 
       {due.length === 0 ? (
         <p className="text-sm text-slate-500">
-          Bu gün üçün planlaşdırılmış iş yoxdur. Yeni işi sahənin <b>İşlər</b> bölməsindən əlavə edin.
+          {t("app.home.todayTasks.emptyPre")}<b>{t("app.home.todayTasks.emptyBold")}</b>{t("app.home.todayTasks.emptyPost")}
         </p>
       ) : (
         <ul>
@@ -128,7 +129,7 @@ export default function TodayTasks({
                 </p>
                 {x.notes === AUTO_MARK && (
                   <span className="shrink-0 rounded-full bg-panel-2 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-500">
-                    avto
+                    {t("app.home.todayTasks.autoBadge")}
                   </span>
                 )}
               </div>
@@ -143,7 +144,7 @@ export default function TodayTasks({
                   onClick={() => complete(x)}
                   disabled={isDone || busy === x.id}
                   aria-pressed={isDone}
-                  aria-label={`"${x.title}" işini tamamlandı kimi işarələ`}
+                  aria-label={`"${x.title}"${t("app.home.todayTasks.markDoneAriaSuffix")}`}
                   className="-ml-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-lg hover:bg-slate-50 disabled:cursor-default disabled:hover:bg-transparent"
                 >
                   <span
@@ -170,9 +171,9 @@ export default function TodayTasks({
 
                 <span className="shrink-0 text-right text-xs">
                   {late > 0 ? (
-                    <b className="text-warn">{late} gün gecikib</b>
+                    <b className="text-warn">{late}{t("app.home.todayTasks.daysLateSuffix")}</b>
                   ) : (
-                    <span className="text-slate-500">Bu gün</span>
+                    <span className="text-slate-500">{t("app.home.todayTasks.dueToday")}</span>
                   )}
                 </span>
               </li>

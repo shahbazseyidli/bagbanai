@@ -112,8 +112,8 @@ function IndexLegend({ index, range, auto }: {
       </div>
       <p className="mt-1 text-[11px] text-slate-400">
         {auto
-          ? "Kontrast açıq: rənglər bu tarixin öz aralığına görə gərilib — fərqlər daha aydın, amma tarixlər arasında rəng müqayisə edilə bilməz."
-          : "Sabit aralıq: rənglər bütün tarixlərdə eyni mənanı verir."}
+          ? t("app.field.satelliteTab.contrastOnHint")
+          : t("app.field.satelliteTab.fixedRangeHint")}
       </p>
     </div>
   );
@@ -329,19 +329,19 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
       {showSmallBanner && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
           {smallField
-            ? `Sahə çox kiçikdir (${field.area_ha} ha). Piksel-səviyyəli analiz üçün nəticələr yalnız bir neçə peyk pikselinə əsaslanır və təxminidir.`
-            : `Bu sahə (${field.area_ha} ha) HLS 30m üçün kiçikdir — sahəyə cəmi bir neçə piksel düşür. Sentinel-2 (10m) tabına baxın.`}
+            ? `${t("app.field.satelliteTab.smallFieldPre")}${field.area_ha}${t("app.field.satelliteTab.smallFieldPost")}`
+            : `${t("app.field.satelliteTab.smallHlsPre")}${field.area_ha}${t("app.field.satelliteTab.smallHlsPost")}`}
         </div>
       )}
 
       {summaryRows.length > 0 && (
         <div className="card">
           <div className="mb-3 flex items-center justify-between gap-2">
-            <h3 className="font-semibold text-slate-800">Cari göstəricilər</h3>
+            <h3 className="font-semibold text-slate-800">{t("app.field.satelliteTab.currentIndicators")}</h3>
             <div className="flex shrink-0 items-center gap-1.5">
               {normsCrop?.calibrated && (
                 <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700"
-                  title="Status etiketləri bu bitki növü üçün kalibrlənib.">🎯 Bitkiyə uyğun</span>
+                  title={t("app.field.satelliteTab.calibratedTitle")}>🎯 {t("app.field.satelliteTab.cropCalibrated")}</span>
               )}
               <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">{meta.short}</span>
             </div>
@@ -391,7 +391,7 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
                   <Tooltip formatter={(v: number | string, name: string) => [typeof v === "number" ? v.toFixed(3) : v, name]} />
                   {/* District p10–p90 spread (drawn first so it sits behind the lines). */}
                   {hasBenchmark && (
-                    <Area type="monotone" dataKey="benchBand" name="Bölgə yayılması (p10–p90)"
+                    <Area type="monotone" dataKey="benchBand" name={t("app.field.satelliteTab.regionSpread")}
                       fill="#fef3c7" stroke="none" connectNulls isAnimationActive={false} />
                   )}
                   {sensor === "HLS" && (
@@ -401,7 +401,7 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
                     </>
                   )}
                   {hasBenchmark && (
-                    <Line type="monotone" dataKey="benchmark" name="Bölgə ortası" stroke="#f59e0b"
+                    <Line type="monotone" dataKey="benchmark" name={t("app.field.satelliteTab.regionMean")} stroke="#f59e0b"
                       strokeWidth={1.5} strokeDasharray="4 3" dot={false} connectNulls />
                   )}
                   <Line type="monotone" dataKey="mean" name={meta.short}
@@ -414,16 +414,16 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
                 </span>
                 {sensor === "HLS" && (
                   <span className="inline-flex items-center gap-1">
-                    <span className="inline-block h-0.5 w-4" style={{ background: "#a7f3d0" }} /> Sahədaxili min–maks
+                    <span className="inline-block h-0.5 w-4" style={{ background: "#a7f3d0" }} /> {t("app.field.satelliteTab.inFieldMinMax")}
                   </span>
                 )}
                 {hasBenchmark && (
                   <>
                     <span className="inline-flex items-center gap-1">
-                      <span className="inline-block h-0.5 w-4" style={{ background: "#f59e0b" }} /> Digər sahələrin ortası
+                      <span className="inline-block h-0.5 w-4" style={{ background: "#f59e0b" }} /> {t("app.field.satelliteTab.otherFieldsMean")}
                     </span>
                     <span className="inline-flex items-center gap-1">
-                      <span className="inline-block h-2.5 w-4 rounded-sm" style={{ background: "#fef3c7" }} /> Bölgə yayılması (p10–p90)
+                      <span className="inline-block h-2.5 w-4 rounded-sm" style={{ background: "#fef3c7" }} /> {t("app.field.satelliteTab.regionSpread")}
                     </span>
                   </>
                 )}
@@ -447,20 +447,20 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
               {contrastAvailable && (
                 <button type="button" onClick={() => setContrast((c) => !c)}
                   title={contrast
-                    ? "Sabit rəng aralığına qayıt (tarixlər müqayisə edilə bilsin)"
-                    : "Kontrastı artır — rənglər bu tarixin öz aralığına görə gərilir"}
+                    ? t("app.field.satelliteTab.contrastResetTitle")
+                    : t("app.field.satelliteTab.contrastBoostTitle")}
                   className={`inline-flex min-h-[44px] items-center gap-1 rounded-md border px-2.5 py-1 text-xs ${
                     contrast ? "border-emerald-600 bg-emerald-50 font-semibold text-emerald-700"
                       : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
-                  <Contrast className="h-3.5 w-3.5 shrink-0" /> Kontrast
+                  <Contrast className="h-3.5 w-3.5 shrink-0" /> {t("app.field.satelliteTab.contrastBtn")}
                 </button>
               )}
               {visibleScenes.length >= 2 && (
-                <button type="button" onClick={() => setCompare((c) => !c)} title="İki tarixi müqayisə et"
+                <button type="button" onClick={() => setCompare((c) => !c)} title={t("app.field.satelliteTab.compareTitle")}
                   className={`inline-flex min-h-[44px] items-center gap-1 rounded-md border px-2.5 py-1 text-xs ${
                     compare ? "border-emerald-600 bg-emerald-50 font-semibold text-emerald-700"
                       : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
-                  <GitCompareArrows className="h-3.5 w-3.5 shrink-0" /> Müqayisə
+                  <GitCompareArrows className="h-3.5 w-3.5 shrink-0" /> {t("app.field.satelliteTab.compareBtn")}
                 </button>
               )}
             </div>
@@ -470,7 +470,7 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
             <>
               <div className="mb-2 grid grid-cols-2 gap-2 text-xs">
                 <label className="flex flex-col gap-1">
-                  <span className="text-slate-500">Sol tarix</span>
+                  <span className="text-slate-500">{t("app.field.satelliteTab.leftDate")}</span>
                   <select className="input" value={cmpA} onChange={(e) => setCmpA(Number(e.target.value))}>
                     {visibleScenes.map((s, i) => (
                       <option key={s.scene_id} value={i}>{sceneOptionLabel(s)}</option>
@@ -478,7 +478,7 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
                   </select>
                 </label>
                 <label className="flex flex-col gap-1">
-                  <span className="text-slate-500">Sağ tarix</span>
+                  <span className="text-slate-500">{t("app.field.satelliteTab.rightDate")}</span>
                   <select className="input" value={cmpB} onChange={(e) => setCmpB(Number(e.target.value))}>
                     {visibleScenes.map((s, i) => (
                       <option key={s.scene_id} value={i}>{sceneOptionLabel(s)}</option>
@@ -491,7 +491,7 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
                 rightUrl={cmpRescale ? withRescale(sceneB.tile_url, cmpRescale) : sceneB.tile_url}
                 leftLabel={sceneA.date} rightLabel={sceneB.date} />
               <IndexLegend index={index} range={cmpRange} auto={cmpRescale != null} />
-              <p className="mt-2 text-xs text-slate-400">Ortadakı dəstəyi sürüşdürün — sol/sağ tarixi tutuşdurun.</p>
+              <p className="mt-2 text-xs text-slate-400">{t("app.field.satelliteTab.compareHint")}</p>
             </>
           ) : (
             <>
@@ -500,12 +500,12 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
               {noData ? (
                 <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-center">
                   <p className="font-medium text-emerald-800">
-                    {preparing ? `${meta.label} hazırlanır…` : `${meta.label} üçün hələ məlumat yoxdur`}
+                    {preparing ? `${meta.label} ${t("app.field.satelliteTab.preparing")}` : `${meta.label} ${t("app.field.satelliteTab.noDataYet")}`}
                   </p>
                   <p className="mt-1 text-xs text-emerald-700">
                     {sensor === "S2"
-                      ? `Yüksək dəqiqlikli Sentinel-2 səhnəsi bu sahə üçün hələ hazırlanır. Hazır olan məlumatı görmək üçün “${otherTab}” tabına keçin.`
-                      : `Bu indeks üçün NASA (30m) rasteri hələ yoxdur. “${otherTab}” tabına baxın.`}
+                      ? `${t("app.field.satelliteTab.s2PreparingPre")}${otherTab}${t("app.field.satelliteTab.s2PreparingPost")}`
+                      : `${t("app.field.satelliteTab.hlsNoRasterPre")}${otherTab}${t("app.field.satelliteTab.hlsNoRasterPost")}`}
                   </p>
                 </div>
               ) : scenes.length > 0 ? (
@@ -513,13 +513,13 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
                   <IndexLegend index={index} range={activeRange} auto={contrastOnActive} />
                   <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
                     <Cloud className="h-3.5 w-3.5 shrink-0" />
-                    <span className="shrink-0">Maks. bulud: {maxCloud}%</span>
+                    <span className="shrink-0">{t("app.field.satelliteTab.maxCloud")}{maxCloud}%</span>
                     <input type="range" min={10} max={100} step={5} value={maxCloud}
                       onChange={(e) => setMaxCloud(Number(e.target.value))} className="w-full accent-emerald-600" />
                   </div>
-                  <p className="mt-2 text-xs text-slate-500">Peyk tarixi seçin:</p>
+                  <p className="mt-2 text-xs text-slate-500">{t("app.field.satelliteTab.selectSceneDate")}</p>
                   {visibleScenes.length === 0 ? (
-                    <p className="mt-1 text-xs text-amber-600">Bu bulud həddində təmiz səhnə yoxdur — həddi artırın.</p>
+                    <p className="mt-1 text-xs text-amber-600">{t("app.field.satelliteTab.noCleanScene")}</p>
                   ) : (
                     <div className="mt-1 flex gap-2 overflow-x-auto pb-1">
                       {visibleScenes.map((s, i) => {
@@ -528,8 +528,8 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
                           <button key={s.scene_id} type="button"
                             title={`${s.date}`
                               + (s.value != null ? ` · ${INDEX_LABELS[index] ?? index}: ${s.value.toFixed(3)}` : "")
-                              + (d != null ? ` · əvvəlki tarixə görə ${fmtDelta(d)}` : "")
-                              + (s.cloud_pct != null ? ` · bulud ${s.cloud_pct.toFixed(0)}%` : "")}
+                              + (d != null ? ` · ${t("app.field.satelliteTab.vsPrevDate")} ${fmtDelta(d)}` : "")
+                              + (s.cloud_pct != null ? ` · ${t("app.field.satelliteTab.cloud")} ${s.cloud_pct.toFixed(0)}%` : "")}
                             onClick={() => setSceneIdx(i)}
                             className={`flex min-h-[44px] shrink-0 flex-col items-start justify-center gap-0.5 rounded-md border px-2.5 py-1 text-xs leading-tight ${
                               i === sceneIdx ? "border-emerald-600 bg-emerald-50 font-semibold text-emerald-700"
@@ -549,7 +549,7 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
                   )}
                 </>
               ) : (
-                <p className="mt-3 text-xs text-slate-400">Bu indeks üçün hələ raster yoxdur.</p>
+                <p className="mt-3 text-xs text-slate-400">{t("app.field.satelliteTab.noRasterYet")}</p>
               )}
             </>
           )}

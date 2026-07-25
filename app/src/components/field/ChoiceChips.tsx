@@ -5,6 +5,7 @@
 // reveals a text input for the long tail. Value is a plain string (kept compatible with the existing
 // stored free-text columns).
 import { useState } from "react";
+import { t } from "@/lib/i18n";
 
 function chipCls(active: boolean): string {
   return `min-h-9 rounded-full border-[1.5px] px-3 py-1.5 text-sm font-medium ${
@@ -55,14 +56,14 @@ export default function ChoiceChips({
             onClick={() => { setOtherMode(true); onChange(""); }}
             className={chipCls(otherMode)}
           >
-            Digər
+            {t("app.field.choiceChips.otherChip")}
           </button>
         )}
       </div>
       {showOther && (
         <input
           className="input mt-2"
-          placeholder={other?.placeholder ?? "Yazın…"}
+          placeholder={other?.placeholder ?? t("app.field.choiceChips.otherPlaceholder")}
           value={value}
           onChange={(e) => onChange(e.target.value)}
         />

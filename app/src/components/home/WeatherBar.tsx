@@ -61,12 +61,12 @@ function WmoIcon({ code }: { code: number | null }) {
 function sprayChip(n: Nowcast): { label: string; warn: boolean } {
   if (n.rain_expected) {
     const m = n.minutes_to_rain;
-    if (m == null || m <= 0) return { label: "Çiləmə: hazırda yağış var", warn: true };
-    return { label: `Çiləmə: ${m} dəqiqəyə yağış`, warn: true };
+    if (m == null || m <= 0) return { label: t("app.home.weatherBar.sprayRainNow"), warn: true };
+    return { label: `${t("app.home.weatherBar.sprayRainInPre")}${m}${t("app.home.weatherBar.sprayRainInPost")}`, warn: true };
   }
   const mins = n.window_minutes ?? 120;
-  const span = mins % 60 === 0 ? `${mins / 60} saat` : `${mins} dəqiqə`;
-  return { label: `Çiləmə: yaxın ${span} yağışsız`, warn: false };
+  const span = mins % 60 === 0 ? `${mins / 60} ${t("app.home.weatherBar.hours")}` : `${mins} ${t("app.home.weatherBar.minutes")}`;
+  return { label: `${t("app.home.weatherBar.sprayDryPre")}${span}${t("app.home.weatherBar.sprayDryPost")}`, warn: false };
 }
 
 export default function WeatherBar({

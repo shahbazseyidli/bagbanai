@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Activity, RefreshCw, EyeOff } from "lucide-react";
 import { api, azError } from "@/lib/api";
 import { ErrorNote, Placeholder, Spinner } from "@/components/ui";
+import { t } from "@/lib/i18n";
 
 type Tone = "good" | "warn" | "bad";
 
@@ -79,7 +80,7 @@ export default function WellnessCard({ fieldId }: { fieldId: string }) {
   if (loading) {
     return (
       <div className="card">
-        <Spinner label="Sağlamlıq balı hesablanır…" />
+        <Spinner label={t("app.field.wellnessCard.loading")} />
       </div>
     );
   }
@@ -95,17 +96,17 @@ export default function WellnessCard({ fieldId }: { fieldId: string }) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="flex items-center gap-2 font-semibold text-slate-800">
-            <Activity className="h-4 w-4 text-emerald-700" /> Sahə sağlamlıq balı
+            <Activity className="h-4 w-4 text-emerald-700" /> {t("app.field.wellnessCard.title")}
           </h3>
           <p className="mt-0.5 text-xs text-slate-500">
-            Peyk, su balansı, zərərverici riski və istilik toplanmasından hesablanır.
+            {t("app.field.wellnessCard.subtitle")}
           </p>
         </div>
         <button
           type="button"
           onClick={() => void load(true)}
           disabled={busy}
-          aria-label="Balı yenidən hesabla"
+          aria-label={t("app.field.wellnessCard.recalcAria")}
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50"
         >
           <RefreshCw className={`h-4 w-4 ${busy ? "animate-spin" : ""}`} />
@@ -116,15 +117,14 @@ export default function WellnessCard({ fieldId }: { fieldId: string }) {
 
       {!data || !data.available || data.score === null ? (
         <Placeholder>
-          {data?.headline ??
-            "Hələ kifayət qədər məlumat yoxdur — peyk və hava məlumatı toplandıqca bal hesablanacaq."}
+          {data?.headline ?? t("app.field.wellnessCard.notEnoughData")}
         </Placeholder>
       ) : (
         <>
           <div className={`flex items-center gap-4 rounded-xl border ${c.border} ${c.bg} p-4`}>
             <div className="flex flex-col items-center">
               <span className={`text-5xl font-bold leading-none tabular-nums ${c.text}`}>{data.score}</span>
-              <span className="mt-1 text-[11px] uppercase tracking-wide text-slate-500">100 baldan</span>
+              <span className="mt-1 text-[11px] uppercase tracking-wide text-slate-500">{t("app.field.wellnessCard.outOf100")}</span>
             </div>
             <div className="min-w-0 flex-1">
               <p className={`text-sm font-medium ${c.text}`}>{data.headline}</p>
@@ -133,8 +133,8 @@ export default function WellnessCard({ fieldId }: { fieldId: string }) {
               </div>
               {data.computed_on && (
                 <p className="mt-1.5 text-[11px] text-slate-500">
-                  Hesablanma tarixi: {data.computed_on}
-                  {data.sensor ? ` · peyk: ${data.sensor}` : ""}
+                  {t("app.field.wellnessCard.computedOn")}{data.computed_on}
+                  {data.sensor ? `${t("app.field.wellnessCard.satelliteLabel")}${data.sensor}` : ""}
                 </p>
               )}
             </div>
@@ -142,18 +142,18 @@ export default function WellnessCard({ fieldId }: { fieldId: string }) {
 
           <div className="space-y-3">
             {items.map((it) => {
-              const t = TONE[subTone(it.score)];
+              const st = TONE[subTone(it.score)];
               return (
                 <div key={it.key}>
                   <div className="flex items-baseline justify-between gap-2 text-sm">
                     <span className="font-medium text-slate-700">{it.label}</span>
-                    <span className={`shrink-0 tabular-nums font-semibold ${t.text}`}>
+                    <span className={`shrink-0 tabular-nums font-semibold ${st.text}`}>
                       {Math.round(it.score)}
-                      <span className="text-xs font-normal text-slate-400">/100 · çəki {Math.round(it.weight * 100)}%</span>
+                      <span className="text-xs font-normal text-slate-400">{t("app.field.wellnessCard.weightSuffix")}{Math.round(it.weight * 100)}%</span>
                     </span>
                   </div>
                   <div className="mt-1 h-1.5 rounded-full bg-slate-100">
-                    <div className={`h-1.5 rounded-full ${t.bar}`} style={{ width: `${Math.max(0, Math.min(100, it.score))}%` }} />
+                    <div className={`h-1.5 rounded-full ${st.bar}`} style={{ width: `${Math.max(0, Math.min(100, it.score))}%` }} />
                   </div>
                   {it.reason && <p className="mt-1 text-xs leading-snug text-slate-500">{it.reason}</p>}
                 </div>
@@ -165,8 +165,7 @@ export default function WellnessCard({ fieldId }: { fieldId: string }) {
             <div className="flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
               <EyeOff className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
               <span>
-                Bu bal <b>{data.missing_labels.join(", ")}</b> məlumatını görmür — həmin göstərici üçün data yoxdur, ona görə
-                bala daxil edilməyib (sıfır kimi sayılmır). Qalan göstəricilərin çəkisi yenidən bölüşdürülüb.
+                {t("app.field.wellnessCard.missingPre")}<b>{data.missing_labels.join(", ")}</b>{t("app.field.wellnessCard.missingPost")}
               </span>
             </div>
           )}

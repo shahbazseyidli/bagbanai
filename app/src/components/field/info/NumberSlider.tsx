@@ -5,6 +5,7 @@
 // When the value is null the slider parks at the midpoint but stays null until
 // the farmer actually moves it.
 
+import { t } from "@/lib/i18n";
 import { chipCls } from "./chip";
 
 export interface NumberSliderProps {
@@ -53,7 +54,7 @@ export default function NumberSlider({
         onClick={() => onChange(null)}
         className={chipCls(value === null)}
       >
-        Bilmirəm
+        {t("app.field.info.numberSlider.dontKnow")}
       </button>
     </div>
   );

@@ -6,6 +6,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Download, FileText, Image as ImageIcon, Receipt, Sparkles, Trash2, Upload } from "lucide-react";
 import { api, azError } from "@/lib/api";
+import { t } from "@/lib/i18n";
 import { ErrorNote, Field as FormField, Placeholder, Spinner } from "@/components/ui";
 import ChoiceChips from "@/components/field/ChoiceChips";
 
@@ -56,22 +57,32 @@ interface ReceiptResponse {
   message: string | null;
 }
 
-const KINDS = [
-  { value: "lab", label: "Lab analizi" },
-  { value: "cadastre", label: "Kadastr" },
-  { value: "receipt", label: "Qəbz" },
-  { value: "contract", label: "Müqavilə" },
-  { value: "other", label: "Digər" },
-];
+// Enum codes stored to / read from the API; labels resolved at render time so the
+// current locale is honored (module-level constants would freeze it at import).
+const KIND_VALUES = ["lab", "cadastre", "receipt", "contract", "other"] as const;
 
-const KIND_LABEL: Record<string, string> = {
-  lab: "Lab analizi",
-  cadastre: "Kadastr",
-  receipt: "Qəbz",
-  contract: "Müqavilə",
-  photo: "Foto",
-  other: "Digər",
-};
+function kindLabel(kind: string): string {
+  switch (kind) {
+    case "lab":
+      return t("app.field.documentsTab.kindLab");
+    case "cadastre":
+      return t("app.field.documentsTab.kindCadastre");
+    case "receipt":
+      return t("app.field.documentsTab.kindReceipt");
+    case "contract":
+      return t("app.field.documentsTab.kindContract");
+    case "photo":
+      return t("app.field.documentsTab.kindPhoto");
+    case "other":
+      return t("app.field.documentsTab.kindOther");
+    default:
+      return kind;
+  }
+}
+
+function kindOptions(): { value: string; label: string }[] {
+  return KIND_VALUES.map((value) => ({ value, label: kindLabel(value) }));
+}
 
 const ACCEPT = "image/jpeg,image/png,image/webp,image/gif,image/heic,application/pdf";
 
@@ -117,11 +128,11 @@ async function postForm<T>(path: string, form: FormData): Promise<T> {
       const d = (body as { detail: unknown }).detail;
       detail = typeof d === "string" ? d : JSON.stringify(d);
     }
-    if (detail === "unsupported_media_type") detail = "Bu fayl növü qəbul edilmir (şəkil və ya PDF).";
-    else if (detail === "file_too_large") detail = "Fayl çox böyükdür (maksimum 15 MB).";
-    else if (detail === "empty_file") detail = "Fayl boşdur.";
-    else if (res.status === 403) detail = "Bu əməliyyata icazəniz yoxdur.";
-    else if (res.status >= 500) detail = "Server xətası — bir azdan yenidən cəhd edin.";
+    if (detail === "unsupported_media_type") detail = t("app.field.documentsTab.errUnsupportedMedia");
+    else if (detail === "file_too_large") detail = t("app.field.documentsTab.errFileTooLarge");
+    else if (detail === "empty_file") detail = t("app.field.documentsTab.errEmptyFile");
+    else if (res.status === 403) detail = t("app.field.documentsTab.errForbidden");
+    else if (res.status >= 500) detail = t("app.field.documentsTab.errServer");
     throw new Error(detail);
   }
   return body as T;
@@ -177,7 +188,7 @@ export default function DocumentsTab({ fieldId }: { fieldId: string }) {
       if (fileRef.current) fileRef.current.value = "";
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Fayl yüklənmədi.");
+      setError(err instanceof Error ? err.message : t("app.field.documentsTab.errUploadFailed"));
     } finally {
       setBusy(false);
     }
@@ -206,7 +217,7 @@ export default function DocumentsTab({ fieldId }: { fieldId: string }) {
       setReceipt(res);
       await load();
     } catch (err) {
-      setReceiptError(err instanceof Error ? err.message : "Qəbz oxunmadı.");
+      setReceiptError(err instanceof Error ? err.message : t("app.field.documentsTab.errReceiptReadFailed"));
     } finally {
       setReceiptBusy(false);
     }
@@ -221,7 +232,7 @@ export default function DocumentsTab({ fieldId }: { fieldId: string }) {
         `/api/fields/${fieldId}/receipt?create_operation=true&document_id=${receipt.document.id}`,
       );
       setReceipt(res);
-      setConfirmNote(res.operation ? "Xərc əməliyyatlara yazıldı." : res.message ?? "Xərc yazılmadı.");
+      setConfirmNote(res.operation ? t("app.field.documentsTab.expenseWritten") : res.message ?? t("app.field.documentsTab.expenseNotWritten"));
       await load();
     } catch (err) {
       setReceiptError(azError(err));
@@ -239,25 +250,24 @@ export default function DocumentsTab({ fieldId }: { fieldId: string }) {
       <form onSubmit={onUpload} className="card space-y-3">
         <div className="flex items-center gap-2">
           <Upload className="h-4 w-4 text-emerald-600" />
-          <h3 className="font-semibold text-slate-800">Sənəd yüklə</h3>
+          <h3 className="font-semibold text-slate-800">{t("app.field.documentsTab.uploadHeading")}</h3>
         </div>
         <p className="text-xs text-slate-500">
-          Lab analizi, kadastr çıxarışı, qəbz və ya müqavilə — şəkil (JPG/PNG) və ya PDF, maksimum 15 MB.
-          Sənədlər yalnız təşkilatınızın üzvlərinə görünür.
+          {t("app.field.documentsTab.uploadHelp")}
         </p>
 
-        <FormField label="Sənəd növü">
-          <ChoiceChips value={kind} onChange={setKind} options={KINDS} />
+        <FormField label={t("app.field.documentsTab.fieldKindLabel")}>
+          <ChoiceChips value={kind} onChange={setKind} options={kindOptions()} />
         </FormField>
-        <FormField label="Başlıq (istəyə bağlı)">
+        <FormField label={t("app.field.documentsTab.fieldTitleLabel")}>
           <input
             className="input"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Məs. 2026 torpaq analizi"
+            placeholder={t("app.field.documentsTab.titlePlaceholder")}
           />
         </FormField>
-        <FormField label="Fayl">
+        <FormField label={t("app.field.documentsTab.fieldFileLabel")}>
           <input
             ref={fileRef}
             className="input"
@@ -269,7 +279,7 @@ export default function DocumentsTab({ fieldId }: { fieldId: string }) {
 
         <ErrorNote message={error} />
         <button className="btn-primary" type="submit" disabled={!file || busy}>
-          <Upload className="h-4 w-4" /> {busy ? "Yüklənir…" : "Yüklə"}
+          <Upload className="h-4 w-4" /> {busy ? t("app.field.documentsTab.uploading") : t("app.field.documentsTab.uploadButton")}
         </button>
       </form>
 
@@ -277,11 +287,10 @@ export default function DocumentsTab({ fieldId }: { fieldId: string }) {
       <div className="card space-y-3">
         <div className="flex items-center gap-2">
           <Receipt className="h-4 w-4 text-emerald-600" />
-          <h3 className="font-semibold text-slate-800">Qəbz oxut</h3>
+          <h3 className="font-semibold text-slate-800">{t("app.field.documentsTab.receiptHeading")}</h3>
         </div>
         <p className="text-xs text-slate-500">
-          Mağaza qəbzinin şəklini çəkin — AI satıcını, tarixi və məbləği oxusun, siz təsdiqləyin,
-          xərc avtomatik əməliyyat kimi yazılsın.
+          {t("app.field.documentsTab.receiptHelp")}
         </p>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -303,7 +312,7 @@ export default function DocumentsTab({ fieldId }: { fieldId: string }) {
             onClick={onReadReceipt}
             disabled={!receiptFile || receiptBusy}
           >
-            <Sparkles className="h-4 w-4" /> {receiptBusy ? "Oxunur…" : "Qəbzi oxu"}
+            <Sparkles className="h-4 w-4" /> {receiptBusy ? t("app.field.documentsTab.reading") : t("app.field.documentsTab.readReceiptButton")}
           </button>
         </div>
 
@@ -314,32 +323,32 @@ export default function DocumentsTab({ fieldId }: { fieldId: string }) {
             {parsed ? (
               <>
                 <div className="flex flex-wrap items-center gap-2">
-                  <h4 className="font-semibold text-slate-800">Oxunan qəbz</h4>
+                  <h4 className="font-semibold text-slate-800">{t("app.field.documentsTab.parsedReceiptHeading")}</h4>
                   {parsed.confidence && (
                     <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
-                      əminlik: {parsed.confidence}
+                      {t("app.field.documentsTab.confidenceLabel")}{parsed.confidence}
                     </span>
                   )}
                 </div>
                 <dl className="mt-2 grid gap-x-4 sm:grid-cols-2">
                   <div className="flex justify-between gap-2 border-b border-slate-100 py-1 text-sm">
-                    <dt className="text-slate-500">Satıcı</dt>
+                    <dt className="text-slate-500">{t("app.field.documentsTab.vendorLabel")}</dt>
                     <dd className="font-medium text-slate-800">{parsed.vendor ?? "—"}</dd>
                   </div>
                   <div className="flex justify-between gap-2 border-b border-slate-100 py-1 text-sm">
-                    <dt className="text-slate-500">Tarix</dt>
+                    <dt className="text-slate-500">{t("app.field.documentsTab.dateLabel")}</dt>
                     <dd className="font-medium text-slate-800">
                       {draft?.performed_on ?? parsed.purchase_date ?? "—"}
                     </dd>
                   </div>
                   <div className="flex justify-between gap-2 border-b border-slate-100 py-1 text-sm">
-                    <dt className="text-slate-500">Məbləğ</dt>
+                    <dt className="text-slate-500">{t("app.field.documentsTab.amountLabel")}</dt>
                     <dd className="font-medium text-slate-800">
                       {parsed.total != null ? `${parsed.total} ${parsed.currency ?? "AZN"}` : "—"}
                     </dd>
                   </div>
                   <div className="flex justify-between gap-2 border-b border-slate-100 py-1 text-sm">
-                    <dt className="text-slate-500">Xərc növü</dt>
+                    <dt className="text-slate-500">{t("app.field.documentsTab.expenseTypeLabel")}</dt>
                     <dd className="font-medium text-slate-800">{draft?.type ?? "—"}</dd>
                   </div>
                 </dl>
@@ -361,17 +370,17 @@ export default function DocumentsTab({ fieldId }: { fieldId: string }) {
                     onClick={onConfirmExpense}
                     disabled={confirmBusy || !!receipt.document.operation_id || draft?.cost == null}
                   >
-                    {confirmBusy ? "Yazılır…" : "Xərc kimi yaz"}
+                    {confirmBusy ? t("app.field.documentsTab.writing") : t("app.field.documentsTab.writeAsExpenseButton")}
                   </button>
                   {receipt.document.operation_id && (
-                    <span className="text-sm text-emerald-700">Xərc yazılıb ✓</span>
+                    <span className="text-sm text-emerald-700">{t("app.field.documentsTab.expenseWrittenBadge")}</span>
                   )}
                 </div>
                 {confirmNote && <p className="mt-2 text-sm text-slate-600">{confirmNote}</p>}
               </>
             ) : (
               <p className="text-sm text-slate-600">
-                {receipt.message ?? "Qəbz saxlanıldı, amma məlumat oxunmadı — xərci əl ilə daxil edin."}
+                {receipt.message ?? t("app.field.documentsTab.receiptSavedNoData")}
               </p>
             )}
           </div>
@@ -380,12 +389,12 @@ export default function DocumentsTab({ fieldId }: { fieldId: string }) {
 
       {/* dossier list */}
       <div>
-        <h3 className="mb-3 font-semibold text-slate-800">Sənədlər</h3>
+        <h3 className="mb-3 font-semibold text-slate-800">{t("app.field.documentsTab.documentsHeading")}</h3>
         {loading ? (
           <Spinner />
         ) : items.length === 0 ? (
           <Placeholder>
-            Hələ sənəd yoxdur — lab analizi, kadastr çıxarışı və ya qəbzi bura yükləyin.
+            {t("app.field.documentsTab.emptyDocs")}
           </Placeholder>
         ) : (
           <ul className="space-y-2">
@@ -396,7 +405,7 @@ export default function DocumentsTab({ fieldId }: { fieldId: string }) {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={abs(doc.download_url)}
-                      alt={doc.title ?? doc.original_name ?? "sənəd"}
+                      alt={doc.title ?? doc.original_name ?? t("app.field.documentsTab.imgAltFallback")}
                       className="h-16 w-16 shrink-0 rounded-lg border border-slate-200 object-cover"
                       loading="lazy"
                     />
@@ -412,15 +421,15 @@ export default function DocumentsTab({ fieldId }: { fieldId: string }) {
 
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium text-slate-900">
-                      {doc.title || doc.original_name || "Sənəd"}
+                      {doc.title || doc.original_name || t("app.field.documentsTab.docTitleFallback")}
                     </p>
                     <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-slate-500">
                       <span className="rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-600">
-                        {KIND_LABEL[doc.kind] ?? doc.kind}
+                        {kindLabel(doc.kind)}
                       </span>
                       <span>{fmtDate(doc.created_at)}</span>
                       {fmtSize(doc.size_bytes) && <span>{fmtSize(doc.size_bytes)}</span>}
-                      {doc.operation_id && <span className="text-emerald-700">xərc yazılıb</span>}
+                      {doc.operation_id && <span className="text-emerald-700">{t("app.field.documentsTab.expenseWrittenTag")}</span>}
                     </p>
                     {doc.title && doc.original_name && (
                       <p className="mt-0.5 truncate text-xs text-slate-400">{doc.original_name}</p>
@@ -433,14 +442,14 @@ export default function DocumentsTab({ fieldId }: { fieldId: string }) {
                       target="_blank"
                       rel="noreferrer"
                       className="btn-secondary"
-                      aria-label="Yüklə"
+                      aria-label={t("app.field.documentsTab.downloadAria")}
                     >
                       <Download className="h-4 w-4" />
                     </a>
                     <button
                       type="button"
                       className="btn-ghost text-red-600"
-                      aria-label="Sil"
+                      aria-label={t("app.field.documentsTab.deleteAria")}
                       onClick={() => onDelete(doc.id)}
                     >
                       <Trash2 className="h-4 w-4" />

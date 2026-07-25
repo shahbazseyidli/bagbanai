@@ -13,6 +13,7 @@ import { Layers, RefreshCw, Info, Sprout } from "lucide-react";
 import { api, azError } from "@/lib/api";
 import { BLANK_STYLE, applyBasemap, getSavedBasemap } from "@/lib/basemaps";
 import { ErrorNote, Placeholder, Spinner } from "@/components/ui";
+import { t } from "@/lib/i18n";
 
 // ── types (local on purpose — lib/types.ts is shared and owned elsewhere) ────────────────
 type Ring = [number, number][];
@@ -244,15 +245,6 @@ const SENSORS: { value: string; label: string }[] = [
   { value: "HLS", label: "NASA HLS (30 m)" },
 ];
 const ZONE_COUNTS = [3, 4, 5, 6, 7];
-const NUTRIENTS: { value: string; label: string }[] = [
-  { value: "N", label: "Azot (N)" },
-  { value: "P", label: "Fosfor (P)" },
-  { value: "K", label: "Kalium (K)" },
-];
-const STRATEGIES: { value: string; label: string; hint: string }[] = [
-  { value: "compensate", label: "Zəif zonaya çox", hint: "Geridə qalan hissələri qidalandır" },
-  { value: "maximize", label: "Güclü zonaya çox", hint: "Ən məhsuldar hissəyə sərmayə qoy" },
-];
 
 export default function ZonesTab({ fieldId }: { fieldId: string }) {
   const [data, setData] = useState<ZonesResponse | null>(null);
@@ -349,12 +341,12 @@ export default function ZonesTab({ fieldId }: { fieldId: string }) {
       // gets a specific Azerbaijani message instead of a generic 422.
       const bd = parseFloat(baseDose.replace(",", "."));
       if (!Number.isNaN(bd) && bd > 0) {
-        if (bd > 2000) { setVraError("Baza norması 2000 kq/ha-dan çox ola bilməz."); return; }
+        if (bd > 2000) { setVraError(t("app.field.zonesTab.doseMaxError")); return; }
         body.base_dose_kg_ha = bd;
       }
       const pr = parseFloat(price.replace(",", "."));
       if (!Number.isNaN(pr) && pr >= 0) {
-        if (pr > 100) { setVraError("Gübrə qiyməti 100 ₼/kq-dan çox ola bilməz."); return; }
+        if (pr > 100) { setVraError(t("app.field.zonesTab.priceMaxError")); return; }
         body.price_azn_per_kg = pr;
       }
       await api.post(`/api/fields/${fieldId}/vra`, body);
@@ -363,13 +355,23 @@ export default function ZonesTab({ fieldId }: { fieldId: string }) {
     } catch (e) {
       setVraError(
         azError(e) === "Xəta baş verdi. Yenidən cəhd edin."
-          ? "Plan qurulmadı — zonalar hazır olmalı və baza norması (kq/ha) verilməlidir."
+          ? t("app.field.zonesTab.vraBuildFailed")
           : azError(e),
       );
     } finally {
       setVraBusy(false);
     }
   }
+
+  const NUTRIENTS: { value: string; label: string }[] = [
+    { value: "N", label: t("app.field.zonesTab.nutrientN") },
+    { value: "P", label: t("app.field.zonesTab.nutrientP") },
+    { value: "K", label: t("app.field.zonesTab.nutrientK") },
+  ];
+  const STRATEGIES: { value: string; label: string; hint: string }[] = [
+    { value: "compensate", label: t("app.field.zonesTab.strategyCompensateLabel"), hint: t("app.field.zonesTab.strategyCompensateHint") },
+    { value: "maximize", label: t("app.field.zonesTab.strategyMaximizeLabel"), hint: t("app.field.zonesTab.strategyMaximizeHint") },
+  ];
 
   const zones = data?.zones ?? [];
   const run = data?.run ?? null;
@@ -380,12 +382,12 @@ export default function ZonesTab({ fieldId }: { fieldId: string }) {
     const cv = run.homogeneity_cv;
     const cls = run.homogeneity_class;
     const head =
-      cls === "uniform" ? "Sahə bircinsdir" :
-      cls === "moderate" ? "Sahədə orta fərqlilik var" : "Sahə dəyişkəndir";
-    return `${head} (dəyişkənlik əmsalı ${cv.toFixed(2)}). ${data?.hint ?? ""}`.trim();
+      cls === "uniform" ? t("app.field.zonesTab.homogeneityUniform") :
+      cls === "moderate" ? t("app.field.zonesTab.homogeneityModerate") : t("app.field.zonesTab.homogeneityVariable");
+    return `${head} (${t("app.field.zonesTab.cvLabel")} ${cv.toFixed(2)}). ${data?.hint ?? ""}`.trim();
   }, [run, data]);
 
-  if (loading) return <Spinner label="Zonalar yüklənir…" />;
+  if (loading) return <Spinner label={t("app.field.zonesTab.loadingZones")} />;
 
   return (
     <div className="space-y-4">
@@ -396,16 +398,15 @@ export default function ZonesTab({ fieldId }: { fieldId: string }) {
         <div className="flex items-start gap-2">
           <Layers className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
           <div>
-            <h3 className="text-sm font-semibold text-slate-800">Məhsuldarlıq zonaları</h3>
+            <h3 className="text-sm font-semibold text-slate-800">{t("app.field.zonesTab.zonesTitle")}</h3>
             <p className="mt-0.5 text-xs text-slate-500">
-              Bir neçə mövsümün peyk şəkilləri birləşdirilir və sahə daimi olaraq zəif/güclü
-              hissələrə bölünür. 1-ci zona ən zəif, sonuncu zona ən güclüdür.
+              {t("app.field.zonesTab.zonesIntro")}
             </p>
           </div>
         </div>
 
         <div>
-          <label className="label">Zona sayı</label>
+          <label className="label">{t("app.field.zonesTab.zoneCountLabel")}</label>
           <div className="flex flex-wrap gap-2">
             {ZONE_COUNTS.map((n) => (
               <button
@@ -425,7 +426,7 @@ export default function ZonesTab({ fieldId }: { fieldId: string }) {
         </div>
 
         <div>
-          <label className="label">Peyk mənbəyi</label>
+          <label className="label">{t("app.field.zonesTab.sensorLabel")}</label>
           <div className="flex flex-wrap gap-2">
             {SENSORS.map((s) => (
               <button
@@ -450,10 +451,10 @@ export default function ZonesTab({ fieldId }: { fieldId: string }) {
           disabled={busy || computing}
           className="btn-primary min-h-[44px] w-full disabled:opacity-60"
         >
-          {busy || computing ? "Hesablanır…" : "Zonaları hesabla"}
+          {busy || computing ? t("app.field.zonesTab.computing") : t("app.field.zonesTab.computeButton")}
         </button>
         <p className="text-[11px] text-slate-400">
-          Yay pəncərəsi (may–avqust), buludluluq ≤ 60 %. Hesablama fon prosesində aparılır.
+          {t("app.field.zonesTab.computeHint")}
         </p>
       </div>
 
@@ -461,24 +462,24 @@ export default function ZonesTab({ fieldId }: { fieldId: string }) {
       {computing && (
         <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
           <RefreshCw className="h-4 w-4 shrink-0 animate-spin" />
-          <span>Zonalar hesablanır — bu bir neçə dəqiqə çəkə bilər. Səhifə özü yenilənəcək.</span>
+          <span>{t("app.field.zonesTab.computingBanner")}</span>
         </div>
       )}
 
       {data?.status === "insufficient_data" && (
         <div className="flex items-start gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800">
           <Info className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>{data.hint ?? "Zonalama üçün kifayət qədər peyk şəkli yoxdur."}</span>
+          <span>{data.hint ?? t("app.field.zonesTab.insufficientDataFallback")}</span>
         </div>
       )}
 
       {data?.status === "failed" && (
-        <ErrorNote message={data.hint ?? "Zonalar hesablanmadı — yenidən cəhd edin."} />
+        <ErrorNote message={data.hint ?? t("app.field.zonesTab.failedFallback")} />
       )}
 
       {data?.status === "none" && !computing && (
         <Placeholder>
-          Hələ zona hesablanmayıb. Yuxarıdakı “Zonaları hesabla” düyməsi ilə başlayın.
+          {t("app.field.zonesTab.emptyPlaceholder")}
         </Placeholder>
       )}
 
@@ -497,11 +498,11 @@ export default function ZonesTab({ fieldId }: { fieldId: string }) {
             <table className="w-full min-w-[420px] text-left text-xs">
               <thead>
                 <tr className="text-slate-500">
-                  <th className="py-1 pr-2 font-medium">Zona</th>
-                  <th className="py-1 pr-2 font-medium">Orta {run?.index_name ?? "NDVI"}</th>
-                  <th className="py-1 pr-2 font-medium">Sahə (ha)</th>
-                  <th className="py-1 pr-2 font-medium">Payı</th>
-                  <th className="py-1 font-medium">Sahəyə nisbət</th>
+                  <th className="py-1 pr-2 font-medium">{t("app.field.zonesTab.colZone")}</th>
+                  <th className="py-1 pr-2 font-medium">{t("app.field.zonesTab.colMeanPrefix")} {run?.index_name ?? "NDVI"}</th>
+                  <th className="py-1 pr-2 font-medium">{t("app.field.zonesTab.colArea")}</th>
+                  <th className="py-1 pr-2 font-medium">{t("app.field.zonesTab.colShare")}</th>
+                  <th className="py-1 font-medium">{t("app.field.zonesTab.colRelToField")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -531,8 +532,8 @@ export default function ZonesTab({ fieldId }: { fieldId: string }) {
           </div>
 
           <p className="text-[11px] text-slate-400">
-            {run?.n_scenes ?? 0} peyk şəkli · {run?.pixel_size_m ? `${fmt(run.pixel_size_m, 0)} m piksel · ` : ""}
-            {run?.valid_pixels ?? 0} piksel
+            {run?.n_scenes ?? 0} {t("app.field.zonesTab.scenesLabel")} · {run?.pixel_size_m ? `${fmt(run.pixel_size_m, 0)} ${t("app.field.zonesTab.pixelSizeUnit")} · ` : ""}
+            {run?.valid_pixels ?? 0} {t("app.field.zonesTab.pixelLabel")}
             {run?.computed_at ? ` · ${run.computed_at.slice(0, 10)}` : ""}
           </p>
         </div>
@@ -544,9 +545,9 @@ export default function ZonesTab({ fieldId }: { fieldId: string }) {
           <div className="flex items-start gap-2">
             <Sprout className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
             <div>
-              <h3 className="text-sm font-semibold text-slate-800">Zonalı gübrələmə (VRA)</h3>
+              <h3 className="text-sm font-semibold text-slate-800">{t("app.field.zonesTab.vraTitle")}</h3>
               <p className="mt-0.5 text-xs text-slate-500">
-                Hər zona üçün ayrıca norma hesablanır və bərabər norma ilə müqayisə edilir.
+                {t("app.field.zonesTab.vraIntro")}
               </p>
             </div>
           </div>
@@ -554,7 +555,7 @@ export default function ZonesTab({ fieldId }: { fieldId: string }) {
           {vraError && <ErrorNote message={vraError} />}
 
           <div>
-            <label className="label">Qida elementi</label>
+            <label className="label">{t("app.field.zonesTab.nutrientLabel")}</label>
             <div className="flex flex-wrap gap-2">
               {NUTRIENTS.map((n) => (
                 <button
@@ -574,7 +575,7 @@ export default function ZonesTab({ fieldId }: { fieldId: string }) {
           </div>
 
           <div>
-            <label className="label">Strategiya</label>
+            <label className="label">{t("app.field.zonesTab.strategyLabel")}</label>
             <div className="flex flex-wrap gap-2">
               {STRATEGIES.map((s) => (
                 <button
@@ -597,17 +598,17 @@ export default function ZonesTab({ fieldId }: { fieldId: string }) {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="label">Baza norması (kq/ha)</label>
+              <label className="label">{t("app.field.zonesTab.baseDoseLabel")}</label>
               <input
                 className="input"
                 inputMode="decimal"
-                placeholder="Gübrə planından"
+                placeholder={t("app.field.zonesTab.baseDosePlaceholder")}
                 value={baseDose}
                 onChange={(e) => setBaseDose(e.target.value)}
               />
             </div>
             <div>
-              <label className="label">Qiymət (₼/kq)</label>
+              <label className="label">{t("app.field.zonesTab.priceLabel")}</label>
               <input
                 className="input"
                 inputMode="decimal"
@@ -624,23 +625,22 @@ export default function ZonesTab({ fieldId }: { fieldId: string }) {
             disabled={vraBusy}
             className="btn-secondary min-h-[44px] w-full disabled:opacity-60"
           >
-            {vraBusy ? "Hazırlanır…" : "Plan hazırla"}
+            {vraBusy ? t("app.field.zonesTab.vraBuilding") : t("app.field.zonesTab.vraBuildButton")}
           </button>
 
           {vra?.plan && (
             <div className="space-y-3">
               <div className="rounded-xl bg-emerald-50 px-3 py-2.5">
                 <div className="text-sm font-semibold text-emerald-800">
-                  Gözlənilən qənaət: {fmt(vra.plan.saved_azn, 2)} ₼
+                  {t("app.field.zonesTab.expectedSaving")}: {fmt(vra.plan.saved_azn, 2)} ₼
                 </div>
                 <div className="mt-0.5 text-xs text-emerald-700">
-                  Bərabər norma {fmt(vra.plan.uniform_total_kg, 1)} kq · zonalı{" "}
-                  {fmt(vra.plan.vra_total_kg, 1)} kq · fərq {fmt(vra.plan.saved_kg, 1)} kq
+                  {t("app.field.zonesTab.uniformRateLabel")} {fmt(vra.plan.uniform_total_kg, 1)} kq · {t("app.field.zonesTab.zonalLabel")}{" "}
+                  {fmt(vra.plan.vra_total_kg, 1)} kq · {t("app.field.zonesTab.diffLabel")} {fmt(vra.plan.saved_kg, 1)} kq
                 </div>
                 {(vra.plan.saved_kg ?? 0) < 0 && (
                   <div className="mt-1 text-[11px] text-emerald-700">
-                    Mənfi fərq = plan bərabər normadan daha çox gübrə tələb edir (zəif zonalar
-                    əlavə qidalanır).
+                    {t("app.field.zonesTab.negativeDiffNote")}
                   </div>
                 )}
               </div>
@@ -649,10 +649,10 @@ export default function ZonesTab({ fieldId }: { fieldId: string }) {
                 <table className="w-full min-w-[360px] text-left text-xs">
                   <thead>
                     <tr className="text-slate-500">
-                      <th className="py-1 pr-2 font-medium">Zona</th>
-                      <th className="py-1 pr-2 font-medium">Sahə (ha)</th>
-                      <th className="py-1 pr-2 font-medium">Norma (kq/ha)</th>
-                      <th className="py-1 font-medium">Cəmi (kq)</th>
+                      <th className="py-1 pr-2 font-medium">{t("app.field.zonesTab.colZone")}</th>
+                      <th className="py-1 pr-2 font-medium">{t("app.field.zonesTab.colArea")}</th>
+                      <th className="py-1 pr-2 font-medium">{t("app.field.zonesTab.colDose")}</th>
+                      <th className="py-1 font-medium">{t("app.field.zonesTab.colTotal")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -679,10 +679,7 @@ export default function ZonesTab({ fieldId }: { fieldId: string }) {
               </div>
 
               <p className="text-[11px] leading-relaxed text-slate-400">
-                Dozalar ELEMENT əsaslıdır (kq {vra.plan.nutrient}), kommersiya gübrəsi deyil.
-                Baza norması {fmt(vra.plan.base_dose_kg_ha, 1)} kq/ha, qiymət{" "}
-                {fmt(vra.plan.price_azn_per_kg, 2)} ₼/kq. Konkret məhsul və norma üçün torpaq
-                analizi və aqronom məsləhəti lazımdır.
+                {t("app.field.zonesTab.doseNotePre")}{vra.plan.nutrient}{t("app.field.zonesTab.doseNoteMid")}{fmt(vra.plan.base_dose_kg_ha, 1)}{t("app.field.zonesTab.doseNotePrice")}{fmt(vra.plan.price_azn_per_kg, 2)}{t("app.field.zonesTab.doseNotePost")}
               </p>
             </div>
           )}

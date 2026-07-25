@@ -23,29 +23,9 @@ import {
   Tractor,
   type LucideIcon,
 } from "lucide-react";
+import { t } from "@/lib/i18n";
 
 type RailItem = { href: string; label: string; Icon: LucideIcon };
-
-// Every href below is an existing route under app/src/app/.
-const PRIMARY: RailItem[] = [
-  { href: "/", label: "Bu gün", Icon: Home },
-  { href: "/fields", label: "Sahələr", Icon: Sprout },
-  { href: "/ledger", label: "Dəftər", Icon: BookOpen },
-  { href: "/sales", label: "Satış", Icon: Banknote },
-  { href: "/inventory", label: "Anbar", Icon: Package },
-  { href: "/equipment", label: "Texnika", Icon: Tractor },
-  { href: "/reports", label: "Hesabat", Icon: FileText },
-  { href: "/places", label: "Yerlər", Icon: MapPin },
-  { href: "/catalog", label: "Kataloq", Icon: ShoppingBag },
-  { href: "/chat", label: "İcma", Icon: MessageCircle },
-  { href: "/more", label: "Daha çox", Icon: LayoutGrid },
-];
-
-// Mockup keeps a flexible gap and then the utility group pinned to the bottom of the rail.
-const SECONDARY: RailItem[] = [
-  { href: "/notifications", label: "Bildiriş", Icon: Bell },
-  { href: "/account", label: "Hesab", Icon: Settings },
-];
 
 // The locale path prefix (/en, /tr, /de) is rewritten away by middleware but the browser URL —
 // and therefore usePathname() — still carries it. Strip it before matching. Links stay unprefixed
@@ -87,16 +67,38 @@ function RailLink({ item, active }: { item: RailItem; active: boolean }) {
 export default function AppRail() {
   const pathname = usePathname() || "/";
 
+  // Every href below is an existing route under app/src/app/. Labels are read on each render (t() is
+  // module-level state set by LocaleProvider) so a locale switch re-labels the rail.
+  const PRIMARY: RailItem[] = [
+    { href: "/", label: t("app.shell.appRail.today"), Icon: Home },
+    { href: "/fields", label: t("app.shell.appRail.fields"), Icon: Sprout },
+    { href: "/ledger", label: t("app.shell.appRail.ledger"), Icon: BookOpen },
+    { href: "/sales", label: t("app.shell.appRail.sales"), Icon: Banknote },
+    { href: "/inventory", label: t("app.shell.appRail.inventory"), Icon: Package },
+    { href: "/equipment", label: t("app.shell.appRail.equipment"), Icon: Tractor },
+    { href: "/reports", label: t("app.shell.appRail.reports"), Icon: FileText },
+    { href: "/places", label: t("app.shell.appRail.places"), Icon: MapPin },
+    { href: "/catalog", label: t("app.shell.appRail.catalog"), Icon: ShoppingBag },
+    { href: "/chat", label: t("app.shell.appRail.community"), Icon: MessageCircle },
+    { href: "/more", label: t("app.shell.appRail.more"), Icon: LayoutGrid },
+  ];
+
+  // Mockup keeps a flexible gap and then the utility group pinned to the bottom of the rail.
+  const SECONDARY: RailItem[] = [
+    { href: "/notifications", label: t("app.shell.appRail.notifications"), Icon: Bell },
+    { href: "/account", label: t("app.shell.appRail.account"), Icon: Settings },
+  ];
+
   return (
     // z-30 keeps the rail above full-bleed page content that paints itself with `fixed inset-0`
     // (the map-first field view does exactly that), so navigation never disappears under a map.
     <nav
-      aria-label="Əsas naviqasiya"
+      aria-label={t("app.shell.appRail.mainNav")}
       className="sticky top-[76px] z-30 hidden max-h-[calc(100vh_-_92px)] w-[78px] shrink-0 flex-col items-center gap-[3px] overflow-y-auto rounded-xl2 bg-teal px-2.5 py-3 shadow-soft md:flex"
     >
       <Link
         href="/"
-        aria-label="Bağban AI — ana səhifə"
+        aria-label={`Bağban AI — ${t("app.shell.appRail.homeAria")}`}
         className="mb-2 grid h-10 w-10 shrink-0 place-items-center rounded-xl text-[#08331F]"
         style={{ background: "linear-gradient(160deg, var(--mint), var(--green))" }}
       >

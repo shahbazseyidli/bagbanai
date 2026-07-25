@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Check, Copy, Package, Plus, Receipt, Trash2 } from "lucide-react";
 import { api, azError } from "@/lib/api";
+import { t } from "@/lib/i18n";
 import { ErrorNote, Field as FormField, Placeholder, Spinner } from "@/components/ui";
 import ChoiceChips from "@/components/field/ChoiceChips";
 
@@ -91,7 +92,7 @@ export default function HarvestTab({ fieldId, orgId }: { fieldId: string; orgId:
   }
 
   async function remove(id: string) {
-    if (!window.confirm("Bu yığım qeydi silinsin? İzləmə kodu da itəcək.")) return;
+    if (!window.confirm(t("app.field.harvestTab.deleteConfirm"))) return;
     setError("");
     try {
       await api.del(`/api/harvest-lots/${id}`);
@@ -114,9 +115,9 @@ export default function HarvestTab({ fieldId, orgId }: { fieldId: string; orgId:
   return (
     <div className="space-y-6">
       <form onSubmit={onSubmit} className="card space-y-3">
-        <h3 className="font-semibold text-slate-800">Yığım qeyd et</h3>
+        <h3 className="font-semibold text-slate-800">{t("app.field.harvestTab.formTitle")}</h3>
         <div className="grid gap-3 sm:grid-cols-2">
-          <FormField label="Yığım tarixi" required>
+          <FormField label={t("app.field.harvestTab.dateLabel")} required>
             <input
               className="input"
               type="date"
@@ -125,7 +126,7 @@ export default function HarvestTab({ fieldId, orgId }: { fieldId: string; orgId:
               onChange={(e) => setHarvestedOn(e.target.value)}
             />
           </FormField>
-          <FormField label="Miqdar">
+          <FormField label={t("app.field.harvestTab.quantityLabel")}>
             <input
               className="input"
               type="number"
@@ -133,16 +134,16 @@ export default function HarvestTab({ fieldId, orgId }: { fieldId: string; orgId:
               min="0"
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
-              placeholder="Məsələn: 1200"
+              placeholder={t("app.field.harvestTab.quantityPlaceholder")}
             />
           </FormField>
-          <FormField label="Ölçü vahidi">
+          <FormField label={t("app.field.harvestTab.unitLabel")}>
             <ChoiceChips value={unit} onChange={setUnit} options={UNITS} />
           </FormField>
-          <FormField label="Keyfiyyət / sort">
-            <ChoiceChips value={grade} onChange={setGrade} options={GRADES} other={{ placeholder: "Digər sort" }} />
+          <FormField label={t("app.field.harvestTab.gradeLabel")}>
+            <ChoiceChips value={grade} onChange={setGrade} options={GRADES} other={{ placeholder: t("app.field.harvestTab.gradeOtherPlaceholder") }} />
           </FormField>
-          <FormField label="Nəmlik (%)">
+          <FormField label={t("app.field.harvestTab.moistureLabel")}>
             <input
               className="input"
               type="number"
@@ -153,34 +154,34 @@ export default function HarvestTab({ fieldId, orgId }: { fieldId: string; orgId:
               onChange={(e) => setMoisture(e.target.value)}
             />
           </FormField>
-          <FormField label="Anbar / saxlanma yeri">
+          <FormField label={t("app.field.harvestTab.storageFieldLabel")}>
             <input className="input" value={storage} onChange={(e) => setStorage(e.target.value)} />
           </FormField>
         </div>
-        <FormField label="Qeyd">
+        <FormField label={t("app.field.harvestTab.notesLabel")}>
           <textarea className="input h-20" value={notes} onChange={(e) => setNotes(e.target.value)} />
         </FormField>
         <ErrorNote message={error} />
         <button className="btn-primary" type="submit" disabled={busy}>
-          <Plus className="h-4 w-4" /> {busy ? "Yadda saxlanılır…" : "Yığımı yaz"}
+          <Plus className="h-4 w-4" /> {busy ? t("app.field.harvestTab.savingBtn") : t("app.field.harvestTab.submitBtn")}
         </button>
         <p className="text-xs text-slate-500">
-          Hər yığım üçün avtomatik izləmə kodu yaradılır — məhsulun mənşəyini bu kodla təsdiqləyə bilərsiniz.
+          {t("app.field.harvestTab.traceHelp")}
         </p>
       </form>
 
       <div>
         <div className="mb-3 flex items-center justify-between gap-3">
-          <h3 className="font-semibold text-slate-800">Yığım partiyaları</h3>
+          <h3 className="font-semibold text-slate-800">{t("app.field.harvestTab.lotsTitle")}</h3>
           <Link href={`/sales?field=${fieldId}&org=${orgId}`} className="btn-secondary">
-            <Receipt className="h-4 w-4" /> Satışlar
+            <Receipt className="h-4 w-4" /> {t("app.field.harvestTab.salesLink")}
           </Link>
         </div>
 
         {lots === null ? (
           <Spinner />
         ) : lots.length === 0 ? (
-          <Placeholder>Hələ yığım qeydi yoxdur. İlk yığımı yuxarıda yazın.</Placeholder>
+          <Placeholder>{t("app.field.harvestTab.emptyState")}</Placeholder>
         ) : (
           <ul className="space-y-3">
             {lots.map((l) => {
@@ -190,12 +191,12 @@ export default function HarvestTab({ fieldId, orgId }: { fieldId: string; orgId:
                 <li key={l.id} className="card space-y-3">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="text-xs uppercase tracking-wide text-slate-400">İzləmə kodu</div>
+                      <div className="text-xs uppercase tracking-wide text-slate-400">{t("app.field.harvestTab.traceCodeLabel")}</div>
                       <button
                         type="button"
                         onClick={() => copyCode(l.trace_code)}
                         className="mt-0.5 inline-flex min-h-11 items-center gap-2 rounded-lg border-[1.5px] border-emerald-200 bg-emerald-50 px-3 font-mono text-base font-bold tracking-wide text-emerald-800"
-                        aria-label="İzləmə kodunu kopyala"
+                        aria-label={t("app.field.harvestTab.copyTraceAria")}
                       >
                         {l.trace_code}
                         {copied === l.trace_code ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
@@ -204,7 +205,7 @@ export default function HarvestTab({ fieldId, orgId }: { fieldId: string; orgId:
                     <button
                       type="button"
                       className="btn-ghost min-h-11 text-red-600"
-                      aria-label="Yığımı sil"
+                      aria-label={t("app.field.harvestTab.deleteAria")}
                       onClick={() => remove(l.id)}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -217,23 +218,23 @@ export default function HarvestTab({ fieldId, orgId }: { fieldId: string; orgId:
                       {num(l.quantity)} {l.unit}
                     </span>
                     <span>{l.harvested_on}</span>
-                    <span className="text-slate-500">Mövsüm {l.season_year}</span>
+                    <span className="text-slate-500">{t("app.field.harvestTab.seasonLabel")} {l.season_year}</span>
                     {l.crop_type && <span className="capitalize text-slate-500">{l.crop_type}</span>}
                     {l.quality_grade && <span className="text-slate-500">{l.quality_grade}</span>}
-                    {l.moisture_pct != null && <span className="text-slate-500">Nəmlik {l.moisture_pct}%</span>}
-                    {l.storage && <span className="text-slate-500">Anbar: {l.storage}</span>}
+                    {l.moisture_pct != null && <span className="text-slate-500">{t("app.field.harvestTab.moistureInline")} {l.moisture_pct}%</span>}
+                    {l.storage && <span className="text-slate-500">{t("app.field.harvestTab.storageInline")} {l.storage}</span>}
                   </div>
 
                   {sold > 0 && (
                     <p className="text-xs text-slate-500">
-                      Satılıb: {num(sold)} {l.unit}
-                      {left != null && left > 0 ? ` · qalıq: ${num(left)} ${l.unit}` : ""}
+                      {t("app.field.harvestTab.soldInline")} {num(sold)} {l.unit}
+                      {left != null && left > 0 ? ` · ${t("app.field.harvestTab.remainingInline")}${num(left)} ${l.unit}` : ""}
                     </p>
                   )}
                   {l.notes && <p className="text-sm text-slate-700">{l.notes}</p>}
 
                   <Link href={`/sales?field=${l.field_id}&lot=${l.id}&org=${orgId}`} className="btn-primary">
-                    <Receipt className="h-4 w-4" /> Satış qeyd et
+                    <Receipt className="h-4 w-4" /> {t("app.field.harvestTab.recordSaleLink")}
                   </Link>
                 </li>
               );

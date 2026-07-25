@@ -17,6 +17,7 @@ import { DisplayMap } from "@/components/FieldMap";
 import { api } from "@/lib/api";
 import { SENSOR_PARAM } from "@/lib/sensors";
 import { useDataSaver } from "@/lib/dataSaver";
+import { t } from "@/lib/i18n";
 import type { FieldDetail, RasterScenes } from "@/lib/types";
 
 export default function FieldMapSheet({
@@ -74,7 +75,7 @@ export default function FieldMapSheet({
             onClick={() => setForceRaster(true)}
             className="absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-xs font-bold text-slate-700 shadow-md ring-1 ring-slate-200 backdrop-blur"
           >
-            <Layers className="h-3.5 w-3.5 text-emerald-600" aria-hidden="true" /> Peyk təbəqəsini göstər
+            <Layers className="h-3.5 w-3.5 text-emerald-600" aria-hidden="true" /> {t("app.field.fieldMapSheet.showSatelliteLayer")}
           </button>
         )}
       </div>
@@ -89,7 +90,7 @@ export default function FieldMapSheet({
         <button
           type="button"
           onClick={() => onCamera()}
-          aria-label="Şəkillə diaqnoz"
+          aria-label={t("app.field.fieldMapSheet.photoDiagnosisAria")}
           className="fixed bottom-20 right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg md:hidden"
         >
           <Camera className="h-6 w-6" aria-hidden="true" />

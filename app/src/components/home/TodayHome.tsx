@@ -235,7 +235,7 @@ export default function TodayHome() {
   const fieldNames: Record<string, string> = {};
   for (const f of fields) fieldNames[f.id] = f.name;
 
-  const greeting = user?.full_name ? `Salam, ${user.full_name.split(" ")[0]}` : null;
+  const greeting = user?.full_name ? `${t("app.home.todayHome.greeting")}${user.full_name.split(" ")[0]}` : null;
 
   return (
     <div className="space-y-5">
@@ -296,7 +296,7 @@ export default function TodayHome() {
       {/* MOCK-app-today-attention — the hero for the single worst field. */}
       {worst && (
         <section>
-          <SectionTitle>Diqqət lazımdır</SectionTitle>
+          <SectionTitle>{t("app.home.todayHome.attentionNeeded")}</SectionTitle>
           <AttentionHero ft={worst} score={scores[worst.field.id]} />
         </section>
       )}
@@ -352,7 +352,7 @@ export default function TodayHome() {
       ) : (
         <section>
           <div className="mb-2 mt-1 flex items-center justify-between gap-3">
-            <h2 className="text-sm font-bold text-slate-600">Sahələrim</h2>
+            <h2 className="text-sm font-bold text-slate-600">{t("app.home.todayHome.myFields")}</h2>
             <Link href="/onboarding" className="inline-flex items-center gap-1 text-sm font-bold text-emerald-700">
               <Plus className="h-4 w-4" /> {t("common.add")}
             </Link>
@@ -364,7 +364,7 @@ export default function TodayHome() {
       {/* MOCK-app-today-tasks — "Bu günün işləri" */}
       {orgId && fields.length > 0 && (
         <section>
-          <SectionTitle>Bu günün işləri</SectionTitle>
+          <SectionTitle>{t("app.home.todayHome.todaysTasks")}</SectionTitle>
           <TodayTasks orgId={orgId} fieldNames={fieldNames} />
         </section>
       )}

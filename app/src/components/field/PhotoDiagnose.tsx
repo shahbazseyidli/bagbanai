@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Camera, Sparkles, AlertTriangle } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import UpgradeCta from "@/components/UpgradeCta";
+import { t } from "@/lib/i18n";
 
 interface Diag {
   problem_type: string;
@@ -49,8 +50,8 @@ export default function PhotoDiagnose({ fieldId }: { fieldId: string }) {
       setResult(await api.upload<Diag>(`/api/fields/${fieldId}/diagnose`, file));
     } catch (err) {
       if (err instanceof ApiError && err.status === 402) setGated(true);
-      else if (err instanceof ApiError && err.status === 503) setError("AI hazırda əlçatan deyil.");
-      else setError(err instanceof Error ? err.message : "Diaqnoz alınmadı.");
+      else if (err instanceof ApiError && err.status === 503) setError(t("app.field.photoDiagnose.aiUnavailable"));
+      else setError(err instanceof Error ? err.message : t("app.field.photoDiagnose.diagnoseFailed"));
     } finally {
       setBusy(false);
     }
@@ -60,12 +61,11 @@ export default function PhotoDiagnose({ fieldId }: { fieldId: string }) {
     <div className="card space-y-3">
       <div className="flex items-center gap-2">
         <Camera className="h-4 w-4 text-emerald-600" />
-        <h3 className="font-semibold text-slate-800">AI foto diaqnoz</h3>
-        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">Paket 3</span>
+        <h3 className="font-semibold text-slate-800">{t("app.field.photoDiagnose.heading")}</h3>
+        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">{t("app.field.photoDiagnose.packageBadge")}</span>
       </div>
       <p className="text-xs text-slate-500">
-        Xəstə yarpaq/bitki şəklini yükləyin — AI ehtimal olunan problemi təyin etsin. Nəticə məsləhət
-        xarakterlidir; dəqiq preparat üçün aqronomla məsləhətləşin.
+        {t("app.field.photoDiagnose.intro")}
       </p>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -81,22 +81,22 @@ export default function PhotoDiagnose({ fieldId }: { fieldId: string }) {
           disabled={!file || busy}
           className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
         >
-          <Sparkles className="h-4 w-4" /> {busy ? "Analiz olunur…" : "Diaqnoz al"}
+          <Sparkles className="h-4 w-4" /> {busy ? t("app.field.photoDiagnose.analyzing") : t("app.field.photoDiagnose.diagnoseBtn")}
         </button>
       </div>
 
       {preview && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={preview} alt="seçilmiş" className="max-h-48 rounded-lg border border-slate-200 object-contain" />
+        <img src={preview} alt={t("app.field.photoDiagnose.previewAlt")} className="max-h-48 rounded-lg border border-slate-200 object-contain" />
       )}
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       {gated && (
         <UpgradeCta
-          title="AI foto diaqnoz Paket 3-də açıqdır"
-          subtitle="Xəstəlik/zərərverici şəkillərini AI ilə analiz etmək üçün Paket 3-ə keçin (aylıq 30 diaqnoz)."
-          priceLine="Paket 3 — 25 AZN/ay"
+          title={t("app.field.photoDiagnose.gatedTitle")}
+          subtitle={t("app.field.photoDiagnose.gatedSubtitle")}
+          priceLine={t("app.field.photoDiagnose.gatedPrice")}
           onDismiss={() => setGated(false)}
         />
       )}
@@ -106,7 +106,7 @@ export default function PhotoDiagnose({ fieldId }: { fieldId: string }) {
           <div className="flex flex-wrap items-center gap-2">
             <h4 className="font-semibold text-slate-800">{result.problem_type}</h4>
             <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${CONF_CLASS[result.confidence] ?? "bg-slate-100 text-slate-600"}`}>
-              əminlik: {result.confidence}
+              {t("app.field.photoDiagnose.confidenceLabel")}{result.confidence}
             </span>
           </div>
           {result.observations && <p className="mt-2 text-sm text-slate-700">{result.observations}</p>}

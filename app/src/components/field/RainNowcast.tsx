@@ -7,6 +7,7 @@
 import { useEffect, useState } from "react";
 import { CloudRain, CloudSun } from "lucide-react";
 import { api } from "@/lib/api";
+import { t } from "@/lib/i18n";
 
 interface Step {
   ts: string;
@@ -75,7 +76,7 @@ export default function RainNowcast({ fieldId }: { fieldId: string }) {
     <div
       className={`flex items-start gap-3 rounded-xl border ${tone.border} ${tone.bg} px-3 py-2.5`}
       role="group"
-      aria-label="Yağış proqnozu"
+      aria-label={t("app.field.rainNowcast.ariaLabel")}
     >
       <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${tone.icon}`} aria-hidden="true" />
 
@@ -101,10 +102,10 @@ export default function RainNowcast({ fieldId }: { fieldId: string }) {
         </div>
 
         <div className="mt-1 flex items-center justify-between text-[10px] text-slate-400">
-          <span>indi</span>
+          <span>{t("app.field.rainNowcast.now")}</span>
           <span>
-            {data.total_mm != null && data.total_mm > 0 ? `cəmi ${data.total_mm.toFixed(1)} mm · ` : ""}
-            15 dəqiqəlik addımlar
+            {data.total_mm != null && data.total_mm > 0 ? `${t("app.field.rainNowcast.totalPrefix")}${data.total_mm.toFixed(1)} mm · ` : ""}
+            {t("app.field.rainNowcast.intervalSteps")}
           </span>
           <span>+{windowLabel(windowMin)}</span>
         </div>

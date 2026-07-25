@@ -18,6 +18,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { api } from "@/lib/api";
+import { t } from "@/lib/i18n";
 import StatusChip from "@/components/StatusChip";
 import { cropLabelOf } from "@/lib/insights";
 import type { Tone } from "@/lib/indexStatus";
@@ -200,7 +201,7 @@ export default function FieldHeader({
   );
 
   const tip = score
-    ? [score.headline, score.computedOn ? `Hesablanma: ${score.computedOn}` : null]
+    ? [score.headline, score.computedOn ? `${t("app.field.fieldHeader.computedOnPrefix")}${score.computedOn}` : null]
         .filter(Boolean)
         .join(" · ")
     : "";
@@ -214,7 +215,7 @@ export default function FieldHeader({
       <button
         type="button"
         onClick={handleBack}
-        aria-label="Geri qayıt"
+        aria-label={t("app.field.fieldHeader.backLabel")}
         className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-line bg-panel text-ink-soft transition-colors hover:border-line-2 hover:text-ink"
       >
         <ChevronLeft className="h-5 w-5" aria-hidden="true" />
@@ -233,7 +234,7 @@ export default function FieldHeader({
 
       {score && (
         <span className="shrink-0" title={tip || undefined}>
-          <StatusChip tone={score.tone} label={`Sahə balı ${score.score}`} />
+          <StatusChip tone={score.tone} label={`${t("app.field.fieldHeader.scoreLabel")}${score.score}`} />
         </span>
       )}
 

@@ -92,8 +92,8 @@ export default function TasksTab({ fieldId, orgId }: { fieldId: string; orgId: s
     <div className="space-y-6">
       {/* B5 — auto season task chain from crop + planting date */}
       <div className="flex items-center gap-3 rounded-xl border-[1.5px] border-emerald-200 bg-emerald-50 p-3">
-        <p className="flex-1 text-sm text-emerald-900">Əkin tarixi və məhsula görə mövsüm tapşırıq zəncirini avtomatik yarat.</p>
-        <button className="btn-primary" onClick={generateChain} disabled={busy}>{busy ? "…" : "Zəncir yarat"}</button>
+        <p className="flex-1 text-sm text-emerald-900">{t("app.field.tasksTab.autoChainHint")}</p>
+        <button className="btn-primary" onClick={generateChain} disabled={busy}>{busy ? "…" : t("app.field.tasksTab.generateChain")}</button>
       </div>
       <form onSubmit={onSubmit} className="card space-y-3">
         <h3 className="font-semibold text-slate-800">{t("task.add")}</h3>
@@ -102,7 +102,7 @@ export default function TasksTab({ fieldId, orgId }: { fieldId: string; orgId: s
             <input className="input" value={title} required onChange={(e) => setTitle(e.target.value)} />
           </FormField>
           <FormField label={t("task.type")}>
-            <ChoiceChips value={type} onChange={setType} options={TASK_TYPES} other={{ placeholder: "Digər növ" }} />
+            <ChoiceChips value={type} onChange={setType} options={TASK_TYPES} other={{ placeholder: t("app.field.tasksTab.otherTypePlaceholder") }} />
           </FormField>
           <FormField label={t("task.due")}>
             <input className="input" type="date" value={due} onChange={(e) => setDue(e.target.value)} />
@@ -134,7 +134,7 @@ export default function TasksTab({ fieldId, orgId }: { fieldId: string; orgId: s
               href={`/api/fields/${fieldId}/tasks.ics`}
               className="inline-flex items-center gap-1.5 text-sm text-emerald-700 hover:underline"
             >
-              <CalendarPlus className="h-4 w-4" /> Təqvimə əlavə et (.ics)
+              <CalendarPlus className="h-4 w-4" /> {t("app.field.tasksTab.addToCalendar")}
             </a>
           )}
         </div>

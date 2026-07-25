@@ -25,7 +25,7 @@ function FieldGridCard({
   const preparing = ft != null && (ft.status === "queued" || ft.status === "processing");
   const v = ft?.verdict ?? null;
   // Meta line: area + one status word, each of which is either known or omitted.
-  const statusWord = preparing ? "hazırlanır" : v ? toneWord(v.tone) : null;
+  const statusWord = preparing ? t("app.home.fieldGrid.preparing") : v ? toneWord(v.tone) : null;
   const meta = [
     field.area_ha != null ? `${field.area_ha.toFixed(2)} ha` : null,
     statusWord,
@@ -47,7 +47,7 @@ function FieldGridCard({
       {ft == null ? (
         <p className="mt-2 flex items-center gap-1.5 text-sm text-slate-400">
           <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-          Yüklənir…
+          {t("app.home.fieldGrid.loading")}
         </p>
       ) : preparing ? (
         <p className="mt-2 flex items-center gap-1.5 text-sm text-slate-600">

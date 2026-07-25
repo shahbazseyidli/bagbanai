@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Share2, Copy, Check, Trash2, Eye, Plus, Loader2 } from "lucide-react";
 import { api, azError } from "@/lib/api";
 import { ErrorNote, Placeholder, Spinner } from "@/components/ui";
+import { t } from "@/lib/i18n";
 
 interface ShareLink {
   id: string;
@@ -24,9 +25,9 @@ interface ShareLink {
 }
 
 const EXPIRY_OPTIONS: { label: string; days: number | null }[] = [
-  { label: "7 gün", days: 7 },
-  { label: "30 gün", days: 30 },
-  { label: "Müddətsiz", days: null },
+  { label: t("app.field.shareButton.expiry7Days"), days: 7 },
+  { label: t("app.field.shareButton.expiry30Days"), days: 30 },
+  { label: t("app.field.shareButton.expiryNever"), days: null },
 ];
 
 /** Absolute link the farmer actually sends. The browser origin is the source of truth — the
@@ -45,10 +46,12 @@ function isActive(s: ShareLink): boolean {
 }
 
 function statusText(s: ShareLink): string {
-  if (s.revoked_at) return "Ləğv edilib";
-  if (s.expires_at && new Date(s.expires_at).getTime() <= Date.now()) return "Vaxtı bitib";
-  if (s.expires_at) return `Bitir: ${s.expires_at.slice(0, 10)}`;
-  return "Müddətsiz";
+  if (s.revoked_at) return t("app.field.shareButton.statusRevoked");
+  if (s.expires_at && new Date(s.expires_at).getTime() <= Date.now())
+    return t("app.field.shareButton.statusExpired");
+  if (s.expires_at)
+    return `${t("app.field.shareButton.statusExpiresPrefix")}${s.expires_at.slice(0, 10)}`;
+  return t("app.field.shareButton.expiryNever");
 }
 
 export default function ShareButton({ fieldId }: { fieldId: string }) {
@@ -105,7 +108,7 @@ export default function ShareButton({ fieldId }: { fieldId: string }) {
       window.setTimeout(() => setCopiedId((c) => (c === s.id ? null : c)), 2000);
     } catch {
       // Clipboard blocked (http origin / old webview) — select-and-copy fallback.
-      window.prompt("Keçidi kopyalayın:", url);
+      window.prompt(t("app.field.shareButton.copyPromptFallback"), url);
     }
   }
 
@@ -125,7 +128,7 @@ export default function ShareButton({ fieldId }: { fieldId: string }) {
   }
 
   function waHref(s: ShareLink): string {
-    const text = `Sahəmin peyk hesabatı (Agradex): ${absUrl(s)}`;
+    const text = `${t("app.field.shareButton.waSharePrefix")}${absUrl(s)}`;
     return `https://wa.me/?text=${encodeURIComponent(text)}`;
   }
 
@@ -136,7 +139,7 @@ export default function ShareButton({ fieldId }: { fieldId: string }) {
         onClick={() => setOpen(true)}
         className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
       >
-        <Share2 className="h-4 w-4" aria-hidden="true" /> Sahəni paylaş
+        <Share2 className="h-4 w-4" aria-hidden="true" /> {t("app.field.shareButton.shareField")}
       </button>
     );
   }
@@ -146,11 +149,10 @@ export default function ShareButton({ fieldId }: { fieldId: string }) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="flex items-center gap-2 text-sm font-bold text-slate-900">
-            <Share2 className="h-4 w-4 text-emerald-600" aria-hidden="true" /> Sahəni paylaş
+            <Share2 className="h-4 w-4 text-emerald-600" aria-hidden="true" /> {t("app.field.shareButton.shareField")}
           </p>
           <p className="mt-1 text-xs text-slate-500">
-            Keçidi açan şəxs yalnız sahənin adını, sahəsini, məhsulunu və son peyk göstəricisini
-            görür. Xərcləriniz, qeydləriniz və digər sahələriniz görünmür.
+            {t("app.field.shareButton.privacyNote")}
           </p>
         </div>
         <button
@@ -158,7 +160,7 @@ export default function ShareButton({ fieldId }: { fieldId: string }) {
           onClick={() => setOpen(false)}
           className="shrink-0 rounded px-2 py-1 text-sm text-slate-500 hover:text-slate-800"
         >
-          Bağla
+          {t("app.field.shareButton.close")}
         </button>
       </div>
 
@@ -167,7 +169,7 @@ export default function ShareButton({ fieldId }: { fieldId: string }) {
       {/* Create */}
       <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
         <div>
-          <span className="label">Keçidin müddəti</span>
+          <span className="label">{t("app.field.shareButton.linkDuration")}</span>
           <div className="mt-1 flex flex-wrap gap-2">
             {EXPIRY_OPTIONS.map((o, i) => (
               <button
@@ -192,7 +194,7 @@ export default function ShareButton({ fieldId }: { fieldId: string }) {
             onChange={(e) => setIncludeNdvi(e.target.checked)}
             className="h-5 w-5 rounded border-slate-300 text-emerald-600"
           />
-          Peyk NDVI təbəqəsi də görünsün
+          {t("app.field.shareButton.includeNdviLabel")}
         </label>
         <button
           type="button"
@@ -202,11 +204,11 @@ export default function ShareButton({ fieldId }: { fieldId: string }) {
         >
           {creating ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Yaradılır…
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> {t("app.field.shareButton.creating")}
             </>
           ) : (
             <>
-              <Plus className="h-4 w-4" aria-hidden="true" /> Yeni keçid yarat
+              <Plus className="h-4 w-4" aria-hidden="true" /> {t("app.field.shareButton.createNewLink")}
             </>
           )}
         </button>
@@ -214,9 +216,9 @@ export default function ShareButton({ fieldId }: { fieldId: string }) {
 
       {/* Existing links */}
       {loading ? (
-        <Spinner label="Keçidlər yüklənir…" />
+        <Spinner label={t("app.field.shareButton.loadingLinks")} />
       ) : items.length === 0 ? (
-        <Placeholder>Hələ paylaşım keçidi yaratmamısınız.</Placeholder>
+        <Placeholder>{t("app.field.shareButton.noLinks")}</Placeholder>
       ) : (
         <ul className="space-y-3">
           {items.map((s) => {
@@ -237,9 +239,9 @@ export default function ShareButton({ fieldId }: { fieldId: string }) {
                     {statusText(s)}
                   </span>
                   <span className="inline-flex items-center gap-1 text-slate-500">
-                    <Eye className="h-3.5 w-3.5" aria-hidden="true" /> {s.view_count} baxış
+                    <Eye className="h-3.5 w-3.5" aria-hidden="true" /> {s.view_count} {t("app.field.shareButton.views")}
                   </span>
-                  {s.include_ndvi && <span className="text-slate-400">· NDVI təbəqəsi ilə</span>}
+                  {s.include_ndvi && <span className="text-slate-400">{t("app.field.shareButton.ndviLayerBadge")}</span>}
                 </div>
 
                 <p className="mt-2 break-all rounded bg-slate-50 px-2 py-1 font-mono text-[11px] text-slate-600">
@@ -254,11 +256,11 @@ export default function ShareButton({ fieldId }: { fieldId: string }) {
                   >
                     {copiedId === s.id ? (
                       <>
-                        <Check className="h-4 w-4 text-emerald-600" aria-hidden="true" /> Kopyalandı
+                        <Check className="h-4 w-4 text-emerald-600" aria-hidden="true" /> {t("app.field.shareButton.copied")}
                       </>
                     ) : (
                       <>
-                        <Copy className="h-4 w-4" aria-hidden="true" /> Kopyala
+                        <Copy className="h-4 w-4" aria-hidden="true" /> {t("app.field.shareButton.copy")}
                       </>
                     )}
                   </button>
@@ -269,7 +271,7 @@ export default function ShareButton({ fieldId }: { fieldId: string }) {
                       rel="noopener noreferrer"
                       className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 text-sm font-medium text-emerald-800 hover:bg-emerald-100"
                     >
-                      WhatsApp ilə göndər
+                      {t("app.field.shareButton.sendWhatsApp")}
                     </a>
                   )}
                   {active && (
@@ -280,7 +282,7 @@ export default function ShareButton({ fieldId }: { fieldId: string }) {
                       className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-red-200 px-3 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
                     >
                       <Trash2 className="h-4 w-4" aria-hidden="true" />
-                      {busyId === s.id ? "Ləğv edilir…" : "Ləğv et"}
+                      {busyId === s.id ? t("app.field.shareButton.revoking") : t("app.field.shareButton.revoke")}
                     </button>
                   )}
                 </div>

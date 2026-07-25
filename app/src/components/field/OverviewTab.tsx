@@ -14,6 +14,7 @@ import {
   TrendingDown, TrendingUp, Minus, ArrowRight, Satellite, Sparkles, Leaf,
 } from "lucide-react";
 import { api } from "@/lib/api";
+import { t } from "@/lib/i18n";
 import { DisplayMap } from "@/components/FieldMap";
 import { Spinner } from "@/components/ui";
 import SpeakButton from "@/components/SpeakButton";
@@ -29,9 +30,9 @@ import type { FieldDetail, IndexPoint, IndexSeries, RasterScenes, FieldDataStatu
 type TabTarget = "sentinel2" | "nasa" | "ai";
 
 function etaText(seconds: number | null | undefined): string {
-  if (seconds == null || seconds <= 0) return "az qaldı";
-  if (seconds < 90) return `~${Math.max(1, Math.round(seconds))} saniyə`;
-  return `~${Math.round(seconds / 60)} dəqiqə`;
+  if (seconds == null || seconds <= 0) return t("app.field.overviewTab.etaAlmost");
+  if (seconds < 90) return `~${Math.max(1, Math.round(seconds))} ${t("app.field.overviewTab.secondsUnit")}`;
+  return `~${Math.round(seconds / 60)} ${t("app.field.overviewTab.minutesUnit")}`;
 }
 
 function PreparingBanner({ status }: { status: FieldDataStatus }) {
@@ -39,15 +40,15 @@ function PreparingBanner({ status }: { status: FieldDataStatus }) {
   return (
     <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
       <div className="flex items-center justify-between">
-        <p className="font-medium text-emerald-800">Peyk məlumatı hazırlanır…</p>
-        <p className="text-sm text-emerald-700">{etaText(status.eta_seconds)} qalıb</p>
+        <p className="font-medium text-emerald-800">{t("app.field.overviewTab.preparingTitle")}</p>
+        <p className="text-sm text-emerald-700">{etaText(status.eta_seconds)} {t("app.field.overviewTab.remaining")}</p>
       </div>
       <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-emerald-100">
         <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${pct}%` }} />
       </div>
       <p className="mt-2 text-xs text-emerald-700">
-        {status.total > 0 ? `${status.done} / ${status.total} səhnə hazırdır. ` : "NASA və Sentinel-2 arxivindən oxunur. "}
-        İlk məlumat gələn kimi burada görünəcək — hazır olanda sizə bildiriş göndərəcəyik.
+        {status.total > 0 ? `${status.done} / ${status.total} ${t("app.field.overviewTab.scenesReady")}` : t("app.field.overviewTab.readingArchive")}
+        {t("app.field.overviewTab.firstDataNote")}
       </p>
     </div>
   );
@@ -195,13 +196,12 @@ export default function OverviewTab({
       {/* First-data-arrived note (item 1): one sensor ready, the other still loading. */}
       {!preparing && hlsReady && !s2Ready && (
         <div className="rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm text-sky-800">
-          Bu təhlil <b>NASA (30m)</b> məlumatı əsasındadır. Daha dəqiq <b>Sentinel-2 (10m)</b> hazırlanır —
-          hazır olanda bu səhifə avtomatik yenilənəcək.
+          {t("app.field.overviewTab.nasaOnlyPre")}<b>NASA (30m)</b>{t("app.field.overviewTab.nasaOnlyMid")}<b>Sentinel-2 (10m)</b>{t("app.field.overviewTab.nasaOnlyPost")}
         </div>
       )}
       {!preparing && s2Ready && !hlsReady && (
         <div className="rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm text-sky-800">
-          <b>Sentinel-2 (10m)</b> hazırdır. NASA (30m) tarixçəsi hələ yüklənir.
+          <b>Sentinel-2 (10m)</b>{t("app.field.overviewTab.s2ReadyNote")}
         </div>
       )}
 
@@ -215,10 +215,10 @@ export default function OverviewTab({
               <div className="p-5 sm:p-6">
                 <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-500">
                   <Leaf className={`h-4 w-4 ${hero.icon}`} />
-                  Sahənin vəziyyəti
+                  {t("app.field.overviewTab.fieldStatus")}
                   {insights?.calibrated && (
                     <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
-                      🎯 {cropLabel}-a uyğun
+                      🎯 {cropLabel}{t("app.field.overviewTab.cropSuited")}
                     </span>
                   )}
                 </div>
@@ -238,7 +238,7 @@ export default function OverviewTab({
 
                 {spark.length >= 2 && (
                   <div className="mt-4">
-                    <div className="mb-1 text-[11px] font-medium text-slate-500">NDVI trendi (son səhnələr)</div>
+                    <div className="mb-1 text-[11px] font-medium text-slate-500">{t("app.field.overviewTab.ndviTrendLabel")}</div>
                     <div className="h-16">
                       <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={spark} margin={{ top: 2, right: 2, bottom: 0, left: 0 }}>
@@ -287,7 +287,7 @@ export default function OverviewTab({
           {/* WHAT CHANGED — crop-aware narrative cards */}
           <div>
             <h3 className="mb-3 flex items-center gap-2 font-semibold text-slate-800">
-              <Sparkles className="h-4 w-4 text-emerald-600" /> Nə dəyişdi?
+              <Sparkles className="h-4 w-4 text-emerald-600" /> {t("app.field.overviewTab.whatChanged")}
             </h3>
             {built.changes.length > 0 ? (
               <div className="grid gap-3">
@@ -295,7 +295,7 @@ export default function OverviewTab({
               </div>
             ) : (
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                Son həftələrdə mühüm dəyişiklik yoxdur — göstəricilər sabitdir. Detallı baxış üçün peyk tablarına keçin.
+                {t("app.field.overviewTab.noRecentChange")}
               </div>
             )}
           </div>
@@ -304,22 +304,22 @@ export default function OverviewTab({
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => onNavigate?.("sentinel2")}
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:border-emerald-300 hover:bg-emerald-50">
-              <Satellite className="h-4 w-4 text-blue-600" /> Sentinel-2 detalları
+              <Satellite className="h-4 w-4 text-blue-600" /> {t("app.field.overviewTab.sentinel2Details")}
             </button>
             <button type="button" onClick={() => onNavigate?.("nasa")}
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:border-emerald-300 hover:bg-emerald-50">
-              <Satellite className="h-4 w-4 text-emerald-600" /> NASA detalları
+              <Satellite className="h-4 w-4 text-emerald-600" /> {t("app.field.overviewTab.nasaDetails")}
             </button>
             <button type="button" onClick={() => onNavigate?.("ai")}
               className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700">
-              <Sparkles className="h-4 w-4" /> AI aqronom məsləhəti
+              <Sparkles className="h-4 w-4" /> {t("app.field.overviewTab.aiAdvice")}
             </button>
           </div>
         </>
       ) : (
         !preparing && (
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-600">
-            Bu sahə üçün hələ peyk təhlili yoxdur. Məlumat hazır olan kimi sahənin vəziyyəti burada görünəcək.
+            {t("app.field.overviewTab.noAnalysisYet")}
           </div>
         )
       )}

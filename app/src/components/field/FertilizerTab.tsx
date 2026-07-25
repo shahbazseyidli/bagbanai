@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import { Sparkles, Plus, Check, Trash2 } from "lucide-react";
 import { api, azError } from "@/lib/api";
+import { t } from "@/lib/i18n";
 import { ErrorNote } from "@/components/ui";
 import FertilizerCard from "./FertilizerCard";
 
@@ -43,8 +44,8 @@ export default function FertilizerTab({ fieldId }: { fieldId: string }) {
       {/* AI suggestion */}
       <div className="card">
         <div className="mb-2 flex items-center justify-between">
-          <h3 className="flex items-center gap-2 text-base font-bold text-slate-900"><Sparkles className="h-4 w-4 text-emerald-600" /> AI gübrə təklifi</h3>
-          <button className="btn-secondary" onClick={suggest} disabled={busy}>{busy ? "…" : "Təklif al"}</button>
+          <h3 className="flex items-center gap-2 text-base font-bold text-slate-900"><Sparkles className="h-4 w-4 text-emerald-600" /> {t("app.field.fertilizerTab.aiFertilizerTitle")}</h3>
+          <button className="btn-secondary" onClick={suggest} disabled={busy}>{busy ? "…" : t("app.field.fertilizerTab.suggestButton")}</button>
         </div>
         {sug ? (
           <>
@@ -53,17 +54,17 @@ export default function FertilizerTab({ fieldId }: { fieldId: string }) {
               {sug.suggestions.map((s, i) => (
                 <div key={i} className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50/50 p-2.5">
                   <div className="min-w-0 flex-1"><b className="text-sm">{s.product}</b><div className="text-xs text-slate-600">{[s.zone, s.dose].filter(Boolean).join(" · ")}{s.note ? ` — ${s.note}` : ""}</div></div>
-                  <button className="btn-primary" onClick={() => addPlan({ product: s.product, zone: s.zone, dose: s.dose, category: s.category, source: "ai" })}>Qrafikə əlavə et</button>
+                  <button className="btn-primary" onClick={() => addPlan({ product: s.product, zone: s.zone, dose: s.dose, category: s.category, source: "ai" })}>{t("app.field.fertilizerTab.addToSchedule")}</button>
                 </div>
               ))}
             </div>
           </>
-        ) : <p className="text-sm text-slate-500">NDVI trendi + torpaq analizinə görə zona-üzrə doza təklifi almaq üçün düyməyə basın.</p>}
+        ) : <p className="text-sm text-slate-500">{t("app.field.fertilizerTab.suggestHint")}</p>}
       </div>
 
       {/* schedule */}
       <div className="card">
-        <h3 className="mb-3 text-base font-bold text-slate-900">Gübrələmə qrafiki</h3>
+        <h3 className="mb-3 text-base font-bold text-slate-900">{t("app.field.fertilizerTab.scheduleTitle")}</h3>
         <div className="space-y-2">
           {(plans || []).map((p) => (
             <div key={p.id} className="flex items-center gap-3 rounded-lg border border-slate-200 p-2.5">
@@ -77,12 +78,12 @@ export default function FertilizerTab({ fieldId }: { fieldId: string }) {
               <button onClick={() => del(p.id)} className="text-slate-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
             </div>
           ))}
-          {plans && plans.length === 0 && <p className="text-sm text-slate-500">Hələ gübrələmə əlavə edilməyib.</p>}
+          {plans && plans.length === 0 && <p className="text-sm text-slate-500">{t("app.field.fertilizerTab.emptySchedule")}</p>}
         </div>
         <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <input className="input" placeholder="Məhsul (Azot 46%)" value={form.product} onChange={(e) => setForm({ ...form, product: e.target.value })} />
-          <input className="input" placeholder="Zona" value={form.zone} onChange={(e) => setForm({ ...form, zone: e.target.value })} />
-          <input className="input" placeholder="Doza" value={form.dose} onChange={(e) => setForm({ ...form, dose: e.target.value })} />
+          <input className="input" placeholder={t("app.field.fertilizerTab.productPlaceholder")} value={form.product} onChange={(e) => setForm({ ...form, product: e.target.value })} />
+          <input className="input" placeholder={t("app.field.fertilizerTab.zonePlaceholder")} value={form.zone} onChange={(e) => setForm({ ...form, zone: e.target.value })} />
+          <input className="input" placeholder={t("app.field.fertilizerTab.dosePlaceholder")} value={form.dose} onChange={(e) => setForm({ ...form, dose: e.target.value })} />
           <input className="input" type="date" value={form.planned_on} onChange={(e) => setForm({ ...form, planned_on: e.target.value })} />
         </div>
         <button className="btn-secondary mt-2" disabled={!form.product} onClick={() => { addPlan({ product: form.product, zone: form.zone || undefined, dose: form.dose || undefined, planned_on: form.planned_on || undefined }); setForm({ product: "", zone: "", dose: "", planned_on: "" }); }}><Plus className="h-4 w-4" /> Əlavə et</button>

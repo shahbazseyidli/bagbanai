@@ -7,6 +7,8 @@
 
 import type { ReactNode } from "react";
 
+import { t } from "@/lib/i18n";
+
 /** Tailwind class string for a selectable chip button. */
 export function chipCls(active: boolean): string {
   return active
@@ -42,7 +44,7 @@ export function UnknownChip({ active = false, onClick }: { active?: boolean; onC
           : "rounded-lg border border-dashed border-slate-300 px-3 py-1.5 text-sm text-slate-500 hover:bg-slate-50"
       }
     >
-      Bilmirəm
+      {t("app.field.info.chip.unknown")}
     </button>
   );
 }

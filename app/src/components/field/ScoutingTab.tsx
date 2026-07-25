@@ -86,7 +86,7 @@ export default function ScoutingTab({ fieldId }: { fieldId: string }) {
     // live upload, so they're skipped offline).
     if (typeof navigator !== "undefined" && !navigator.onLine) {
       queueScouting({ fieldId, body, ts: Date.now() });
-      setOfflineMsg("Oflayn: qeyd yadda saxlanıldı — internet qayıdanda avtomatik göndəriləcək (foto oflayn əlavə olunmur).");
+      setOfflineMsg(t("app.field.scoutingTab.offlineSaved"));
       resetForm();
       return;
     }
@@ -104,7 +104,7 @@ export default function ScoutingTab({ fieldId }: { fieldId: string }) {
       // A network drop mid-submit → fall back to the offline queue.
       if (typeof navigator !== "undefined" && !navigator.onLine) {
         queueScouting({ fieldId, body, ts: Date.now() });
-        setOfflineMsg("Oflayn: qeyd növbəyə alındı.");
+        setOfflineMsg(t("app.field.scoutingTab.offlineQueued"));
         resetForm();
       } else {
         setError(err instanceof Error ? err.message : t("common.error"));

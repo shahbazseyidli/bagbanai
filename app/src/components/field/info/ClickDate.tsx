@@ -7,6 +7,7 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { chipCls, UnknownChip } from "./chip";
+import { t } from "@/lib/i18n";
 
 export interface ClickDateProps {
   /** Current ISO date string (YYYY-MM-DD; year mode uses YYYY-01-01) or null. */
@@ -16,22 +17,6 @@ export interface ClickDateProps {
   /** "year" = year grid, "date" = calendar popover. */
   mode: "year" | "date";
 }
-
-const MONTHS_AZ = [
-  "Yanvar",
-  "Fevral",
-  "Mart",
-  "Aprel",
-  "May",
-  "İyun",
-  "İyul",
-  "Avqust",
-  "Sentyabr",
-  "Oktyabr",
-  "Noyabr",
-  "Dekabr",
-];
-const WEEKDAYS_AZ = ["B.e", "Ç.a", "Ç", "C.a", "C", "Ş", "B"]; // Monday-start
 
 function pad(n: number): string {
   return String(n).padStart(2, "0");
@@ -65,6 +50,31 @@ function DatePopover({ value, onChange }: Omit<ClickDateProps, "mode">) {
   const init = value ? new Date(`${value}T00:00:00`) : new Date();
   const [view, setView] = useState({ y: init.getFullYear(), m: init.getMonth() });
 
+  const months = [
+    t("app.field.info.clickDate.monthJan"),
+    t("app.field.info.clickDate.monthFeb"),
+    t("app.field.info.clickDate.monthMar"),
+    t("app.field.info.clickDate.monthApr"),
+    t("app.field.info.clickDate.monthMay"),
+    t("app.field.info.clickDate.monthJun"),
+    t("app.field.info.clickDate.monthJul"),
+    t("app.field.info.clickDate.monthAug"),
+    t("app.field.info.clickDate.monthSep"),
+    t("app.field.info.clickDate.monthOct"),
+    t("app.field.info.clickDate.monthNov"),
+    t("app.field.info.clickDate.monthDec"),
+  ];
+  // Monday-start weekday abbreviations
+  const weekdays = [
+    t("app.field.info.clickDate.weekdayMon"),
+    t("app.field.info.clickDate.weekdayTue"),
+    t("app.field.info.clickDate.weekdayWed"),
+    t("app.field.info.clickDate.weekdayThu"),
+    t("app.field.info.clickDate.weekdayFri"),
+    t("app.field.info.clickDate.weekdaySat"),
+    t("app.field.info.clickDate.weekdaySun"),
+  ];
+
   const daysInMonth = new Date(view.y, view.m + 1, 0).getDate();
   const firstDow = (new Date(view.y, view.m, 1).getDay() + 6) % 7; // Monday-start
   const cells: (number | null)[] = [
@@ -91,7 +101,7 @@ function DatePopover({ value, onChange }: Omit<ClickDateProps, "mode">) {
         >
           <span className="inline-flex items-center gap-1.5">
             <CalendarDays className="h-4 w-4" />
-            {value ?? "Tarix seçin"}
+            {value ?? t("app.field.info.clickDate.selectDate")}
           </span>
         </button>
         <UnknownChip active={value === null} onClick={() => onChange(null)} />
@@ -104,15 +114,15 @@ function DatePopover({ value, onChange }: Omit<ClickDateProps, "mode">) {
               <ChevronLeft className="h-4 w-4" />
             </button>
             <span className="text-sm font-medium text-slate-700">
-              {MONTHS_AZ[view.m]} {view.y}
+              {months[view.m]} {view.y}
             </span>
             <button type="button" className="btn-ghost px-2 py-1" onClick={() => shift(1)}>
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
           <div className="grid grid-cols-7 gap-1 text-center text-[11px] text-slate-400">
-            {WEEKDAYS_AZ.map((w) => (
-              <span key={w}>{w}</span>
+            {weekdays.map((w, i) => (
+              <span key={i}>{w}</span>
             ))}
           </div>
           <div className="mt-1 grid grid-cols-7 gap-1">

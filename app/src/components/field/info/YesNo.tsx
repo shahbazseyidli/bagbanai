@@ -4,6 +4,7 @@
 // such as irrigation_available (true | false | null).
 
 import { chipCls } from "./chip";
+import { t } from "@/lib/i18n";
 
 export interface YesNoProps {
   /** Current value: true (Bəli), false (Xeyr) or null (Bilmirəm). */
@@ -16,13 +17,13 @@ export default function YesNo({ value, onChange }: YesNoProps) {
   return (
     <div className="flex flex-wrap gap-2">
       <button type="button" onClick={() => onChange(true)} className={chipCls(value === true)}>
-        Bəli
+        {t("app.field.info.yesNo.yes")}
       </button>
       <button type="button" onClick={() => onChange(false)} className={chipCls(value === false)}>
-        Xeyr
+        {t("app.field.info.yesNo.no")}
       </button>
       <button type="button" onClick={() => onChange(null)} className={chipCls(value === null)}>
-        Bilmirəm
+        {t("app.field.info.yesNo.unknown")}
       </button>
     </div>
   );

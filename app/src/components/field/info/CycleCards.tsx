@@ -6,6 +6,7 @@
 
 import { TreePine, Sprout, Leaf } from "lucide-react";
 import { CYCLE_OPTIONS } from "@/lib/metadataOptions";
+import { t } from "@/lib/i18n";
 
 export interface CycleCardsProps {
   /** Selected cycle value ("perennial" | "annual" | "biennial") or null. */
@@ -20,13 +21,12 @@ const ICONS: Record<string, typeof TreePine> = {
   biennial: Leaf,
 };
 
-const HINTS: Record<string, string> = {
-  perennial: "Bir dəfə əkilir, illərlə məhsul verir",
-  annual: "Hər il yenidən əkilir",
-  biennial: "İki mövsümdə tamamlanır",
-};
-
 export default function CycleCards({ value, onChange }: CycleCardsProps) {
+  const HINTS: Record<string, string> = {
+    perennial: t("app.field.info.cycleCards.hintPerennial"),
+    annual: t("app.field.info.cycleCards.hintAnnual"),
+    biennial: t("app.field.info.cycleCards.hintBiennial"),
+  };
   return (
     <div className="grid gap-3 sm:grid-cols-3">
       {CYCLE_OPTIONS.map((opt) => {

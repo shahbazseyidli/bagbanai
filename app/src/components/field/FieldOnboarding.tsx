@@ -75,14 +75,13 @@ function centroidOf(poly: Polygon): { lat: number; lon: number } {
   return { lon: sx / n, lat: sy / n };
 }
 
-const STEP_TITLES = [
-  "Xəritədə sahəni seçin",
-  "Sahə haqqında məlumat",
-  "Ətraflı məlumat (istəyə bağlı)",
-  "Təsdiq",
-];
-
 export default function FieldOnboarding({ farmId, onCreated }: Props) {
+  const STEP_TITLES = [
+    t("app.field.fieldOnboarding.step1Title"),
+    t("app.field.fieldOnboarding.step2Title"),
+    t("app.field.fieldOnboarding.step3Title"),
+    t("app.field.fieldOnboarding.step4Title"),
+  ];
   const [step, setStep] = useState(1);
 
   // --- Step 1: boundary ---
@@ -118,7 +117,7 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
 
   async function handleDetect(lng: number, lat: number) {
     setDetecting(true);
-    setDetectMsg("Sahə sərhədi tapılır…");
+    setDetectMsg(t("app.field.fieldOnboarding.detectSearching"));
     try {
       const d = await api.post<{ ok: boolean; polygon?: Polygon; area_ha?: number; reason?: string }>(
         "/api/geo/segment", { lon: lng, lat: lat },
@@ -132,10 +131,10 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
             (d.reason === "capped" ? " (Sərhəd tam aydın deyil, yoxlayın.)" : ""),
         );
       } else {
-        setDetectMsg("Sərhəd avtomatik tapılmadı — xəritədə əl ilə çəkin.");
+        setDetectMsg(t("app.field.fieldOnboarding.detectNotFound"));
       }
     } catch {
-      setDetectMsg("Xəta baş verdi — əl ilə çəkin.");
+      setDetectMsg(t("app.field.fieldOnboarding.detectError"));
     } finally {
       setDetecting(false);
     }
@@ -186,13 +185,13 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
         // Shapefile (T19) — cadastre/agronomist boundaries usually arrive as a zipped shapefile.
         poly = await parseShapefile(await file.arrayBuffer());
         if (!poly) {
-          setError("Shapefile-də poliqon tapılmadı (.zip içində .shp + .dbf + .prj olmalıdır).");
+          setError(t("app.field.fieldOnboarding.shapefileNoPolygon"));
           return;
         }
       } else {
         poly = parseGeoImport(await file.text(), file.name);
         if (!poly) {
-          setError("Faylda poliqon tapılmadı (GeoJSON / KML / Shapefile gözlənilir).");
+          setError(t("app.field.fieldOnboarding.fileNoPolygon"));
           return;
         }
       }
@@ -201,7 +200,7 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
       setImportSeq((s) => s + 1);
       setDrawnPolygon(poly);
     } catch {
-      setError("Fayl oxunmadı.");
+      setError(t("app.field.fieldOnboarding.fileReadError"));
     } finally {
       if (fileRef.current) fileRef.current.value = "";
     }
@@ -256,13 +255,13 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
     setError("");
     if (step === 1) {
       if (!name.trim()) {
-        setError("Sahənin adını daxil edin.");
+        setError(t("app.field.fieldOnboarding.nameRequired"));
         return;
       }
       const poly = validateBoundary();
       if (!poly) return;
       if (areaHa != null && areaHa < 0.05) {
-        setError(`Sahə çox kiçikdir (${areaHa.toFixed(3)} ha). Peyk analizi üçün minimum ~0.05 ha lazımdır — sərhədi yenidən çəkin.`);
+        setError(t("app.field.fieldOnboarding.fieldTooSmallPre") + areaHa.toFixed(3) + t("app.field.fieldOnboarding.fieldTooSmallPost"));
         return;
       }
       void fetchGeo(poly);
@@ -337,7 +336,7 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
         return;
       }
       setError(msg === "field_too_small"
-        ? "Sahə çox kiçikdir (minimum ~0.05 ha). Sərhədi yenidən çəkin."
+        ? t("app.field.fieldOnboarding.fieldTooSmall")
         : msg);
       setBusy(false);
     }
@@ -402,9 +401,9 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm text-slate-500">
                   {brush
-                    ? "Barmağınızla (və ya siçanla) sahənin sərhədini çəkin — buraxanda avtomatik tamamlanacaq."
+                    ? t("app.field.fieldOnboarding.brushHint")
                     : detect
-                      ? "Sahənizin içinə toxunun — sərhədi avtomatik tapacağıq."
+                      ? t("app.field.fieldOnboarding.detectHint")
                       : t("field.drawHint")}
                 </p>
                 <div className="flex shrink-0 flex-wrap gap-2">
@@ -417,7 +416,7 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
                         : "border-emerald-300 text-emerald-700 hover:bg-emerald-50"
                     }`}
                   >
-                    {brush ? "✓ Fırça (aktiv)" : "✏️ Fırça ilə çək"}
+                    {brush ? t("app.field.fieldOnboarding.brushActive") : t("app.field.fieldOnboarding.brushDraw")}
                   </button>
                   <button
                     type="button"
@@ -429,7 +428,7 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
                         : "border-emerald-300 text-emerald-700 hover:bg-emerald-50"
                     } disabled:opacity-50`}
                   >
-                    {detecting ? "Tapılır…" : detect ? "✓ Toxun və tap (aktiv)" : "✨ Toxun və tap"}
+                    {detecting ? t("app.field.fieldOnboarding.searching") : detect ? t("app.field.fieldOnboarding.detectTapActive") : t("app.field.fieldOnboarding.detectTap")}
                   </button>
                 </div>
               </div>
@@ -459,7 +458,7 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
                   onClick={() => fileRef.current?.click()}
                   className="inline-flex items-center gap-1 rounded border border-slate-300 px-2 py-1 text-slate-600 hover:bg-slate-50"
                 >
-                  <Upload className="h-3.5 w-3.5" /> İdxal (GeoJSON/KML/Shapefile)
+                  <Upload className="h-3.5 w-3.5" /> {t("app.field.fieldOnboarding.importButton")}
                 </button>
               </div>
             </div>
@@ -487,7 +486,7 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
       {/* STEP 2 — essential info */}
       {step === 2 && (
         <div className="space-y-6">
-          <FormField label="Əkin növü" required>
+          <FormField label={t("app.field.fieldOnboarding.cropCycle")} required>
             <CycleCards value={cycle} onChange={(v) => set("crop_cycle", v)} />
           </FormField>
 
@@ -510,7 +509,7 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
             />
           </FormField>
 
-          <FormField label={isPerennial ? "Əkilmə ili" : "Səpin tarixi"}>
+          <FormField label={isPerennial ? t("app.field.fieldOnboarding.plantingYear") : t("app.field.fieldOnboarding.plantingDate")}>
             <ClickDate
               mode={isPerennial ? "year" : "date"}
               value={data.planting_date ?? null}
@@ -536,20 +535,20 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
           </FormField>
 
           <div className="grid gap-4 rounded-xl border border-slate-100 bg-slate-50/60 p-4 sm:grid-cols-2">
-            <FormField label="Ölkə">
+            <FormField label={t("app.field.fieldOnboarding.country")}>
               <select className="input" value="AZ" disabled>
                 {COUNTRIES.map((c) => (
                   <option key={c.code} value={c.code}>{c.name}</option>
                 ))}
               </select>
             </FormField>
-            <FormField label="Rayon">
+            <FormField label={t("app.field.fieldOnboarding.region")}>
               <select
                 className="input"
                 value={AZ_RAYONS.find((r) => (data.region ?? "").includes(r)) ?? ""}
                 onChange={(e) => set("region", e.target.value || undefined)}
               >
-                <option value="">{geoLoading ? "Tapılır…" : "Rayon seçin"}</option>
+                <option value="">{geoLoading ? t("app.field.fieldOnboarding.searching") : t("app.field.fieldOnboarding.selectRegion")}</option>
                 {AZ_RAYONS.map((r) => (
                   <option key={r} value={r}>{r}</option>
                 ))}
@@ -570,7 +569,7 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
               onChange={(v) => set("slope_deg", v)}
             />
             <AutoField
-              label="İstiqamət"
+              label={t("app.field.fieldOnboarding.aspect")}
               value={aspectLabel ?? toNum(data.aspect_deg)}
               loading={geoLoading}
               readOnly
@@ -583,14 +582,14 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
       {step === 3 && (
         <div className="space-y-4">
           <p className="text-sm text-slate-500">
-            Bu addım tamamilə istəyə bağlıdır — istədiyiniz sahələri doldurun, qalanlarını buraxın.
+            {t("app.field.fieldOnboarding.optionalStepHint")}
           </p>
           <button
             type="button"
             className="btn-secondary"
             onClick={() => setShowAdvanced((s) => !s)}
           >
-            {showAdvanced ? "Ətraflı sahələri gizlət" : "Ətraflı sahələri göstər"}
+            {showAdvanced ? t("app.field.fieldOnboarding.hideAdvanced") : t("app.field.fieldOnboarding.showAdvanced")}
           </button>
 
           {showAdvanced && (
@@ -651,7 +650,7 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
 
               {isPerennial ? (
                 <>
-                  <FormField label="Ağac aralığı">
+                  <FormField label={t("app.field.fieldOnboarding.treeSpacing")}>
                     <NumberSlider
                       value={treeSpacing}
                       onChange={setTreeSpacing}
@@ -661,7 +660,7 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
                       unit="m"
                     />
                   </FormField>
-                  <FormField label="Bağın yaşı">
+                  <FormField label={t("app.field.fieldOnboarding.orchardAge")}>
                     <NumberSlider
                       value={orchardAge}
                       onChange={setOrchardAge}
@@ -732,7 +731,7 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
               <SummaryItem label={t("meta.crop_type")} value={labelOf(CROP_OPTIONS, data.crop_type)} />
               <SummaryItem label={t("meta.variety")} value={data.variety || "—"} />
               <SummaryItem
-                label={isPerennial ? "Əkilmə ili" : "Səpin tarixi"}
+                label={isPerennial ? t("app.field.fieldOnboarding.plantingYear") : t("app.field.fieldOnboarding.plantingDate")}
                 value={data.planting_date || "—"}
               />
               <SummaryItem
@@ -740,7 +739,7 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
                 value={labelOf(IRRIGATION_METHOD_OPTIONS, data.irrigation_method)}
               />
               <SummaryItem
-                label="Rayon"
+                label={t("app.field.fieldOnboarding.region")}
                 value={data.region || "—"}
                 icon={<MapPin className="h-4 w-4 text-slate-400" />}
               />
@@ -755,14 +754,14 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
                 icon={<TriangleRight className="h-4 w-4 text-slate-400" />}
               />
               <SummaryItem
-                label="İstiqamət"
+                label={t("app.field.fieldOnboarding.aspect")}
                 value={aspectLabel || "—"}
                 icon={<Compass className="h-4 w-4 text-slate-400" />}
               />
             </dl>
           </div>
           <p className="text-sm text-slate-500">
-            Sahə yaradıldıqdan sonra peyk məlumatları avtomatik növbəyə alınacaq.
+            {t("app.field.fieldOnboarding.queueInfo")}
           </p>
         </div>
       )}
@@ -786,7 +785,7 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
           </button>
         ) : (
           <button type="button" className="btn-primary" onClick={submit} disabled={busy || limitReached}>
-            {busy ? t("common.saving") : "Sahəni yarat"}
+            {busy ? t("common.saving") : t("app.field.fieldOnboarding.createField")}
           </button>
         )}
       </div>

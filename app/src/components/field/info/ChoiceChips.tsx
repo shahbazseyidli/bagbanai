@@ -7,6 +7,7 @@
 import { useEffect, useState } from "react";
 import type { Opt } from "@/lib/metadataOptions";
 import { Chip, UnknownChip } from "./chip";
+import { t } from "@/lib/i18n";
 
 export interface ChoiceChipsProps {
   /** Selectable options. */
@@ -68,7 +69,7 @@ export default function ChoiceChips({
               if (!isCustom) onChange("");
             }}
           >
-            Digər
+            {t("app.field.info.choiceChips.other")}
           </Chip>
         )}
         {allowUnknown && (
@@ -84,7 +85,7 @@ export default function ChoiceChips({
       {(otherOpen || isCustom) && (
         <input
           className="input"
-          placeholder="Daxil edin"
+          placeholder={t("app.field.info.choiceChips.enterPlaceholder")}
           value={isCustom ? value : ""}
           onChange={(e) => onChange(e.target.value)}
         />

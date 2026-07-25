@@ -89,19 +89,19 @@ function VocabSelect({
           }
         }}
       >
-        <option value="">— seçin —</option>
+        <option value="">{t("app.field.metadataTab.selectPlaceholder")}</option>
         {options.map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}
           </option>
         ))}
-        <option value={OTHER}>Digər</option>
-        <option value={UNKNOWN}>Bilmirəm</option>
+        <option value={OTHER}>{t("app.field.metadataTab.other")}</option>
+        <option value={UNKNOWN}>{t("app.field.metadataTab.unknown")}</option>
       </select>
       {showOther && (
         <input
           className="input"
-          placeholder="Digər (əl ilə)"
+          placeholder={t("app.field.metadataTab.otherManual")}
           value={isCustom ? (value as string) : ""}
           onChange={(e) => onChange(e.target.value || undefined)}
         />
@@ -236,7 +236,8 @@ export default function MetadataTab({ fieldId }: { fieldId: string }) {
 
   // ---- DISPLAY MODE -------------------------------------------------------
   if (!editing) {
-    const bool = (b?: boolean | null): string | null => (b == null ? null : b ? "Bəli" : "Xeyr");
+    const bool = (b?: boolean | null): string | null =>
+      b == null ? null : b ? t("app.field.metadataTab.yes") : t("app.field.metadataTab.no");
     const str = (v?: string | null): string | null => (v == null || v === "" ? null : v);
     const num = (v: number | string | null | undefined, unit: string): string | null => {
       const n = toNum(v);
@@ -255,20 +256,20 @@ export default function MetadataTab({ fieldId }: { fieldId: string }) {
           <h3 className="font-semibold text-slate-800">{t("meta.title")}</h3>
           {!loadFailed && (
             <button type="button" className="btn-secondary" onClick={enterEdit}>
-              Redaktə et
+              {t("app.field.metadataTab.edit")}
             </button>
           )}
         </div>
         {loadFailed && (
           <p className="text-sm text-red-600">
-            Məlumat yüklənmədi{error ? `: ${error}` : ""}. Redaktə mövcud məlumatı silə bilər — səhifəni yeniləyin.
+            {t("app.field.metadataTab.loadFailedPre")}{error ? `: ${error}` : ""}{t("app.field.metadataTab.loadFailedPost")}
           </p>
         )}
         {saved && <p className="text-sm text-emerald-700">{t("meta.saved")}</p>}
 
         <div className="grid gap-6 sm:grid-cols-2">
-          <DisplayGroup title="Əkin">
-            <DisplayRow label="Əkin növü" value={labelOf(CYCLE_OPTIONS, meta.crop_cycle)} />
+          <DisplayGroup title={t("app.field.metadataTab.groupPlanting")}>
+            <DisplayRow label={t("app.field.metadataTab.cropCycleLabel")} value={labelOf(CYCLE_OPTIONS, meta.crop_cycle)} />
             <DisplayRow label={t("meta.crop_type")} value={labelOf(CROP_OPTIONS, meta.crop_type)} />
             <DisplayRow label={t("meta.variety")} value={labelOf(varietyOptions, meta.variety)} />
             <DisplayRow label={t("meta.planting_date")} value={str(meta.planting_date)} />
@@ -277,13 +278,13 @@ export default function MetadataTab({ fieldId }: { fieldId: string }) {
             <DisplayRow label={t("meta.growth_stage")} value={labelOf(GROWTH_STAGE_OPTIONS, meta.growth_stage)} />
           </DisplayGroup>
 
-          <DisplayGroup title="Torpaq">
+          <DisplayGroup title={t("app.field.metadataTab.groupSoil")}>
             <DisplayRow label={t("meta.soil_type")} value={labelOf(SOIL_TYPE_OPTIONS, meta.soil_type)} />
             <DisplayRow label={t("meta.soil_ph")} value={num(meta.soil_ph, "")} />
             <DisplayRow label={t("meta.tillage_practice")} value={labelOf(TILLAGE_OPTIONS, meta.tillage_practice)} />
           </DisplayGroup>
 
-          <DisplayGroup title="Suvarma">
+          <DisplayGroup title={t("app.field.metadataTab.groupIrrigation")}>
             <DisplayRow
               label={t("meta.irrigation_method")}
               value={labelOf(IRRIGATION_METHOD_OPTIONS, meta.irrigation_method)}
@@ -291,19 +292,19 @@ export default function MetadataTab({ fieldId }: { fieldId: string }) {
             <DisplayRow label={t("meta.irrigation_available")} value={bool(meta.irrigation_available)} />
           </DisplayGroup>
 
-          <DisplayGroup title="Məhsuldarlıq">
+          <DisplayGroup title={t("app.field.metadataTab.groupYield")}>
             <DisplayRow label={t("meta.seeding_density")} value={num(meta.seeding_density, "kg/ha")} />
             <DisplayRow label={t("meta.target_yield")} value={num(meta.target_yield, "t/ha")} />
           </DisplayGroup>
 
-          <DisplayGroup title="Relyef">
-            <DisplayRow label="Rayon" value={str(meta.region)} />
+          <DisplayGroup title={t("app.field.metadataTab.groupTerrain")}>
+            <DisplayRow label={t("app.field.metadataTab.region")} value={str(meta.region)} />
             <DisplayRow label={t("meta.elevation_m")} value={num(meta.elevation_m, "m")} />
             <DisplayRow label={t("meta.slope_deg")} value={deg(meta.slope_deg)} />
             <DisplayRow label={t("meta.aspect_deg")} value={deg(meta.aspect_deg)} />
           </DisplayGroup>
 
-          <DisplayGroup title="Əlavə tarixçə">
+          <DisplayGroup title={t("app.field.metadataTab.groupHistory")}>
             {ARRAY_DEFS.map((def) => (
               <DisplayRow key={def.key as string} label={def.label} value={count(def)} />
             ))}
@@ -327,7 +328,7 @@ export default function MetadataTab({ fieldId }: { fieldId: string }) {
       </div>
 
       <form onSubmit={onSave} className="space-y-6">
-        <FormField label="Əkin növü">
+        <FormField label={t("app.field.metadataTab.cropCycleLabel")}>
           <VocabSelect
             options={CYCLE_OPTIONS}
             value={meta.crop_cycle ?? undefined}
@@ -449,13 +450,13 @@ export default function MetadataTab({ fieldId }: { fieldId: string }) {
 
         <div className="grid gap-6 rounded-xl border border-slate-100 bg-slate-50/60 p-4 sm:grid-cols-3">
           <div className="space-y-1">
-            <p className="text-sm font-medium text-slate-700">Rayon</p>
+            <p className="text-sm font-medium text-slate-700">{t("app.field.metadataTab.region")}</p>
             <select
               className="input"
               value={AZ_RAYONS.find((r) => (meta.region ?? "").includes(r)) ?? ""}
               onChange={(e) => set("region", e.target.value || null)}
             >
-              <option value="">Rayon seçin</option>
+              <option value="">{t("app.field.metadataTab.regionSelect")}</option>
               {AZ_RAYONS.map((r) => (
                 <option key={r} value={r}>{r}</option>
               ))}

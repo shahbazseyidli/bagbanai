@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { BookOpen, Droplets, Mountain, Bug, CalendarDays, Wind, AlertTriangle } from "lucide-react";
 import { api } from "@/lib/api";
+import { t } from "@/lib/i18n";
 
 // The research worker fills these blocks (knowledge layer M3/M8). This panel makes them
 // visible to the farmer so the "passport" isn't just fuel for the AI advice — degrades to
@@ -27,7 +28,7 @@ function Sources({ sources }: { sources?: { url: string; name: string }[] }) {
           rel="noopener noreferrer"
           className="text-[11px] text-emerald-700 underline decoration-dotted hover:text-emerald-900"
         >
-          {s.name || "mənbə"}
+          {s.name || t("app.field.knowledgePassport.sourceFallback")}
         </a>
       ))}
     </div>
@@ -77,7 +78,7 @@ export default function KnowledgePassport({ fieldId }: { fieldId: string }) {
     <div className="card">
       <div className="mb-3 flex items-center gap-2">
         <BookOpen className="h-5 w-5 text-emerald-600" />
-        <h3 className="font-semibold text-slate-800">Bilik Pasportu</h3>
+        <h3 className="font-semibold text-slate-800">{t("app.field.knowledgePassport.title")}</h3>
         {p.zone_id && (
           <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500">
             {p.zone_id.replace("az-", "")}
@@ -108,15 +109,15 @@ export default function KnowledgePassport({ fieldId }: { fieldId: string }) {
         {soilC && (
           <div className="rounded-lg border border-slate-200 p-3">
             <div className="mb-1 flex items-center gap-1.5 text-sm font-medium text-slate-700">
-              <Mountain className="h-4 w-4 text-amber-600" /> Torpaq profili
+              <Mountain className="h-4 w-4 text-amber-600" /> {t("app.field.knowledgePassport.soilProfile")}
             </div>
             <ul className="text-xs text-slate-600">
               {soilC.ph && <li>pH: {soilC.ph.value}</li>}
-              {soilC.texture_class && <li>Tekstura: {String((soilC.texture_class as unknown) ?? "")}</li>}
-              {soilC.organic_carbon && <li>Üzvi karbon: {soilC.organic_carbon.value} {soilC.organic_carbon.unit}</li>}
+              {soilC.texture_class && <li>{t("app.field.knowledgePassport.texture")} {String((soilC.texture_class as unknown) ?? "")}</li>}
+              {soilC.organic_carbon && <li>{t("app.field.knowledgePassport.organicCarbon")} {soilC.organic_carbon.value} {soilC.organic_carbon.unit}</li>}
               {soilC.cec && <li>CEC: {soilC.cec.value} {soilC.cec.unit}</li>}
               {soilC.water_params && (
-                <li>Su tutumu: TAW {soilC.water_params.taw_mm} mm · RAW {soilC.water_params.raw_mm} mm</li>
+                <li>{t("app.field.knowledgePassport.soilWaterCapacity")} TAW {soilC.water_params.taw_mm} mm · RAW {soilC.water_params.raw_mm} mm</li>
               )}
             </ul>
             <Sources sources={soil?.sources} />
@@ -126,10 +127,10 @@ export default function KnowledgePassport({ fieldId }: { fieldId: string }) {
         {sprayC?.best_window && (
           <div className="rounded-lg border border-slate-200 p-3">
             <div className="mb-1 flex items-center gap-1.5 text-sm font-medium text-slate-700">
-              <Wind className="h-4 w-4 text-teal-600" /> Çiləmə pəncərəsi
+              <Wind className="h-4 w-4 text-teal-600" /> {t("app.field.knowledgePassport.sprayWindow")}
             </div>
             <p className="text-xs text-slate-600">
-              Ən uyğun: {fmtHour(sprayC.best_window.start)} – {fmtHour(sprayC.best_window.end)}
+              {t("app.field.knowledgePassport.bestWindow")} {fmtHour(sprayC.best_window.start)} – {fmtHour(sprayC.best_window.end)}
             </p>
             <Sources sources={spray?.sources} />
           </div>
@@ -138,7 +139,7 @@ export default function KnowledgePassport({ fieldId }: { fieldId: string }) {
         {waterC && (
           <div className="rounded-lg border border-slate-200 p-3">
             <div className="mb-1 flex items-center gap-1.5 text-sm font-medium text-slate-700">
-              <Droplets className="h-4 w-4 text-sky-600" /> Su tələbatı (7 gün)
+              <Droplets className="h-4 w-4 text-sky-600" /> {t("app.field.knowledgePassport.waterNeed")}
               {waterC.fao56 && (
                 <span className="rounded-full bg-sky-50 px-1.5 py-0.5 text-[10px] font-medium text-sky-700">FAO-56</span>
               )}
@@ -156,7 +157,7 @@ export default function KnowledgePassport({ fieldId }: { fieldId: string }) {
         {phenC && (
           <div className="rounded-lg border border-slate-200 p-3">
             <div className="mb-1 flex items-center gap-1.5 text-sm font-medium text-slate-700">
-              <CalendarDays className="h-4 w-4 text-emerald-600" /> Fenologiya
+              <CalendarDays className="h-4 w-4 text-emerald-600" /> {t("app.field.knowledgePassport.phenology")}
             </div>
             <p className="text-xs text-slate-600">{phenC.summary}</p>
             <Sources sources={phen?.sources} />
@@ -166,7 +167,7 @@ export default function KnowledgePassport({ fieldId }: { fieldId: string }) {
         {pestsC && (
           <div className="rounded-lg border border-slate-200 p-3">
             <div className="mb-1 flex items-center gap-1.5 text-sm font-medium text-slate-700">
-              <Bug className="h-4 w-4 text-red-600" /> Zərərvericilər
+              <Bug className="h-4 w-4 text-red-600" /> {t("app.field.knowledgePassport.pests")}
             </div>
             {pestsC.summary && <p className="text-xs text-slate-600">{pestsC.summary}</p>}
             {pestsC.pests && pestsC.pests.length > 0 && (

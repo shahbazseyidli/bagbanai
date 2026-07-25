@@ -7,6 +7,7 @@
 
 import { useState } from "react";
 import { Loader2, Pencil } from "lucide-react";
+import { t } from "@/lib/i18n";
 
 export interface AutoFieldProps {
   /** Field caption (e.g. "Rayon", "Yüksəklik"). */
@@ -32,7 +33,7 @@ export default function AutoField({ label, value, unit, loading, onChange, readO
       <p className="text-sm font-medium text-slate-700">{label}</p>
       {loading ? (
         <span className="inline-flex items-center gap-2 text-sm text-slate-500">
-          <Loader2 className="h-4 w-4 animate-spin" /> Hesablanır…
+          <Loader2 className="h-4 w-4 animate-spin" /> {t("app.field.info.autoField.calculating")}
         </span>
       ) : editing && canEdit ? (
         <input
@@ -53,7 +54,7 @@ export default function AutoField({ label, value, unit, loading, onChange, readO
               onClick={() => setEditing(true)}
               className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 hover:underline"
             >
-              <Pencil className="h-3 w-3" /> dəyişdir
+              <Pencil className="h-3 w-3" /> {t("app.field.info.autoField.edit")}
             </button>
           )}
         </div>

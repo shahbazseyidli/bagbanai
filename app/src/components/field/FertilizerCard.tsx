@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { Sprout } from "lucide-react";
 import { api } from "@/lib/api";
 import UpgradeCta from "@/components/UpgradeCta";
+import { t } from "@/lib/i18n";
 
 interface Split { stage: string; share_pct: number; n_kg: number; p_kg: number; k_kg: number }
 interface Plan {
@@ -45,9 +46,9 @@ export default function FertilizerCard({ fieldId }: { fieldId: string }) {
   if (plan.gated) {
     return (
       <UpgradeCta
-        title="Gübrə planı Paket 3-də açıqdır"
-        subtitle="Məhsula uyğun N-P-K normasını və mərhələli gübrələmə cədvəlini görmək üçün Paket 3-ə keçin."
-        priceLine="Paket 3 — 25 AZN/ay"
+        title={t("app.field.fertilizerCard.gatedTitle")}
+        subtitle={t("app.field.fertilizerCard.gatedSubtitle")}
+        priceLine={t("app.field.fertilizerCard.gatedPriceLine")}
       />
     );
   }
@@ -56,34 +57,34 @@ export default function FertilizerCard({ fieldId }: { fieldId: string }) {
       return (
         <div className="card text-sm text-slate-600">
           <div className="mb-1 flex items-center gap-2 font-semibold text-slate-800">
-            <Sprout className="h-4 w-4 text-emerald-600" /> Gübrə planı
+            <Sprout className="h-4 w-4 text-emerald-600" /> {t("app.field.fertilizerCard.headingSimple")}
           </div>
-          Gübrə planı üçün <b>hədəf məhsuldarlıq</b> (t/ha) daxil edin — yuxarıdakı formada təyin edin.
+          {t("app.field.fertilizerCard.noYieldPre")}<b>{t("app.field.fertilizerCard.noYieldBold")}</b>{t("app.field.fertilizerCard.noYieldPost")}
         </div>
       );
     }
     return null;
   }
 
-  const t = plan.total!;
+  const totals = plan.total!;
   const ph = plan.per_ha!;
   return (
     <div className="card">
       <div className="mb-3 flex items-center gap-2">
         <Sprout className="h-4 w-4 text-emerald-600" />
-        <h3 className="font-semibold text-slate-800">Gübrə planı (N-P-K)</h3>
-        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">Paket 3</span>
+        <h3 className="font-semibold text-slate-800">{t("app.field.fertilizerCard.heading")}</h3>
+        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">{t("app.field.fertilizerCard.tierBadge")}</span>
       </div>
       <p className="text-xs text-slate-500">
-        Hədəf {plan.target_yield} t/ha · {plan.area_ha} ha · {plan.crop_type}
+        {t("app.field.fertilizerCard.targetLabel")} {plan.target_yield} t/ha · {plan.area_ha} ha · {plan.crop_type}
       </p>
 
       <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-        {([["N", t.n, ph.n], ["P", t.p, ph.p], ["K", t.k, ph.k]] as const).map(([el, tot, per]) => (
+        {([["N", totals.n, ph.n], ["P", totals.p, ph.p], ["K", totals.k, ph.k]] as const).map(([el, tot, per]) => (
           <div key={el} className="rounded-lg border border-slate-200 p-2">
             <div className="text-xs font-medium text-slate-500">{el}</div>
             <div className="font-mono text-lg font-bold text-slate-800">{tot}</div>
-            <div className="text-[11px] text-slate-400">kg cəmi · {per}/ha</div>
+            <div className="text-[11px] text-slate-400">{t("app.field.fertilizerCard.kgTotalPrefix")}{per}/ha</div>
           </div>
         ))}
       </div>
@@ -93,7 +94,7 @@ export default function FertilizerCard({ fieldId }: { fieldId: string }) {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs text-slate-500">
-                <th className="py-1 pr-2 font-medium">Mərhələ</th>
+                <th className="py-1 pr-2 font-medium">{t("app.field.fertilizerCard.stageHeader")}</th>
                 <th className="py-1 px-2 text-right font-medium">%</th>
                 <th className="py-1 px-2 text-right font-medium">N</th>
                 <th className="py-1 px-2 text-right font-medium">P</th>

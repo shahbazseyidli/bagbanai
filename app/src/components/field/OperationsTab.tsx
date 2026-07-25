@@ -96,12 +96,12 @@ export default function OperationsTab({ fieldId }: { fieldId: string }) {
           <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
           <div className="text-sm text-amber-900">
             <p className="font-semibold">
-              Yığım hələ təhlükəsiz deyil — {safety.active.days_left} gün qalıb
+              {t("app.field.operationsTab.sprayNotSafePre")}{safety.active.days_left}{t("app.field.operationsTab.sprayNotSafePost")}
             </p>
             <p className="mt-0.5 text-amber-800">
-              Son çiləmə {safety.active.performed_on}
-              {safety.active.products.length > 0 && ` (${safety.active.products.join(", ")})`} ·
-              gözləmə müddəti {safety.active.phi_days} gün · təhlükəsiz tarix{" "}
+              {t("app.field.operationsTab.sprayLastSpray")}{safety.active.performed_on}
+              {safety.active.products.length > 0 && ` (${safety.active.products.join(", ")})`}{t("app.field.operationsTab.sprayPhiMid")}
+              {safety.active.phi_days}{t("app.field.operationsTab.sprayDaysSafeDate")}
               <span className="font-medium">{safety.active.safe_date}</span>.
             </p>
           </div>
@@ -109,7 +109,7 @@ export default function OperationsTab({ fieldId }: { fieldId: string }) {
       ) : safety && safety.sprays.length > 0 ? (
         <div className="flex items-center gap-3 rounded-xl border-[1.5px] border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
           <ShieldCheck className="h-5 w-5 shrink-0 text-emerald-600" />
-          <p className="font-medium">Yığım təhlükəsizdir — bütün çiləmə gözləmə müddətləri bitib.</p>
+          <p className="font-medium">{t("app.field.operationsTab.sprayBannerSafe")}</p>
         </div>
       ) : null}
 
@@ -117,7 +117,7 @@ export default function OperationsTab({ fieldId }: { fieldId: string }) {
         <h3 className="font-semibold text-slate-800">{t("op.add")}</h3>
         <div className="grid gap-3 sm:grid-cols-2">
           <FormField label={t("op.type")}>
-            <ChoiceChips value={type} onChange={setType} options={OP_TYPES} other={{ placeholder: "Digər əməliyyat" }} />
+            <ChoiceChips value={type} onChange={setType} options={OP_TYPES} other={{ placeholder: t("app.field.operationsTab.otherOpPlaceholder") }} />
           </FormField>
           <FormField label={t("op.performed_on")}>
             <input className="input" type="date" value={performedOn} required onChange={(e) => setPerformedOn(e.target.value)} />
@@ -129,14 +129,14 @@ export default function OperationsTab({ fieldId }: { fieldId: string }) {
             <ChoiceChips value={currency} onChange={setCurrency} options={CURRENCIES} />
           </FormField>
           {isSpray && (
-            <FormField label="Gözləmə müddəti — PHI (gün)">
+            <FormField label={t("app.field.operationsTab.phiLabel")}>
               <input
                 className="input"
                 type="number"
                 min="0"
                 value={phi}
                 onChange={(e) => setPhi(e.target.value)}
-                placeholder="Dərman etiketindəki yığıma qədər gün"
+                placeholder={t("app.field.operationsTab.phiPlaceholder")}
               />
             </FormField>
           )}
@@ -219,7 +219,7 @@ export default function OperationsTab({ fieldId }: { fieldId: string }) {
                 )}
                 {op.phi_days != null && (
                   <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-amber-50 px-1.5 py-0.5 text-xs text-amber-700">
-                    <ShieldAlert className="h-3 w-3" /> PHI {op.phi_days} gün
+                    <ShieldAlert className="h-3 w-3" /> PHI {op.phi_days}{t("app.field.operationsTab.phiBadgeDays")}
                   </p>
                 )}
                 {op.notes && <p className="mt-1 text-sm text-slate-700">{op.notes}</p>}
