@@ -13,6 +13,7 @@
 // scoped with an `lp-` prefix so it cannot collide with the app shell.
 import Link from "next/link";
 import { ArrowRight, Play } from "lucide-react";
+import { t } from "@/lib/i18n";
 import LandingHeroMap from "./LandingHeroMap";
 import LandingFaq from "./LandingFaq";
 import LandingFooter from "./LandingFooter";
@@ -119,28 +120,25 @@ export default function PublicLanding() {
         </div>
 
         <div className="relative z-[1] mx-auto max-w-[1180px]">
-          <p className="lp-eyebrow">peyk · ai · dəftər · icma</p>
+          <p className="lp-eyebrow">{t("mkt.hero.eyebrow")}</p>
           <h1 className="lp-ink mt-4 font-display text-[clamp(34px,6vw,66px)] font-bold leading-[1.06] tracking-[-0.03em]">
-            Torpağını peykdən gör,
+            {t("mkt.hero.titleLine1")}
             <br />
-            <span className="lp-accent">hər manatı hesabla.</span>
+            <span className="lp-accent">{t("mkt.hero.titleLine2")}</span>
           </h1>
           <p className="lp-ink2 mx-auto mt-5 max-w-[660px] text-[clamp(16px,2vw,20px)]">
-            NASA və Sentinel-2 peyk indeksləri, AI aqronom, təsərrüfat dəftəri — üstəlik
-            laboratoriya, aqronom və təchizatçıların bir yerdə olduğu platforma. Fermerlər,
-            kooperativlər və aqronomlar üçün.
+            {t("mkt.hero.subtitle")}
           </p>
           <div className="mt-7 flex flex-wrap justify-center gap-3">
             <Link href="/signup" className="lp-btn lp-btn-pri">
-              1 ay pulsuz başla <ArrowRight className="h-5 w-5" aria-hidden="true" />
+              {t("mkt.hero.ctaStart")} <ArrowRight className="h-5 w-5" aria-hidden="true" />
             </Link>
             <a href="#canli-demo" className="lp-btn lp-btn-ghost">
-              <Play className="h-5 w-5" aria-hidden="true" /> Demo izlə
+              <Play className="h-5 w-5" aria-hidden="true" /> {t("mkt.hero.ctaDemo")}
             </a>
           </div>
           <p className="lp-muted mt-5 text-[13px]">
-            🎁 <b className="text-grass">1 ay pulsuz sınaq</b> · kart tələb olunmur · provayderlər
-            pulsuz qoşulur · fındıq və bağlar üçün kalibrlənib
+            🎁 <b className="text-grass">{t("mkt.hero.badgeBold")}</b>{t("mkt.hero.badgeRest")}
           </p>
         </div>
       </section>
@@ -152,8 +150,7 @@ export default function PublicLanding() {
       <section id="canli-demo" className="scroll-mt-24 px-5 pb-2 pt-2 sm:px-6">
         <LandingHeroMap />
         <p className="lp-muted mx-auto mt-3 max-w-[980px] text-center text-[12.5px]">
-          Yuxarıdakı xəritə canlıdır — kəndinizi axtarın, tarlanıza toxunun və peyk oxunuşunu
-          qeydiyyatsız görün.
+          {t("mkt.hero.mapCaption")}
         </p>
       </section>
 

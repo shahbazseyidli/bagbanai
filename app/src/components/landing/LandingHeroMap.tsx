@@ -29,23 +29,21 @@ const DrawMap = dynamic(() => import("@/components/FieldMap").then((m) => m.Draw
 
 const DRAFT_KEY = "bagban_draft_field";
 
-/** A11 — plain-Azerbaijani verdict for a raw NDVI reading (same bands as the in-app labels). */
+/** A11 — verdict for a raw NDVI reading (same bands as the in-app labels). Called at render time,
+ * so t() sees the active locale. */
 function ndviVerdict(v: number): string {
-  if (v < 0.2) return "çılpaq/zəif";
-  if (v < 0.4) return "seyrək";
-  if (v < 0.6) return "orta";
-  return "sağlam bitki";
+  if (v < 0.2) return t("mkt.heroMap.ndviBare");
+  if (v < 0.4) return t("mkt.heroMap.ndviSparse");
+  if (v < 0.6) return t("mkt.heroMap.ndviMid");
+  return t("mkt.heroMap.ndviHealthy");
 }
 
 /** The mockup's "AI chip" — here it is a real sentence derived from the real reading. */
 function ndviAdvice(v: number): string {
-  if (v < 0.2)
-    return "Bitki örtüyü çox zəifdir — torpaq açıq və ya əkin yenidir. İzləməyə başla, AI aqronom səbəbi araşdırsın.";
-  if (v < 0.4)
-    return "Seyrək örtük — su və ya qida çatışmazlığı ola bilər. İzləməyə başla ki, hər 2-3 gündə dəyişimi görəsən.";
-  if (v < 0.6)
-    return "Orta sağlamlıq — sahə daxilində zəif zonalar ola bilər. AI aqronom zonaları ayırıb tövsiyə verir.";
-  return "Bitki örtüyü sağlamdır. İzləməyə başla ki, stress yayılmadan xəbərdarlıq alasan.";
+  if (v < 0.2) return t("mkt.heroMap.adviceBare");
+  if (v < 0.4) return t("mkt.heroMap.adviceSparse");
+  if (v < 0.6) return t("mkt.heroMap.adviceMid");
+  return t("mkt.heroMap.adviceHealthy");
 }
 
 /** WMO weather code → short localized description. */
@@ -193,7 +191,7 @@ export default function LandingHeroMap() {
       <div className="border-t border-line bg-panel p-4 sm:p-5">
         <div className="lp-chip mb-3 inline-flex">
           <Layers className="h-4 w-4" aria-hidden="true" />
-          {ndvi?.acquired_at ? `NDVI · ${ndvi.acquired_at}` : "Peyk təsviri · canlı"}
+          {ndvi?.acquired_at ? `NDVI · ${ndvi.acquired_at}` : t("mkt.heroMap.satelliteLive")}
         </div>
 
         {detected ? (
@@ -222,7 +220,7 @@ export default function LandingHeroMap() {
                   </span>
                 )}
                 {ndviBusy && !ndvi && (
-                  <span className="lp-pill lp-pill-neutral">Peykdən oxunur…</span>
+                  <span className="lp-pill lp-pill-neutral">{t("mkt.heroMap.readingSatellite")}</span>
                 )}
                 {ndvi && (
                   <span className="lp-pill lp-pill-good">
@@ -235,7 +233,7 @@ export default function LandingHeroMap() {
               {/* the mockup's legend box — honest version: only shown with a real reading */}
               {ndvi && (
                 <div className="mt-3 max-w-[280px]">
-                  <div className="lp-ink2 text-[11.5px] font-bold">Bitki sağlamlığı (NDVI)</div>
+                  <div className="lp-ink2 text-[11.5px] font-bold">{t("mkt.heroMap.legendTitle")}</div>
                   <div className="lp-ramp relative mt-1.5">
                     <span
                       className="absolute -top-1 h-[16px] w-[3px] rounded bg-white shadow"
@@ -244,9 +242,9 @@ export default function LandingHeroMap() {
                     />
                   </div>
                   <div className="lp-muted mt-1 flex justify-between text-[11px] font-semibold">
-                    <span>Zəif</span>
-                    <span>Orta</span>
-                    <span>Sağlam</span>
+                    <span>{t("mkt.heroMap.legendWeak")}</span>
+                    <span>{t("mkt.heroMap.legendMid")}</span>
+                    <span>{t("mkt.heroMap.legendHealthy")}</span>
                   </div>
                 </div>
               )}
@@ -290,7 +288,7 @@ export default function LandingHeroMap() {
               <p className="lp-ink text-[15px] font-bold">{t("landing.tapTitle")}</p>
               <p className="lp-ink2 mt-0.5 text-sm">{hint || t("landing.tapHint")}</p>
               <p className="lp-muted mt-1.5 text-xs">
-                Qeydiyyat tələb olunmur — sahəni gör, sonra qərar ver.
+                {t("mkt.heroMap.noSignup")}
               </p>
             </div>
           </div>

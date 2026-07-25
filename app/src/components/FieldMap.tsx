@@ -5,6 +5,7 @@ import maplibregl from "maplibre-gl";
 import { Layers, Search, Ruler, Mountain, X } from "lucide-react";
 import { length as turfLength, area as turfArea, simplify as turfSimplify } from "@turf/turf";
 import type { Polygon } from "@/lib/types";
+import { t } from "@/lib/i18n";
 import {
   BASEMAPS,
   BLANK_STYLE,
@@ -19,6 +20,18 @@ import {
 
 const AZ_CENTER: [number, number] = [47.5, 40.3];
 const G = "#16a34a";
+
+// basemaps.ts keeps the az label as the data/fallback; the picker shows a localized name.
+function basemapLabel(b: Basemap): string {
+  switch (b.id) {
+    case "hybrid": return t("mkt.map.basemapHybrid");
+    case "satellite": return t("mkt.map.basemapSatellite");
+    case "s2": return t("mkt.map.basemapS2");
+    case "osm": return t("mkt.map.basemapStreet");
+    case "topo": return t("mkt.map.basemapTopo");
+    default: return b.label;
+  }
+}
 
 function polygonBounds(polygon: Polygon): [number, number, number, number] | null {
   const coords = polygon.coordinates[0];
@@ -65,7 +78,7 @@ function BasemapControl({
                   b.id === current.id ? "bg-emerald-600" : "bg-slate-300"
                 }`}
               />
-              {b.label}
+              {basemapLabel(b)}
             </button>
           ))}
           <button
@@ -76,7 +89,7 @@ function BasemapControl({
             }`}
           >
             <Mountain className="h-3.5 w-3.5 shrink-0" />
-            Relyef kölgəsi {hillshade ? "✓" : ""}
+            {t("mkt.map.hillshade")} {hillshade ? "✓" : ""}
           </button>
         </div>
       )}
@@ -85,7 +98,7 @@ function BasemapControl({
         onClick={() => setOpen((o) => !o)}
         className="flex items-center gap-1.5 rounded-md bg-white/95 px-3 py-1.5 text-xs font-medium text-slate-700 shadow hover:bg-white"
       >
-        <Layers className="h-3.5 w-3.5" /> {current.label}
+        <Layers className="h-3.5 w-3.5" /> {basemapLabel(current)}
       </button>
     </div>
   );
@@ -134,7 +147,7 @@ function SearchControl({ onPick }: { onPick: (lng: number, lat: number, bbox?: [
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Yer axtar (kənd, rayon…)"
+          placeholder={t("mkt.map.searchPlaceholder")}
           className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
         />
         {q && (
@@ -143,7 +156,7 @@ function SearchControl({ onPick }: { onPick: (lng: number, lat: number, bbox?: [
           </button>
         )}
         <button type="submit" disabled={busy || !q.trim()} className="shrink-0 rounded-md bg-emerald-600 px-3 py-1 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50">
-          {busy ? "…" : "Axtar"}
+          {busy ? "…" : t("mkt.map.search")}
         </button>
       </form>
       {open && results.length > 0 && (
@@ -441,9 +454,9 @@ export function DrawMap({ onPolygon, importedPolygon, importSeq = 0, detectMode 
         {/* Draw toolbar top-left — the top-right corner holds the zoom/geolocate controls, and
             search now sits above the map, so the top strip no longer collides. */}
         <div className="absolute left-2 top-2 z-10 flex items-center gap-2 rounded-md bg-white/90 px-2 py-1 text-xs text-slate-700 shadow">
-          <span>Təpə: {count}</span>
-          <button type="button" onClick={undoPt} className="rounded border border-slate-300 px-2 py-0.5 hover:bg-slate-50">Geri</button>
-          <button type="button" onClick={clearPts} className="rounded bg-emerald-600 px-2 py-0.5 text-white hover:bg-emerald-700">Təmizlə</button>
+          <span>{t("mkt.map.vertex")} {count}</span>
+          <button type="button" onClick={undoPt} className="rounded border border-slate-300 px-2 py-0.5 hover:bg-slate-50">{t("mkt.map.undo")}</button>
+          <button type="button" onClick={clearPts} className="rounded bg-emerald-600 px-2 py-0.5 text-white hover:bg-emerald-700">{t("mkt.map.clear")}</button>
         </div>
         <BasemapControl current={basemap} onChange={changeBasemap} hillshade={hillshade} onToggleHillshade={toggleHillshade} />
         <CoordBar coord={coord} attribution={basemap.attribution} />
@@ -687,17 +700,17 @@ export function DisplayMap({
             measure ? "bg-amber-500 text-white" : "bg-white/95 text-slate-700 hover:bg-white"
           }`}
         >
-          <Ruler className="h-3.5 w-3.5" /> Ölç
+          <Ruler className="h-3.5 w-3.5" /> {t("mkt.map.measure")}
         </button>
         {measure && (
           <div className="rounded-md bg-white/95 px-2 py-1 text-[11px] text-slate-700 shadow">
-            <div>Xəritəyə klikləyin.</div>
+            <div>{t("mkt.map.clickToMeasure")}</div>
             <div className="tabular-nums">
-              Məsafə: <b>{mStats.dist.toFixed(2)} km</b>
-              {mStats.area != null && <> · Sahə: <b>{mStats.area.toFixed(2)} ha</b></>}
+              {t("mkt.map.distance")} <b>{mStats.dist.toFixed(2)} km</b>
+              {mStats.area != null && <> · {t("mkt.map.areaLabel")} <b>{mStats.area.toFixed(2)} ha</b></>}
             </div>
             <button type="button" onClick={clearMeasure} className="mt-0.5 text-amber-600 hover:underline">
-              Təmizlə
+              {t("mkt.map.clear")}
             </button>
           </div>
         )}
