@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import DataSaverToggle from "@/components/DataSaverToggle";
 import EmailAlertsToggle from "@/components/EmailAlertsToggle";
+import NamePublicToggle from "@/components/NamePublicToggle";
 import { t } from "@/lib/i18n";
 
 // Role code → localized label. Resolved at render time (not module load) so the active locale applies.
@@ -64,6 +65,7 @@ export default function AccountPage() {
       <div className="space-y-3">
         <DataSaverToggle />
         {user && <EmailAlertsToggle />}
+        {user && <NamePublicToggle />}
       </div>
 
       {user && (

@@ -295,6 +295,10 @@ export const az = {
 
   // email-alerts toggle (#4)
   "emailAlerts.title": "Email bildirişləri",
+  "namePublic.title": "Adım digər istifadəçilərə görünsün",
+  "namePublic.body": "Söndürsəniz, chat və icmada digər istifadəçilər adınız əvəzinə gizli ad (user_xxxx) görəcək.",
+  "app.signup.namePublicLabel": "Adım digər istifadəçilərə görünsün",
+  "app.signup.namePublicHint": "Fermer icması və chat üçün. Söndürsəniz gizli ad (user_xxxx) göstərilir. İstənilən vaxt Parametrlərdən dəyişə bilərsiniz.",
   "emailAlerts.body": "Kritik və xəbərdarlıq siqnalları email-ə gəlsin",
 
   // data-saver toggle (D4.5)

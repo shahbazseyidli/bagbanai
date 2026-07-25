@@ -30,6 +30,7 @@ class SignupIn(BaseModel):
     role: UserRole = UserRole.farmer
     country: Optional[str] = None
     region: Optional[str] = None
+    name_public: bool = True  # farmer name visibility (New-B); default visible
 
 
 class LoginIn(BaseModel):

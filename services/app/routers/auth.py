@@ -77,11 +77,12 @@ async def signup(body: SignupIn, response: Response):
         if exists:
             raise HTTPException(status_code=409, detail="email_taken")
         row = await conn.fetchrow(
-            """insert into public.users (email, password_hash, full_name, locale, role, country, region)
-               values ($1,$2,$3,$4,$5::user_role,$6,$7)
+            """insert into public.users
+                 (email, password_hash, full_name, locale, role, country, region, name_public)
+               values ($1,$2,$3,$4,$5::user_role,$6,$7,$8)
                returning id, email, full_name, locale, role, country, region""",
             body.email, hash_password(body.password), body.full_name, body.locale,
-            body.role.value, body.country, body.region)
+            body.role.value, body.country, body.region, body.name_public)
         uid = str(row["id"])
         if notify.email_configured():
             await _issue_otp(conn, uid, row["email"], row["locale"])
@@ -191,4 +192,24 @@ async def set_email_alerts(body: dict, user_id: str = Depends(get_current_user_i
     enabled = bool(body.get("enabled"))
     async with connection(user_id) as conn:
         await conn.execute("update public.users set email_alerts=$2 where id=$1::uuid", user_id, enabled)
+    return {"enabled": enabled}
+
+
+@router.get("/name-public")
+async def get_name_public(user_id: str = Depends(get_current_user_id)):
+    """Whether this (farmer) user's real name is shown to other users (New-B). Also returns the role
+    so the UI can hide the control for non-farmers."""
+    async with connection(user_id) as conn:
+        row = await conn.fetchrow(
+            "select name_public, role from public.users where id=$1::uuid", user_id)
+    return {"enabled": bool(row["name_public"]) if row else True,
+            "role": row["role"] if row else "farmer"}
+
+
+@router.post("/name-public")
+async def set_name_public(body: dict, user_id: str = Depends(get_current_user_id)):
+    """Toggle whether this user's real name is shown to other users (New-B)."""
+    enabled = bool(body.get("enabled"))
+    async with connection(user_id) as conn:
+        await conn.execute("update public.users set name_public=$2 where id=$1::uuid", user_id, enabled)
     return {"enabled": enabled}

@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from ..db import connection
 from ..deps import get_current_user_id
+from ..display import public_display_name
 from ..schemas import ConversationOut, MessageIn, MessageOut, StartConversationIn
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
@@ -29,10 +30,11 @@ async def list_conversations(user_id: str = Depends(get_current_user_id)):
         out = []
         for r in rows:
             other = await conn.fetchrow(
-                "select full_name, role from public.users where id=$1", r["other_id"])
+                "select id, full_name, role, name_public from public.users where id=$1", r["other_id"])
             out.append(ConversationOut(
                 id=str(r["id"]), other_user_id=str(r["other_id"]),
-                other_name=other["full_name"] if other else None,
+                other_name=public_display_name(
+                    other["full_name"], other["role"], other["name_public"], other["id"]) if other else None,
                 other_role=other["role"] if other else None,
                 kind=r["kind"], last_text=r["last_text"], last_at=_iso(r["last_at"])))
     return out
@@ -116,7 +118,8 @@ async def peer_suggestions(
             crop = fm["crop_type"] if fm else None
             region = fm["region"] if fm else None
             rows = await conn.fetch(
-                """select distinct u.id, u.full_name, fm.crop_type, coalesce(fm.region, u.region) as region
+                """select distinct u.id, u.full_name, u.name_public,
+                          fm.crop_type, coalesce(fm.region, u.region) as region
                    from public.field_metadata fm
                    join public.fields f on f.id = fm.field_id
                    join public.farms fa on fa.id = f.farm_id
@@ -126,7 +129,8 @@ async def peer_suggestions(
                      and (($2::text is not null and fm.crop_type = $2)
                           or ($3::text <> '' and fm.region = $3))
                    limit 6""", user_id, crop, region or "")
-        return [{"user_id": str(r["id"]), "name": r["full_name"],
+        return [{"user_id": str(r["id"]),
+                 "name": public_display_name(r["full_name"], "farmer", r["name_public"], r["id"]),
                  "crop": r["crop_type"], "region": r["region"]} for r in rows]
     except Exception:  # noqa: BLE001 — suggestions must never surface an error
         return []

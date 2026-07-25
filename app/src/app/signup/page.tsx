@@ -49,6 +49,7 @@ export default function SignupPage() {
   const [address, setAddress] = useState("");
   const [coverage, setCoverage] = useState("");
   const [phone, setPhone] = useState("");
+  const [namePublic, setNamePublic] = useState(true); // farmer name visibility (New-B), default on
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [otpEmail, setOtpEmail] = useState<string | null>(null);
@@ -81,7 +82,8 @@ export default function SignupPage() {
     try {
       const r = await api.post<{ needs_verification: boolean; email?: string; user?: User }>(
         "/api/auth/signup",
-        { email, password, full_name: fullName || undefined, locale: "az", role, country, region: region || undefined },
+        { email, password, full_name: fullName || undefined, locale: "az", role, country,
+          region: region || undefined, name_public: role === "farmer" ? namePublic : true },
       );
       if (r.needs_verification) setOtpEmail(r.email ?? email);
       else if (r.user) await finish(r.user);
@@ -165,6 +167,23 @@ export default function SignupPage() {
                 <div><label className="label">{t("app.signup.labelRegion")}</label><input className="input" value={region} onChange={(e) => setRegion(e.target.value)} placeholder="Xaçmaz" /></div>
               </div>
               <p className="text-xs text-slate-500">{t("app.signup.locationHint")}</p>
+              {!isProvider && (
+                <button
+                  type="button"
+                  onClick={() => setNamePublic((v) => !v)}
+                  role="switch"
+                  aria-checked={namePublic}
+                  className="flex min-h-14 w-full items-center gap-3 rounded-xl border-[1.5px] border-slate-300 bg-white px-4 py-3 text-left"
+                >
+                  <span className="flex-1">
+                    <span className="block text-sm font-medium text-slate-900">{t("app.signup.namePublicLabel")}</span>
+                    <span className="block text-xs text-slate-500">{t("app.signup.namePublicHint")}</span>
+                  </span>
+                  <span className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${namePublic ? "bg-emerald-600" : "bg-slate-300"}`}>
+                    <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${namePublic ? "left-[22px]" : "left-0.5"}`} />
+                  </span>
+                </button>
+              )}
             </div>
             <ErrorNote message={error} />
             <div className="mt-5 flex justify-between">
