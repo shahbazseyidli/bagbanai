@@ -26,6 +26,25 @@ async def run_advice(field_id: str):
     return {"ok": result is not None}
 
 
+@router.post("/emails/data-ready")
+async def email_data_ready(field_id: str):
+    """Send the transactional 'your satellite data is ready' email to the field's org owner (E2.2).
+    Called best-effort by the geo pipeline. Idempotent per field (send_template dedup_key=field_id)."""
+    from ..ai.emails import send_template
+    async with connection(None) as conn:
+        row = await conn.fetchrow(
+            """select f.name, f.area_ha, o.owner_id
+               from public.fields f join public.organizations o on o.id = f.org_id
+               where f.id=$1::uuid""", field_id)
+        if not row or not row["owner_id"]:
+            return {"ok": False}
+        area = f"{float(row['area_ha']):.1f}" if row["area_ha"] is not None else ""
+        ok = await send_template(
+            conn, str(row["owner_id"]), "data_ready",
+            {"field": row["name"] or "", "area": area, "field_id": field_id}, dedup_key=field_id)
+    return {"ok": ok}
+
+
 @router.post("/pipeline/run")
 async def run_pipeline(field_id: str, days_back: int = 120):
     try:

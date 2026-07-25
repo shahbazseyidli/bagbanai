@@ -396,6 +396,18 @@ COPY: dict[str, dict] = {
 for _tid in _SIMPLE_AZ:
     COPY[_tid] = {"roles": False, "az": _SIMPLE_AZ[_tid], "en": _SIMPLE_EN.get(_tid, _SIMPLE_AZ[_tid])}
 
+# Merge the machine-translated tr/de/hu/it/pl copy (auto-generated). Missing locale → en → az.
+try:
+    from .catalog_i18n import WELCOME_EXTRA, SIMPLE_EXTRA
+    for _loc, _d in WELCOME_EXTRA.items():
+        COPY["welcome"][_loc] = _d
+    for _tid in _SIMPLE_AZ:
+        for _loc, _d in SIMPLE_EXTRA.items():
+            if _tid in _d:
+                COPY[_tid][_loc] = _d[_tid]
+except ImportError:
+    pass
+
 
 def build(template_id: str, locale: str | None, role: str | None, ctx: dict) -> dict | None:
     """Resolve a template to a formatted content dict. Falls back locale → en → az."""
