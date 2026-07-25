@@ -425,6 +425,91 @@ export default function ZonesTab({ fieldId }: { fieldId: string }) {
           </div>
         </div>
 
+        <button
+          type="button"
+          onClick={() => void compute()}
+          disabled={busy || computing}
+          className="btn-primary min-h-[44px] w-full disabled:opacity-60"
+        >
+          {busy || computing ? t("app.field.zonesTab.computing") : t("app.field.zonesTab.computeButton")}
+        </button>
+        <p className="text-[11px] text-slate-400">
+          {t("app.field.zonesTab.computeHint")}
+        </p>
+      </div>
+
+      {/* ── computing / insufficient / empty states ──────────────────────── */}
+      {computing && (
+        <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          <RefreshCw className="h-4 w-4 shrink-0 animate-spin" />
+          <span>{t("app.field.zonesTab.computingBanner")}</span>
+        </div>
+      )}
+
+      {data?.status === "insufficient_data" && (
+        <div className="flex items-start gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800">
+          <Info className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{data.hint ?? t("app.field.zonesTab.insufficientDataFallback")}</span>
+        </div>
+      )}
+
+      {data?.status === "failed" && (
+        <ErrorNote message={data.hint ?? t("app.field.zonesTab.failedFallback")} />
+      )}
+
+      {data?.status === "none" && !computing && (
+        <Placeholder>
+          {t("app.field.zonesTab.emptyPlaceholder")}
+        </Placeholder>
+      )}
+
+      {/* ── map + legend ─────────────────────────────────────────────────── */}
+      {ready && (
+        <div className="card space-y-3">
+          <ZonesMap zones={zones} nZones={run?.n_zones ?? nZones} outline={field?.geom ?? null} />
+
+          {verdict && (
+            <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs leading-relaxed text-slate-600">
+              {verdict}
+            </p>
+          )}
+
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[420px] text-left text-xs">
+              <thead>
+                <tr className="text-slate-500">
+                  <th className="py-1 pr-2 font-medium">{t("app.field.zonesTab.colZone")}</th>
+                  <th className="py-1 pr-2 font-medium">{t("app.field.zonesTab.colMeanPrefix")} {run?.index_name ?? "NDVI"}</th>
+                  <th className="py-1 pr-2 font-medium">{t("app.field.zonesTab.colArea")}</th>
+                  <th className="py-1 pr-2 font-medium">{t("app.field.zonesTab.colShare")}</th>
+                  <th className="py-1 font-medium">{t("app.field.zonesTab.colRelToField")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {zones.map((z) => (
+                  <tr key={z.id} className="border-t border-slate-100">
+                    <td className="py-1.5 pr-2">
+                      <span className="flex items-center gap-2">
+                        <span
+                          className="inline-block h-3 w-3 shrink-0 rounded-sm"
+                          style={{ background: zoneColor(z.zone_no, run?.n_zones ?? nZones) }}
+                        />
+                        <span className="font-medium text-slate-700">{z.zone_no}</span>
+                      </span>
+                    </td>
+                    <td className="py-1.5 pr-2 text-slate-700">{fmt(z.mean_value, 3)}</td>
+                    <td className="py-1.5 pr-2 text-slate-700">{fmt(z.area_ha, 2)}</td>
+                    <td className="py-1.5 pr-2 text-slate-700">
+                      {z.area_pct == null ? "—" : `${z.area_pct.toFixed(0)}%`}
+                    </td>
+                    <td className="py-1.5 text-slate-700">
+                      {z.rel_to_field == null ? "—" : `${(z.rel_to_field * 100).toFixed(0)}%`}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
           <p className="text-[11px] text-slate-400">
             {run?.n_scenes ?? 0} {t("app.field.zonesTab.scenesLabel")} · {run?.pixel_size_m ? `${fmt(run.pixel_size_m, 0)} ${t("app.field.zonesTab.pixelSizeUnit")} · ` : ""}
