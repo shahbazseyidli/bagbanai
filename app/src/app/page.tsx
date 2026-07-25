@@ -11,6 +11,7 @@ import { ErrorNote, Placeholder, Spinner } from "@/components/ui";
 import TelegramConnect from "@/components/TelegramConnect";
 import { ListSkeleton } from "@/components/Skeleton";
 import { useUiV2 } from "@/lib/uiFlag";
+import { useIsAppHost } from "@/lib/host";
 import TodayHome from "@/components/home/TodayHome";
 import PublicLanding from "@/components/landing/PublicLanding";
 import OnboardingChecklist from "@/components/OnboardingChecklist";
@@ -31,13 +32,8 @@ function HomeInner() {
   const v2 = useUiV2();
   // Panel split: the apex (agradex.com) is ALWAYS marketing — even for signed-in users — so the
   // brand/logo can point here and show the landing, not the app. The app dashboard lives on the app
-  // host (app.agradex.com). When the split is off (PANEL_HOST empty) this stays the old behavior.
-  const [appHost, setAppHost] = useState(false);
-  useEffect(() => {
-    const panel = (process.env.NEXT_PUBLIC_PANEL_HOST || "").toLowerCase();
-    const host = typeof window !== "undefined" ? window.location.hostname.toLowerCase() : "";
-    setAppHost(panel ? host === panel || host.startsWith("app.") : true);
-  }, []);
+  // host (app.agradex.com). Shared with AppShell/BottomNav via useIsAppHost so they never diverge.
+  const appHost = useIsAppHost();
   if (loading) return <Spinner />;
   if (!appHost) return <Landing />; // apex host → marketing landing (SSR default; corrected on mount)
   if (!user) return <Landing />;

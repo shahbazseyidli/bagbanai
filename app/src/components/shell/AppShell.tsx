@@ -13,6 +13,7 @@
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth";
+import { useIsAppHost } from "@/lib/host";
 import AppRail from "@/components/shell/AppRail";
 import FieldListPanel from "@/components/shell/FieldListPanel";
 
@@ -59,10 +60,13 @@ const FIELD_LIST_XL = "xl:-mx-14 2xl:-mx-44";
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
+  const appHost = useIsAppHost();
   const pathname = usePathname() || "/";
 
   // Hooks above, branching below — never the other way round.
-  if (loading || !user || isPublicPath(pathname)) return <>{children}</>;
+  // `!appHost` keeps app chrome off the apex marketing host (agradex.com): there "/" renders the
+  // landing (page.tsx), so the rail must not wrap it. Only app.agradex.com gets the rail.
+  if (loading || !user || !appHost || isPublicPath(pathname)) return <>{children}</>;
 
   const withList = showsFieldList(pathname);
 

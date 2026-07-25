@@ -7,6 +7,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Sprout, Plus, Bell, LayoutGrid } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { useIsAppHost } from "@/lib/host";
 import { t } from "@/lib/i18n";
 
 function NavItem({ href, label, Icon, active }: { href: string; label: string; Icon: typeof Home; active: boolean }) {
@@ -28,8 +29,10 @@ function NavItem({ href, label, Icon, active }: { href: string; label: string; I
 
 export default function BottomNav() {
   const { user } = useAuth();
+  const appHost = useIsAppHost();
   const pathname = usePathname();
-  if (!user) return null;
+  // No app chrome on the apex marketing host (agradex.com) — only on app.agradex.com.
+  if (!user || !appHost) return null;
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
   const LEFT = [
