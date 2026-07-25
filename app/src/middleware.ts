@@ -27,7 +27,9 @@ export function middleware(req: NextRequest) {
 
   // --- Resolve the locale (prefix > cookie > browser) ---
   let locale = req.cookies.get(LOCALE_COOKIE)?.value || "";
-  const m = path.match(/^\/(en|tr|de)(\/.*)?$/);
+  // Built from PREFIXED so adding a locale needs one edit, not two (this regex used to be a
+  // hardcoded en|tr|de and silently ignored hu/it/pl).
+  const m = path.match(new RegExp(`^/(${PREFIXED.join("|")})(/.*)?$`));
   if (m) {
     locale = m[1];
     path = m[2] || "/"; // strip the prefix for internal routing
