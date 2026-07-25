@@ -6,6 +6,7 @@ import { Layers, Search, Ruler, Mountain, X } from "lucide-react";
 import { length as turfLength, area as turfArea, simplify as turfSimplify } from "@turf/turf";
 import type { Polygon } from "@/lib/types";
 import { t } from "@/lib/i18n";
+import { useMapReady } from "@/lib/useMapReady";
 import {
   BASEMAPS,
   BLANK_STYLE,
@@ -229,6 +230,7 @@ export function DrawMap({ onPolygon, importedPolygon, importSeq = 0, detectMode 
   const [hillshade, setHillshade] = useState(() => getSavedHillshade());
   const hillshadeRef = useRef(hillshade);
   hillshadeRef.current = hillshade;
+  const ready = useMapReady();
   const [coord, setCoord] = useState("");
 
   function reapplyHillshade(map: maplibregl.Map) {
@@ -238,7 +240,9 @@ export function DrawMap({ onPolygon, importedPolygon, importSeq = 0, detectMode 
   }
 
   useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
+    // Gated on the first real animation frame: a map built in a background tab never loads
+    // its style and stays permanently blank (see lib/useMapReady).
+    if (!ready || !containerRef.current || mapRef.current) return;
 
     const map = new maplibregl.Map({
       container: containerRef.current,
@@ -310,7 +314,7 @@ export function DrawMap({ onPolygon, importedPolygon, importSeq = 0, detectMode 
       mapRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [ready]);
 
   // Load an imported polygon into the draw buffer when importSeq changes.
   useEffect(() => {
@@ -495,6 +499,7 @@ export function DisplayMap({
   measureRef.current = measure;
   const mPtsRef = useRef<[number, number][]>([]);
   const mRenderRef = useRef<() => void>(() => {});
+  const ready = useMapReady();
   const [mStats, setMStats] = useState<{ dist: number; area: number | null }>({ dist: 0, area: null });
 
   function reapplyHillshade(map: maplibregl.Map) {
@@ -504,7 +509,9 @@ export function DisplayMap({
   }
 
   useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
+    // Gated on the first real animation frame: a map built in a background tab never loads
+    // its style and stays permanently blank (see lib/useMapReady).
+    if (!ready || !containerRef.current || mapRef.current) return;
 
     const map = new maplibregl.Map({
       container: containerRef.current,
@@ -601,7 +608,7 @@ export function DisplayMap({
       loadedRef.current = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [ready]);
 
   // Add/update/remove the index raster overlay (below the field outline).
   function applyRaster(url: string | null) {
@@ -769,9 +776,12 @@ export function CompareMap({
   const rightMap = useRef<maplibregl.Map | null>(null);
   const [split, setSplit] = useState(50);
   const draggingRef = useRef(false);
+  const ready = useMapReady();
 
   useEffect(() => {
-    if (!leftRef.current || !rightRef.current || leftMap.current) return;
+    // Gated on the first real animation frame: a map built in a background tab never loads
+    // its style and stays permanently blank (see lib/useMapReady).
+    if (!ready || !leftRef.current || !rightRef.current || leftMap.current) return;
     const mk = (c: HTMLDivElement) =>
       new maplibregl.Map({ container: c, style: BLANK_STYLE, center: AZ_CENTER, zoom: 7, attributionControl: false });
     const a = mk(leftRef.current);
@@ -811,7 +821,7 @@ export function CompareMap({
       rightMap.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [ready]);
 
   useEffect(() => {
     const m = leftMap.current;

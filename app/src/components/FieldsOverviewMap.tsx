@@ -16,6 +16,7 @@ import maplibregl from "maplibre-gl";
 import { api } from "@/lib/api";
 import { BLANK_STYLE, applyBasemap, getSavedBasemap } from "@/lib/basemaps";
 import { t } from "@/lib/i18n";
+import { useMapReady } from "@/lib/useMapReady";
 import type { Polygon } from "@/lib/types";
 
 export interface GeoField {
@@ -157,6 +158,7 @@ export default function FieldsOverviewMap({
   const scoresRef = useRef(effective);
   scoresRef.current = effective;
   const lastFitRef = useRef("");
+  const ready = useMapReady();
 
   // A3 — one request for the whole org. Best-effort: on failure the map keeps the status colouring.
   useEffect(() => {
@@ -181,7 +183,9 @@ export default function FieldsOverviewMap({
   }, [orgId, scores]);
 
   useEffect(() => {
-    if (!ref.current || mapRef.current) return;
+    // Gated on the first real animation frame: a map built in a background tab never loads its
+    // style and stays permanently blank (see lib/useMapReady).
+    if (!ready || !ref.current || mapRef.current) return;
     const map = new maplibregl.Map({
       container: ref.current,
       style: BLANK_STYLE,
@@ -265,7 +269,7 @@ export default function FieldsOverviewMap({
       mapRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [ready]);
 
   // Repaint when the scores land (or when the field set changes, e.g. the org switcher). Refits the
   // viewport only for a NEW field set — a score arriving must not move the farmer's map.

@@ -12,6 +12,7 @@ import maplibregl from "maplibre-gl";
 import { Layers, RefreshCw, Info, Sprout } from "lucide-react";
 import { api, azError } from "@/lib/api";
 import { BLANK_STYLE, applyBasemap, getSavedBasemap } from "@/lib/basemaps";
+import { useMapReady } from "@/lib/useMapReady";
 import { ErrorNote, Placeholder, Spinner } from "@/components/ui";
 import { t } from "@/lib/i18n";
 
@@ -128,6 +129,7 @@ function ZonesMap({
   const boxRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const readyRef = useRef(false);
+  const ready = useMapReady();
 
   const collection = useMemo(() => {
     return {
@@ -143,7 +145,9 @@ function ZonesMap({
   }, [zones, nZones]);
 
   useEffect(() => {
-    if (!boxRef.current || mapRef.current) return;
+    // Gated on the first real animation frame: a map built in a background tab never loads its
+    // style and stays permanently blank (see lib/useMapReady).
+    if (!ready || !boxRef.current || mapRef.current) return;
     const map = new maplibregl.Map({
       container: boxRef.current,
       style: BLANK_STYLE,
@@ -195,7 +199,7 @@ function ZonesMap({
       readyRef.current = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [ready]);
 
   // Push data + fit bounds whenever the zones (or the field outline) change.
   useEffect(() => {
