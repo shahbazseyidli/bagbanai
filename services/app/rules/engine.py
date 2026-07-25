@@ -198,7 +198,7 @@ async def _deliver_email(conn, org_id: str, title: str, body: str, severity: str
         return
     try:
         rows = await conn.fetch(
-            """select distinct u.email from public.users u
+            """select distinct u.email, u.locale from public.users u
                join public.organization_members m on m.user_id = u.id
                where m.org_id=$1::uuid and m.status='active'
                  and u.email is not null and u.email_alerts is true""", org_id)
@@ -207,7 +207,7 @@ async def _deliver_email(conn, org_id: str, title: str, body: str, severity: str
                 "Bu bildirişləri Parametrlərdə (Daha çox) söndürə bilərsiniz.")
         for r in rows:
             try:
-                await notify.send_email(r["email"], subject, text)
+                await notify.send_email(r["email"], subject, text, locale=r["locale"])
             except Exception:  # noqa: BLE001
                 pass
     except Exception:  # noqa: BLE001 — delivery must never break dispatch

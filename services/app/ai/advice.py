@@ -196,7 +196,7 @@ async def _notify(conn, field_id: str, org_id: str, field_name: str,
 
     # Email the org owner (best-effort; skipped if SMTP not configured).
     owner = await conn.fetchrow(
-        """select u.email from public.organizations o
+        """select u.email, u.locale from public.organizations o
            join public.users u on u.id=o.owner_id where o.id=$1::uuid""", org_id)
     if owner and owner["email"]:
         lines = [body, "", "Risklər:"]
@@ -205,4 +205,4 @@ async def _notify(conn, field_id: str, org_id: str, field_name: str,
         lines += [f"• {r.title}: {r.detail}" for r in result.recommendations]
         lines += ["", "Növbəti addımlar:"] + [f"{i+1}. {s}" for i, s in enumerate(result.next_steps)]
         lines += ["", DISCLAIMER, "", "— Bağban AI · https://agradex.com"]
-        await notify.send_email(owner["email"], title, "\n".join(lines))
+        await notify.send_email(owner["email"], title, "\n".join(lines), locale=owner["locale"])

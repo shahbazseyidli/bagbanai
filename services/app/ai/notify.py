@@ -13,20 +13,39 @@ import httpx
 from ..config import settings
 
 
+# Per-locale sender identity (display name + address). Every address is @agradex.com, so the single
+# verified domain covers all of them — no extra DNS per name. The email goes out from a persona that
+# matches the recipient's language; unknown locales fall back to EMAIL_FROM.
+SENDERS: dict[str, str] = {
+    "az": "Ülkər Nəsirova <ulkar@agradex.com>",
+    "en": "Olivia Hayes <olivia@agradex.com>",
+    "tr": "İrem Çelik <irem@agradex.com>",
+    "it": "Chiara Moretti <chiara@agradex.com>",
+    "de": "Johanna Brandt <johanna@agradex.com>",
+    "hu": "Réka Tóth <reka@agradex.com>",
+    "pl": "Emilia Wójcik <emilia@agradex.com>",
+}
+
+
+def sender_for(locale: str | None) -> str:
+    """The From header for a recipient's locale, or EMAIL_FROM when unknown/unset."""
+    return SENDERS.get((locale or "")[:2].lower(), settings.email_from)
+
+
 def email_configured() -> bool:
     """True when any email transport (Resend or SMTP) is configured."""
     return bool(settings.resend_api_key or settings.smtp_host)
 
 
-async def _send_resend(to: str, subject: str, body: str) -> bool:
-    """Send via the Resend HTTP API (from EMAIL_FROM). Returns True on 2xx."""
+async def _send_resend(to: str, subject: str, body: str, sender: str) -> bool:
+    """Send via the Resend HTTP API. Returns True on 2xx."""
     try:
         async with httpx.AsyncClient(timeout=20) as client:
             r = await client.post(
                 "https://api.resend.com/emails",
                 headers={"Authorization": f"Bearer {settings.resend_api_key}",
                          "Content-Type": "application/json"},
-                json={"from": settings.email_from, "to": [to], "subject": subject, "text": body})
+                json={"from": sender, "to": [to], "subject": subject, "text": body})
         if r.status_code // 100 == 2:
             return True
         print(f"[notify] resend to {to} failed: {r.status_code} {r.text[:200]}", file=sys.stderr)
@@ -36,9 +55,9 @@ async def _send_resend(to: str, subject: str, body: str) -> bool:
         return False
 
 
-def _send_sync(to: str, subject: str, body: str) -> None:
+def _send_sync(to: str, subject: str, body: str, sender: str) -> None:
     msg = EmailMessage()
-    msg["From"] = settings.smtp_from
+    msg["From"] = sender
     msg["To"] = to
     msg["Subject"] = subject
     msg.set_content(body)
@@ -49,14 +68,16 @@ def _send_sync(to: str, subject: str, body: str) -> None:
         s.send_message(msg)
 
 
-async def send_email(to: str, subject: str, body: str) -> bool:
-    """Returns True if sent. Prefers Resend, falls back to SMTP, else logs + returns False."""
+async def send_email(to: str, subject: str, body: str, locale: str | None = None) -> bool:
+    """Returns True if sent. From = the recipient-locale persona (sender_for). Prefers Resend,
+    falls back to SMTP, else logs + returns False."""
+    sender = sender_for(locale)
     if settings.resend_api_key:
-        if await _send_resend(to, subject, body):
+        if await _send_resend(to, subject, body, sender):
             return True
     if settings.smtp_host:
         try:
-            await asyncio.to_thread(_send_sync, to, subject, body)
+            await asyncio.to_thread(_send_sync, to, subject, body, sender)
             return True
         except Exception as exc:  # noqa: BLE001 — email is best-effort
             print(f"[notify] smtp to {to} failed: {exc}", file=sys.stderr)

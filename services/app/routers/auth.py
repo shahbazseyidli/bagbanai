@@ -30,17 +30,42 @@ def _set_cookie(resp: Response, token: str) -> None:
     )
 
 
-async def _issue_otp(conn, user_id: str, email: str) -> None:
+# Localized OTP email (subject, body). Body has {code} and {ttl}. Sent from the locale's persona
+# (notify.SENDERS). Brand "Bağban AI" kept in every language.
+_OTP_EMAIL: dict[str, tuple[str, str]] = {
+    "az": ("Bağban AI — təsdiq kodu",
+           "Bağban AI hesabınızı təsdiqləmək üçün kod: {code}\n\n"
+           "Kod {ttl} dəqiqə ərzində etibarlıdır. Bu sorğunu siz etməmisinizsə, məktubu nəzərə almayın."),
+    "en": ("Bağban AI — verification code",
+           "Your code to verify your Bağban AI account: {code}\n\n"
+           "The code is valid for {ttl} minutes. If you didn't request this, please ignore this email."),
+    "tr": ("Bağban AI — doğrulama kodu",
+           "Bağban AI hesabınızı doğrulamak için kod: {code}\n\n"
+           "Kod {ttl} dakika geçerlidir. Bu isteği siz yapmadıysanız, bu e-postayı dikkate almayın."),
+    "de": ("Bağban AI — Bestätigungscode",
+           "Ihr Code zur Bestätigung Ihres Bağban AI-Kontos: {code}\n\n"
+           "Der Code ist {ttl} Minuten gültig. Falls Sie dies nicht angefordert haben, ignorieren Sie diese E-Mail."),
+    "hu": ("Bağban AI — megerősítő kód",
+           "Kód a Bağban AI-fiókja megerősítéséhez: {code}\n\n"
+           "A kód {ttl} percig érvényes. Ha nem Ön kérte, hagyja figyelmen kívül ezt az e-mailt."),
+    "it": ("Bağban AI — codice di verifica",
+           "Il tuo codice per verificare l'account Bağban AI: {code}\n\n"
+           "Il codice è valido per {ttl} minuti. Se non l'hai richiesto, ignora questa email."),
+    "pl": ("Bağban AI — kod weryfikacyjny",
+           "Twój kod weryfikacji konta Bağban AI: {code}\n\n"
+           "Kod jest ważny {ttl} minut. Jeśli to nie Ty, zignoruj tę wiadomość."),
+}
+
+
+async def _issue_otp(conn, user_id: str, email: str, locale: str | None = None) -> None:
     code = f"{secrets.randbelow(1_000_000):06d}"
     exp = datetime.now(timezone.utc) + timedelta(minutes=settings.otp_ttl_min)
     await conn.execute(
         """update public.users set otp_code=$1, otp_expires_at=$2, otp_attempts=0, email_verified=false
            where id=$3::uuid""", code, exp, user_id)
+    subject, tmpl = _OTP_EMAIL.get((locale or "")[:2].lower(), _OTP_EMAIL["az"])
     await notify.send_email(
-        email, "Bağban AI — təsdiq kodu",
-        f"Bağban AI hesabınızı təsdiqləmək üçün kod: {code}\n\n"
-        f"Kod {settings.otp_ttl_min} dəqiqə ərzində etibarlıdır. Bu sorğunu siz etməmisinizsə, "
-        f"məktubu nəzərə almayın.")
+        email, subject, tmpl.format(code=code, ttl=settings.otp_ttl_min), locale=locale)
 
 
 @router.post("/signup")
@@ -59,7 +84,7 @@ async def signup(body: SignupIn, response: Response):
             body.role.value, body.country, body.region)
         uid = str(row["id"])
         if notify.email_configured():
-            await _issue_otp(conn, uid, row["email"])
+            await _issue_otp(conn, uid, row["email"], row["locale"])
             return {"needs_verification": True, "email": row["email"]}
     _set_cookie(response, create_token(uid))
     return {"needs_verification": False, "user": UserOut(
@@ -105,12 +130,12 @@ async def verify_otp(body: VerifyOtpIn, response: Response):
 async def resend_otp(body: ResendOtpIn):
     async with connection() as conn:
         row = await conn.fetchrow(
-            "select id, email, email_verified from public.users where lower(email)=lower($1)", body.email)
+            "select id, email, email_verified, locale from public.users where lower(email)=lower($1)", body.email)
         if not row:
             raise HTTPException(status_code=404, detail="user_not_found")
         if row["email_verified"]:
             return {"ok": True, "already_verified": True}
-        await _issue_otp(conn, str(row["id"]), row["email"])
+        await _issue_otp(conn, str(row["id"]), row["email"], row["locale"])
     return {"ok": True}
 
 
