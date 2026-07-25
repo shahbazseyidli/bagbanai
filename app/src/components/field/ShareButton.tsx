@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Share2, Copy, Check, Trash2, Eye, Plus, Loader2 } from "lucide-react";
 import { api, azError } from "@/lib/api";
 import { ErrorNote, Placeholder, Spinner } from "@/components/ui";
+import { publicUrl } from "@/lib/host";
 import { t } from "@/lib/i18n";
 
 interface ShareLink {
@@ -30,13 +31,11 @@ const EXPIRY_OPTIONS: { label: string; days: number | null }[] = [
   { label: t("app.field.shareButton.expiryNever"), days: null },
 ];
 
-/** Absolute link the farmer actually sends. The browser origin is the source of truth — the
- * server-side NEXT_PUBLIC_APP_URL may still be the dev default in some deployments. */
+/** Absolute link the farmer actually sends. It MUST resolve on the public marketing apex: built
+ * from window.location.origin it came out as app.agradex.com/s/… , and the app host bounces every
+ * signed-out recipient to /login — the exact people a share link exists for. */
 function absUrl(s: ShareLink): string {
-  if (typeof window !== "undefined" && window.location?.origin) {
-    return `${window.location.origin}${s.path}`;
-  }
-  return s.url || s.path;
+  return publicUrl(s.path) || s.url || s.path;
 }
 
 function isActive(s: ShareLink): boolean {

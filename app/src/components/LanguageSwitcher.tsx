@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Globe } from "lucide-react";
+import { SHARED_COOKIE_DOMAIN } from "@/lib/host";
 import { LOCALES, LOCALE_NAMES, getLocale, type Locale } from "@/lib/i18n";
 
 // Strip ANY existing locale prefix (all of en/tr/de/hu/it/pl — az has none) so switching between
@@ -21,7 +22,10 @@ export default function LanguageSwitcher({ className = "" }: { className?: strin
     const base = pathname.replace(PREFIX_RE, "") || "/";
     try {
       localStorage.setItem("bagban_locale", l);
-      document.cookie = `bagban_locale=${l}; path=/; max-age=31536000; samesite=lax`;
+      // Scoped to the shared parent domain so the language chosen on agradex.com survives the jump
+      // to app.agradex.com (a host-only cookie left the app falling back to browser detection).
+      const dom = SHARED_COOKIE_DOMAIN ? `; domain=${SHARED_COOKIE_DOMAIN}` : "";
+      document.cookie = `bagban_locale=${l}; path=/${dom}; max-age=31536000; samesite=lax`;
     } catch { /* private mode */ }
     window.location.href = l === "az" ? base : `/${l}${base === "/" ? "" : base}`;
   }

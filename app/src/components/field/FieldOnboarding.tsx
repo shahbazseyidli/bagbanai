@@ -15,11 +15,12 @@ import { ErrorNote, Field as FormField } from "@/components/ui";
 import { parseCoordinates, polygonFromRing, validatePolygon } from "@/lib/geo";
 import { parseGeoImport, parseShapefile } from "@/lib/geoio";
 import { track } from "@/lib/track";
-import type { Field, GeoSite, Polygon } from "@/lib/types";
+import type { Field, FieldMetadata, GeoSite, Polygon } from "@/lib/types";
 import {
   type Opt,
   optLabel,
   CROP_OPTIONS,
+  CROP_CYCLE,
   SOIL_TYPE_OPTIONS,
   IRRIGATION_METHOD_OPTIONS,
   GROWTH_STAGE_OPTIONS,
@@ -115,6 +116,35 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
     } catch {
       /* ignore malformed draft */
     }
+  }, []);
+
+  // E13 — the landing quiz already asked what they grow and where. Seed the wizard with it so the
+  // first field starts half-filled; anything the farmer has already typed here wins.
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const r = await api.get<{ onboarding?: { crop?: string; region?: string } }>(
+          "/api/auth/onboarding",
+        );
+        const onb = r?.onboarding;
+        if (!active || !onb) return;
+        const patch: Partial<FieldMetadata> = {};
+        if (onb.crop && onb.crop !== "other" && !data.crop_type) {
+          patch.crop_type = onb.crop;
+          const cyc = CROP_CYCLE[onb.crop];
+          if (cyc && !data.crop_cycle) patch.crop_cycle = cyc;
+        }
+        if (onb.region && !data.region) patch.region = onb.region;
+        if (Object.keys(patch).length) setMany(patch);
+      } catch {
+        /* the wizard works perfectly well unfilled */
+      }
+    })();
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleDetect(lng: number, lat: number) {

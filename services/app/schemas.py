@@ -31,6 +31,7 @@ class SignupIn(BaseModel):
     country: Optional[str] = None
     region: Optional[str] = None
     name_public: bool = True  # farmer name visibility (New-B); default visible
+    onboarding: Optional[dict] = None  # E13 landing quiz answers, carried in from localStorage
 
 
 class LoginIn(BaseModel):

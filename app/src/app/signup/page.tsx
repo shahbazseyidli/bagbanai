@@ -5,13 +5,14 @@
 // supplier must pick multi-select specializations + company + address so the catalog fills). Farmers
 // finish at step 2. On success creates the account, then (for providers) the provider profile.
 // NOTE: UI copy is inline Azerbaijani for now; the T18 i18n sweep extracts it to t() keys later.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Sprout, FlaskConical, Users, Package, ArrowRight, ArrowLeft, Check } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { t, type I18nKey } from "@/lib/i18n";
+import { getLocale, t, type I18nKey } from "@/lib/i18n";
+import { clearAnswers, countryName, loadAnswers } from "@/lib/onboardingQuiz";
 import { ErrorNote } from "@/components/ui";
 import OtpVerify from "@/components/OtpVerify";
 import type { User, UserRole } from "@/lib/types";
@@ -25,7 +26,16 @@ const ROLES: { key: UserRole; titleKey: I18nKey; subKey: I18nKey; Icon: typeof S
   { key: "supplier", titleKey: "app.signup.roleSupplierTitle", subKey: "app.signup.roleSupplierSub", Icon: Package },
 ];
 
-const COUNTRIES = ["Azərbaycan", "Türkiyə", "Gürcüstan", "Rusiya", "Qazaxıstan", "Digər"];
+// Stored value stays the canonical Azerbaijani name (existing rows and the provider-catalog
+// filters use it); only the LABEL is localized, so an English visitor no longer reads "Azərbaycan".
+const COUNTRIES: { value: string; code: string }[] = [
+  { value: "Azərbaycan", code: "AZ" },
+  { value: "Türkiyə", code: "TR" },
+  { value: "Gürcüstan", code: "GE" },
+  { value: "Rusiya", code: "RU" },
+  { value: "Qazaxıstan", code: "KZ" },
+  { value: "Digər", code: "" },
+];
 
 const SPECS: Record<UserRole, string[]> = {
   farmer: [],
@@ -56,6 +66,16 @@ export default function SignupPage() {
 
   const isProvider = role !== "farmer";
 
+  // Prefill from the landing quiz so a visitor never types the same answer twice.
+  useEffect(() => {
+    const q = loadAnswers();
+    if (!q) return;
+    const hit = COUNTRIES.find((c) => c.code && c.code === q.country);
+    if (hit) setCountry(hit.value);
+    else if (q.country) setCountry("Digər");
+    if (q.region) setRegion(q.region);
+  }, []);
+
   function toggleSpec(s: string) {
     setSpecs((cur) => (cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]));
   }
@@ -72,6 +92,7 @@ export default function SignupPage() {
 
   async function finish(user: User) {
     await createProviderIfNeeded();
+    clearAnswers(); // the quiz has been persisted server-side; don't replay it for the next visitor
     setUser(user);
     router.push("/");
   }
@@ -83,7 +104,9 @@ export default function SignupPage() {
       const r = await api.post<{ needs_verification: boolean; email?: string; user?: User }>(
         "/api/auth/signup",
         { email, password, full_name: fullName || undefined, locale: "az", role, country,
-          region: region || undefined, name_public: role === "farmer" ? namePublic : true },
+          region: region || undefined, name_public: role === "farmer" ? namePublic : true,
+          // E13 — the landing quiz answers become the farmer's profile and prefill their fields.
+          onboarding: loadAnswers() ?? undefined },
       );
       if (r.needs_verification) setOtpEmail(r.email ?? email);
       else if (r.user) await finish(r.user);
@@ -161,7 +184,11 @@ export default function SignupPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div><label className="label">{t("app.signup.labelCountry")}</label>
                   <select className="input" value={country} onChange={(e) => setCountry(e.target.value)}>
-                    {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                    {COUNTRIES.map((c) => (
+                      <option key={c.value} value={c.value}>
+                        {c.code ? countryName(c.code, getLocale()) : t("mkt.quiz.countryOther")}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div><label className="label">{t("app.signup.labelRegion")}</label><input className="input" value={region} onChange={(e) => setRegion(e.target.value)} placeholder="Xaçmaz" /></div>

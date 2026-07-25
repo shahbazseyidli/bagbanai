@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Copy } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { publicUrl } from "@/lib/host";
 import { t, type I18nKey } from "@/lib/i18n";
 import { ErrorNote, Field as FormField, Spinner } from "@/components/ui";
 import type { Invite, Member, Org, Role } from "@/lib/types";
@@ -78,8 +79,9 @@ export default function TeamPage() {
         email: inviteEmail,
         role: inviteRole,
       });
-      const origin = typeof window !== "undefined" ? window.location.origin : "";
-      setInviteLink(`${origin}${res.accept_path}`);
+      // The invitee is signed out when they open this, so the link must land on the public apex —
+      // the app host would bounce them to /login and drop the invite token.
+      setInviteLink(publicUrl(res.accept_path));
       setInviteEmail("");
     } catch (err) {
       if (err instanceof ApiError && err.status === 403) setForbidden(true);

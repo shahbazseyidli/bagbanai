@@ -17,7 +17,8 @@ import { t } from "@/lib/i18n";
 import LandingHeroMap from "./LandingHeroMap";
 import LandingFaq from "./LandingFaq";
 import LandingFooter from "./LandingFooter";
-import { Marquee, ModuleRows, RoleCards, StatsStrip, Testimonials, WhyUs } from "./LandingSections";
+import OnboardingQuiz from "./OnboardingQuiz";
+import { Marquee, ModuleRows, RoleCards, SectionHead, StatsStrip, Testimonials, WhyUs } from "./LandingSections";
 
 const LP_CSS = `
 /* full-bleed out of the app shell's max-w-6xl main; body already clips overflow-x */
@@ -133,7 +134,7 @@ export default function PublicLanding() {
             <Link href="/signup" className="lp-btn lp-btn-pri">
               {t("mkt.hero.ctaStart")} <ArrowRight className="h-5 w-5" aria-hidden="true" />
             </Link>
-            <a href="#canli-demo" className="lp-btn lp-btn-ghost">
+            <a href="#live-demo" className="lp-btn lp-btn-ghost">
               <Play className="h-5 w-5" aria-hidden="true" /> {t("mkt.hero.ctaDemo")}
             </a>
           </div>
@@ -146,18 +147,29 @@ export default function PublicLanding() {
       {/* --------------------------------------------------- proof marquee */}
       <Marquee />
 
-      {/* ------------------------------------------- hero visual (live map) */}
-      <section id="canli-demo" className="scroll-mt-24 px-5 pb-2 pt-2 sm:px-6">
-        <LandingHeroMap />
-        <p className="lp-muted mx-auto mt-3 max-w-[980px] text-center text-[12.5px]">
-          {t("mkt.hero.mapCaption")}
-        </p>
+      {/* --------------------------------------- hero interaction (E13 quiz) */}
+      {/* The quiz took the hero slot from the live map: it asks the visitor about their own farm
+          and carries the answers into the account they create. The map keeps its #live-demo id
+          and moves below the role cards, so the hero "Watch demo" link still lands on it. */}
+      <section className="px-5 pb-2 pt-2 sm:px-6">
+        <OnboardingQuiz />
       </section>
 
       {/* --------------------------------------------------------- sections */}
       <RoleCards />
+
+      {/* ------------------------------------------------ live map (demo) */}
+      <section id="live-demo" className="scroll-mt-24 px-5 py-4 sm:px-6">
+        <SectionHead
+          eyebrow={t("mkt.hero.mapEyebrow")}
+          title={t("mkt.hero.mapTitle")}
+          sub={t("mkt.hero.mapCaption")}
+        />
+        <LandingHeroMap />
+      </section>
+
       <StatsStrip />
-      <div id="imkanlar" className="scroll-mt-24">
+      <div id="features" className="scroll-mt-24">
         <ModuleRows />
       </div>
       <WhyUs />

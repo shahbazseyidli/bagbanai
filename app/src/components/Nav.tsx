@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Leaf, Menu, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { useIsAppHost } from "@/lib/host";
+import { APEX_HOST, PANEL_HOST, useIsAppHost } from "@/lib/host";
 import { t } from "@/lib/i18n";
 import NotificationBell from "@/components/NotificationBell";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
@@ -13,8 +13,6 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 // Phase 2 host split: when app.agradex.com is the app host, the brand/logo points at the marketing
 // apex (so "clicking home takes me to agradex.com"), and signed-in users get a "Panelə keç" link
 // into the app host. Empty until NEXT_PUBLIC_PANEL_HOST is set → logo is the normal "/".
-const PANEL_HOST = (process.env.NEXT_PUBLIC_PANEL_HOST || "").toLowerCase();
-const APEX_HOST = PANEL_HOST ? PANEL_HOST.replace(/^(app|panel)\./, "") : "";
 const HOME_HREF = APEX_HOST ? `https://${APEX_HOST}/` : "/";
 const APP_HREF = PANEL_HOST ? `https://${PANEL_HOST}/` : "/";
 
@@ -39,10 +37,13 @@ export default function Nav() {
     { href: "/pricing", label: t("nav.pricing") },
   ];
   // While auth is still resolving (and we have no cached user) we don't yet know whether to show the
-  // marketing links or the signed-in bar, so we show neither — a neutral logo+language bar — instead
-  // of flashing the signed-out marketing chrome and then flipping to signed-in.
+  // signed-in account controls, so we hold those back instead of flashing signed-out chrome.
   const resolved = !loading || !!user;
-  const links = user || !resolved ? [] : marketingLinks;
+  // The marketing links belong to the MARKETING APEX and stay there whether or not the visitor is
+  // signed in — hiding them for signed-in users left agradex.com with a bare logo bar and no way to
+  // reach Solutions / How it works / Pricing. On the APP host the left rail + /more own navigation,
+  // so the top bar there is account controls only.
+  const links = appHost ? [] : marketingLinks;
   // "Panelə keç" only belongs on the marketing apex — never on the app host itself.
   const showToApp = !!user && !!PANEL_HOST && !appHost;
 
@@ -95,12 +96,13 @@ export default function Nav() {
           ) : null}
         </nav>
 
-        {/* Mobile: signed-in users navigate via the bottom nav (D2.1) — only the bell stays up top.
-            Signed-out visitors still get the hamburger for login/signup/pricing. */}
+        {/* Mobile: on the APP host signed-in users navigate via the bottom nav (D2.1), so only the
+            bell stays up top. On the marketing apex EVERY visitor gets the hamburger — a signed-in
+            visitor on agradex.com otherwise had no way to open Solutions / Pricing / the language
+            picker on a phone. */}
         <div className="flex items-center gap-1 md:hidden">
-          {user ? (
-            <NotificationBell />
-          ) : resolved ? (
+          {user && <NotificationBell />}
+          {resolved && (!appHost || !user) && (
             <button
               className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-700 hover:bg-emerald-50"
               onClick={() => setOpen((v) => !v)}
@@ -109,7 +111,7 @@ export default function Nav() {
             >
               {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
-          ) : null}
+          )}
         </div>
       </div>
 
@@ -125,10 +127,24 @@ export default function Nav() {
               {l.label}
             </Link>
           ))}
+          {/* The language picker lives in the desktop bar only; without it here a phone visitor on
+              the marketing site had no way to change language at all. */}
+          {!appHost && (
+            <div className="border-t border-emerald-100 py-2">
+              <LanguageSwitcher />
+            </div>
+          )}
           {user ? (
-            <button className="mt-1 w-full text-left rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-emerald-50" onClick={onLogout}>
-              {t("nav.logout")} ({user.email})
-            </button>
+            <div className="mt-1 flex flex-col gap-1">
+              {showToApp && (
+                <a href={APP_HREF} className="btn-primary text-center" onClick={() => setOpen(false)}>
+                  {t("nav.toApp")}
+                </a>
+              )}
+              <button className="w-full rounded-lg px-3 py-2 text-left text-sm text-slate-600 hover:bg-emerald-50" onClick={onLogout}>
+                {t("nav.logout")} ({user.email})
+              </button>
+            </div>
           ) : (
             <div className="mt-1 flex flex-col gap-1">
               <Link href="/login" className="btn-secondary" onClick={() => setOpen(false)}>

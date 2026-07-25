@@ -3,6 +3,7 @@
 Own JWT in an httpOnly cookie. Email verification degrades gracefully: OTP is only issued/enforced
 when an email transport (Resend/SMTP) is configured — otherwise signups auto-verify so production
 signup is never blocked by missing email config."""
+import json
 import secrets
 from datetime import datetime, timedelta, timezone
 
@@ -68,6 +69,65 @@ async def _issue_otp(conn, user_id: str, email: str, locale: str | None = None) 
         email, subject, tmpl.format(code=code, ttl=settings.otp_ttl_min), locale=locale)
 
 
+# E13 — the landing quiz is anonymous input, so it is whitelisted before it touches the database.
+_ONB_STR = ("crop", "country", "region", "challenge", "completed_at")
+
+
+def _clean_onboarding(raw) -> dict | None:
+    """Keep only the known keys, as short strings — never store an arbitrary visitor-supplied blob."""
+    if not isinstance(raw, dict):
+        return None
+    out: dict = {}
+    for k in _ONB_STR:
+        v = raw.get(k)
+        if isinstance(v, str) and v.strip():
+            out[k] = v.strip()[:80]
+    needs = raw.get("needs")
+    if isinstance(needs, list):
+        out["needs"] = [n.strip()[:40] for n in needs if isinstance(n, str) and n.strip()][:12]
+    return out or None
+
+
+async def _apply_onboarding_to_fields(conn, user_id: str, onb: dict) -> int:
+    """Write the quiz's crop/region onto the user's fields that still have none (the "existing
+    fields" half of the request; new fields are prefilled client-side from the same profile).
+    Never overwrites a value the farmer already set."""
+    crop = (onb or {}).get("crop") or ""
+    region = (onb or {}).get("region") or ""
+    if not crop or crop == "other":
+        crop = ""
+    if not crop and not region:
+        return 0
+    # crop_type is NOT NULL, so a field with no metadata row can only be seeded when we have a crop.
+    n = 0
+    if crop:
+        res = await conn.execute(
+            """insert into public.field_metadata (field_id, crop_type, region)
+               select fl.id, $2, nullif($3,'')
+                 from public.fields fl
+                 join public.farms f on f.id = fl.farm_id
+                 join public.organization_members m on m.org_id = f.org_id
+                where m.user_id = $1::uuid and fl.deleted_at is null
+               on conflict (field_id) do update set
+                 crop_type = case when nullif(trim(public.field_metadata.crop_type),'') is null
+                                  then excluded.crop_type else public.field_metadata.crop_type end,
+                 region    = coalesce(nullif(trim(public.field_metadata.region),''), excluded.region),
+                 updated_at = now()""",
+            user_id, crop, region)
+        n += int(res.split()[-1]) if res and res.split()[-1].isdigit() else 0
+    elif region:
+        res = await conn.execute(
+            """update public.field_metadata fm set region=$2, updated_at=now()
+                 from public.fields fl
+                 join public.farms f on f.id = fl.farm_id
+                 join public.organization_members m on m.org_id = f.org_id
+                where fm.field_id = fl.id and m.user_id = $1::uuid
+                  and fl.deleted_at is null
+                  and nullif(trim(coalesce(fm.region,'')),'') is null""", user_id, region)
+        n += int(res.split()[-1]) if res and res.split()[-1].isdigit() else 0
+    return n
+
+
 async def _send_welcome(conn, user_id: str, full_name) -> None:
     """Send the role-appropriate welcome email once (idempotent via email_sends). Best-effort."""
     name = (full_name or "").strip().split(" ")[0] if full_name else ""
@@ -82,17 +142,20 @@ async def _send_welcome(conn, user_id: str, full_name) -> None:
 async def signup(body: SignupIn, response: Response):
     """Create the account. If email is configured, issue an OTP and return {needs_verification:true};
     otherwise auto-verify and log the user in immediately."""
+    onb = _clean_onboarding(body.onboarding)
     async with connection() as conn:
         exists = await conn.fetchval("select 1 from public.users where lower(email)=lower($1)", body.email)
         if exists:
             raise HTTPException(status_code=409, detail="email_taken")
         row = await conn.fetchrow(
             """insert into public.users
-                 (email, password_hash, full_name, locale, role, country, region, name_public)
-               values ($1,$2,$3,$4,$5::user_role,$6,$7,$8)
+                 (email, password_hash, full_name, locale, role, country, region, name_public,
+                  onboarding)
+               values ($1,$2,$3,$4,$5::user_role,$6,$7,$8,$9::jsonb)
                returning id, email, full_name, locale, role, country, region""",
             body.email, hash_password(body.password), body.full_name, body.locale,
-            body.role.value, body.country, body.region, body.name_public)
+            body.role.value, body.country, body.region, body.name_public,
+            json.dumps(onb) if onb else None)
         uid = str(row["id"])
         if notify.email_configured():
             await _issue_otp(conn, uid, row["email"], row["locale"])
@@ -210,6 +273,33 @@ async def set_email_alerts(body: dict, user_id: str = Depends(get_current_user_i
     async with connection(user_id) as conn:
         await conn.execute("update public.users set email_alerts=$2 where id=$1::uuid", user_id, enabled)
     return {"enabled": enabled}
+
+
+@router.get("/onboarding")
+async def get_onboarding(user_id: str = Depends(get_current_user_id)):
+    """The landing quiz answers stored on this account (E13). Used to prefill the field wizard."""
+    async with connection(user_id) as conn:
+        val = await conn.fetchval("select onboarding from public.users where id=$1::uuid", user_id)
+    if isinstance(val, str):
+        try:
+            val = json.loads(val)
+        except ValueError:
+            val = None
+    return {"onboarding": val or None}
+
+
+@router.post("/onboarding")
+async def set_onboarding(body: dict, user_id: str = Depends(get_current_user_id)):
+    """Store (or re-take) the quiz, then apply crop/region to the fields that still have none.
+    Existing values are never overwritten."""
+    onb = _clean_onboarding(body.get("onboarding") if "onboarding" in body else body)
+    if not onb:
+        raise HTTPException(status_code=400, detail="empty_onboarding")
+    async with connection(user_id) as conn:
+        await conn.execute("update public.users set onboarding=$2::jsonb where id=$1::uuid",
+                           user_id, json.dumps(onb))
+        applied = await _apply_onboarding_to_fields(conn, user_id, onb)
+    return {"onboarding": onb, "fields_updated": applied}
 
 
 @router.get("/name-public")

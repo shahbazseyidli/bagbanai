@@ -54,12 +54,12 @@ export default function LandingFooter() {
             <h5 className="mb-3 text-[13px] font-semibold uppercase tracking-[0.06em] text-white">
               {t("mkt.footer.colProduct")}
             </h5>
-            <a href="#imkanlar" className="lp-flink">{t("mkt.footer.linkImkanlar")}</a>
-            <a href="#canli-demo" className="lp-flink">{t("mkt.footer.linkDemo")}</a>
+            <a href="#features" className="lp-flink">{t("mkt.footer.linkImkanlar")}</a>
+            <a href="#live-demo" className="lp-flink">{t("mkt.footer.linkDemo")}</a>
             <Link href="/pricing" className="lp-flink">{t("mkt.footer.linkPricing")}</Link>
             <Link href="/how-it-works" className="lp-flink">{t("mkt.footer.linkHow")}</Link>
             <Link href="/guide" className="lp-flink">{t("mkt.footer.linkGuide")}</Link>
-            <Link href="/yenilikler" className="lp-flink">{t("mkt.footer.linkNews")}</Link>
+            <Link href="/whats-new" className="lp-flink">{t("mkt.footer.linkNews")}</Link>
             <Link href="/status" className="lp-flink">{t("mkt.footer.linkStatus")}</Link>
           </div>
 

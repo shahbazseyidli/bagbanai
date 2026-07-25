@@ -520,7 +520,7 @@ export const hu: Record<string, string> = {
   "SEGMENTS.supplier.cta.label": "Csatlakozz ingyen",
   "INDEX_COPY.eyebrow": "megoldások",
   "INDEX_COPY.title": "Minden szerephez külön megoldás",
-  "INDEX_COPY.lead": "A Agradex nem egyoldalú eszköz: a gazdálkodó figyeli a földjét, a laboratórium mintát vesz, az agronómus tanácsot ad, a beszállító pedig szállítja az anyagot — mind ugyanazon a platformon, ugyanazon tábla-adat körül. Válaszd ki a szereped és nézd meg, mi változik számodra.",
+  "INDEX_COPY.lead": "Az Agradex nem egyoldalú eszköz: a gazdálkodó figyeli a földjét, a laboratórium mintát vesz, az agronómus tanácsot ad, a beszállító pedig szállítja az anyagot — mind ugyanazon a platformon, ugyanazon tábla-adat körül. Válaszd ki a szereped és nézd meg, mi változik számodra.",
   "INDEX_COPY.pricingTitle": "Ki fizet?",
   "INDEX_COPY.pricingBody": "Csak a gazdálkodók. Ők is 1 hónap teljesen ingyenes próbával indulnak — nem kell bankkártya, a próbaidő lejártakor nem vonunk le pénzt automatikusan. Laboratóriumoknak, agronómusoknak és beszállítóknak a platform teljesen ingyenes: nincs csatlakozási díj, előfizetés és értékesítési jutalék.",
   "INDEX_COPY.pricingLink.label": "Nézd meg a gazdálkodói csomagokat",

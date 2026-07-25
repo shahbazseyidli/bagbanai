@@ -132,9 +132,9 @@ export default function PricingCompare() {
                       <Star className="h-3 w-3" aria-hidden="true" /> {t("mkt.compare.popular")}
                     </span>
                   )}
-                  <div className="font-display text-sm font-bold text-slate-900">{p.name}</div>
+                  <div className="font-display text-sm font-bold text-slate-900">{t(p.nameKey)}</div>
                   <div className="text-xs font-medium text-slate-500">
-                    {p.price === "0" ? t("mkt.compare.freeLabel") : `${p.price} ${p.period}`}
+                    {p.price === "0" ? t("mkt.compare.freeLabel") : `${p.price} ${t(p.periodKey)}`}
                   </div>
                 </th>
               ))}

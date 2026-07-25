@@ -3,20 +3,22 @@
 // they reuse the mkt.compare.* keys the comparison table already defines (same info, one source).
 import type { I18nKey } from "@/lib/i18n";
 
+// The package name and the price unit are i18n KEYS, not text: hard-coded "Paket 2" / "AZN/ay"
+// rendered literally on the English, German, Italian… pricing page ("ay" is Azerbaijani for month).
+// The amount stays in AZN because that is the currency actually billed.
 export interface Package {
   id: "free" | "pro" | "business";
-  name: string;
+  nameKey: I18nKey;
   emoji: string;
   price: string;
-  period: string;
-  tagline: string;
+  periodKey: I18nKey;
   highlight?: boolean; // the recommended package
 }
 
 export const PACKAGES: Package[] = [
-  { id: "free", name: "Paket 1", emoji: "🆓", price: "0", period: "AZN", tagline: "Başlamaq üçün" },
-  { id: "pro", name: "Paket 2", emoji: "💚", price: "10", period: "AZN/ay", tagline: "Ən populyar", highlight: true },
-  { id: "business", name: "Paket 3", emoji: "💎", price: "25", period: "AZN/ay", tagline: "Peşəkar / təsərrüfat" },
+  { id: "free", nameKey: "mkt.pkg.name1", emoji: "🆓", price: "0", periodKey: "mkt.pkg.priceUnit" },
+  { id: "pro", nameKey: "mkt.pkg.name2", emoji: "💚", price: "10", periodKey: "mkt.pkg.priceUnitMonth", highlight: true },
+  { id: "business", nameKey: "mkt.pkg.name3", emoji: "💎", price: "25", periodKey: "mkt.pkg.priceUnitMonth" },
 ];
 
 // A tier either excludes a feature (off) or includes it, optionally with a short detail (noteKey).

@@ -41,6 +41,9 @@ export function middleware(req: NextRequest) {
     locale = "az";
   }
 
+  // Locale prefix to re-attach when we bounce between hosts, so /en/... does not silently become az.
+  const prefix = m ? `/${locale}` : "";
+
   // --- Panel/marketing host split (dormant unless PANEL_HOST set); operates on the stripped path ---
   if (PANEL_HOST) {
     const host = (req.headers.get("host") || "").toLowerCase();
@@ -51,23 +54,27 @@ export function middleware(req: NextRequest) {
     const isPanel = host === PANEL_HOST || host.startsWith("app.") || host.startsWith("panel.");
     const hasAuth = req.cookies.has(AUTH_COOKIE);
     if (isPanel) {
-      // On the app host: anything but a real signed-in session goes to the marketing login.
-      if (!hasAuth) {
-        const u = new URL(`https://${apexHost}/login`);
-        if (path !== "/") u.searchParams.set("next", path);
-        return NextResponse.redirect(u);
-      }
-      // Marketing-only pages live on the apex, even for signed-in users.
+      // Public/marketing pages live on the apex even when reached through the app host — and this
+      // check runs BEFORE the auth gate on purpose. `/s/` share links are public by design; behind
+      // the gate, a farmer who copied a link out of the app was handing every recipient a login
+      // page instead of the field.
       if (path === "/pricing" || path === "/solutions" || path.startsWith("/solutions/") ||
           path === "/how-it-works" || path === "/finduq" || path === "/guide" || path.startsWith("/guide/") ||
-          path === "/yenilikler" || path === "/status") {
-        return NextResponse.redirect(new URL(`https://${apexHost}${path}${search}`));
+          path === "/whats-new" || path === "/yenilikler" || path === "/status" || path.startsWith("/s/")) {
+        return NextResponse.redirect(new URL(`https://${apexHost}${prefix}${path}${search}`));
+      }
+      // On the app host: anything but a real signed-in session goes to the marketing login.
+      if (!hasAuth) {
+        const u = new URL(`https://${apexHost}${prefix}/login`);
+        if (path !== "/") u.searchParams.set("next", path);
+        return NextResponse.redirect(u);
       }
     } else if (path !== "/" && isAppPath(path)) {
       // On the apex: real app paths jump to the app host. The home "/" ALWAYS stays marketing
       // (even for signed-in users) so the brand/logo can point here — clicking it shows marketing,
       // exactly as requested, and a signed-in visitor gets a "Panelə keç" link into the app.
-      return NextResponse.redirect(new URL(`https://${PANEL_HOST}${path}${search}`));
+      // The locale prefix is carried across so /en/fields does not land in Azerbaijani.
+      return NextResponse.redirect(new URL(`https://${PANEL_HOST}${prefix}${path}${search}`));
     }
   }
 
@@ -79,7 +86,10 @@ export function middleware(req: NextRequest) {
     ? NextResponse.rewrite(new URL(`${path}${search}`, req.url), { request: { headers } })
     : NextResponse.next({ request: { headers } });
   if (locale && req.cookies.get(LOCALE_COOKIE)?.value !== locale) {
-    res.cookies.set(LOCALE_COOKIE, locale, { path: "/", maxAge: 31536000, sameSite: "lax" });
+    // Scoped to the shared parent domain (.agradex.com) so the language survives the marketing→app
+    // hop; a host-only cookie made app.agradex.com fall back to browser detection every time.
+    const domain = PANEL_HOST ? `.${PANEL_HOST.replace(/^(app|panel)\./, "")}` : undefined;
+    res.cookies.set(LOCALE_COOKIE, locale, { path: "/", maxAge: 31536000, sameSite: "lax", domain });
   }
   return res;
 }

@@ -235,9 +235,12 @@ export default function FieldsOverviewMap({
       map.on("mouseenter", "fields-fill", () => { map.getCanvas().style.cursor = "pointer"; });
       map.on("mouseleave", "fields-fill", () => { map.getCanvas().style.cursor = ""; });
     }
-    // Draw when the style is ready; `idle` is a safety net if `load` was missed.
+    // Draw when the style is ready; `idle` is a safety net if `load` was missed. `styledata` is a
+    // third net: on a slow first paint neither `load` nor `idle` had fired for some sessions and
+    // the panel stayed an empty grey box with only the controls and legend drawn over it.
     if (map.isStyleLoaded()) draw();
     else map.on("load", draw);
+    map.on("styledata", draw);
     map.on("idle", draw);
     // First idle = the earliest moment the container has certainly laid out; resize once here so
     // the map paints promptly instead of waiting for the 250/800ms safety timers.

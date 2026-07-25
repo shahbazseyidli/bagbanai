@@ -553,7 +553,7 @@ export function Testimonials() {
 export function Marquee() {
   const CHIPS = [
     { e: "🛰️", b: t("mkt.sections.chipSat"), t: "NASA + Sentinel-2" },
-    { e: "🌰", b: "", t: t("mkt.sections.chipCalib") },
+    { e: "🌱", b: "", t: t("mkt.sections.chipCalib") },
     { e: "🧪", b: t("mkt.sections.chipLabs"), t: "" },
     { e: "👨‍🌾", b: "", t: t("mkt.sections.chipCommunity") },
     { e: "📊", b: "", t: t("mkt.sections.chipLedger") },

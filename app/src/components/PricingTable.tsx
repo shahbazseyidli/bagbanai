@@ -49,14 +49,14 @@ export default function PricingTable({ showCta = true }: { showCta?: boolean }) 
                   <Icon className="h-5 w-5" aria-hidden="true" />
                 </span>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900">{p.name}</h3>
+                  <h3 className="text-lg font-bold text-slate-900">{t(p.nameKey)}</h3>
                   {!p.highlight && <p className="text-xs text-slate-500">{t(`price.tag.${p.id}` as I18nKey)}</p>}
                 </div>
               </div>
 
               <div className="mt-3 flex items-baseline gap-1">
                 <span className="text-3xl font-extrabold text-slate-900">{p.price}</span>
-                <span className="text-sm text-slate-500">{p.period}</span>
+                <span className="text-sm text-slate-500">{t(p.periodKey)}</span>
               </div>
 
               {showCta && (
