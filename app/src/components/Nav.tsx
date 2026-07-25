@@ -35,7 +35,7 @@ export default function Nav() {
   // and BottomNav (signed-in) are unchanged.
   const marketingLinks = [
     { href: "/solutions", label: t("nav.solutions") },
-    { href: "/finduq", label: t("nav.hazelnut") },
+    { href: "/how-it-works", label: t("nav.howItWorks") },
     { href: "/pricing", label: t("nav.pricing") },
   ];
   // While auth is still resolving (and we have no cached user) we don't yet know whether to show the
@@ -64,7 +64,9 @@ export default function Nav() {
               {l.label}
             </Link>
           ))}
-          <LanguageSwitcher className="ml-2" />
+          {/* On the app host the language lives in Settings only (Account / More); the marketing
+              apex keeps it in the header since signed-out visitors have no settings page. */}
+          {!appHost && <LanguageSwitcher className="ml-2" />}
           {user ? (
             <div className="ml-2 flex items-center gap-2">
               {/* On the marketing apex a signed-in visitor needs a way into the app host. */}

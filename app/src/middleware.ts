@@ -59,7 +59,7 @@ export function middleware(req: NextRequest) {
       }
       // Marketing-only pages live on the apex, even for signed-in users.
       if (path === "/pricing" || path === "/solutions" || path.startsWith("/solutions/") ||
-          path === "/finduq" || path === "/guide" || path.startsWith("/guide/") ||
+          path === "/how-it-works" || path === "/finduq" || path === "/guide" || path.startsWith("/guide/") ||
           path === "/yenilikler" || path === "/status") {
         return NextResponse.redirect(new URL(`https://${apexHost}${path}${search}`));
       }

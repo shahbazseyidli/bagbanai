@@ -57,7 +57,7 @@ export default function LandingFooter() {
             <a href="#imkanlar" className="lp-flink">{t("mkt.footer.linkImkanlar")}</a>
             <a href="#canli-demo" className="lp-flink">{t("mkt.footer.linkDemo")}</a>
             <Link href="/pricing" className="lp-flink">{t("mkt.footer.linkPricing")}</Link>
-            <Link href="/finduq" className="lp-flink">{t("mkt.footer.linkHazelnut")}</Link>
+            <Link href="/how-it-works" className="lp-flink">{t("mkt.footer.linkHow")}</Link>
             <Link href="/guide" className="lp-flink">{t("mkt.footer.linkGuide")}</Link>
             <Link href="/yenilikler" className="lp-flink">{t("mkt.footer.linkNews")}</Link>
             <Link href="/status" className="lp-flink">{t("mkt.footer.linkStatus")}</Link>

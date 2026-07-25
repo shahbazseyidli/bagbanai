@@ -1,6 +1,8 @@
 "use client";
 
-// C6 — hazelnut / orchard segment landing page.
+// How-it-works page — a general explanation of how Agradex works for any crop (formerly the
+// hazelnut segment page; repurposed 2026-07-25). Same visual language as SolutionView; copy under
+// mkt.how.* (7 languages). Client component for the FAQ accordion.
 //
 // Agradex's sharpest differentiator: the two best-known satellite farm tools are built for annual
 // ROW CROPS (wheat, maize), while a hazelnut orchard is a PERENNIAL with a canopy that behaves very
@@ -15,7 +17,7 @@
 //
 // Self-contained (data + rendering here) so it lives entirely in the two files C6 owns. It mirrors
 // the /solutions SolutionView visual language section for section. Client component for the FAQ
-// accordion; copy is localised via t() (keys under mkt.nuts.*).
+// accordion; copy is localised via t() (keys under mkt.how.*).
 
 import Link from "next/link";
 import { useState } from "react";
@@ -29,7 +31,6 @@ import {
   Layers,
   Leaf,
   LineChart,
-  Nut,
   Plus,
   Satellite,
   Snowflake,
@@ -37,7 +38,6 @@ import {
   Sprout,
   Sun,
   ThermometerSnowflake,
-  Trees,
   TrendingUp,
   Wallet,
   X,
@@ -80,114 +80,114 @@ interface DeepBlock {
 }
 
 const VALUE_POINTS: ValuePoint[] = [
-  { icon: Leaf, title: "mkt.nuts.vp1Title", body: "mkt.nuts.vp1Body" },
-  { icon: Snowflake, title: "mkt.nuts.vp2Title", body: "mkt.nuts.vp2Body" },
-  { icon: ThermometerSnowflake, title: "mkt.nuts.vp3Title", body: "mkt.nuts.vp3Body" },
-  { icon: Layers, title: "mkt.nuts.vp4Title", body: "mkt.nuts.vp4Body" },
-  { icon: Nut, title: "mkt.nuts.vp5Title", body: "mkt.nuts.vp5Body" },
+  { icon: Leaf, title: "mkt.how.vp1Title", body: "mkt.how.vp1Body" },
+  { icon: Snowflake, title: "mkt.how.vp2Title", body: "mkt.how.vp2Body" },
+  { icon: ThermometerSnowflake, title: "mkt.how.vp3Title", body: "mkt.how.vp3Body" },
+  { icon: Layers, title: "mkt.how.vp4Title", body: "mkt.how.vp4Body" },
+  { icon: Sprout, title: "mkt.how.vp5Title", body: "mkt.how.vp5Body" },
 ];
 
 const STATS: { value: I18nKey; label: I18nKey }[] = [
-  { value: "mkt.nuts.stat1Value", label: "mkt.nuts.stat1Label" },
-  { value: "mkt.nuts.stat2Value", label: "mkt.nuts.stat2Label" },
-  { value: "mkt.nuts.stat3Value", label: "mkt.nuts.stat3Label" },
+  { value: "mkt.how.stat1Value", label: "mkt.how.stat1Label" },
+  { value: "mkt.how.stat2Value", label: "mkt.how.stat2Label" },
+  { value: "mkt.how.stat3Value", label: "mkt.how.stat3Label" },
 ];
 
 const STEPS: { title: I18nKey; body: I18nKey }[] = [
-  { title: "mkt.nuts.step1Title", body: "mkt.nuts.step1Body" },
-  { title: "mkt.nuts.step2Title", body: "mkt.nuts.step2Body" },
-  { title: "mkt.nuts.step3Title", body: "mkt.nuts.step3Body" },
-  { title: "mkt.nuts.step4Title", body: "mkt.nuts.step4Body" },
+  { title: "mkt.how.step1Title", body: "mkt.how.step1Body" },
+  { title: "mkt.how.step2Title", body: "mkt.how.step2Body" },
+  { title: "mkt.how.step3Title", body: "mkt.how.step3Body" },
+  { title: "mkt.how.step4Title", body: "mkt.how.step4Body" },
 ];
 
 const FEATURES: Feature[] = [
-  { icon: Satellite, title: "mkt.nuts.feat1Title", body: "mkt.nuts.feat1Body" },
-  { icon: Snowflake, title: "mkt.nuts.feat2Title", body: "mkt.nuts.feat2Body" },
-  { icon: Sun, title: "mkt.nuts.feat3Title", body: "mkt.nuts.feat3Body" },
-  { icon: Droplets, title: "mkt.nuts.feat4Title", body: "mkt.nuts.feat4Body" },
-  { icon: ThermometerSnowflake, title: "mkt.nuts.feat5Title", body: "mkt.nuts.feat5Body" },
-  { icon: Brain, title: "mkt.nuts.feat6Title", body: "mkt.nuts.feat6Body" },
-  { icon: Camera, title: "mkt.nuts.feat7Title", body: "mkt.nuts.feat7Body" },
-  { icon: Layers, title: "mkt.nuts.feat8Title", body: "mkt.nuts.feat8Body" },
-  { icon: Gauge, title: "mkt.nuts.feat9Title", body: "mkt.nuts.feat9Body" },
-  { icon: TrendingUp, title: "mkt.nuts.feat10Title", body: "mkt.nuts.feat10Body" },
-  { icon: Wallet, title: "mkt.nuts.feat11Title", body: "mkt.nuts.feat11Body" },
-  { icon: LineChart, title: "mkt.nuts.feat12Title", body: "mkt.nuts.feat12Body" },
+  { icon: Satellite, title: "mkt.how.feat1Title", body: "mkt.how.feat1Body" },
+  { icon: Snowflake, title: "mkt.how.feat2Title", body: "mkt.how.feat2Body" },
+  { icon: Sun, title: "mkt.how.feat3Title", body: "mkt.how.feat3Body" },
+  { icon: Droplets, title: "mkt.how.feat4Title", body: "mkt.how.feat4Body" },
+  { icon: ThermometerSnowflake, title: "mkt.how.feat5Title", body: "mkt.how.feat5Body" },
+  { icon: Brain, title: "mkt.how.feat6Title", body: "mkt.how.feat6Body" },
+  { icon: Camera, title: "mkt.how.feat7Title", body: "mkt.how.feat7Body" },
+  { icon: Layers, title: "mkt.how.feat8Title", body: "mkt.how.feat8Body" },
+  { icon: Gauge, title: "mkt.how.feat9Title", body: "mkt.how.feat9Body" },
+  { icon: TrendingUp, title: "mkt.how.feat10Title", body: "mkt.how.feat10Body" },
+  { icon: Wallet, title: "mkt.how.feat11Title", body: "mkt.how.feat11Body" },
+  { icon: LineChart, title: "mkt.how.feat12Title", body: "mkt.how.feat12Body" },
 ];
 
 const TWO_COL_LEFT: I18nKey[] = [
-  "mkt.nuts.beforeItem1",
-  "mkt.nuts.beforeItem2",
-  "mkt.nuts.beforeItem3",
-  "mkt.nuts.beforeItem4",
-  "mkt.nuts.beforeItem5",
-  "mkt.nuts.beforeItem6",
+  "mkt.how.beforeItem1",
+  "mkt.how.beforeItem2",
+  "mkt.how.beforeItem3",
+  "mkt.how.beforeItem4",
+  "mkt.how.beforeItem5",
+  "mkt.how.beforeItem6",
 ];
 
 const TWO_COL_RIGHT: I18nKey[] = [
-  "mkt.nuts.afterItem1",
-  "mkt.nuts.afterItem2",
-  "mkt.nuts.afterItem3",
-  "mkt.nuts.afterItem4",
-  "mkt.nuts.afterItem5",
-  "mkt.nuts.afterItem6",
+  "mkt.how.afterItem1",
+  "mkt.how.afterItem2",
+  "mkt.how.afterItem3",
+  "mkt.how.afterItem4",
+  "mkt.how.afterItem5",
+  "mkt.how.afterItem6",
 ];
 
 const DEEP: DeepBlock[] = [
   {
     icon: Satellite,
-    title: "mkt.nuts.deep1Title",
-    body: "mkt.nuts.deep1Body",
+    title: "mkt.how.deep1Title",
+    body: "mkt.how.deep1Body",
     bullets: [
-      "mkt.nuts.deep1Bullet1",
-      "mkt.nuts.deep1Bullet2",
-      "mkt.nuts.deep1Bullet3",
-      "mkt.nuts.deep1Bullet4",
+      "mkt.how.deep1Bullet1",
+      "mkt.how.deep1Bullet2",
+      "mkt.how.deep1Bullet3",
+      "mkt.how.deep1Bullet4",
     ],
   },
   {
     icon: Snowflake,
-    title: "mkt.nuts.deep2Title",
-    body: "mkt.nuts.deep2Body",
+    title: "mkt.how.deep2Title",
+    body: "mkt.how.deep2Body",
     bullets: [
-      "mkt.nuts.deep2Bullet1",
-      "mkt.nuts.deep2Bullet2",
-      "mkt.nuts.deep2Bullet3",
-      "mkt.nuts.deep2Bullet4",
+      "mkt.how.deep2Bullet1",
+      "mkt.how.deep2Bullet2",
+      "mkt.how.deep2Bullet3",
+      "mkt.how.deep2Bullet4",
     ],
   },
   {
     icon: Wallet,
-    title: "mkt.nuts.deep3Title",
-    body: "mkt.nuts.deep3Body",
+    title: "mkt.how.deep3Title",
+    body: "mkt.how.deep3Body",
     bullets: [
-      "mkt.nuts.deep3Bullet1",
-      "mkt.nuts.deep3Bullet2",
-      "mkt.nuts.deep3Bullet3",
-      "mkt.nuts.deep3Bullet4",
+      "mkt.how.deep3Bullet1",
+      "mkt.how.deep3Bullet2",
+      "mkt.how.deep3Bullet3",
+      "mkt.how.deep3Bullet4",
     ],
   },
 ];
 
 const FAQ: { q: I18nKey; a: I18nKey }[] = [
-  { q: "mkt.nuts.faq1Q", a: "mkt.nuts.faq1A" },
-  { q: "mkt.nuts.faq2Q", a: "mkt.nuts.faq2A" },
-  { q: "mkt.nuts.faq3Q", a: "mkt.nuts.faq3A" },
-  { q: "mkt.nuts.faq4Q", a: "mkt.nuts.faq4A" },
-  { q: "mkt.nuts.faq5Q", a: "mkt.nuts.faq5A" },
-  { q: "mkt.nuts.faq6Q", a: "mkt.nuts.faq6A" },
-  { q: "mkt.nuts.faq7Q", a: "mkt.nuts.faq7A" },
+  { q: "mkt.how.faq1Q", a: "mkt.how.faq1A" },
+  { q: "mkt.how.faq2Q", a: "mkt.how.faq2A" },
+  { q: "mkt.how.faq3Q", a: "mkt.how.faq3A" },
+  { q: "mkt.how.faq4Q", a: "mkt.how.faq4A" },
+  { q: "mkt.how.faq5Q", a: "mkt.how.faq5A" },
+  { q: "mkt.how.faq6Q", a: "mkt.how.faq6A" },
+  { q: "mkt.how.faq7Q", a: "mkt.how.faq7A" },
 ];
 
 /* ------------------------------------------------------------- hero visual
  * A static, clearly-labelled orchard preview. Stands in for a screenshot; nothing here is
  * presented as live data or a real customer.
  */
-function OrchardVisual() {
+function FieldVisual() {
   return (
     <div className="relative h-full min-h-[340px] w-full">
       <span className="absolute right-3 top-3 z-10 rounded-full bg-panel/90 px-2.5 py-1 text-[11px] font-bold text-[color:var(--brand-muted)] shadow-sm">
-        {t("mkt.nuts.visualSampleBadge")}
+        {t("mkt.how.visualSampleBadge")}
       </span>
       <div
         className="absolute inset-0"
@@ -213,22 +213,22 @@ function OrchardVisual() {
       />
       <div className="absolute left-3 top-3 rounded-xl bg-panel/95 px-3 py-2 shadow-sm">
         <p className="text-[11px] font-bold uppercase tracking-wider text-[color:var(--brand-muted)]">
-          {t("mkt.nuts.visualCanopyNdviLabel")}
+          {t("mkt.how.visualCanopyNdviLabel")}
         </p>
         <p className="font-display text-xl font-bold text-[color:var(--brand-ink)]">0.71</p>
       </div>
       <div className="absolute right-3 top-14 flex items-center gap-2 rounded-xl bg-panel/95 px-3 py-2 shadow-sm">
         <Snowflake className="h-4 w-4 text-sky-600" aria-hidden="true" />
         <span className="text-[12px] font-semibold text-[color:var(--brand-ink-2)]">
-          {t("mkt.nuts.visualLastFrostLabel")}
+          {t("mkt.how.visualLastFrostLabel")}
         </span>
       </div>
       <div className="absolute inset-x-3 bottom-3 rounded-xl border border-line bg-panel p-3 shadow-soft sm:left-auto sm:right-3 sm:max-w-[268px]">
         <p className="mb-1 flex items-center gap-1.5 text-[12px] font-bold text-[color:var(--green)]">
-          <Brain className="h-3.5 w-3.5" aria-hidden="true" /> {t("mkt.nuts.visualAiAgronomLabel")}
+          <Brain className="h-3.5 w-3.5" aria-hidden="true" /> {t("mkt.how.visualAiAgronomLabel")}
         </p>
         <p className="text-[12.5px] leading-snug text-[color:var(--brand-ink-2)]">
-          {t("mkt.nuts.visualAiAdvice")}
+          {t("mkt.how.visualAiAdvice")}
         </p>
       </div>
     </div>
@@ -237,7 +237,7 @@ function OrchardVisual() {
 
 /* ------------------------------------------------------------------- page */
 
-export default function NutsSegment() {
+export default function HowItWorks() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   return (
@@ -247,36 +247,36 @@ export default function NutsSegment() {
         <div>
           <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-[#ecdcb0] bg-[#fff4d6] px-4 py-1.5 text-[12.5px] font-bold uppercase tracking-wide text-[#8a5f08]">
             <Sprout className="h-4 w-4" aria-hidden="true" />
-            {t("mkt.nuts.heroBadge")}
+            {t("mkt.how.heroBadge")}
           </span>
           <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-[color:var(--green)]">
-            <Nut className="h-4 w-4" aria-hidden="true" />
-            {t("mkt.nuts.heroEyebrow")}
+            <Sprout className="h-4 w-4" aria-hidden="true" />
+            {t("mkt.how.heroEyebrow")}
           </p>
           <h1 className="mt-3 font-display text-[clamp(28px,4vw,46px)] font-bold leading-[1.08] text-[color:var(--brand-ink)]">
-            {t("mkt.nuts.heroTitle")}
+            {t("mkt.how.heroTitle")}
           </h1>
           <p className="mt-4 text-[17px] leading-relaxed text-[color:var(--brand-ink-2)]">
-            {t("mkt.nuts.heroBody")}
+            {t("mkt.how.heroBody")}
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
               href="/signup"
               className="inline-flex min-h-12 items-center gap-2 rounded-full bg-[color:var(--green)] px-6 text-[15px] font-bold text-white shadow-[0_6px_16px_rgba(30,152,82,0.28)] transition-colors hover:bg-grass-deep"
             >
-              {t("mkt.nuts.heroCtaPrimary")}
+              {t("mkt.how.heroCtaPrimary")}
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
             <Link
               href="/pricing"
               className="inline-flex min-h-12 items-center gap-2 rounded-full border-[1.5px] border-line-2 px-6 text-[15px] font-bold text-[color:var(--brand-ink)] transition-colors hover:border-[color:var(--brand-ink)]"
             >
-              {t("mkt.nuts.heroCtaSecondary")}
+              {t("mkt.how.heroCtaSecondary")}
             </Link>
           </div>
         </div>
         <div className="overflow-hidden rounded-xl2 border border-line-2 bg-panel shadow-lift">
-          <OrchardVisual />
+          <FieldVisual />
         </div>
       </section>
 
@@ -285,28 +285,28 @@ export default function NutsSegment() {
         <div className={`overflow-hidden rounded-xl2 border-[1.5px] border-line ${SH_SM}`}>
           <div className="border-b border-line bg-teal px-6 py-5">
             <p className="flex items-center gap-2 text-[13px] font-bold uppercase tracking-wide text-[#9dc6b3]">
-              <Sparkles className="h-4 w-4" aria-hidden="true" /> {t("mkt.nuts.diffEyebrow")}
+              <Sparkles className="h-4 w-4" aria-hidden="true" /> {t("mkt.how.diffEyebrow")}
             </p>
             <h2 className="mt-1.5 font-display text-[clamp(20px,2.6vw,28px)] font-bold leading-snug text-white">
-              {t("mkt.nuts.diffTitle")}
+              {t("mkt.how.diffTitle")}
             </h2>
           </div>
           <div className="grid gap-px bg-line sm:grid-cols-3">
             {[
               {
-                icon: Trees,
-                title: t("mkt.nuts.diffCard1Title"),
-                body: t("mkt.nuts.diffCard1Body"),
+                icon: Layers,
+                title: t("mkt.how.diffCard1Title"),
+                body: t("mkt.how.diffCard1Body"),
               },
               {
                 icon: Snowflake,
-                title: t("mkt.nuts.diffCard2Title"),
-                body: t("mkt.nuts.diffCard2Body"),
+                title: t("mkt.how.diffCard2Title"),
+                body: t("mkt.how.diffCard2Body"),
               },
               {
-                icon: Nut,
-                title: t("mkt.nuts.diffCard3Title"),
-                body: t("mkt.nuts.diffCard3Body"),
+                icon: Sprout,
+                title: t("mkt.how.diffCard3Title"),
+                body: t("mkt.how.diffCard3Body"),
               },
             ].map((c) => (
               <div key={c.title} className="bg-panel p-6">
@@ -327,8 +327,8 @@ export default function NutsSegment() {
       {/* -------------------------------------------------- value points */}
       <section className="py-10">
         <SectionHead
-          title={t("mkt.nuts.valueHeading")}
-          sub={t("mkt.nuts.valueSub")}
+          title={t("mkt.how.valueHeading")}
+          sub={t("mkt.how.valueSub")}
         />
         <ol className="grid gap-4 lg:grid-cols-2">
           {VALUE_POINTS.map((p, i) => (
@@ -366,8 +366,8 @@ export default function NutsSegment() {
       {/* -------------------------------------------------------- steps */}
       <section className="scroll-mt-24 py-10" id="nece-isleyir">
         <SectionHead
-          title={t("mkt.nuts.stepsHeading")}
-          sub={t("mkt.nuts.stepsSub")}
+          title={t("mkt.how.stepsHeading")}
+          sub={t("mkt.how.stepsSub")}
         />
         <div className="grid gap-4 lg:grid-cols-4">
           {STEPS.map((s, i) => (
@@ -388,8 +388,8 @@ export default function NutsSegment() {
       {/* ----------------------------------------------------- features */}
       <section className="py-10">
         <SectionHead
-          title={t("mkt.nuts.featuresHeading")}
-          sub={t("mkt.nuts.featuresSub")}
+          title={t("mkt.how.featuresHeading")}
+          sub={t("mkt.how.featuresSub")}
         />
         <div className="grid gap-4 lg:grid-cols-3">
           {FEATURES.map((f) => (
@@ -410,13 +410,13 @@ export default function NutsSegment() {
       {/* ------------------------------------------------------- two-col */}
       <section className="py-10">
         <SectionHead
-          title={t("mkt.nuts.beforeAfterHeading")}
-          sub={t("mkt.nuts.beforeAfterSub")}
+          title={t("mkt.how.beforeAfterHeading")}
+          sub={t("mkt.how.beforeAfterSub")}
         />
         <div className={`grid overflow-hidden rounded-xl2 border border-line lg:grid-cols-2 ${SH_SM}`}>
           <div className="border-b border-line bg-panel-2 p-6 lg:border-b-0 lg:border-r">
             <h3 className="mb-3.5 font-display text-base font-bold text-[color:var(--brand-ink)]">
-              {t("mkt.nuts.beforeColTitle")}
+              {t("mkt.how.beforeColTitle")}
             </h3>
             <ul className="grid gap-2.5">
               {TWO_COL_LEFT.map((it) => (
@@ -434,7 +434,7 @@ export default function NutsSegment() {
           </div>
           <div className="bg-panel p-6">
             <h3 className="mb-3.5 font-display text-base font-bold text-[color:var(--brand-ink)]">
-              {t("mkt.nuts.afterColTitle")}
+              {t("mkt.how.afterColTitle")}
             </h3>
             <ul className="grid gap-2.5">
               {TWO_COL_RIGHT.map((it) => (
@@ -458,23 +458,23 @@ export default function NutsSegment() {
         <div className={`overflow-hidden rounded-xl2 border border-line bg-panel ${SH_SM}`}>
           <div className="border-b border-line bg-panel-2 px-5 py-3">
             <p className="text-[12.5px] font-bold uppercase tracking-wide text-[color:var(--brand-muted)]">
-              {t("mkt.nuts.proofBadge")}
+              {t("mkt.how.proofBadge")}
             </p>
           </div>
           <div className="p-6">
             <h2 className="font-display text-[clamp(20px,2.4vw,27px)] font-bold text-[color:var(--brand-ink)]">
-              {t("mkt.nuts.proofTitle")}
+              {t("mkt.how.proofTitle")}
             </h2>
             <p className="mt-2 text-[15px] leading-relaxed text-[color:var(--brand-ink-2)]">
-              {t("mkt.nuts.proofBody")}
+              {t("mkt.how.proofBody")}
             </p>
             <ol className="mt-6 space-y-4 border-l-2 border-line pl-5">
               {[
-                { when: t("mkt.nuts.proofT1When"), what: t("mkt.nuts.proofT1What") },
-                { when: t("mkt.nuts.proofT2When"), what: t("mkt.nuts.proofT2What") },
-                { when: t("mkt.nuts.proofT3When"), what: t("mkt.nuts.proofT3What") },
-                { when: t("mkt.nuts.proofT4When"), what: t("mkt.nuts.proofT4What") },
-                { when: t("mkt.nuts.proofT5When"), what: t("mkt.nuts.proofT5What") },
+                { when: t("mkt.how.proofT1When"), what: t("mkt.how.proofT1What") },
+                { when: t("mkt.how.proofT2When"), what: t("mkt.how.proofT2What") },
+                { when: t("mkt.how.proofT3When"), what: t("mkt.how.proofT3What") },
+                { when: t("mkt.how.proofT4When"), what: t("mkt.how.proofT4What") },
+                { when: t("mkt.how.proofT5When"), what: t("mkt.how.proofT5What") },
               ].map((row) => (
                 <li key={row.when} className="relative">
                   <span
@@ -489,7 +489,7 @@ export default function NutsSegment() {
               ))}
             </ol>
             <p className="mt-6 rounded-xl bg-panel-2 p-4 text-[13.5px] leading-relaxed text-[color:var(--brand-ink-2)]">
-              {t("mkt.nuts.proofDisclaimer")}
+              {t("mkt.how.proofDisclaimer")}
             </p>
           </div>
         </div>
@@ -498,8 +498,8 @@ export default function NutsSegment() {
       {/* ----------------------------------------------------- deep dive */}
       <section className="py-10">
         <SectionHead
-          title={t("mkt.nuts.deepHeading")}
-          sub={t("mkt.nuts.deepSub")}
+          title={t("mkt.how.deepHeading")}
+          sub={t("mkt.how.deepSub")}
         />
         <div className="grid gap-4 lg:grid-cols-3">
           {DEEP.map((d) => (
@@ -542,20 +542,20 @@ export default function NutsSegment() {
             <Wallet className="h-5 w-5" />
           </span>
           <p className="flex-1 text-[14.5px] leading-relaxed text-grass-deep">
-            {t("mkt.nuts.pricingNote")}
+            {t("mkt.how.pricingNote")}
           </p>
           <Link
             href="/pricing"
             className="inline-flex min-h-11 items-center justify-center rounded-full border-[1.5px] border-grass-deep px-5 text-sm font-bold text-grass-deep transition-colors hover:bg-panel"
           >
-            {t("mkt.nuts.pricingCta")}
+            {t("mkt.how.pricingCta")}
           </Link>
         </div>
       </section>
 
       {/* ----------------------------------------------------------- faq */}
       <section className="scroll-mt-24 py-10" id="suallar">
-        <SectionHead title={t("mkt.nuts.faqHeading")} />
+        <SectionHead title={t("mkt.how.faqHeading")} />
         <div className="mx-auto max-w-[760px]">
           {FAQ.map((item, i) => {
             const open = openFaq === i;
@@ -599,16 +599,16 @@ export default function NutsSegment() {
           style={{ background: "linear-gradient(150deg,#0f4b42,#0a2f2a)" }}
         >
           <h2 className="font-display text-[clamp(22px,3vw,28px)] font-bold text-white">
-            {t("mkt.nuts.ctaTitle")}
+            {t("mkt.how.ctaTitle")}
           </h2>
           <p className="mt-2.5 text-[15px] text-[#a9cdbc]">
-            {t("mkt.nuts.ctaSub")}
+            {t("mkt.how.ctaSub")}
           </p>
           <Link
             href="/signup"
             className="mt-5 inline-flex min-h-12 items-center gap-2 rounded-full bg-white px-7 text-[15px] font-bold text-teal transition-opacity hover:opacity-90"
           >
-            {t("mkt.nuts.heroCtaPrimary")}
+            {t("mkt.how.heroCtaPrimary")}
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Link>
         </div>
@@ -617,7 +617,7 @@ export default function NutsSegment() {
       {/* --------------------------------------------------- other roles */}
       <section className="pb-4">
         <p className="mb-3 text-center text-[13px] font-bold uppercase tracking-[0.14em] text-[color:var(--brand-muted)]">
-          {t("mkt.nuts.otherRolesEyebrow")}
+          {t("mkt.how.otherRolesEyebrow")}
         </p>
         <div className="flex flex-wrap justify-center gap-3">
           <Link
@@ -625,7 +625,7 @@ export default function NutsSegment() {
             className={`${CARD} inline-flex items-center gap-2 px-5 py-3 text-sm font-bold text-[color:var(--brand-ink)] transition-colors hover:border-line-2`}
           >
             <Leaf className="h-4 w-4 text-grass-deep" aria-hidden="true" />
-            {t("mkt.nuts.otherRolesLink")}
+            {t("mkt.how.otherRolesLink")}
             <ArrowRight className="h-4 w-4 text-[color:var(--brand-muted)]" aria-hidden="true" />
           </Link>
         </div>
