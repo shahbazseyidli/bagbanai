@@ -1,10 +1,19 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import SolutionView from "@/components/solutions/SolutionView";
 import { getSegment, getSegmentList } from "@/components/solutions/content";
 import { getServerLocale } from "@/lib/i18n-server";
 
-// W2 / E11 — one marketing page per role: /solutions/fermer · laboratoriya · konsultant · techizatci.
+// Old Azerbaijani slugs → new English slugs (aligned with the user_role enum). Kept so existing
+// links / bookmarks / search results 308-redirect instead of 404ing.
+const LEGACY_SLUGS: Record<string, string> = {
+  fermer: "farmer",
+  laboratoriya: "lab",
+  konsultant: "consultant",
+  techizatci: "supplier",
+};
+
+// W2 / E11 — one marketing page per role: /solutions/farmer · lab · consultant · supplier.
 // Server Component so each segment ships its own <title>/description; the rendering (and the FAQ
 // accordion) lives in the client SolutionView. Localized per request (locale from the x-locale
 // header), so it can't be statically prerendered — same reason as guide/[slug].
@@ -37,6 +46,7 @@ export default async function SolutionSegmentPage({
   params: Promise<{ segment: string }>;
 }) {
   const { segment } = await params;
+  if (LEGACY_SLUGS[segment]) permanentRedirect(`/solutions/${LEGACY_SLUGS[segment]}`);
   const locale = await getServerLocale();
   const seg = getSegment(segment, locale);
   if (!seg) notFound();

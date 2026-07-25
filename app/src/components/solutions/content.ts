@@ -17,7 +17,7 @@
 import type { Locale } from "@/lib/i18n";
 import { localize } from "@/lib/contentI18n";
 
-export type SegmentSlug = "fermer" | "laboratoriya" | "konsultant" | "techizatci";
+export type SegmentSlug = "farmer" | "lab" | "consultant" | "supplier";
 
 export type IconKey =
   | "satellite"
@@ -145,8 +145,8 @@ export interface Segment {
 
 /* ------------------------------------------------------------------ FERMER */
 
-const fermer: Segment = {
-  slug: "fermer",
+const farmer: Segment = {
+  slug: "farmer",
   label: "Fermer",
   short: "Sahələrimi izləyirəm, məhsul yetişdirirəm",
   tabIcon: "sprout",
@@ -449,8 +449,8 @@ const fermer: Segment = {
 
 /* ----------------------------------------------------------- LABORATORİYA */
 
-const laboratoriya: Segment = {
-  slug: "laboratoriya",
+const lab: Segment = {
+  slug: "lab",
   label: "Laboratoriya",
   short: "Torpaq və nümunə analizi xidməti göstərirəm",
   tabIcon: "flask",
@@ -702,8 +702,8 @@ const laboratoriya: Segment = {
 
 /* ------------------------------------------------------------- KONSULTANT */
 
-const konsultant: Segment = {
-  slug: "konsultant",
+const consultant: Segment = {
+  slug: "consultant",
   label: "Aqronom",
   short: "Bir çox fermerin sahəsini izləyir, məsləhət verirəm",
   tabIcon: "users",
@@ -967,8 +967,8 @@ const konsultant: Segment = {
 
 /* ------------------------------------------------------------- TƏCHİZATÇI */
 
-const techizatci: Segment = {
-  slug: "techizatci",
+const supplier: Segment = {
+  slug: "supplier",
   label: "Təchizatçı",
   short: "Toxum, gübrə, dərman və texnika satıram",
   tabIcon: "package",
@@ -1223,13 +1223,13 @@ const techizatci: Segment = {
 /* ------------------------------------------------------------------ index */
 
 export const SEGMENTS: Record<SegmentSlug, Segment> = {
-  fermer,
-  laboratoriya,
-  konsultant,
-  techizatci,
+  farmer,
+  lab,
+  consultant,
+  supplier,
 };
 
-export const SEGMENT_ORDER: SegmentSlug[] = ["fermer", "laboratoriya", "konsultant", "techizatci"];
+export const SEGMENT_ORDER: SegmentSlug[] = ["farmer", "lab", "consultant", "supplier"];
 
 export const SEGMENT_LIST: Segment[] = SEGMENT_ORDER.map((s) => SEGMENTS[s]);
 

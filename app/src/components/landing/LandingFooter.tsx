@@ -8,10 +8,10 @@ import { ArrowRight, Leaf } from "lucide-react";
 import { t, type I18nKey } from "@/lib/i18n";
 
 const SOLUTIONS: Array<[string, I18nKey]> = [
-  ["/solutions/fermer", "mkt.footer.solutionFermer"],
-  ["/solutions/laboratoriya", "mkt.footer.solutionLaboratoriya"],
-  ["/solutions/konsultant", "mkt.footer.solutionKonsultant"],
-  ["/solutions/techizatci", "mkt.footer.solutionTechizatci"],
+  ["/solutions/farmer", "mkt.footer.solutionFermer"],
+  ["/solutions/lab", "mkt.footer.solutionLaboratoriya"],
+  ["/solutions/consultant", "mkt.footer.solutionKonsultant"],
+  ["/solutions/supplier", "mkt.footer.solutionTechizatci"],
 ];
 
 export default function LandingFooter() {

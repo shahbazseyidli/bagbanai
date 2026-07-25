@@ -61,7 +61,7 @@ function Tick() {
 export function RoleCards() {
   const ROLES = [
     {
-      href: "/solutions/fermer",
+      href: "/solutions/farmer",
       title: t("mkt.sections.roleFermerTitle"),
       body: t("mkt.sections.roleFermerBody"),
       cta: t("mkt.sections.roleFermerCta"),
@@ -69,7 +69,7 @@ export function RoleCards() {
       Icon: Sprout,
     },
     {
-      href: "/solutions/laboratoriya",
+      href: "/solutions/lab",
       title: t("mkt.sections.roleLabTitle"),
       body: t("mkt.sections.roleLabBody"),
       cta: t("mkt.sections.roleLabCta"),
@@ -77,7 +77,7 @@ export function RoleCards() {
       Icon: FlaskConical,
     },
     {
-      href: "/solutions/konsultant",
+      href: "/solutions/consultant",
       title: t("mkt.sections.roleAgroTitle"),
       body: t("mkt.sections.roleAgroBody"),
       cta: t("mkt.sections.roleAgroCta"),
@@ -85,7 +85,7 @@ export function RoleCards() {
       Icon: Users,
     },
     {
-      href: "/solutions/techizatci",
+      href: "/solutions/supplier",
       title: t("mkt.sections.roleSupplierTitle"),
       body: t("mkt.sections.roleSupplierBody"),
       cta: t("mkt.sections.roleSupplierCta"),
