@@ -8,7 +8,7 @@
 import { useState } from "react";
 import { CalendarCheck, ClipboardList, X } from "lucide-react";
 import { api, azError } from "@/lib/api";
-import { t } from "@/lib/i18n";
+import { t, type I18nKey } from "@/lib/i18n";
 import { ErrorNote, Field as FormField } from "@/components/ui";
 
 interface BulkActionsProps {
@@ -25,10 +25,11 @@ interface BulkResult {
 
 const TASK_TYPES = ["Suvarma", "Gübrələmə", "Çiləmə", "Müşahidə", "Yığım", "Şumlama"];
 const OP_TYPES = ["Suvarma", "Gübrələmə", "Çiləmə", "Şumlama", "Əkin", "Yığım", "Budama", "Alaqotu"];
-const PRIORITIES = [
-  { value: "low", label: "Aşağı" },
-  { value: "medium", label: "Orta" },
-  { value: "high", label: "Yüksək" },
+// labelKey resolved via t() at render time (module-level t() would freeze the locale to az).
+const PRIORITIES: { value: string; labelKey: I18nKey }[] = [
+  { value: "low", labelKey: "app.bulkActions.priorityLow" },
+  { value: "medium", labelKey: "app.bulkActions.priorityMedium" },
+  { value: "high", labelKey: "app.bulkActions.priorityHigh" },
 ];
 const CURRENCIES = ["AZN", "USD", "EUR"];
 
@@ -242,7 +243,7 @@ export default function BulkActions({ orgId, fieldIds, onDone }: BulkActionsProp
                     >
                       {PRIORITIES.map((p) => (
                         <option key={p.value} value={p.value}>
-                          {p.label}
+                          {t(p.labelKey)}
                         </option>
                       ))}
                     </select>

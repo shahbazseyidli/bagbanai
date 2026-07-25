@@ -3,6 +3,8 @@
 // credentials: "include". Non-2xx responses throw an ApiError carrying the
 // backend's JSON `detail`.
 
+import { t, type I18nKey } from "@/lib/i18n";
+
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "";
 
 export class ApiError extends Error {
@@ -99,42 +101,45 @@ export const api = {
   },
 };
 
-// Backend detail-code → plain Azerbaijani (D0.5). Keeps raw "HTTP 500"/snake_case off the screen.
-const ERR_AZ: Record<string, string> = {
-  email_taken: "Bu email artıq qeydiyyatdadır.",
-  invalid_credentials: "Email və ya parol yanlışdır.",
-  email_not_verified: "Email təsdiqlənməyib — kodu daxil edin.",
-  invalid_otp: "Kod yanlışdır.",
-  otp_expired: "Kodun vaxtı bitib — yenidən göndərin.",
-  too_many_attempts: "Çox cəhd oldu — bir azdan yenidən yoxlayın.",
-  field_limit_reached: "Paketinizin sahə limiti doldu — paketi yüksəldin.",
-  field_too_small: "Sahə çox kiçikdir (minimum ~0.05 ha). Sərhədi yenidən çəkin.",
-  not_a_polygon: "Sahə sərhədi düzgün deyil.",
-  invalid_polygon_self_intersection: "Sərhəd özü ilə kəsişir — yenidən çəkin.",
-  need_at_least_3_vertices: "Ən azı 3 nöqtə lazımdır.",
-  farm_not_found: "Ferma tapılmadı.",
-  field_not_found: "Sahə tapılmadı.",
-  photo_not_in_plan: "Foto diaqnoz Paket 3-dədir.",
-  photo_quota_exceeded: "Bu ay foto diaqnoz limiti doldu.",
-  ai_not_configured: "AI hazırda əlçatan deyil.",
-  unauthorized: "Sessiya bitib — yenidən daxil olun.",
+// Backend detail-code → i18n key (D0.5). Resolved at call time in azError() so the message
+// follows the user's locale — t() must NOT be evaluated at module load, where only the az dict
+// is registered. Keeps raw "HTTP 500"/snake_case off the screen.
+const ERR_KEYS: Record<string, I18nKey> = {
+  email_taken: "app.err.emailTaken",
+  invalid_credentials: "app.err.invalidCredentials",
+  email_not_verified: "app.err.emailNotVerified",
+  invalid_otp: "app.err.invalidOtp",
+  otp_expired: "app.err.otpExpired",
+  too_many_attempts: "app.err.tooManyAttempts",
+  field_limit_reached: "app.err.fieldLimitReached",
+  field_too_small: "app.err.fieldTooSmall",
+  not_a_polygon: "app.err.notAPolygon",
+  invalid_polygon_self_intersection: "app.err.selfIntersection",
+  need_at_least_3_vertices: "app.err.needThreeVertices",
+  farm_not_found: "app.err.farmNotFound",
+  field_not_found: "app.err.fieldNotFound",
+  photo_not_in_plan: "app.err.photoNotInPlan",
+  photo_quota_exceeded: "app.err.photoQuotaExceeded",
+  ai_not_configured: "app.err.aiNotConfigured",
+  unauthorized: "app.err.sessionExpired",
 };
 
 /** Turn any thrown error into a friendly Azerbaijani message. */
 export function azError(err: unknown): string {
   if (err instanceof ApiError) {
-    if (ERR_AZ[err.detail]) return ERR_AZ[err.detail];
-    if (err.status === 401) return "Sessiya bitib — yenidən daxil olun.";
-    if (err.status === 403) return "Bu əməliyyata icazəniz yoxdur.";
-    if (err.status === 404) return "Tapılmadı.";
+    const k = ERR_KEYS[err.detail];
+    if (k) return t(k);
+    if (err.status === 401) return t("app.err.sessionExpired");
+    if (err.status === 403) return t("app.err.forbidden");
+    if (err.status === 404) return t("app.err.notFound");
     // FastAPI 422 detail is a LIST of Pydantic errors; handle() stringifies it, so without this
-    // branch a raw JSON array would be rendered into the Azerbaijani UI.
-    if (err.status === 422) return "Daxil edilən dəyər düzgün deyil.";
-    if (err.status >= 500) return "Server xətası — bir azdan yenidən cəhd edin.";
+    // branch a raw JSON array would be rendered into the UI.
+    if (err.status === 422) return t("app.err.invalidValue");
+    if (err.status >= 500) return t("app.err.serverError");
     // Never surface a raw snake_case code or "HTTP 500" to a farmer.
-    return /^[a-z0-9_]+$/.test(err.detail) ? "Xəta baş verdi. Yenidən cəhd edin." : err.detail;
+    return /^[a-z0-9_]+$/.test(err.detail) ? t("app.err.generic") : err.detail;
   }
-  return "Xəta baş verdi. Yenidən cəhd edin.";
+  return t("app.err.generic");
 }
 
 export function apiAsset(path: string): string {

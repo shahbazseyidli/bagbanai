@@ -36,7 +36,7 @@ interface Nowcast {
 const MIN_SCALE_MM = 0.5;
 
 function windowLabel(minutes: number): string {
-  return minutes % 60 === 0 ? `${minutes / 60} saat` : `${minutes} dəq`;
+  return minutes % 60 === 0 ? `${minutes / 60} ${t("app.field.rainNowcast.hourUnit")}` : `${minutes} ${t("app.field.rainNowcast.minUnit")}`;
 }
 
 export default function RainNowcast({ fieldId }: { fieldId: string }) {
@@ -93,7 +93,7 @@ export default function RainNowcast({ fieldId }: { fieldId: string }) {
             return (
               <div
                 key={s.ts}
-                title={`+${s.minutes_from_now} dəq · ${mm.toFixed(1)} mm`}
+                title={`+${s.minutes_from_now} ${t("app.field.rainNowcast.minUnit")} · ${mm.toFixed(1)} mm`}
                 className={`flex-1 rounded-sm ${wet ? tone.bar : "bg-slate-200/70"}`}
                 style={{ height: `${wet ? pct : 6}%` }}
               />

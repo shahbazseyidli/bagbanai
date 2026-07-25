@@ -13,7 +13,16 @@ import { Spinner, ErrorNote } from "@/components/ui";
 interface Conv { id: string; other_user_id: string; other_name?: string | null; other_role?: string | null; kind: string; last_text?: string | null; last_at?: string | null; }
 interface Msg { id: string; sender_id: string; body: string; created_at: string; mine: boolean; }
 
-const ROLE_AZ: Record<string, string> = { farmer: "Fermer", lab: "Laboratoriya", consultant: "Aqronom", supplier: "Təchizatçı" };
+// Role code → localized label. Resolved at render time (not module load) so the active locale applies.
+function roleAz(role: string): string | undefined {
+  switch (role) {
+    case "farmer": return t("app.chat.roleFarmer");
+    case "lab": return t("app.chat.roleLab");
+    case "consultant": return t("app.chat.roleConsultant");
+    case "supplier": return t("app.chat.roleSupplier");
+    default: return undefined;
+  }
+}
 
 export default function ChatPage() {
   return <Suspense fallback={<Spinner />}><ChatInner /></Suspense>;
@@ -74,7 +83,7 @@ function ChatInner() {
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-sm font-bold text-white">{(c.other_name || "?").slice(0, 1).toUpperCase()}</span>
               <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-2 font-semibold text-slate-900">{c.other_name || t("app.chat.defaultUser")}
-                  {c.other_role && <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">{ROLE_AZ[c.other_role] || c.other_role}</span>}</span>
+                  {c.other_role && <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">{roleAz(c.other_role) || c.other_role}</span>}</span>
                 <span className="block truncate text-xs text-slate-500">{c.last_text || "…"}</span>
               </span>
             </button>
@@ -91,7 +100,7 @@ function ChatInner() {
                 <button className="md:hidden" onClick={() => router.push("/chat")}><ArrowLeft className="h-5 w-5 text-slate-500" /></button>
                 <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-600 text-sm font-bold text-white">{(cur?.other_name || "?").slice(0, 1).toUpperCase()}</span>
                 <div><div className="font-semibold text-slate-900">{cur?.other_name || t("app.chat.defaultUser")}</div>
-                  {cur?.other_role && <div className="text-xs text-slate-500">{ROLE_AZ[cur.other_role] || cur.other_role}</div>}</div>
+                  {cur?.other_role && <div className="text-xs text-slate-500">{roleAz(cur.other_role) || cur.other_role}</div>}</div>
               </div>
               <div ref={bodyRef} className="flex flex-1 flex-col gap-2 overflow-y-auto p-4" style={{ maxHeight: "50vh" }}>
                 {msgs.map((m) => (
