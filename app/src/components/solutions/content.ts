@@ -14,6 +14,9 @@
 //
 // UI copy is inline Azerbaijani for now; the T18 i18n sweep extracts it to t() keys later.
 
+import type { Locale } from "@/lib/i18n";
+import { localize } from "@/lib/contentI18n";
+
 export type SegmentSlug = "fermer" | "laboratoriya" | "konsultant" | "techizatci";
 
 export type IconKey =
@@ -1230,8 +1233,19 @@ export const SEGMENT_ORDER: SegmentSlug[] = ["fermer", "laboratoriya", "konsulta
 
 export const SEGMENT_LIST: Segment[] = SEGMENT_ORDER.map((s) => SEGMENTS[s]);
 
-export function getSegment(slug: string): Segment | null {
-  return (SEGMENTS as Record<string, Segment | undefined>)[slug] ?? null;
+// az is the source; any other locale deep-clones + overlays translated leaves (see contentI18n).
+export function getSegment(slug: string, locale?: Locale): Segment | null {
+  const seg = (SEGMENTS as Record<string, Segment | undefined>)[slug];
+  if (!seg) return null;
+  return locale ? localize(seg, `SEGMENTS.${slug}`, locale) : seg;
+}
+
+export function getSegmentList(locale?: Locale): Segment[] {
+  return SEGMENT_ORDER.map((s) => getSegment(s, locale) as Segment);
+}
+
+export function getIndexCopy(locale?: Locale) {
+  return locale ? localize(INDEX_COPY, "INDEX_COPY", locale) : INDEX_COPY;
 }
 
 /** Copy for the /solutions index page (Server Component — plain data, no t()). */

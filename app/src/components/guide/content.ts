@@ -12,6 +12,9 @@
 //
 // UI copy is inline Azerbaijani; the T18 i18n sweep extracts it to t() keys later.
 
+import type { Locale } from "@/lib/i18n";
+import { localize } from "@/lib/contentI18n";
+
 export type GuideIcon =
   | "map-pin"
   | "satellite"
@@ -404,8 +407,19 @@ export const GUIDE_ORDER: string[] = [
 
 export const GUIDE_LIST: Guide[] = GUIDE_ORDER.map((s) => GUIDES[s]);
 
-export function getGuide(slug: string): Guide | null {
-  return GUIDES[slug] ?? null;
+// az is the source; any other locale deep-clones + overlays translated leaves (see contentI18n).
+export function getGuide(slug: string, locale?: Locale): Guide | null {
+  const g = GUIDES[slug];
+  if (!g) return null;
+  return locale ? localize(g, `GUIDES.${slug}`, locale) : g;
+}
+
+export function getGuideList(locale?: Locale): Guide[] {
+  return GUIDE_ORDER.map((s) => getGuide(s, locale) as Guide);
+}
+
+export function getGuideIndexCopy(locale?: Locale) {
+  return locale ? localize(GUIDE_INDEX_COPY, "GUIDE_INDEX_COPY", locale) : GUIDE_INDEX_COPY;
 }
 
 /** Hub-level copy for the /guide index (Server Component — plain data, no t()). */

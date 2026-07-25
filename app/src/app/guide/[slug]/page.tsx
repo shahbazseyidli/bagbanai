@@ -5,7 +5,7 @@ import { ArrowLeft, ArrowRight, Brain, ChevronRight, Clipboard, FileText, FlaskC
   MapPin, Monitor, Satellite, Sprout } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { getGuide, type GuideIcon } from "@/components/guide/content";
-import { getT } from "@/lib/i18n-server";
+import { getT, getServerLocale } from "@/lib/i18n-server";
 
 // The article body is localized via getT() (reads the per-request x-locale header), so it can't be
 // statically prerendered — the locale isn't known at build time. Render on demand. (No
@@ -34,7 +34,8 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const g = getGuide(slug);
+  const locale = await getServerLocale();
+  const g = getGuide(slug, locale);
   if (!g) return { title: "Bələdçi — Bağban AI" };
   return {
     title: `${g.title} — Bağban AI bələdçisi`,
@@ -49,8 +50,9 @@ export default async function GuideArticlePage({
   params: Promise<{ slug: string }>;
 }) {
   const t = await getT();
+  const locale = await getServerLocale();
   const { slug } = await params;
-  const g = getGuide(slug);
+  const g = getGuide(slug, locale);
   if (!g) notFound();
 
   const Icon = ICONS[g.icon] ?? MapPin;
@@ -151,7 +153,7 @@ export default async function GuideArticlePage({
             </h2>
             <div className="mt-3 grid gap-2.5">
               {g.related.map((rslug) => {
-                const r = getGuide(rslug);
+                const r = getGuide(rslug, locale);
                 if (!r) return null;
                 const RIcon = ICONS[r.icon] ?? MapPin;
                 return (

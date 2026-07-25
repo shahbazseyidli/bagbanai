@@ -291,7 +291,13 @@ function HeroVisual({ visual, accent }: { visual: VisualKey; accent: string }) {
 
 /* ------------------------------------------------------------------- page */
 
-export default function SolutionView({ segment }: { segment: Segment }) {
+export default function SolutionView({
+  segment,
+  allSegments = SEGMENT_LIST,
+}: {
+  segment: Segment;
+  allSegments?: Segment[];
+}) {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const badgeFree = segment.badge.tone === "free";
 
@@ -299,7 +305,7 @@ export default function SolutionView({ segment }: { segment: Segment }) {
     <div className="-mx-4 -mt-6 -mb-24 bg-paper px-4 pt-6 pb-24 md:-mb-6 md:pb-8">
       {/* segment switcher — the mockup's .soltabs, as real links */}
       <nav aria-label={t("mkt.solution.navAria")} className="mb-2 flex flex-wrap justify-center gap-2">
-        {SEGMENT_LIST.map((s) => {
+        {allSegments.map((s) => {
           const Icon = ICONS[s.tabIcon];
           const on = s.slug === segment.slug;
           return (
@@ -637,7 +643,7 @@ export default function SolutionView({ segment }: { segment: Segment }) {
           {t("mkt.solution.otherRoles")}
         </p>
         <div className="grid gap-3 lg:grid-cols-3">
-          {SEGMENT_LIST.filter((s) => s.slug !== segment.slug).map((s) => {
+          {allSegments.filter((s) => s.slug !== segment.slug).map((s) => {
             const Icon = ICONS[s.tabIcon];
             return (
               <Link

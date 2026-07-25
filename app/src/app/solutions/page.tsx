@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Check, FlaskConical, Package, Sprout, Users, Wallet } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { INDEX_COPY, SEGMENT_LIST, type IconKey } from "@/components/solutions/content";
-import { getT } from "@/lib/i18n-server";
+import { getIndexCopy, getSegmentList, type IconKey } from "@/components/solutions/content";
+import { getT, getServerLocale } from "@/lib/i18n-server";
 
 // W2 / E11 — the /solutions index: the four role segments with the approved mockup's pill + card
 // treatment. Purely presentational (no state, no t()), so it stays a Server Component and ships
@@ -27,6 +27,9 @@ const SH_SM = "shadow-[0_1px_2px_rgba(20,15,10,0.05),0_2px_8px_rgba(20,15,10,0.0
 
 export default async function SolutionsIndexPage() {
   const t = await getT();
+  const locale = await getServerLocale();
+  const INDEX_COPY = getIndexCopy(locale);
+  const SEGMENT_LIST = getSegmentList(locale);
   return (
     <div className="-mx-4 -mt-6 -mb-24 bg-paper px-4 pt-6 pb-24 md:-mb-6 md:pb-8">
       {/* ---------------------------------------------------------- head */}

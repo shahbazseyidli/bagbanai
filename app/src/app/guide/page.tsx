@@ -3,8 +3,8 @@ import Link from "next/link";
 import { ArrowRight, Brain, ChevronRight, Clipboard, FileText, FlaskConical, MapPin,
   Satellite, Sprout } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { GUIDE_INDEX_COPY, GUIDE_LIST, type GuideIcon } from "@/components/guide/content";
-import { getT } from "@/lib/i18n-server";
+import { getGuideIndexCopy, getGuideList, type GuideIcon } from "@/components/guide/content";
+import { getT, getServerLocale } from "@/lib/i18n-server";
 
 // C8 — the /guide index: the "Necə başlamalı" hub. Purely presentational (no state, no t()), so it
 // stays a Server Component and ships its own metadata. Copy is inline Azerbaijani (guide/content.ts);
@@ -31,6 +31,9 @@ const SH_SM = "shadow-[0_1px_2px_rgba(20,15,10,0.05),0_2px_8px_rgba(20,15,10,0.0
 
 export default async function GuideIndexPage() {
   const t = await getT();
+  const locale = await getServerLocale();
+  const GUIDE_INDEX_COPY = getGuideIndexCopy(locale);
+  const GUIDE_LIST = getGuideList(locale);
   return (
     <div className="-mx-4 -mt-6 -mb-24 bg-paper px-4 pt-6 pb-24 md:-mb-6 md:pb-8">
       {/* ---------------------------------------------------------- head */}
