@@ -20,7 +20,7 @@ import {
   AREA_MIN_S2, AREA_MIN_HLS,
 } from "@/lib/sensors";
 import {
-  INDEX_LABELS, INDEX_INFO, legendFor, interpret,
+  indexLabel, indexInfo, legendFor, interpret,
   type IndexNorms,
 } from "@/lib/indexStatus";
 import StatusChip from "@/components/StatusChip";
@@ -350,7 +350,7 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
             {summaryRows.map(({ entry, value, status: st, note, tone }) => (
               <div key={entry.index} className="rounded-lg border border-slate-200 p-3">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="truncate text-sm font-medium text-slate-700">{INDEX_LABELS[entry.index] ?? entry.index}</span>
+                  <span className="truncate text-sm font-medium text-slate-700">{indexLabel(entry.index)}</span>
                   <span className="shrink-0 font-mono text-sm text-slate-800">{value.toFixed(3)}</span>
                 </div>
                 <div className="mt-1.5">
@@ -371,10 +371,10 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
           <label className="label">{t("idx.select")}</label>
           <select className="input" value={index} onChange={(e) => setIndex(e.target.value)}>
             {SENSOR_INDICES[sensor].map((ix) => (
-              <option key={ix} value={ix}>{INDEX_LABELS[ix] ?? ix}</option>
+              <option key={ix} value={ix}>{indexLabel(ix)}</option>
             ))}
           </select>
-          {INDEX_INFO[index] && <p className="mb-4 mt-2 text-xs text-slate-500">{INDEX_INFO[index]}</p>}
+          {indexInfo(index) && <p className="mb-4 mt-2 text-xs text-slate-500">{indexInfo(index)}</p>}
 
           {loading ? (
             <Spinner />
@@ -527,7 +527,7 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
                         return (
                           <button key={s.scene_id} type="button"
                             title={`${s.date}`
-                              + (s.value != null ? ` · ${INDEX_LABELS[index] ?? index}: ${s.value.toFixed(3)}` : "")
+                              + (s.value != null ? ` · ${indexLabel(index)}: ${s.value.toFixed(3)}` : "")
                               + (d != null ? ` · ${t("app.field.satelliteTab.vsPrevDate")} ${fmtDelta(d)}` : "")
                               + (s.cloud_pct != null ? ` · ${t("app.field.satelliteTab.cloud")} ${s.cloud_pct.toFixed(0)}%` : "")}
                             onClick={() => setSceneIdx(i)}

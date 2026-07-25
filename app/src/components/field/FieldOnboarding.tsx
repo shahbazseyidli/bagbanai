@@ -18,6 +18,7 @@ import { track } from "@/lib/track";
 import type { Field, GeoSite, Polygon } from "@/lib/types";
 import {
   type Opt,
+  optLabel,
   CROP_OPTIONS,
   SOIL_TYPE_OPTIONS,
   IRRIGATION_METHOD_OPTIONS,
@@ -54,7 +55,8 @@ function toNum(v: number | string | null | undefined): number | null {
 /** Map a canonical value to its Azerbaijani label (falls back to the raw value). */
 function labelOf(options: Opt[], value: string | null | undefined): string {
   if (!value) return "—";
-  return options.find((o) => o.value === value)?.label ?? value;
+  const o = options.find((op) => op.value === value);
+  return o ? optLabel(o) : value;
 }
 
 /** Average of the boundary ring vertices — good enough for a point lookup. */

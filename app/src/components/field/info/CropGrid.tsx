@@ -5,7 +5,7 @@
 // The currently selected crop is always shown even when filtered out.
 
 import { useEffect, useState } from "react";
-import { CROP_OPTIONS, CROP_CYCLE } from "@/lib/metadataOptions";
+import { CROP_OPTIONS, CROP_CYCLE, optLabel } from "@/lib/metadataOptions";
 import { Chip } from "./chip";
 import { t } from "@/lib/i18n";
 
@@ -52,7 +52,7 @@ export default function CropGrid({ cycle, value, onChange }: CropGridProps) {
               onChange(o.value);
             }}
           >
-            {o.label}
+            {optLabel(o)}
           </Chip>
         ))}
         <Chip

@@ -4,7 +4,7 @@
 // Çox qələvi) sets a representative pH; a fine slider (4.0–9.0) sets an exact
 // value; "Bilmirəm" clears it.
 
-import { PH_BANDS } from "@/lib/metadataOptions";
+import { PH_BANDS, optLabel } from "@/lib/metadataOptions";
 import { chipCls, UnknownChip } from "./chip";
 
 export interface PhPickerProps {
@@ -26,7 +26,7 @@ export default function PhPicker({ value, onChange }: PhPickerProps) {
             className={chipCls(value != null && Math.abs(value - b.ph) < 0.5)}
           >
             <span className="flex flex-col items-start leading-tight">
-              <span>{b.label}</span>
+              <span>{optLabel(b)}</span>
               <span className="text-[11px] text-slate-400">{b.hint}</span>
             </span>
           </button>

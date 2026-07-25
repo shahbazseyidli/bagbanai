@@ -5,7 +5,7 @@
 // Optionally exposes a "Digər" (Other) free-text chip and a "Bilmirəm" escape.
 
 import { useEffect, useState } from "react";
-import type { Opt } from "@/lib/metadataOptions";
+import { type Opt, optLabel } from "@/lib/metadataOptions";
 import { Chip, UnknownChip } from "./chip";
 import { t } from "@/lib/i18n";
 
@@ -58,7 +58,7 @@ export default function ChoiceChips({
               onChange(o.value);
             }}
           >
-            {o.label}
+            {optLabel(o)}
           </Chip>
         ))}
         {allowOther && (

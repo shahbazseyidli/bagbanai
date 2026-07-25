@@ -21,7 +21,7 @@ import SpeakButton from "@/components/SpeakButton";
 import { useFieldDataStatus } from "@/lib/useFieldDataStatus";
 import ClarificationBlock from "@/components/field/ClarificationBlock";
 import { SENSOR_PARAM, sensorFamily } from "@/lib/sensors";
-import { TONE, INDEX_LABELS, interpret, type IndexNorms, type Tone } from "@/lib/indexStatus";
+import { TONE, indexLabel, interpret, type IndexNorms, type Tone } from "@/lib/indexStatus";
 import {
   buildInsights, cropLabelOf, type InsightsResponse, type ChangeCard, type Direction,
 } from "@/lib/insights";
@@ -267,7 +267,7 @@ export default function OverviewTab({
                       <span key={c.index}
                         className="inline-flex items-center gap-1.5 rounded-full border border-white bg-white/70 px-2.5 py-1 text-xs">
                         <span className={`h-2 w-2 rounded-full ${TONE[c.tone].dot}`} />
-                        <span className="font-medium text-slate-700">{(INDEX_LABELS[c.index] ?? c.index).replace(/\s*\(.*\)/, "")}</span>
+                        <span className="font-medium text-slate-700">{indexLabel(c.index).replace(/\s*\(.*\)/, "")}</span>
                         <span className="font-mono text-slate-500">{c.value.toFixed(2)}</span>
                         <span className={TONE[c.tone].text}>· {c.status}</span>
                       </span>

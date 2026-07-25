@@ -5,7 +5,7 @@
 // soft-filters the crop grid downstream (see CROP_CYCLE + CropGrid).
 
 import { TreePine, Sprout, Leaf } from "lucide-react";
-import { CYCLE_OPTIONS } from "@/lib/metadataOptions";
+import { CYCLE_OPTIONS, optLabel } from "@/lib/metadataOptions";
 import { t } from "@/lib/i18n";
 
 export interface CycleCardsProps {
@@ -47,7 +47,7 @@ export default function CycleCards({ value, onChange }: CycleCardsProps) {
             <span
               className={active ? "font-semibold text-emerald-700" : "font-semibold text-slate-800"}
             >
-              {opt.label}
+              {optLabel(opt)}
             </span>
             <span className="text-xs text-slate-500">{HINTS[opt.value]}</span>
           </button>

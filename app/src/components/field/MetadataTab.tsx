@@ -17,6 +17,7 @@ import { ErrorNote, Field as FormField } from "@/components/ui";
 import type { FieldMetadata } from "@/lib/types";
 import {
   type Opt,
+  optLabel,
   CYCLE_OPTIONS,
   CROP_OPTIONS,
   VARIETY_OPTIONS_BY_CROP,
@@ -43,7 +44,8 @@ function toNum(v: number | string | null | undefined): number | null {
 /** Return an option's AZ label, the raw value when unknown, or null when empty. */
 function labelOf(options: Opt[], value: string | null | undefined): string | null {
   if (value == null || value === "") return null;
-  return options.find((o) => o.value === value)?.label ?? value;
+  const o = options.find((op) => op.value === value);
+  return o ? optLabel(o) : value;
 }
 
 const OTHER = "__other__";
@@ -92,7 +94,7 @@ function VocabSelect({
         <option value="">{t("app.field.metadataTab.selectPlaceholder")}</option>
         {options.map((o) => (
           <option key={o.value} value={o.value}>
-            {o.label}
+            {optLabel(o)}
           </option>
         ))}
         <option value={OTHER}>{t("app.field.metadataTab.other")}</option>

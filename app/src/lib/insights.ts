@@ -3,8 +3,9 @@
 // for YOUR crop" cards + a single headline health verdict. Fully deterministic (no LLM) so
 // the page is instant and always available; the AI advice tab adds the deeper reasoning.
 
-import { CROP_OPTIONS } from "@/lib/metadataOptions";
-import { interpret, type IndexNorms, type Tone } from "@/lib/indexStatus";
+import { CROP_OPTIONS, optLabel } from "@/lib/metadataOptions";
+import { indexLabel, interpret, type IndexNorms, type Tone } from "@/lib/indexStatus";
+import { t } from "@/lib/i18n";
 
 export interface InsightTrend {
   index: string;
@@ -54,8 +55,9 @@ export interface Verdict {
 
 /** crop_type value → Azerbaijani label (falls back to the raw value or a generic word). */
 export function cropLabelOf(crop: string | null | undefined): string {
-  if (!crop) return "əkininiz";
-  return CROP_OPTIONS.find((o) => o.value === crop)?.label ?? crop;
+  if (!crop) return t("app.insights.yourCrop");
+  const o = CROP_OPTIONS.find((c) => c.value === crop);
+  return o ? optLabel(o) : crop;
 }
 
 // Minimum |Δ| for a move to be worth a card (below this it's noise / normal variation).
@@ -73,74 +75,76 @@ function pctStr(pct: number | null): string {
   const s = pct > 0 ? `+${pct}` : `${pct}`;
   return `${s}%`;
 }
-function overSpan(t: InsightTrend): string {
-  return t.days && t.days > 0 ? `son ${t.days} gündə` : "son həftələrdə";
+function overSpan(tr: InsightTrend): string {
+  return tr.days && tr.days > 0
+    ? `${t("app.insights.overSpanDaysPre")}${tr.days}${t("app.insights.overSpanDaysPost")}`
+    : t("app.insights.overSpanWeeks");
 }
 
 // Build one narrative card for a meaningfully-moved index. `crop` is the AZ label.
-function cardFor(t: InsightTrend, crop: string): ChangeCard | null {
-  if (t.prior == null || t.delta == null) return null;
-  const dir: Direction = t.delta > 0 ? "up" : t.delta < 0 ? "down" : "flat";
-  const span = overSpan(t);
-  const move = `${span} ${fmt(t.prior)} → ${fmt(t.latest)} (${pctStr(t.pct)})`;
-  const base = { index: t.index, latest: t.latest, prior: t.prior, pct: t.pct, days: t.days, direction: dir };
+function cardFor(tr: InsightTrend, crop: string): ChangeCard | null {
+  if (tr.prior == null || tr.delta == null) return null;
+  const dir: Direction = tr.delta > 0 ? "up" : tr.delta < 0 ? "down" : "flat";
+  const span = overSpan(tr);
+  const move = `${span} ${fmt(tr.prior)} → ${fmt(tr.latest)} (${pctStr(tr.pct)})`;
+  const base = { index: tr.index, latest: tr.latest, prior: tr.prior, pct: tr.pct, days: tr.days, direction: dir };
 
-  if (VEG.has(t.index)) {
+  if (VEG.has(tr.index)) {
     if (dir === "down") {
-      const severe = (t.pct != null && t.pct <= -15) || t.delta <= -0.12;
+      const severe = (tr.pct != null && tr.pct <= -15) || tr.delta <= -0.12;
       return {
         ...base,
         tone: severe ? "bad" : "warn",
-        headline: `Bitki sağlamlığı düşür`,
-        meaning: `${labelShort(t.index)} ${move} düşüb. ${crop} üçün bu — çətir stresi, su çatışmazlığı, azot çatışmazlığı və ya zərərverici/xəstəlik təsirinin ilkin əlaməti ola bilər.`,
+        headline: t("app.insights.veg.down.headline"),
+        meaning: `${labelShort(tr.index)} ${move} ${t("app.insights.veg.down.meaningMid")} ${crop} ${t("app.insights.veg.down.meaningTail")}`,
         action: severe
-          ? `Sahəni tez bir zamanda yoxlayın, suvarmanı və zərərverici izlərini nəzərdən keçirin. Lazım olsa aqronom məsləhəti alın.`
-          : `Növbəti səhnələri izləyin və sahəni vizual yoxlayın; enmə davam edərsə suvarma/qidalanmanı gözdən keçirin.`,
+          ? t("app.insights.veg.down.actionSevere")
+          : t("app.insights.veg.down.actionMild"),
       };
     }
     if (dir === "up") {
       return {
         ...base,
         tone: "good",
-        headline: `Bitki sağlamlığı yaxşılaşır`,
-        meaning: `${labelShort(t.index)} ${move} yüksəlib. ${crop} inkişaf edir — bitki örtüyü güclənir.`,
-        action: `Cari qulluq rejimi işləyir — davam etdirin.`,
+        headline: t("app.insights.veg.up.headline"),
+        meaning: `${labelShort(tr.index)} ${move} ${t("app.insights.veg.up.meaningMid")} ${crop} ${t("app.insights.veg.up.meaningTail")}`,
+        action: t("app.insights.veg.up.action"),
       };
     }
   }
 
-  if (t.index === "NDMI") {
+  if (tr.index === "NDMI") {
     if (dir === "down") {
-      const severe = t.latest < 0.2;
+      const severe = tr.latest < 0.2;
       return {
         ...base,
         tone: severe ? "bad" : "warn",
-        headline: `Bitki nəmliyi azalır`,
-        meaning: `Bitki nəmliyi (NDMI) ${move} azalıb. ${crop} su stresi yaşaya bilər — torpaqda/bitkidə nəmlik düşür.`,
-        action: severe ? `Suvarmanı planlaşdırın — nəmlik kritik həddə yaxındır.` : `Suvarma ehtiyacını yoxlayın və hava proqnozunu nəzərə alın.`,
+        headline: t("app.insights.ndmi.down.headline"),
+        meaning: `${t("app.insights.ndmi.label")} ${move} ${t("app.insights.ndmi.down.meaningMid")} ${crop} ${t("app.insights.ndmi.down.meaningTail")}`,
+        action: severe ? t("app.insights.ndmi.down.actionSevere") : t("app.insights.ndmi.down.actionMild"),
       };
     }
     if (dir === "up") {
       return {
-        ...base, tone: "good", headline: `Nəmlik bərpa olunur`,
-        meaning: `Bitki nəmliyi (NDMI) ${move} artıb — su rejimi yaxşılaşıb.`,
-        action: `Suvarma/yağış təsir edib; nəmliyi izləməyə davam edin.`,
+        ...base, tone: "good", headline: t("app.insights.ndmi.up.headline"),
+        meaning: `${t("app.insights.ndmi.label")} ${move} ${t("app.insights.ndmi.up.meaningTail")}`,
+        action: t("app.insights.ndmi.up.action"),
       };
     }
   }
 
-  if (t.index === "NDWI") {
+  if (tr.index === "NDWI") {
     if (dir === "up") {
       return {
-        ...base, tone: "warn", headline: `Səthdə su artıb`,
-        meaning: `Su indeksi (NDWI) ${move} artıb — sahədə həddindən artıq sulanma, gölməçələr və ya drenaj problemi ola bilər.`,
-        action: `Drenaji və sulanma normasını yoxlayın — köklərin batması riskini azaldın.`,
+        ...base, tone: "warn", headline: t("app.insights.ndwi.up.headline"),
+        meaning: `${t("app.insights.ndwi.label")} ${move} ${t("app.insights.ndwi.up.meaningTail")}`,
+        action: t("app.insights.ndwi.up.action"),
       };
     }
     return {
-      ...base, tone: "good", headline: `Səth quruyub`,
-      meaning: `Su indeksi (NDWI) ${move} azalıb — səthdəki artıq su çəkilib.`,
-      action: `Xüsusi tədbir tələb olunmur.`,
+      ...base, tone: "good", headline: t("app.insights.ndwi.down.headline"),
+      meaning: `${t("app.insights.ndwi.label")} ${move} ${t("app.insights.ndwi.down.meaningTail")}`,
+      action: t("app.insights.ndwi.down.action"),
     };
   }
 
@@ -148,34 +152,35 @@ function cardFor(t: InsightTrend, crop: string): ChangeCard | null {
 }
 
 function labelShort(index: string): string {
-  const m: Record<string, string> = {
-    NDVI: "Bitki sağlamlığı (NDVI)", EVI: "Gücləndirilmiş bitki (EVI)", SAVI: "Torpaq-düzəlişli (SAVI)",
-    NDRE: "Red-edge sağlamlıq (NDRE)", CIre: "Xlorofil (CIre)",
-  };
-  return m[index] ?? index;
+  // Only CIre uses a shorter form than its full label; the rest reuse indexLabel().
+  return index === "CIre" ? t("app.idx.short.CIre") : indexLabel(index);
 }
 
 // Overall one-line health verdict, driven by the best available vegetation index.
 function buildVerdict(trends: InsightTrend[], crop: string, norms: IndexNorms | null): Verdict | null {
   const order = ["NDVI", "EVI", "SAVI", "NDRE"];
-  const veg = order.map((ix) => trends.find((t) => t.index === ix)).find(Boolean);
+  const veg = order.map((ix) => trends.find((tr) => tr.index === ix)).find(Boolean);
   if (!veg) return null;
   const st = interpret(veg.index, veg.latest, norms);
   const falling = veg.trend === "düşür";
   let tone: Tone = st.tone;
   let title: string;
   if (st.tone === "good" && !falling) {
-    title = `${cap(crop)} sağlam vəziyyətdədir`;
+    title = `${cap(crop)} ${t("app.insights.verdict.healthy")}`;
   } else if (st.tone === "good" && falling) {
     tone = "warn";
-    title = `${cap(crop)} hələ sağlamdır, lakin son həftələrdə enmə müşahidə olunur`;
+    title = `${cap(crop)} ${t("app.insights.verdict.healthyFalling")}`;
   } else if (st.tone === "warn") {
-    title = `${cap(crop)} orta vəziyyətdədir — diqqət tələb olunur`;
+    title = `${cap(crop)} ${t("app.insights.verdict.moderate")}`;
   } else {
-    title = `${cap(crop)} zəif vəziyyətdədir — yaxından baxış tövsiyə olunur`;
+    title = `${cap(crop)} ${t("app.insights.verdict.weak")}`;
   }
-  const trendWord = veg.trend === "yüksəlir" ? "yüksəlir ↑" : veg.trend === "düşür" ? "düşür ↓" : "sabit →";
-  const sub = `Ən son ${labelShort(veg.index)}: ${fmt(veg.latest)} · ${st.status} · trend: ${trendWord}` +
+  const trendWord = veg.trend === "yüksəlir"
+    ? t("app.insights.trend.up")
+    : veg.trend === "düşür"
+      ? t("app.insights.trend.down")
+      : t("app.insights.trend.flat");
+  const sub = `${t("app.insights.sub.latestPre")}${labelShort(veg.index)}: ${fmt(veg.latest)} · ${st.status} · ${t("app.insights.sub.trendLabel")}${trendWord}` +
     (veg.latest_date ? ` · ${veg.latest_date}` : "");
   return { title, sub, tone, index: veg.index, latest: veg.latest, date: veg.latest_date };
 }
@@ -200,8 +205,8 @@ export function buildInsights(resp: InsightsResponse | null, norms: IndexNorms |
   const verdict = buildVerdict(trends, crop, norms);
 
   const changes = trends
-    .filter((t) => t.delta != null && Math.abs(t.delta) >= (MOVE_THRESH[t.index] ?? 0.05))
-    .map((t) => cardFor(t, crop))
+    .filter((tr) => tr.delta != null && Math.abs(tr.delta) >= (MOVE_THRESH[tr.index] ?? 0.05))
+    .map((tr) => cardFor(tr, crop))
     .filter((c): c is ChangeCard => c != null)
     .sort((a, b) => Math.abs(b.pct ?? 0) - Math.abs(a.pct ?? 0))
     .slice(0, 4);

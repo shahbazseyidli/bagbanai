@@ -10,6 +10,7 @@ import { t } from "@/lib/i18n";
 import type { FieldMetadata } from "@/lib/types";
 import {
   type Opt,
+  optLabel,
   CROP_OPTIONS,
   DIFFICULTY_TYPE_OPTIONS,
   PEST_TYPE_OPTIONS,
@@ -37,7 +38,7 @@ function CellSelect({
       {!known && value ? <option value={value}>{value}</option> : null}
       {options.map((o) => (
         <option key={o.value} value={o.value}>
-          {o.label}
+          {optLabel(o)}
         </option>
       ))}
     </select>
