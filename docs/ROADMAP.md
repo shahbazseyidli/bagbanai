@@ -230,3 +230,18 @@ Faza 1 tam canlı + üstünə düşən sprintlər. Detal `CHANGELOG.md` [1.0.0]�
 - ✅ **Bug fix:** panel chrome sızması · Nav flicker · share NASA→S2 · share verdict+metadataOptions i18n.
 - ⏸ **Google SSO** — welcome (SSO variantı) onunla aktivləşəcək (E2.5, şablon hazır).
 
+
+## 2026-07-26 sessiyası — SHIPPED (canlı test + E13 onboarding quiz)
+
+**Canlı test (agradex.com + app.agradex.com, desktop + 375px mobil) → tapılan və düzəldilən buglar:**
+- **Nav (istifadəçi #4):** `Nav.tsx` marketinq linklərini `user` üzərindən gizlədirdi → daxil olmuş istifadəçi agradex.com-da yalnız loqo görürdü (mobil hamburger də yox idi). İndi gate **APP host**-dur. Mobil şüfyəyə dil seçici əlavə edildi (əvvəl telefonda dil dəyişmək **ümumiyyətlə** mümkün deyildi). ✅ canlı doğrulandı.
+- **Paylaşma linkləri sınıq idi:** app.agradex.com-da yaradılan `/s/<token>` linki app host-un auth qapısına düşürdü → hər qəbul edən /login görürdü. İndi public linklər (paylaşma + komanda dəvəti) apex üzərindən qurulur, `/s/` isə middleware-də auth-dan ƏVVƏL keçir. ✅ canlı doğrulandı.
+- **Dil host-lar arasında itirdi:** `bagban_locale` host-only idi + apex→app yönləndirməsi `/en` prefiksini atırdı. İndi cookie `.agradex.com` domenindədir və prefiks saxlanılır. ✅
+- **Valyuta/tərcümə məntiq səhvləri (istifadəçi #3):** hero "every manat" en/tr/de/hu/pl → dollar/lira/Euro/forint/złoty · fermerin öz pul sahələrində `₼` → lokal simvol · `lib/pricing.ts`-də sabit **"Paket 2 · 10 AZN/ay"** (ay = AZ sözü) → i18n açarları (`mkt.pkg.name1..3`, `priceUnit`, `priceUnitMonth`) · müqayisə cədvəlində "Azerbaijani language" üstünlük kimi · ingilis səhifədə "in plain Azerbaijani" · AZ pestisid reyestri bütün dillərə · maşın-tərcümə qüsurları (en "for free join" təkrarı, de qoşa boşluqlar, hu tək-cəm uyuşmazlığı, it söz sırası, hu "A Agradex"→"Az Agradex", 53 pl dırnaq cütü).
+- **Hazelnut fokusu silindi (istifadəçi #5):** marquee çip, hero badge, müqayisə sətri, peer təklifi, modul maketi, rəy — hamısı ümumi məhsula çevrildi.
+- `/yenilikler` → **`/whats-new`** (308 saxlanıldı) + `#imkanlar`/`#canli-demo` → `#features`/`#live-demo` (ingilis slug işi tamamlandı).
+
+**E13 — landing onboarding quiz (istifadəçi #6) ✅ CANLI:** ana səhifədə xəritənin yerində 4 sual (məhsul → ölkə/rayon → hazırkı çətinlik [keçilə bilər] → ehtiyaclar [çoxseçimli]) → şəxsi plan + qeydiyyat CTA. Cavablar `localStorage` → qeydiyyatda hesaba (**migration 0046** `users.onboarding` jsonb), qeydiyyat formunu doldurur, sahə sehrbazını doldurur, və **crop/region-u boş olan mövcud sahələrə tətbiq olunur** (`POST /api/auth/onboarding`, mövcud dəyərin üstünə heç vaxt yazmır). Canlı xəritə `#live-demo` bölməsi kimi rol kartlarının altına köçdü. 49 sətir ×7 dil.
+
+### ⬜ AÇIQ BUG — `FieldsOverviewMap` boş qalır (desktop)
+`app.agradex.com` "Sahələr xəritədə" (Bu gün) və `/fields` sol paneli **boz boş qutu** kimi görünür: canvas düzgün ölçüdə (1016×378), WebGL konteksti sağ, zoom kontrolu və leqenda çəkilir, JS xətası **yoxdur**, `localStorage`-da basemap seçimi yoxdur (default hybrid), remount-da da təkrarlanır. Sahə daxilindəki `FieldMap` və landing `LandingHeroMap` eyni `applyBasemap` ilə **işləyir** — problem yalnız bu komponentdədir. Bu sessiyada iki müdafiə düzəlişi edildi (listener-lər sinxron `draw()`-dan əvvəl qeydiyyatdan keçir + hər `draw` try/catch-dədir, `styledata` əlavə edildi) — **problemi həll etmədi**. Növbəti addım: komponentə müvəqqəti `map.on("error", console.error)` + `draw()` içində log qoyub canlıda hansı mərhələnin işləmədiyini görmək; ehtimal ki `fitBounds`/kamera vəziyyəti və ya `BLANK_STYLE` ilə source əlavəsi. Prioritet: orta (yalnız desktop icmal paneli; sahə xəritələri işləyir).
