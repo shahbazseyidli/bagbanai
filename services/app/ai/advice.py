@@ -204,5 +204,5 @@ async def _notify(conn, field_id: str, org_id: str, field_name: str,
         lines += ["", "Məsləhətlər:"]
         lines += [f"• {r.title}: {r.detail}" for r in result.recommendations]
         lines += ["", "Növbəti addımlar:"] + [f"{i+1}. {s}" for i, s in enumerate(result.next_steps)]
-        lines += ["", DISCLAIMER, "", "— Bağban AI · https://agradex.com"]
+        lines += ["", DISCLAIMER, "", "— Agradex · https://agradex.com"]
         await notify.send_email(owner["email"], title, "\n".join(lines), locale=owner["locale"])

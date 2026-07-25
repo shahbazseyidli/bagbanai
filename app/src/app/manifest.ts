@@ -1,10 +1,10 @@
 import type { MetadataRoute } from "next";
 
-// PWA manifest (T12) — makes Bağban AI installable + launchable standalone for offline field use.
+// PWA manifest (T12) — makes Agradex installable + launchable standalone for offline field use.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Bağban AI",
-    short_name: "Bağban",
+    name: "Agradex",
+    short_name: "Agradex",
     description: "Peyk, hava və AI ilə əkin monitorinqi",
     start_url: "/",
     display: "standalone",

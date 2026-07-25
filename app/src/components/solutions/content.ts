@@ -159,7 +159,7 @@ const fermer: Segment = {
   primaryCta: { label: "1 ay pulsuz başla", href: "/signup" },
   secondaryCta: { label: "Qiymətlərə bax", href: "/pricing" },
   visual: "field",
-  metaTitle: "Fermerlər üçün — Bağban AI",
+  metaTitle: "Fermerlər üçün — Agradex",
   metaDescription:
     "Peyk monitorinqi, AI aqronom məsləhəti, su balansı, gübrə planı və təsərrüfat dəftəri bir yerdə. 1 ay pulsuz, kart lazım deyil.",
   cardBullets: [
@@ -167,7 +167,7 @@ const fermer: Segment = {
     "AI aqronom: risklər, tövsiyələr, foto ilə diaqnoz",
     "Xərc/gəlir dəftəri və sahə-üzrə mənfəət",
   ],
-  valueTitle: "Niyə fermerlər Bağban AI seçir",
+  valueTitle: "Niyə fermerlər Agradex seçir",
   valueSub:
     "Beş sadə səbəb — hər biri gündəlik işinizdə birbaşa qarşılığı olan şeydir, ekranda gözəl görünən qrafik deyil.",
   valuePoints: [
@@ -307,7 +307,7 @@ const fermer: Segment = {
   twoCol: {
     title: "Əvvəl və sonra",
     sub: "Eyni təsərrüfat, eyni adamlar — fərq yalnız məlumatın nə vaxt və hansı formada əlinizə çatmasındadır.",
-    leftTitle: "Bağban AI olmadan",
+    leftTitle: "Agradex olmadan",
     leftItems: [
       "Problemi ancaq tarlaya girəndə, çox vaxt yayılandan sonra görürsünüz",
       "Suvarma və gübrə qərarları «keçən il belə etmişdik» prinsipi ilə verilir",
@@ -316,7 +316,7 @@ const fermer: Segment = {
       "Laboratoriya, gübrə satıcısı və aqronom tanış-tanış vasitəsilə axtarılır",
       "Dərmandan sonra neçə gün keçdiyi yaddaşda saxlanılır",
     ],
-    rightTitle: "Bağban AI ilə",
+    rightTitle: "Agradex ilə",
     rightItems: [
       "Zəifləyən zona xəritədə hələ kiçik ləkə ikən görünür",
       "Su balansı, hava proqnozu və indeks trendi qərarı əsaslandırır",
@@ -463,7 +463,7 @@ const laboratoriya: Segment = {
   primaryCta: { label: "Pulsuz qoşul", href: "/signup" },
   secondaryCta: { label: "Necə işləyir", href: "#nece-isleyir" },
   visual: "lab",
-  metaTitle: "Laboratoriyalar üçün — Bağban AI",
+  metaTitle: "Laboratoriyalar üçün — Agradex",
   metaDescription:
     "Torpaq nümunə xidmətinizi fermerlərə çatdırın: pulsuz profil, region üzrə kataloq görünürlüyü, birbaşa müraciət və nəticənin AI məsləhətinə inteqrasiyası.",
   cardBullets: [
@@ -716,7 +716,7 @@ const konsultant: Segment = {
   primaryCta: { label: "Pulsuz qoşul", href: "/signup" },
   secondaryCta: { label: "Necə qazanırsan", href: "#nece-isleyir" },
   visual: "clients",
-  metaTitle: "Aqronomlar üçün — Bağban AI",
+  metaTitle: "Aqronomlar üçün — Agradex",
   metaDescription:
     "Peşəkar aqronom kimi çox müştərinin sahələrini bir yerdən izləyin, hazır AI analizi ilə sürətlənin, mövsüm nəticəsini hesabatla sübut edin. Aqronomlar üçün pulsuz.",
   cardBullets: [
@@ -981,7 +981,7 @@ const techizatci: Segment = {
   primaryCta: { label: "Pulsuz qoşul", href: "/signup" },
   secondaryCta: { label: "Necə işləyir", href: "#nece-isleyir" },
   visual: "catalog",
-  metaTitle: "Təchizatçılar üçün — Bağban AI",
+  metaTitle: "Təchizatçılar üçün — Agradex",
   metaDescription:
     "Toxum, gübrə, dərman və texnika kataloqunuzu fermerlərə çatdırın: pulsuz kataloq, region üzrə hədəflənmiş görünürlük, birbaşa tələb, komissiyasız.",
   cardBullets: [
@@ -1253,7 +1253,7 @@ export const INDEX_COPY = {
   eyebrow: "həllər",
   title: "Hər rol üçün ayrı həll",
   lead:
-    "Bağban AI tək-tərəfli bir alət deyil: fermer sahəsini izləyir, laboratoriya nümunə götürür, aqronom tövsiyə verir, təchizatçı isə materialı çatdırır — hamısı eyni platformada, eyni sahə məlumatı ətrafında. Rolunuzu seçin və sizin üçün nə dəyişdiyini görün.",
+    "Agradex tək-tərəfli bir alət deyil: fermer sahəsini izləyir, laboratoriya nümunə götürür, aqronom tövsiyə verir, təchizatçı isə materialı çatdırır — hamısı eyni platformada, eyni sahə məlumatı ətrafında. Rolunuzu seçin və sizin üçün nə dəyişdiyini görün.",
   pricingTitle: "Kim ödəyir?",
   pricingBody:
     "Yalnız fermerlər. Onlar da 1 ay tam pulsuz sınaqla başlayır — kart lazım deyil, sınaq bitəndə avtomatik pul çıxılmır. Laboratoriya, aqronom və təchizatçılar üçün platforma tam pulsuzdur: qoşulma haqqı, abunə və satış komissiyası yoxdur.",

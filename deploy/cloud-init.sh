@@ -1,5 +1,5 @@
 #!/bin/bash
-# Hetzner Cloud user-data: self-deploy Bağban AI on first boot (no SSH needed).
+# Hetzner Cloud user-data: self-deploy Agradex on first boot (no SSH needed).
 # Paste this into the "Cloud config / user data" box when creating the server.
 # TLS is provided by Cloudflare at the edge (proxied A records) → origin serves HTTP :80.
 set -eux

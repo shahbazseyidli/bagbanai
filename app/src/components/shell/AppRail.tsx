@@ -98,7 +98,7 @@ export default function AppRail() {
     >
       <Link
         href="/"
-        aria-label={`Bağban AI — ${t("app.shell.appRail.homeAria")}`}
+        aria-label={`Agradex — ${t("app.shell.appRail.homeAria")}`}
         className="mb-2 grid h-10 w-10 shrink-0 place-items-center rounded-xl text-[#08331F]"
         style={{ background: "linear-gradient(160deg, var(--mint), var(--green))" }}
       >

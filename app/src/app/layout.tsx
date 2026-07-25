@@ -23,10 +23,10 @@ const geologica = Geologica({
 });
 
 export const metadata: Metadata = {
-  title: "Bağban AI",
+  title: "Agradex",
   description:
     "Peyk, hava və süni intellekt ilə Azərbaycan fermerləri üçün məhsul monitorinqi platforması.",
-  appleWebApp: { capable: true, title: "Bağban", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "Agradex", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {

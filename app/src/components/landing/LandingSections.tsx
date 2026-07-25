@@ -473,7 +473,7 @@ export function WhyUs() {
                   Farmbrite
                 </th>
                 <th className="border-b border-line bg-panel-2 px-4 py-3 text-center text-[13px] font-semibold text-grass">
-                  Bağban AI
+                  Agradex
                 </th>
               </tr>
             </thead>

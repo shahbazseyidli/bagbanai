@@ -1,4 +1,4 @@
-// Bağban AI service worker (T12) — installable + offline field use.
+// Agradex service worker (T12) — installable + offline field use.
 // Strategy: cache-first for static assets + satellite tiles; network-first (with cache fallback)
 // for API GETs and navigations, so the app shell and last-seen data stay usable offline.
 const CACHE = "bagban-v1";

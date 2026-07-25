@@ -1,4 +1,4 @@
-# Deploy — Bağban AI on Hetzner (agradex.com)
+# Deploy — Agradex on Hetzner (agradex.com)
 
 Self-hosted, no Supabase. Postgres+PostGIS, FastAPI (api), Next.js (web), optional n8n +
 TiTiler — all via Docker Compose, fronted by the host nginx with Let's Encrypt TLS.

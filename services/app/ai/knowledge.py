@@ -84,7 +84,7 @@ async def resolve_zone(lat: float, lon: float, region_hint: Optional[str] = None
         js = await get_json(
             f"{base}/reverse",
             params={"lat": lat, "lon": lon, "format": "jsonv2", "zoom": 8, "accept-language": "az"},
-            headers={"User-Agent": "BagbanAI/1.0 (+https://agradex.com)"},
+            headers={"User-Agent": "Agradex/1.0 (+https://agradex.com)"},
             timeout=8.0, retries=1)
         addr = (js or {}).get("address", {}) or {}
         rayon = (addr.get("county") or addr.get("state_district")

@@ -1,4 +1,4 @@
-"""Bağban AI API (FastAPI). Multi-tenant, own JWT auth, server-side gating (spec §22)."""
+"""Agradex API (FastAPI). Multi-tenant, own JWT auth, server-side gating (spec §22)."""
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -20,7 +20,7 @@ async def lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="Bağban AI API", version="0.1.0", lifespan=lifespan)
+    app = FastAPI(title="Agradex API", version="0.1.0", lifespan=lifespan)
 
     app.add_middleware(
         CORSMiddleware,

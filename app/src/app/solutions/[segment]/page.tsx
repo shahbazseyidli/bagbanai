@@ -18,7 +18,7 @@ export async function generateMetadata({
   const { segment } = await params;
   const locale = await getServerLocale();
   const seg = getSegment(segment, locale);
-  if (!seg) return { title: "Bağban AI" };
+  if (!seg) return { title: "Agradex" };
   return {
     title: seg.metaTitle,
     description: seg.metaDescription,

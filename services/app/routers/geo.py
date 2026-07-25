@@ -129,7 +129,7 @@ async def _region(lat: float, lon: float, user_id: str) -> dict:
             resp = await client.get(
                 "https://nominatim.openstreetmap.org/reverse",
                 params={"lat": lat, "lon": lon, "format": "jsonv2", "accept-language": "az"},
-                headers={"User-Agent": "BagbanAI/1.0 (agradex.com)"},
+                headers={"User-Agent": "Agradex/1.0 (agradex.com)"},
             )
         resp.raise_for_status()
         addr = resp.json().get("address") or {}

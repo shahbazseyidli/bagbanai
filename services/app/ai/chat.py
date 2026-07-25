@@ -1,4 +1,4 @@
-"""Per-field Bağban AI chatbot. Context = the field's NASA data + latest advice +
+"""Per-field Agradex chatbot. Context = the field's NASA data + latest advice +
 prior conversation. Every turn is stored in public.ai_chat_messages so later turns
 (and analyses) stay aware of the history."""
 from __future__ import annotations
@@ -12,7 +12,7 @@ from .context import build_field_context
 # Persona is language-neutral; the reply language is decided per turn by _lang_directive so a farmer
 # gets answers in whatever language they write (Phase 4 — 7 locales).
 SYSTEM = (
-    "Sən Bağban AI — fermerlər üçün sahə üzrə aqronom köməkçisən. Sənə həmin "
+    "Sən Agradex — fermerlər üçün sahə üzrə aqronom köməkçisən. Sənə həmin "
     "sahənin peyk indeksləri, məhsul məlumatı, görülmüş işlər və son AI məsləhəti kontekst "
     "kimi verilir. Suallara BU kontekstə əsaslanaraq, qısa və praktiki "
     "cavab ver. Bilmədiyini uydurma; məlumat çatışmırsa bunu de. Fermerə birbaşa müraciət et."

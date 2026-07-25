@@ -40,7 +40,7 @@ export default function LandingFooter() {
         <div className="grid gap-6 pt-8 text-[13.5px] min-[920px]:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div>
             <div className="mb-2.5 flex items-center gap-2 font-display text-[19px] font-bold text-white">
-              <Leaf className="h-6 w-6 text-mint" aria-hidden="true" /> Bağban AI
+              <Leaf className="h-6 w-6 text-mint" aria-hidden="true" /> Agradex
             </div>
             <p className="text-[13px] text-[#9cc3b1]">
               {t("mkt.footer.tagline")}
@@ -85,7 +85,7 @@ export default function LandingFooter() {
         </div>
 
         <p className="mt-8 border-t border-white/10 pt-5 text-[12px] text-[#7fae98]">
-          © {new Date().getFullYear()} Bağban AI · agradex.com
+          © {new Date().getFullYear()} Agradex · agradex.com
         </p>
       </div>
     </footer>

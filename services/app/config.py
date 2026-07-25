@@ -40,12 +40,12 @@ class Settings(BaseSettings):
     smtp_port: int = 587
     smtp_user: str = ""
     smtp_password: str = ""
-    smtp_from: str = "Bağban AI <no-reply@agradex.com>"
+    smtp_from: str = "Agradex <no-reply@agradex.com>"
 
     # Email via Resend (preferred over SMTP) + OTP signup verification (U3). Empty key → the app
     # degrades gracefully: signups auto-verify (never blocked) and emails just log.
     resend_api_key: str = ""
-    email_from: str = "Bağban AI <no-reply@agradex.com>"
+    email_from: str = "Agradex <no-reply@agradex.com>"
     otp_ttl_min: int = 15
 
     # Telegram one-way alert bot (U4 / T22). Empty token → the channel stays dormant; in-app

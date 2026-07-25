@@ -425,7 +425,7 @@ export function getGuideIndexCopy(locale?: Locale) {
 /** Hub-level copy for the /guide index (Server Component — plain data, no t()). */
 export const GUIDE_INDEX_COPY = {
   eyebrow: "necə başlamalı",
-  title: "Bağban AI ilə addım-addım",
+  title: "Agradex ilə addım-addım",
   lead:
     "Yeni başlayırsınız? Bu qısa bələdçilər sahəni qeyd etməkdən mövsüm hesabatına qədər bütün əsas addımları göstərir. Hər biri 2–3 dəqiqəlik oxunuşdur və real ekranları təsvir edir — nə vaxt hansı düyməyə basacağınızı bilirsiniz.",
 } as const;

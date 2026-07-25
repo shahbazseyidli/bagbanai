@@ -31,28 +31,28 @@ def _set_cookie(resp: Response, token: str) -> None:
 
 
 # Localized OTP email (subject, body). Body has {code} and {ttl}. Sent from the locale's persona
-# (notify.SENDERS). Brand "Bağban AI" kept in every language.
+# (notify.SENDERS). Brand "Agradex" kept in every language.
 _OTP_EMAIL: dict[str, tuple[str, str]] = {
-    "az": ("Bağban AI — təsdiq kodu",
-           "Bağban AI hesabınızı təsdiqləmək üçün kod: {code}\n\n"
+    "az": ("Agradex — təsdiq kodu",
+           "Agradex hesabınızı təsdiqləmək üçün kod: {code}\n\n"
            "Kod {ttl} dəqiqə ərzində etibarlıdır. Bu sorğunu siz etməmisinizsə, məktubu nəzərə almayın."),
-    "en": ("Bağban AI — verification code",
-           "Your code to verify your Bağban AI account: {code}\n\n"
+    "en": ("Agradex — verification code",
+           "Your code to verify your Agradex account: {code}\n\n"
            "The code is valid for {ttl} minutes. If you didn't request this, please ignore this email."),
-    "tr": ("Bağban AI — doğrulama kodu",
-           "Bağban AI hesabınızı doğrulamak için kod: {code}\n\n"
+    "tr": ("Agradex — doğrulama kodu",
+           "Agradex hesabınızı doğrulamak için kod: {code}\n\n"
            "Kod {ttl} dakika geçerlidir. Bu isteği siz yapmadıysanız, bu e-postayı dikkate almayın."),
-    "de": ("Bağban AI — Bestätigungscode",
-           "Ihr Code zur Bestätigung Ihres Bağban AI-Kontos: {code}\n\n"
+    "de": ("Agradex — Bestätigungscode",
+           "Ihr Code zur Bestätigung Ihres Agradex-Kontos: {code}\n\n"
            "Der Code ist {ttl} Minuten gültig. Falls Sie dies nicht angefordert haben, ignorieren Sie diese E-Mail."),
-    "hu": ("Bağban AI — megerősítő kód",
-           "Kód a Bağban AI-fiókja megerősítéséhez: {code}\n\n"
+    "hu": ("Agradex — megerősítő kód",
+           "Kód a Agradex-fiókja megerősítéséhez: {code}\n\n"
            "A kód {ttl} percig érvényes. Ha nem Ön kérte, hagyja figyelmen kívül ezt az e-mailt."),
-    "it": ("Bağban AI — codice di verifica",
-           "Il tuo codice per verificare l'account Bağban AI: {code}\n\n"
+    "it": ("Agradex — codice di verifica",
+           "Il tuo codice per verificare l'account Agradex: {code}\n\n"
            "Il codice è valido per {ttl} minuti. Se non l'hai richiesto, ignora questa email."),
-    "pl": ("Bağban AI — kod weryfikacyjny",
-           "Twój kod weryfikacji konta Bağban AI: {code}\n\n"
+    "pl": ("Agradex — kod weryfikacyjny",
+           "Twój kod weryfikacji konta Agradex: {code}\n\n"
            "Kod jest ważny {ttl} minut. Jeśli to nie Ty, zignoruj tę wiadomość."),
 }
 

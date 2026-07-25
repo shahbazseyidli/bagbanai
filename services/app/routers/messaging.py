@@ -74,7 +74,7 @@ async def telegram_webhook(
                        set chat_id=$1, verified=true, opt_in=true where link_token=$2
                        returning user_id""", str(chat), link)
             if r:
-                await telegram.send(chat, "✅ Bağban AI bildirişləri qoşuldu. Sahələriniz üçün "
+                await telegram.send(chat, "✅ Agradex bildirişləri qoşuldu. Sahələriniz üçün "
                                           "risk və hava xəbərdarlıqlarını burada alacaqsınız. Dayandırmaq: /stop")
                 return {"ok": True}
         await telegram.send(chat, "Bağlantı kodu tapılmadı. Tətbiqdəki “Telegram-a qoşul” düyməsindən keçin.")

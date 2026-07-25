@@ -2,7 +2,7 @@
 
 // C6 — hazelnut / orchard segment landing page.
 //
-// Bağban AI's sharpest differentiator: the two best-known satellite farm tools are built for annual
+// Agradex's sharpest differentiator: the two best-known satellite farm tools are built for annual
 // ROW CROPS (wheat, maize), while a hazelnut orchard is a PERENNIAL with a canopy that behaves very
 // differently — and Azerbaijani nuts are not their focus. This page argues that case and grounds
 // every capability claim in something the product genuinely ships:

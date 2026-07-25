@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-shot deploy for Bağban AI on a fresh Hetzner host (Ubuntu 22.04/24.04 + Docker).
+# One-shot deploy for Agradex on a fresh Hetzner host (Ubuntu 22.04/24.04 + Docker).
 # Run from the repo root:  bash deploy/bootstrap.sh
 # Idempotent: safe to re-run (migrations tracked; seeds upsert).
 set -euo pipefail

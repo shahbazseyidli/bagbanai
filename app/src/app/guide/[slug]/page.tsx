@@ -36,9 +36,9 @@ export async function generateMetadata({
   const { slug } = await params;
   const locale = await getServerLocale();
   const g = getGuide(slug, locale);
-  if (!g) return { title: "Bələdçi — Bağban AI" };
+  if (!g) return { title: "Bələdçi — Agradex" };
   return {
-    title: `${g.title} — Bağban AI bələdçisi`,
+    title: `${g.title} — Agradex bələdçisi`,
     description: g.summary,
     alternates: { canonical: `/guide/${g.slug}` },
   };

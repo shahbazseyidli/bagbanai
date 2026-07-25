@@ -202,8 +202,8 @@ async def _deliver_email(conn, org_id: str, title: str, body: str, severity: str
                join public.organization_members m on m.user_id = u.id
                where m.org_id=$1::uuid and m.status='active'
                  and u.email is not null and u.email_alerts is true""", org_id)
-        subject = f"[Bağban AI] {title}"
-        text = (f"{title}\n\n{body}\n\n— Bağban AI\n"
+        subject = f"[Agradex] {title}"
+        text = (f"{title}\n\n{body}\n\n— Agradex\n"
                 "Bu bildirişləri Parametrlərdə (Daha çox) söndürə bilərsiniz.")
         for r in rows:
             try:
