@@ -18,6 +18,9 @@ class Settings(BaseSettings):
 
     # URLs
     next_public_app_url: str = "http://localhost:3000"
+    # The app host (app.agradex.com) from the Phase-2 panel split — used to build public links in
+    # emails (next_public_app_url is the internal container URL in prod, unusable for email).
+    next_public_panel_host: str = ""
     internal_api_token: str = "change-me"
 
     # Satellite / weather / AI / storage (used in later steps)

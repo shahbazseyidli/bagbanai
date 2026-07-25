@@ -68,6 +68,16 @@ async def _issue_otp(conn, user_id: str, email: str, locale: str | None = None) 
         email, subject, tmpl.format(code=code, ttl=settings.otp_ttl_min), locale=locale)
 
 
+async def _send_welcome(conn, user_id: str, full_name) -> None:
+    """Send the role-appropriate welcome email once (idempotent via email_sends). Best-effort."""
+    name = (full_name or "").strip().split(" ")[0] if full_name else ""
+    try:
+        from ..ai.emails import send_template
+        await send_template(conn, user_id, "welcome", {"name": name})
+    except Exception:  # noqa: BLE001 — welcome email must never block signup/verify
+        pass
+
+
 @router.post("/signup")
 async def signup(body: SignupIn, response: Response):
     """Create the account. If email is configured, issue an OTP and return {needs_verification:true};
@@ -87,6 +97,8 @@ async def signup(body: SignupIn, response: Response):
         if notify.email_configured():
             await _issue_otp(conn, uid, row["email"], row["locale"])
             return {"needs_verification": True, "email": row["email"]}
+        # No email transport → auto-verified; still send the welcome (no-op if email is off).
+        await _send_welcome(conn, uid, row["full_name"])
     _set_cookie(response, create_token(uid))
     return {"needs_verification": False, "user": UserOut(
         id=uid, email=row["email"], full_name=row["full_name"], locale=row["locale"],
@@ -121,6 +133,7 @@ async def verify_otp(body: VerifyOtpIn, response: Response):
             await conn.execute(
                 """update public.users set email_verified=true, otp_code=null,
                           otp_expires_at=null, otp_attempts=0 where id=$1::uuid""", row["id"])
+            await _send_welcome(conn, str(row["id"]), row["full_name"])
     _set_cookie(response, create_token(str(row["id"])))
     return {"ok": True, "user": UserOut(id=str(row["id"]), email=row["email"],
             full_name=row["full_name"], locale=row["locale"], is_admin=row["is_admin"],
@@ -171,6 +184,10 @@ async def me(user_id: str = Depends(get_current_user_id)):
         row = await conn.fetchrow(
             "select id, email, full_name, locale, is_admin, role, country, region "
             "from public.users where id=$1::uuid", user_id)
+        # Activity signal for lifecycle/re-engagement emails; throttled to ~1/hour to avoid churn.
+        await conn.execute(
+            "update public.users set last_seen_at=now() where id=$1::uuid "
+            "and (last_seen_at is null or last_seen_at < now() - interval '1 hour')", user_id)
     if not row:
         raise HTTPException(status_code=401, detail="unauthorized")
     return UserOut(id=str(row["id"]), email=row["email"], full_name=row["full_name"],
