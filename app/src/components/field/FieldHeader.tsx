@@ -91,7 +91,7 @@ function cachedGet<T>(key: string, run: () => Promise<T | null>): Promise<T | nu
 }
 
 // The first wellness read of the day COMPUTES the score (~8 queries server-side) and stores it.
-// WellnessCard on the İcmal tab asks for exactly the same resource on mount, so the header waits a
+// FieldPulse on the status section asks for exactly the same resource on mount, so the header waits a
 // beat and usually reads the row that request just stored, instead of racing a second computation.
 // The pill arriving a second late costs nothing.
 const SCORE_DELAY_MS = 1200;

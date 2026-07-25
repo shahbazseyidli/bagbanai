@@ -5,9 +5,14 @@ import { useParams, usePathname, useRouter, useSearchParams } from "next/navigat
 import { Settings } from "lucide-react";
 import { api, azError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { t, type I18nKey } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
+import {
+  GROUP_OF, SECTION_GROUPS, groupSections, resolveSection, sectionOf, type SectionKey,
+} from "@/lib/fieldSections";
 import { ErrorNote, Spinner } from "@/components/ui";
-import OverviewTab from "@/components/field/OverviewTab";
+import FieldPulse from "@/components/field/overview/FieldPulse";
+import SatelliteGlance from "@/components/field/overview/SatelliteGlance";
+import SignalsActions from "@/components/field/overview/SignalsActions";
 import SatelliteTab from "@/components/field/SatelliteTab";
 import FieldMapSheet from "@/components/field/FieldMapSheet";
 import { useUiV2 } from "@/lib/uiFlag";
@@ -26,7 +31,6 @@ import SeasonTab from "@/components/field/SeasonTab";
 import DocumentsTab from "@/components/field/DocumentsTab";
 import WeatherHistoryTab from "@/components/field/WeatherHistoryTab";
 import HarvestTab from "@/components/field/HarvestTab";
-import WellnessCard from "@/components/field/WellnessCard";
 import SeasonCompareChart from "@/components/field/SeasonCompareChart";
 import ZonesTab from "@/components/field/ZonesTab";
 import ShareButton from "@/components/field/ShareButton";
@@ -34,45 +38,6 @@ import BackfillCard from "@/components/field/BackfillCard";
 import RainNowcast from "@/components/field/RainNowcast";
 import FieldHeader from "@/components/field/FieldHeader";
 import type { FieldDetail } from "@/lib/types";
-
-type TabKey =
-  | "overview" | "sentinel2" | "nasa" | "weather" | "zones" | "ai" | "fertilizer" | "photos" | "metadata"
-  | "scouting" | "tasks" | "operations" | "yields" | "harvest" | "soil" | "season" | "documents";
-
-const TABS: { key: TabKey; labelKey: I18nKey }[] = [
-  { key: "overview", labelKey: "field.tab.overview" },
-  { key: "sentinel2", labelKey: "field.tab.sentinel2" },
-  { key: "nasa", labelKey: "field.tab.nasa" },
-  { key: "weather", labelKey: "field.tab.weather" },
-  { key: "zones", labelKey: "field.tab.zones" },
-  { key: "ai", labelKey: "field.tab.ai" },
-  { key: "fertilizer", labelKey: "field.tab.fertilizer" },
-  { key: "photos", labelKey: "field.tab.photos" },
-  { key: "metadata", labelKey: "field.tab.metadata" },
-  { key: "season", labelKey: "field.tab.season" },
-  { key: "soil", labelKey: "field.tab.soil" },
-  { key: "documents", labelKey: "field.tab.documents" },
-  { key: "scouting", labelKey: "field.tab.scouting" },
-  { key: "tasks", labelKey: "field.tab.tasks" },
-  { key: "operations", labelKey: "field.tab.operations" },
-  { key: "yields", labelKey: "field.tab.yields" },
-  { key: "harvest", labelKey: "field.tab.harvest" },
-];
-
-// D2.3 — collapse the flat tabs into 3 farmer intents. Primary choice is one of 3; each group
-// reveals its own tabs as a secondary chip row. (HYBRID_PLAN W4 added fertilizer/photos/soil.)
-type Group = "vaziyyet" | "isler" | "melumat";
-const GROUPS: { key: Group; labelKey: I18nKey; tabs: TabKey[] }[] = [
-  { key: "vaziyyet", labelKey: "app.fieldDetail.groupVaziyyet", tabs: ["overview", "sentinel2", "nasa", "weather", "zones"] },
-  { key: "isler", labelKey: "app.fieldDetail.groupIsler", tabs: ["ai", "photos", "fertilizer", "scouting", "tasks", "operations", "yields", "harvest"] },
-  { key: "melumat", labelKey: "app.fieldDetail.groupMelumat", tabs: ["metadata", "season", "soil", "documents"] },
-];
-const GROUP_OF: Record<TabKey, Group> = {
-  overview: "vaziyyet", sentinel2: "vaziyyet", nasa: "vaziyyet", weather: "vaziyyet", zones: "vaziyyet",
-  ai: "isler", photos: "isler", fertilizer: "isler", scouting: "isler", tasks: "isler",
-  operations: "isler", yields: "isler", harvest: "isler",
-  metadata: "melumat", season: "melumat", soil: "melumat", documents: "melumat",
-};
 
 export default function FieldDetailPage() {
   // useSearchParams (tab state) requires a Suspense boundary under the app router.
@@ -95,9 +60,8 @@ function FieldDetailInner() {
   // through tabs instead of leaving the field (D0.3).
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  const urlTab = searchParams.get("tab");
-  const tab: TabKey = TABS.some((tb) => tb.key === urlTab) ? (urlTab as TabKey) : "overview";
-  function setTab(key: TabKey) {
+  const tab: SectionKey = resolveSection(searchParams.get("tab"));
+  function setTab(key: SectionKey) {
     const sp = new URLSearchParams(searchParams.toString());
     sp.set("tab", key);
     router.push(`${pathname}?${sp.toString()}`, { scroll: false });
@@ -272,15 +236,17 @@ function FieldDetailInner() {
   );
 
   const activeGroup = GROUP_OF[tab];
-  const groupTabs = GROUPS.find((g) => g.key === activeGroup)!.tabs;
+  const groupTabs = groupSections(activeGroup);
+  // Above xl the left panel carries this navigation (FieldSectionMenu); below xl the panel does not
+  // exist, so the chip rows stay. The two are never on screen together.
   const tabNav = (
-    <div className="space-y-2">
+    <div className="space-y-2 xl:hidden">
       {/* Primary: 3 farmer intents */}
       <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
-        {GROUPS.map((g) => (
+        {SECTION_GROUPS.map((g) => (
           <button
             key={g.key}
-            onClick={() => setTab(g.tabs[0])}
+            onClick={() => setTab(g.sections[0].key)}
             aria-current={activeGroup === g.key}
             className={`min-h-11 flex-1 rounded-lg px-3 py-2 text-sm font-bold ${
               activeGroup === g.key ? "bg-white text-emerald-800 shadow-sm" : "text-slate-600"
@@ -293,8 +259,8 @@ function FieldDetailInner() {
       {/* Secondary: this group's tabs (hidden when the group has just one) */}
       {groupTabs.length > 1 && (
         <div className="flex flex-nowrap gap-1 overflow-x-auto border-b border-slate-200">
-          {groupTabs.map((tk) => {
-            const tb = TABS.find((x) => x.key === tk)!;
+          {groupTabs.map((sc) => {
+            const tk = sc.key;
             return (
               <button
                 key={tk}
@@ -305,7 +271,7 @@ function FieldDetailInner() {
                     : "border-transparent text-slate-600 hover:text-slate-800"
                 }`}
               >
-                {t(tb.labelKey)}
+                {t(sc.labelKey)}
               </button>
             );
           })}
@@ -316,17 +282,20 @@ function FieldDetailInner() {
 
   const tabContent = (
     <div>
-      {tab === "overview" && (
-        <div className="space-y-6">
+      {/* Above xl the chip rows are hidden, so the content column has to say which section is open. */}
+      <h2 className="mb-3 hidden font-display text-xl font-bold text-ink xl:block">
+        {t(sectionOf(tab).labelKey)}
+      </h2>
+      {tab === "status" && (
+        <div className="space-y-4">
           <RainNowcast fieldId={field.id} />
-          <WellnessCard fieldId={field.id} />
-          <OverviewTab field={field} onNavigate={(x) => setTab(x)} compact={v2} />
-          <SeasonCompareChart fieldId={field.id} />
+          <FieldPulse field={field} />
+          <SatelliteGlance field={field} onOpenSatellite={() => setTab("satellite")} />
+          <SignalsActions fieldId={field.id} onOpenAnalysis={() => setTab("analysis")} />
           <ShareButton fieldId={field.id} />
         </div>
       )}
-      {tab === "sentinel2" && <SatelliteTab field={field} sensor="S2" />}
-      {tab === "nasa" && <SatelliteTab field={field} sensor="HLS" />}
+      {tab === "satellite" && <SatelliteTab field={field} sensor="S2" />}
       {tab === "weather" && <WeatherHistoryTab fieldId={field.id} />}
       {tab === "zones" && (
         <div className="space-y-6">
@@ -335,7 +304,7 @@ function FieldDetailInner() {
           <BackfillCard fieldId={field.id} forZones />
         </div>
       )}
-      {tab === "ai" && (
+      {tab === "analysis" && (
         <div className="space-y-6">
           <AiTab fieldId={field.id} />
           <PeerSuggest fieldId={field.id} />
@@ -347,7 +316,12 @@ function FieldDetailInner() {
       {tab === "fertilizer" && <FertilizerTab fieldId={field.id} />}
       {tab === "photos" && <PhotosTab fieldId={field.id} />}
       {tab === "soil" && <SoilLabUpload fieldId={field.id} />}
-      {tab === "season" && <SeasonTab fieldId={field.id} />}
+      {tab === "season" && (
+        <div className="space-y-6">
+          <SeasonCompareChart fieldId={field.id} />
+          <SeasonTab fieldId={field.id} />
+        </div>
+      )}
       {tab === "documents" && <DocumentsTab fieldId={field.id} />}
       {tab === "metadata" && <MetadataTab fieldId={field.id} />}
       {tab === "scouting" && <ScoutingTab fieldId={field.id} />}
@@ -369,7 +343,7 @@ function FieldDetailInner() {
             // photo-diagnose card (D5.4+ guided capture). Content is in normal flow now, so a plain
             // scrollIntoView reaches it.
             const sp = new URLSearchParams(searchParams.toString());
-            sp.set("tab", "ai");
+            sp.set("tab", "analysis");
             router.push(`${pathname}?${sp.toString()}`, { scroll: false });
             setTimeout(
               () => document.getElementById("photo-diagnose")?.scrollIntoView({ behavior: "smooth", block: "start" }),

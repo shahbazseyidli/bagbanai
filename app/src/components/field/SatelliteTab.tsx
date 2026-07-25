@@ -1,6 +1,7 @@
 "use client";
 
-// Per-sensor satellite view — one instance for Sentinel-2 (10m) and one for NASA HLS (30m),
+// The satellite section. Only Sentinel-2 is exposed to the farmer (E14); HLS still feeds the
+// regional benchmark, A8 backfill and A6 zones in the data layer, invisibly.
 // each its OWN top-level tab (no in-tab sensor toggle anymore). Shows that sensor's raster map
 // + scene timeline + two-date compare + time series + current-indicator card. If the sensor has
 // no data yet it shows a focused "still preparing / see the other tab" note instead of silently
@@ -16,7 +17,7 @@ import { t } from "@/lib/i18n";
 import { DisplayMap, CompareMap } from "@/components/FieldMap";
 import { Placeholder, Spinner } from "@/components/ui";
 import {
-  type Sensor, SENSOR_META, SENSOR_PARAM, sensorFamily, indexAvailable, SENSOR_INDICES,
+  type Sensor, sensorMeta, SENSOR_PARAM, sensorFamily, indexAvailable, SENSOR_INDICES,
   AREA_MIN_S2, AREA_MIN_HLS,
 } from "@/lib/sensors";
 import {
@@ -274,7 +275,8 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
       if (sensorFamily(p.sensor) !== sensor) continue;
       const row = byDate.get(p.date) ?? { date: p.date };
       row.mean = p.mean;
-      if (sensor === "HLS") { row.p10 = p.p10 ?? null; row.p90 = p.p90 ?? null; }
+      row.p10 = p.p10 ?? null;
+      row.p90 = p.p90 ?? null;
       byDate.set(p.date, row);
     }
     const hasBench = Object.keys(benchmark).length > 0;
@@ -313,8 +315,7 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
     return hi > lo ? `${lo.toFixed(3)},${hi.toFixed(3)}` : null;
   }, [contrast, sceneA, sceneB]);
   const cmpRange = parseRescale(cmpRescale ?? fixedRescale);
-  const meta = SENSOR_META[sensor];
-  const otherTab = sensor === "S2" ? "NASA (30m)" : "Sentinel-2 (10m)";
+  const meta = sensorMeta(sensor);
 
   return (
     <div className="space-y-6">
@@ -394,12 +395,11 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
                     <Area type="monotone" dataKey="benchBand" name={t("app.field.satelliteTab.regionSpread")}
                       fill="#fef3c7" stroke="none" connectNulls isAnimationActive={false} />
                   )}
-                  {sensor === "HLS" && (
-                    <>
-                      <Line type="monotone" dataKey="p90" name="p90" stroke="#a7f3d0" strokeWidth={1} dot={false} connectNulls />
-                      <Line type="monotone" dataKey="p10" name="p10" stroke="#a7f3d0" strokeWidth={1} dot={false} connectNulls />
-                    </>
-                  )}
+                  {/* In-field p10–p90 spread. Written for every sensor by persist_scene, so this is
+                      no longer gated on HLS — that gate would have deleted the band from the UI the
+                      moment NASA stopped being shown. */}
+                  <Line type="monotone" dataKey="p90" name="p90" stroke="#a7f3d0" strokeWidth={1} dot={false} connectNulls />
+                  <Line type="monotone" dataKey="p10" name="p10" stroke="#a7f3d0" strokeWidth={1} dot={false} connectNulls />
                   {hasBenchmark && (
                     <Line type="monotone" dataKey="benchmark" name={t("app.field.satelliteTab.regionMean")} stroke="#f59e0b"
                       strokeWidth={1.5} strokeDasharray="4 3" dot={false} connectNulls />
@@ -412,11 +412,9 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
                 <span className="inline-flex items-center gap-1">
                   <span className="inline-block h-0.5 w-4" style={{ background: meta.color }} /> {meta.short}
                 </span>
-                {sensor === "HLS" && (
-                  <span className="inline-flex items-center gap-1">
-                    <span className="inline-block h-0.5 w-4" style={{ background: "#a7f3d0" }} /> {t("app.field.satelliteTab.inFieldMinMax")}
-                  </span>
-                )}
+                <span className="inline-flex items-center gap-1">
+                  <span className="inline-block h-0.5 w-4" style={{ background: "#a7f3d0" }} /> {t("app.field.satelliteTab.inFieldMinMax")}
+                </span>
                 {hasBenchmark && (
                   <>
                     <span className="inline-flex items-center gap-1">
@@ -503,9 +501,7 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
                     {preparing ? `${meta.label} ${t("app.field.satelliteTab.preparing")}` : `${meta.label} ${t("app.field.satelliteTab.noDataYet")}`}
                   </p>
                   <p className="mt-1 text-xs text-emerald-700">
-                    {sensor === "S2"
-                      ? `${t("app.field.satelliteTab.s2PreparingPre")}${otherTab}${t("app.field.satelliteTab.s2PreparingPost")}`
-                      : `${t("app.field.satelliteTab.hlsNoRasterPre")}${otherTab}${t("app.field.satelliteTab.hlsNoRasterPost")}`}
+                    {t("app.field.glance.preparing")}
                   </p>
                 </div>
               ) : scenes.length > 0 ? (

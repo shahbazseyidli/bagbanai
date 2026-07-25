@@ -68,7 +68,7 @@ export default function OnboardingChecklist() {
           { key: "data", label: t("onb.check.data"), done: hasData,
             href: first ? `/fields/${first.id}` : undefined, hint: first && !hasData ? t("onb.check.dataHint") : undefined },
           { key: "advice", label: t("onb.check.advice"), done: flag("advice"),
-            href: first ? `/fields/${first.id}?tab=ai` : undefined },
+            href: first ? `/fields/${first.id}?tab=analysis` : undefined },
           ...(tg?.configured
             ? [{ key: "telegram", label: t("onb.check.telegram"), done: flag("telegram"), href: "/" }]
             : []),

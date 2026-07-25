@@ -1,7 +1,7 @@
 "use client";
 
 // Shared chip styling for the click-first field-info primitives. Active chips
-// use the same emerald treatment as OverviewTab's scene buttons; inactive chips
+// use the same emerald treatment as the satellite scene buttons; inactive chips
 // are neutral slate with a hover. Keep these in one place so every primitive
 // (ChoiceChips, CropGrid, VarietyChips, PhPicker, YesNo, …) looks identical.
 

@@ -39,6 +39,7 @@ import { useAuth } from "@/lib/auth";
 import { t } from "@/lib/i18n";
 import { wellnessHeadline } from "@/lib/wellnessText";
 import { SupportCard } from "@/components/ui/SupportCard";
+import FieldSectionMenu from "@/components/shell/FieldSectionMenu";
 import type { Tone } from "@/lib/indexStatus";
 import type { Farm, Field, Org, Role } from "@/lib/types";
 
@@ -200,6 +201,10 @@ export default function FieldListPanel() {
   // adopts the stored preference after mount — reading localStorage during render would both crash
   // on the server and risk a hydration mismatch, so we defer it to an effect like InstallPrompt.
   const [collapsed, setCollapsed] = useState(false);
+  // E14 — with a field open the panel belongs to that field: the list folds into a single row and
+  // the section menu takes the space. `browsing` reopens the full list without leaving the field.
+  const [browsing, setBrowsing] = useState(false);
+  useEffect(() => { setBrowsing(false); }, [activeId]);
 
   const loadedAt = useRef(0);
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -355,6 +360,9 @@ export default function FieldListPanel() {
   }, [activeId, shown.length, collapsed]);
 
   const total = rows?.length ?? 0;
+  // E14 — the open field, when the farmer has not asked to browse the list again.
+  const focused = !browsing && activeId ? (rows ?? []).find((r) => r.id === activeId) : undefined;
+  const focusedScore = focused ? scores[focused.id] : undefined;
   const season = new Date().getFullYear();
   const areaTotal = useMemo(
     () =>
@@ -444,8 +452,35 @@ export default function FieldListPanel() {
         </span>
       </div>
 
+      {/* E14 — field open: one collapsed row for the field, then its section menu. */}
+      {focused && (
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="mx-[18px] mb-1 mt-2 rounded-[14px] border-[1.5px] border-grass bg-mint-soft p-3">
+            <div className="flex items-center gap-2">
+              <span
+                className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[9px] text-[12.5px] font-bold tabular-nums text-white"
+                style={{ background: focusedScore ? DOT[toneOf(focusedScore)] : DOT_NONE }}
+              >
+                <span className="sr-only">{t("app.shell.fieldListPanel.healthScoreLabel")}</span>
+                {focusedScore ? focusedScore.score : "\u2014"}
+              </span>
+              <span className="min-w-0 truncate text-[15px] font-semibold text-ink">{focused.name}</span>
+              <span className="ml-auto shrink-0 text-xs text-ink-soft">{areaLabel(focused.area_ha)}</span>
+            </div>
+            <button
+              onClick={() => setBrowsing(true)}
+              className="mt-2 inline-flex min-h-8 items-center gap-1.5 text-[12px] font-semibold text-ink-soft hover:text-grass"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
+              {t("app.shell.fieldListPanel.allFields")} ({total})
+            </button>
+          </div>
+          <FieldSectionMenu fieldId={focused.id} />
+        </div>
+      )}
+
       {/* Search + Sort row. */}
-      <div className="mx-[18px] mb-1.5 mt-1.5 flex items-center gap-2">
+      <div className={`mx-[18px] mb-1.5 mt-1.5 flex items-center gap-2 ${focused ? "hidden" : ""}`}>
         <div className="relative min-w-0 flex-1">
           <Search
             className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-soft"
@@ -484,7 +519,10 @@ export default function FieldListPanel() {
       {/* min-h-0 is load-bearing: without it a flex child keeps its automatic content minimum and
           the list would overflow the panel's max-height instead of scrolling inside it. `relative`
           makes offsetTop of a card relative to THIS box (see the reveal effect above). */}
-      <div ref={scrollRef} className="relative min-h-0 flex-1 overflow-y-auto px-3 pb-4 pt-1.5">
+      <div
+        ref={scrollRef}
+        className={`relative min-h-0 flex-1 overflow-y-auto px-3 pb-4 pt-1.5 ${focused ? "hidden" : ""}`}
+      >
         {rows === null ? (
           <div
             role="status"

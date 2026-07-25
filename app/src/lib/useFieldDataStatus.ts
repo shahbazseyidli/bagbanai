@@ -1,7 +1,7 @@
 "use client";
 
 // D0.9 — one shared satellite-processing-status poller. Replaces the duplicated 6s pollers in
-// OverviewTab + SatelliteTab. Polls /data-status every 6s while the field is still
+// SatelliteGlance + SatelliteTab. Polls /data-status every 6s while the field is still
 // queued/processing/partial, then stops. Returns the latest status (or null before first load).
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";

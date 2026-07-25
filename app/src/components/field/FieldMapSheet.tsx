@@ -60,25 +60,9 @@ export default function FieldMapSheet({
       {/* Field title / score / edit — above the map so the farmer knows the field first. */}
       {header}
 
-      {/* Map on top — full width, comfortable height, plain (non-sticky) container so WebGL paints. */}
-      <div className="relative">
-        <DisplayMap
-          polygon={field.geom}
-          rasterUrl={dataSaver && !forceRaster ? null : rasterUrl}
-          heightClass="h-[52vh] min-h-[320px]"
-        />
-
-        {/* D4.5 — on data-saver the heavy raster tiles aren't auto-loaded; tap to load. */}
-        {dataSaver && !forceRaster && rasterUrl && (
-          <button
-            type="button"
-            onClick={() => setForceRaster(true)}
-            className="absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-xs font-bold text-slate-700 shadow-md ring-1 ring-slate-200 backdrop-blur"
-          >
-            <Layers className="h-3.5 w-3.5 text-emerald-600" aria-hidden="true" /> {t("app.field.fieldMapSheet.showSatelliteLayer")}
-          </button>
-        )}
-      </div>
+      {/* E14 — the full-bleed hero map was removed on purpose: the status section now carries a
+          right-sized map inside SatelliteGlance, so the page opens on the verdict instead of on
+          scenery. This wrapper stays because it owns the camera FAB and the page layout. */}
 
       {/* Detail content — full width, below the map. The tab bar (3 intent groups + secondary row)
           and every tab's content get the whole page width. */}
