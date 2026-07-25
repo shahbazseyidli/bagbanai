@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import DataSaverToggle from "@/components/DataSaverToggle";
 import EmailAlertsToggle from "@/components/EmailAlertsToggle";
+import EmailLifecycleToggle from "@/components/EmailLifecycleToggle";
 import NamePublicToggle from "@/components/NamePublicToggle";
 import { t } from "@/lib/i18n";
 
@@ -65,6 +66,7 @@ export default function AccountPage() {
       <div className="space-y-3">
         <DataSaverToggle />
         {user && <EmailAlertsToggle />}
+        {user && <EmailLifecycleToggle />}
         {user && <NamePublicToggle />}
       </div>
 

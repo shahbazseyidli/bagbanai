@@ -230,3 +230,21 @@ async def set_name_public(body: dict, user_id: str = Depends(get_current_user_id
     async with connection(user_id) as conn:
         await conn.execute("update public.users set name_public=$2 where id=$1::uuid", user_id, enabled)
     return {"enabled": enabled}
+
+
+@router.get("/email-lifecycle")
+async def get_email_lifecycle(user_id: str = Depends(get_current_user_id)):
+    """Whether this user receives lifecycle/onboarding/digest email (E2.4). Transactional email
+    (OTP, welcome, data-ready) ignores this."""
+    async with connection(user_id) as conn:
+        val = await conn.fetchval("select email_lifecycle from public.users where id=$1::uuid", user_id)
+    return {"enabled": bool(val) if val is not None else True}
+
+
+@router.post("/email-lifecycle")
+async def set_email_lifecycle(body: dict, user_id: str = Depends(get_current_user_id)):
+    """Toggle this user's lifecycle/onboarding/digest email (E2.4)."""
+    enabled = bool(body.get("enabled"))
+    async with connection(user_id) as conn:
+        await conn.execute("update public.users set email_lifecycle=$2 where id=$1::uuid", user_id, enabled)
+    return {"enabled": enabled}
