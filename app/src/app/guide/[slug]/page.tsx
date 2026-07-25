@@ -4,7 +4,14 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, Brain, ChevronRight, Clipboard, FileText, FlaskConical, Lightbulb,
   MapPin, Monitor, Satellite, Sprout } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { GUIDE_ORDER, getGuide, type GuideIcon } from "@/components/guide/content";
+import { getGuide, type GuideIcon } from "@/components/guide/content";
+import { getT } from "@/lib/i18n-server";
+
+// The article body is localized via getT() (reads the per-request x-locale header), so it can't be
+// statically prerendered — the locale isn't known at build time. Render on demand. (No
+// generateStaticParams: with it present Next prerenders the slugs as az and ignores the header,
+// which would leave /de/guide/… showing Azerbaijani.)
+export const dynamic = "force-dynamic";
 
 // C8 — one article per how-to guide: /guide/sahe-elave-et, /guide/peyk-melumatini-oxu, … Server
 // Component so each ships its own <title>/description. Steps, described "screens", tips and
@@ -20,10 +27,6 @@ const ICONS: Record<GuideIcon, LucideIcon> = {
   "file-text": FileText,
   flask: FlaskConical,
 };
-
-export function generateStaticParams() {
-  return GUIDE_ORDER.map((slug) => ({ slug }));
-}
 
 export async function generateMetadata({
   params,
@@ -45,6 +48,7 @@ export default async function GuideArticlePage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
+  const t = await getT();
   const { slug } = await params;
   const g = getGuide(slug);
   if (!g) notFound();
@@ -60,7 +64,7 @@ export default async function GuideArticlePage({
           className="inline-flex min-h-11 items-center gap-1.5 text-[13.5px] font-semibold text-[color:var(--brand-ink-2)] transition-colors hover:text-teal"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          Bütün bələdçilər
+          {t("mkt.guideSlug.allGuides")}
         </Link>
 
         {/* -------------------------------------------------------- header */}
@@ -88,7 +92,7 @@ export default async function GuideArticlePage({
         {/* --------------------------------------------------------- where */}
         <p className="mt-5 inline-flex items-center gap-2 rounded-full border-[1.5px] border-[#bfe6cd] bg-mint-soft px-4 py-2 text-[13.5px] font-semibold text-grass-deep">
           <MapPin className="h-4 w-4" aria-hidden="true" />
-          Harada: {g.where}
+          {t("mkt.guideSlug.whereLabel")} {g.where}
         </p>
 
         {/* --------------------------------------------------------- steps */}
@@ -126,7 +130,7 @@ export default async function GuideArticlePage({
           <section className="mt-9 rounded-xl2 border border-line bg-panel p-5">
             <h2 className="flex items-center gap-2 font-display text-[16px] font-bold text-[color:var(--brand-ink)]">
               <Lightbulb className="h-5 w-5 text-[color:var(--amber)]" aria-hidden="true" />
-              İpucları
+              {t("mkt.guideSlug.tipsHeading")}
             </h2>
             <ul className="mt-3 grid gap-2.5">
               {g.tips.map((tip) => (
@@ -143,7 +147,7 @@ export default async function GuideArticlePage({
         {g.related.length > 0 && (
           <section className="mt-9">
             <h2 className="font-display text-[16px] font-bold text-[color:var(--brand-ink)]">
-              Növbəti addım
+              {t("mkt.guideSlug.nextStepHeading")}
             </h2>
             <div className="mt-3 grid gap-2.5">
               {g.related.map((rslug) => {
@@ -176,13 +180,13 @@ export default async function GuideArticlePage({
         {/* ----------------------------------------------------------- cta */}
         <div className="mt-10 flex flex-wrap items-center gap-3 rounded-xl2 border-[1.5px] border-[#bfe6cd] bg-mint-soft p-5">
           <p className="flex-1 text-[14.5px] font-semibold text-grass-deep">
-            Hazırsınız? Tarlanı bu gün peykdən izləməyə başlayın.
+            {t("mkt.guideSlug.ctaText")}
           </p>
           <Link
             href="/signup"
             className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[color:var(--green)] px-5 text-sm font-bold text-white shadow-[0_6px_16px_rgba(30,152,82,0.28)] transition-colors hover:bg-grass-deep"
           >
-            Pulsuz başla
+            {t("mkt.guideSlug.ctaButton")}
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Link>
         </div>

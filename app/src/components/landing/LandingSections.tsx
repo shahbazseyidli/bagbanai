@@ -2,8 +2,10 @@
 
 // W2 / E12 — the static marketing sections of the approved landing redesign (artifact c5e155e7):
 // role cards → stats → module tour → why-us + comparison → testimonials.
-// Copy is Azerbaijani inline (the redesign copy is not in the i18n dictionary yet — the T18 sweep
-// extracts it); code/identifiers stay English.
+// Copy is Azerbaijani; user-visible strings are extracted into the i18n dictionary (mkt.sections.*)
+// and resolved via t() at render time (client component). Code/identifiers stay English.
+// NOTE: the data arrays (ROLES/STATS/CMP/TESTIS/CHIPS) live INSIDE their components on purpose —
+// t() must run at render (after LocaleProvider sets the locale), not at module load.
 import Link from "next/link";
 import {
   ArrowRight,
@@ -18,6 +20,7 @@ import {
   TriangleAlert,
   Users,
 } from "lucide-react";
+import { t } from "@/lib/i18n";
 
 /* ------------------------------------------------------------------ shared */
 
@@ -55,48 +58,48 @@ function Tick() {
 
 /* -------------------------------------------------------------- role cards */
 
-const ROLES = [
-  {
-    href: "/solutions/fermer",
-    title: "Fermer",
-    body: "Peyk monitorinq, AI aqronom, su balansı, dəftər. Provayderlərə platformadan müraciət et.",
-    cta: "Fermerlər üçün",
-    gradient: "linear-gradient(165deg,#3c6b45,#1c3d27)",
-    Icon: Sprout,
-  },
-  {
-    href: "/solutions/laboratoriya",
-    title: "Laboratoriya",
-    body: "Torpaq nümunə xidmətini fermerlərə çatdır — kataloqda görün, sifariş al.",
-    cta: "Laboratoriyalar üçün",
-    gradient: "linear-gradient(165deg,#2f6ca8,#123a5e)",
-    Icon: FlaskConical,
-  },
-  {
-    href: "/solutions/konsultant",
-    title: "Aqronom",
-    body: "Çox fermerə xidmət et — çox-müştəri sahə girişi, monitorinq, sübut hesabatları, AI dəstəyi.",
-    cta: "Aqronomlar üçün",
-    gradient: "linear-gradient(165deg,#7a5bd0,#3a2668)",
-    Icon: Users,
-  },
-  {
-    href: "/solutions/techizatci",
-    title: "Təchizatçı",
-    body: "Toxum, gübrə, dərman kataloqunu yerləşdir — fermerlərə çat, birbaşa tələb al.",
-    cta: "Təchizatçılar üçün",
-    gradient: "linear-gradient(165deg,#c07a1f,#5e360f)",
-    Icon: Package,
-  },
-];
-
 export function RoleCards() {
+  const ROLES = [
+    {
+      href: "/solutions/fermer",
+      title: t("mkt.sections.roleFermerTitle"),
+      body: t("mkt.sections.roleFermerBody"),
+      cta: t("mkt.sections.roleFermerCta"),
+      gradient: "linear-gradient(165deg,#3c6b45,#1c3d27)",
+      Icon: Sprout,
+    },
+    {
+      href: "/solutions/laboratoriya",
+      title: t("mkt.sections.roleLabTitle"),
+      body: t("mkt.sections.roleLabBody"),
+      cta: t("mkt.sections.roleLabCta"),
+      gradient: "linear-gradient(165deg,#2f6ca8,#123a5e)",
+      Icon: FlaskConical,
+    },
+    {
+      href: "/solutions/konsultant",
+      title: t("mkt.sections.roleAgroTitle"),
+      body: t("mkt.sections.roleAgroBody"),
+      cta: t("mkt.sections.roleAgroCta"),
+      gradient: "linear-gradient(165deg,#7a5bd0,#3a2668)",
+      Icon: Users,
+    },
+    {
+      href: "/solutions/techizatci",
+      title: t("mkt.sections.roleSupplierTitle"),
+      body: t("mkt.sections.roleSupplierBody"),
+      cta: t("mkt.sections.roleSupplierCta"),
+      gradient: "linear-gradient(165deg,#c07a1f,#5e360f)",
+      Icon: Package,
+    },
+  ];
+
   return (
     <Wrap className="py-14 sm:py-16">
       <SectionHead
-        eyebrow="bir platforma · dörd rol"
-        title="Kim üçün?"
-        sub="Fermerlər, laboratoriyalar, aqronomlar və təchizatçılar bir ekosistemdə görüşür."
+        eyebrow={t("mkt.sections.rolesEyebrow")}
+        title={t("mkt.sections.rolesTitle")}
+        sub={t("mkt.sections.rolesSub")}
       />
       <div className="grid gap-4 min-[920px]:grid-cols-4">
         {ROLES.map(({ href, title, body, cta, gradient, Icon }) => (
@@ -118,8 +121,8 @@ export function RoleCards() {
         ))}
       </div>
       <p className="lp-muted mt-4 text-center text-[13px]">
-        Laboratoriya, aqronom və təchizatçılar platformaya <b className="text-grass">pulsuz</b>{" "}
-        qoşulur — abunə yalnız fermerlər üçündür.
+        {t("mkt.sections.rolesFreePre")} <b className="text-grass">{t("mkt.sections.rolesFreeWord")}</b>{" "}
+        {t("mkt.sections.rolesFreePost")}
       </p>
     </Wrap>
   );
@@ -127,15 +130,15 @@ export function RoleCards() {
 
 /* ------------------------------------------------------------------ stats */
 
-const STATS = [
-  { n: "2", l: "peyk (NASA + Sentinel-2)" },
-  { n: "10m", l: "ən yüksək dəqiqlik" },
-  { n: "9", l: "vegetasiya indeksi" },
-  { n: "4", l: "rol · 4 dil" },
-  { n: "2-3 gün", l: "yeni peyk yeniləməsi" },
-];
-
 export function StatsStrip() {
+  const STATS = [
+    { n: "2", l: t("mkt.sections.statSatellites") },
+    { n: "10m", l: t("mkt.sections.statResolution") },
+    { n: "9", l: t("mkt.sections.statIndices") },
+    { n: "4", l: t("mkt.sections.statRolesLangs") },
+    { n: t("mkt.sections.statRefreshDays"), l: t("mkt.sections.statRefresh") },
+  ];
+
   return (
     <Wrap>
       <div className="grid gap-4 rounded-xl2 bg-teal px-6 py-8 text-center shadow-soft min-[920px]:grid-cols-5">
@@ -205,25 +208,25 @@ function ModRow({ reverse, text, shot }: { reverse?: boolean; text: React.ReactN
 export function ModuleRows() {
   return (
     <Wrap className="py-14 sm:py-16">
-      <SectionHead eyebrow="imkanlar" title="Peykdən yığıma qədər — və bir addım o yana" />
+      <SectionHead eyebrow={t("mkt.sections.modulesEyebrow")} title={t("mkt.sections.modulesTitle")} />
 
       {/* 1 — satellite monitoring */}
       <ModRow
         text={
           <ModText
-            eyebrow="peyk monitorinq"
-            title="Bitki sağlamlığını hər 2-3 gündə izlə"
-            lead="NDVI, NDMI, NDRE + 6 indeks — piksel-səviyyəli overlay. Stresi yayılmadan tut."
+            eyebrow={t("mkt.sections.mod1Eyebrow")}
+            title={t("mkt.sections.mod1Title")}
+            lead={t("mkt.sections.mod1Lead")}
             points={[
               "NASA HLS 30m + Sentinel-2 10m",
-              "Kontrast rejimi + rayon benchmark bandı",
-              "Bulud filtri, timeline, iki-tarix müqayisə",
+              t("mkt.sections.mod1Point2"),
+              t("mkt.sections.mod1Point3"),
             ]}
           />
         }
         shot={
           <Shot title="Sentinel-2 · NDVI trend">
-            <svg viewBox="0 0 320 120" preserveAspectRatio="none" className="h-[120px] w-full" role="img" aria-label="NDVI trend qrafiki">
+            <svg viewBox="0 0 320 120" preserveAspectRatio="none" className="h-[120px] w-full" role="img" aria-label={t("mkt.sections.mod1ChartAria")}>
               <defs>
                 <linearGradient id="lpSpark1" x1="0" x2="0" y1="0" y2="1">
                   <stop offset="0" stopColor="#8DE0A9" stopOpacity="0.5" />
@@ -242,8 +245,8 @@ export function ModuleRows() {
               />
             </svg>
             <div className="mt-2.5 flex flex-wrap items-center gap-2 border-t border-line pt-2.5">
-              <span className="lp-pill lp-pill-warn">Orta · düşür ↓</span>
-              <span className="lp-muted ml-auto text-[13px]">Ən son: 0.47 · 10 sent</span>
+              <span className="lp-pill lp-pill-warn">{t("mkt.sections.mod1PillTrend")}</span>
+              <span className="lp-muted ml-auto text-[13px]">{t("mkt.sections.mod1LatestValue")}</span>
             </div>
           </Shot>
         }
@@ -254,28 +257,28 @@ export function ModuleRows() {
         reverse
         text={
           <ModText
-            eyebrow="ai aqronom · foto · torpaq"
-            title="Şəkil çək — AI özü tanısın və analiz etsin"
-            lead="Sahə, məhsul və ya ağac şəklini çək; AI nə olduğunu tanıyır, adlandırır və məsləhətdə nəzərə alır. Torpaq analizini yüklə — AI ona da baxsın."
+            eyebrow={t("mkt.sections.mod2Eyebrow")}
+            title={t("mkt.sections.mod2Title")}
+            lead={t("mkt.sections.mod2Lead")}
             points={[
-              "Foto auto-diaqnoz: xəstəlik/zərərverici tanıma",
-              "Torpaq analizi upload → AI kontekstinə daxil",
-              "Səsləndir — oxumaq lazım deyil",
+              t("mkt.sections.mod2Point1"),
+              t("mkt.sections.mod2Point2"),
+              t("mkt.sections.mod2Point3"),
             ]}
           />
         }
         shot={
-          <Shot title="AI Məsləhət · Xudat fındıq">
+          <Shot title={t("mkt.sections.mod2ShotTitle")}>
             <div className="lp-verdict mb-3">
               <span className="lp-verdict-ico">
                 <TriangleAlert className="h-5 w-5" aria-hidden="true" />
               </span>
               <div>
                 <h4 className="lp-ink font-display text-[15.5px] font-semibold">
-                  Fındıq orta — diqqət tələb olunur
+                  {t("mkt.sections.mod2Verdict")}
                 </h4>
                 <p className="lp-ink2 mt-1 text-[13px]">
-                  Foto: yarpaqda fındıq qurdu izi · torpaq pH 6.2, azot aşağı.
+                  {t("mkt.sections.mod2VerdictDetail")}
                 </p>
               </div>
             </div>
@@ -286,13 +289,12 @@ export function ModuleRows() {
                 <span className="lp-peer-av -ml-2" style={{ background: "#2f6ca8" }}>E</span>
               </span>
               <p className="text-[12.5px] text-[#1c5c39]">
-                <b className="text-grass-deep">Eyni bölgədə fındıq əkən 3 fermer</b> bu problemlə
-                üzləşib — məsləhətləş.
+                <b className="text-grass-deep">{t("mkt.sections.aiPeerBold")}</b>{" "}
+                {t("mkt.sections.aiPeerRest")}
               </p>
             </div>
             <p className="lp-muted mt-2 flex items-center gap-1.5 text-[11.5px]">
-              <Camera className="h-3.5 w-3.5" aria-hidden="true" /> Nümunə ekran — real sahə
-              məlumatı ilə doldurulur.
+              <Camera className="h-3.5 w-3.5" aria-hidden="true" /> {t("mkt.sections.mod2SampleNote")}
             </p>
           </Shot>
         }
@@ -302,34 +304,33 @@ export function ModuleRows() {
       <ModRow
         text={
           <ModText
-            eyebrow="təsərrüfat dəftəri · gübrə"
-            title="Hər sahə nə qazandı — və nə qədər gübrə lazımdır"
-            lead="Xərc/gəlir per-sahə mənfəət. Gübrələmə qrafikini əlavə et, AI NDVI + torpaq analizinə görə doza təklif etsin."
+            eyebrow={t("mkt.sections.mod3Eyebrow")}
+            title={t("mkt.sections.mod3Title")}
+            lead={t("mkt.sections.mod3Lead")}
             points={[
-              "Xərc / Gəlir / Mənfəət — sahə və mövsüm üzrə",
-              "Gübrə qrafiki + AI doza təklifi",
-              "Qəbz fotosundan avto xərc girişi",
+              t("mkt.sections.mod3Point1"),
+              t("mkt.sections.mod3Point2"),
+              t("mkt.sections.mod3Point3"),
             ]}
           />
         }
         shot={
-          <Shot title="Gübrə · AI təklif">
+          <Shot title={t("mkt.sections.mod3ShotTitle")}>
             <div className="lp-callout mb-3">
               <Sparkles className="h-4 w-4 shrink-0" aria-hidden="true" />
               <span>
-                NDVI + torpaq analizinə görə: <b>şimal zonaya 30% az azot</b>, cənub zonaya
-                standart doza.
+                {t("mkt.sections.fertCalloutPre")} <b>{t("mkt.sections.fertCalloutBold")}</b>{t("mkt.sections.fertCalloutPost")}
               </span>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-[14px] border border-line p-3.5">
-                <span className="lp-muted text-[12px]">Mənfəət/ha</span>
+                <span className="lp-muted text-[12px]">{t("mkt.sections.mod3ProfitLabel")}</span>
                 <b className="mt-1 block font-display text-[22px] font-bold tabular-nums text-grass">
                   580 ₼
                 </b>
               </div>
               <div className="rounded-[14px] border border-line p-3.5">
-                <span className="lp-muted text-[12px]">Növbəti gübrə</span>
+                <span className="lp-muted text-[12px]">{t("mkt.sections.mod3NextFertLabel")}</span>
                 <b className="lp-ink mt-1 block font-display text-[15px] font-semibold">28 iyul</b>
               </div>
             </div>
@@ -342,18 +343,18 @@ export function ModuleRows() {
         reverse
         text={
           <ModText
-            eyebrow="marketplace · icma"
-            title="Laboratoriya, aqronom, təchizatçı — və digər fermerlər"
-            lead="Kataloqdan xidmət provayderi seç, birbaşa yaz. Fermer icmasında eyni məhsulu əkənlərlə məsləhətləş."
+            eyebrow={t("mkt.sections.mod4Eyebrow")}
+            title={t("mkt.sections.mod4Title")}
+            lead={t("mkt.sections.mod4Lead")}
             points={[
-              "Provayder kataloqu (ölkə/region/ixtisas filtri)",
-              "Rol-arası + fermer-fermer mesajlaşma",
-              "Problem anında peer-təklif: “yaxın fermerlə danış”",
+              t("mkt.sections.mod4Point1"),
+              t("mkt.sections.mod4Point2"),
+              t("mkt.sections.mod4Point3"),
             ]}
           />
         }
         shot={
-          <Shot title="Kataloq">
+          <Shot title={t("mkt.sections.mod4ShotTitle")}>
             <div className="flex gap-3.5">
               <span className="lp-logo" style={{ background: "#2f6ca8" }}>AT</span>
               <div>
@@ -361,7 +362,7 @@ export function ModuleRows() {
                   AqroTest Laboratoriya <span className="text-[13px] text-[#e0a83b]">★ 4.8</span>
                 </h4>
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  <span className="lp-tag">Torpaq analizi</span>
+                  <span className="lp-tag">{t("mkt.sections.tagSoilTest")}</span>
                   <span className="lp-tag">Xaçmaz</span>
                 </div>
               </div>
@@ -373,8 +374,8 @@ export function ModuleRows() {
                   GübrəMarket <span className="text-[13px] text-[#e0a83b]">★ 4.6</span>
                 </h4>
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  <span className="lp-tag">Gübrə</span>
-                  <span className="lp-tag">Toxum</span>
+                  <span className="lp-tag">{t("mkt.sections.tagFertilizer")}</span>
+                  <span className="lp-tag">{t("mkt.sections.tagSeed")}</span>
                   <span className="lp-tag">Quba</span>
                 </div>
               </div>
@@ -383,7 +384,7 @@ export function ModuleRows() {
               href="/catalog"
               className="lp-link mt-4 inline-flex min-h-11 items-center gap-1.5 text-[13.5px] font-semibold"
             >
-              Kataloqa bax <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              {t("mkt.sections.mod4CatalogLink")} <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
           </Shot>
         }
@@ -393,13 +394,6 @@ export function ModuleRows() {
 }
 
 /* ----------------------------------------------------------------- why us */
-
-const CMP: Array<[string, string, string, string]> = [
-  ["Azərbaycan dili · fındıq üçün kalibrləmə", "yox", "yox", "var"],
-  ["AI aqronom + foto-diaqnoz", "məhdud", "yox", "var"],
-  ["Təsərrüfat dəftəri (xərc/gəlir)", "yox", "var", "var"],
-  ["Marketplace (lab/təchizatçı) + icma", "qismən", "yox", "var"],
-];
 
 function CmpCell({ v }: { v: string }) {
   if (v === "var")
@@ -412,40 +406,48 @@ function CmpCell({ v }: { v: string }) {
 }
 
 export function WhyUs() {
+  // NOTE: the 2nd–4th tuple values ("yox"/"var"/"məhdud"/"qismən") are ENUM CODES compared in
+  // CmpCell (v === "var"); they are intentionally NOT translated here. Only the feature label is.
+  const CMP: Array<[string, string, string, string]> = [
+    [t("mkt.sections.cmpRow1"), "yox", "yox", "var"],
+    [t("mkt.sections.cmpRow2"), "məhdud", "yox", "var"],
+    [t("mkt.sections.cmpRow3"), "yox", "var", "var"],
+    [t("mkt.sections.cmpRow4"), "qismən", "yox", "var"],
+  ];
+
   return (
     <Wrap className="py-14 sm:py-16">
       <SectionHead
-        eyebrow="niyə bağban"
-        title="Üç dünyanı birləşdirir"
-        sub="Peyk platformalarının gözü, ferma-idarəetmə proqramlarının dəftəri, AI aqronom — üstəlik marketplace."
+        eyebrow={t("mkt.sections.whyEyebrow")}
+        title={t("mkt.sections.whyTitle")}
+        sub={t("mkt.sections.whySub")}
       />
       <div className="grid gap-4 min-[920px]:grid-cols-3">
         <div className="lp-card p-6">
           <span className="mb-3.5 flex h-11 w-11 items-center justify-center rounded-xl bg-[#e9f1fb] text-[#215a95]">
             <Layers className="h-5 w-5" aria-hidden="true" />
           </span>
-          <h4 className="lp-ink font-display text-[17px] font-semibold">Peyk gözü</h4>
+          <h4 className="lp-ink font-display text-[17px] font-semibold">{t("mkt.sections.whyCard1Title")}</h4>
           <p className="lp-ink2 mt-1.5 text-[13.5px]">
-            Piksel-səviyyəli NDVI, zonalar, kontrast rejimi — üstəlik Azərbaycan bölgələri üçün
-            benchmark.
+            {t("mkt.sections.whyCard1Body")}
           </p>
         </div>
         <div className="lp-card p-6">
           <span className="mb-3.5 flex h-11 w-11 items-center justify-center rounded-xl bg-[color:var(--amber-soft)] text-[#8a5f08]">
             <BookOpen className="h-5 w-5" aria-hidden="true" />
           </span>
-          <h4 className="lp-ink font-display text-[17px] font-semibold">Təsərrüfat dəftəri</h4>
+          <h4 className="lp-ink font-display text-[17px] font-semibold">{t("mkt.sections.whyCard2Title")}</h4>
           <p className="lp-ink2 mt-1.5 text-[13.5px]">
-            Xərc, gəlir, per-sahə mənfəət — peyk məlumatı ilə eyni ekranda.
+            {t("mkt.sections.whyCard2Body")}
           </p>
         </div>
         <div className="lp-card lp-card-hl p-6">
           <span className="mb-3.5 flex h-11 w-11 items-center justify-center rounded-xl bg-grass text-white">
             <Sparkles className="h-5 w-5" aria-hidden="true" />
           </span>
-          <h4 className="lp-ink font-display text-[17px] font-semibold">AI + Marketplace</h4>
+          <h4 className="lp-ink font-display text-[17px] font-semibold">{t("mkt.sections.whyCard3Title")}</h4>
           <p className="lp-ink2 mt-1.5 text-[13.5px]">
-            AI aqronom + laboratoriya/aqronom/təchizatçı kataloqu + fermer icması — bir yerdə.
+            {t("mkt.sections.whyCard3Body")}
           </p>
         </div>
       </div>
@@ -456,7 +458,7 @@ export function WhyUs() {
             <thead>
               <tr>
                 <th className="lp-ink2 border-b border-line bg-panel-2 px-4 py-3 text-left text-[13px] font-semibold">
-                  Xüsusiyyət
+                  {t("mkt.sections.cmpColFeature")}
                 </th>
                 <th className="lp-ink2 border-b border-line bg-panel-2 px-4 py-3 text-center text-[13px] font-semibold">
                   OneSoil
@@ -489,7 +491,7 @@ export function WhyUs() {
         </div>
       </div>
       <p className="lp-muted mt-3 text-center text-[12px]">
-        Müqayisə 2026-cı ilin açıq məlumatlarına əsaslanır — rəqiblərin funksiyaları dəyişə bilər.
+        {t("mkt.sections.cmpFootnote")}
       </p>
     </Wrap>
   );
@@ -497,28 +499,28 @@ export function WhyUs() {
 
 /* ----------------------------------------------------------- testimonials */
 
-const TESTIS = [
-  {
-    q: "Bağın bir küncü peykdə zəif göründü — gedib baxdım, suvarma xətti tutulmuşdu. Bütün blok solmadan düzəltdim.",
-    n: "Nail Q.",
-    r: "Fındıq · Zaqatala · 7 ha",
-  },
-  {
-    q: "Müştərilərimin sahələrini bir ekrandan izləyirəm, hazır analizi öz imzamla göndərirəm — yol vaxtına qənaət.",
-    n: "Ramil H.",
-    r: "Aqronom · Quba",
-  },
-  {
-    q: "Hər sahənin xərcini və gəlirini ayrıca yazıram; mövsüm sonu hansı tarlanın qazandırdığını dəqiq bilirəm.",
-    n: "Gülnar Ə.",
-    r: "Tərəvəz · Lənkəran · 2.5 ha",
-  },
-];
-
 export function Testimonials() {
+  const TESTIS = [
+    {
+      q: t("mkt.sections.testi1Quote"),
+      n: "Nail Q.",
+      r: t("mkt.sections.testi1Role"),
+    },
+    {
+      q: t("mkt.sections.testi2Quote"),
+      n: "Ramil H.",
+      r: t("mkt.sections.testi2Role"),
+    },
+    {
+      q: t("mkt.sections.testi3Quote"),
+      n: "Gülnar Ə.",
+      r: t("mkt.sections.testi3Role"),
+    },
+  ];
+
   return (
     <Wrap className="py-14 sm:py-16">
-      <SectionHead title="Fermerlər nə deyir" />
+      <SectionHead title={t("mkt.sections.testiTitle")} />
       <div className="grid gap-4 min-[920px]:grid-cols-3">
         {TESTIS.map((t2) => (
           <div key={t2.n} className="lp-card p-6">
@@ -534,7 +536,7 @@ export function Testimonials() {
         ))}
       </div>
       <p className="lp-muted mt-4 text-center text-[12px]">
-        Nümunə istifadə ssenariləri — real fermer rəyləri pilot bitdikcə əlavə olunacaq.
+        {t("mkt.sections.testiFootnote")}
       </p>
     </Wrap>
   );
@@ -542,18 +544,18 @@ export function Testimonials() {
 
 /* --------------------------------------------------------------- marquee */
 
-const CHIPS = [
-  { e: "🛰️", b: "2 peyk", t: "NASA + Sentinel-2" },
-  { e: "🌰", b: "", t: "Fındıq üçün kalibrlənib" },
-  { e: "🧪", b: "Laboratoriyalar", t: "" },
-  { e: "👨‍🌾", b: "", t: "Fermer icması" },
-  { e: "📊", b: "", t: "Təsərrüfat dəftəri" },
-  { e: "🤖", b: "", t: "AI aqronom" },
-  { e: "🌍", b: "4 dil", t: "" },
-  { e: "📦", b: "", t: "Təchizatçı kataloqu" },
-];
-
 export function Marquee() {
+  const CHIPS = [
+    { e: "🛰️", b: t("mkt.sections.chipSat"), t: "NASA + Sentinel-2" },
+    { e: "🌰", b: "", t: t("mkt.sections.chipCalib") },
+    { e: "🧪", b: t("mkt.sections.chipLabs"), t: "" },
+    { e: "👨‍🌾", b: "", t: t("mkt.sections.chipCommunity") },
+    { e: "📊", b: "", t: t("mkt.sections.chipLedger") },
+    { e: "🤖", b: "", t: t("mkt.sections.chipAi") },
+    { e: "🌍", b: t("mkt.sections.chip4lang"), t: "" },
+    { e: "📦", b: "", t: t("mkt.sections.chipSupplier") },
+  ];
+
   const row = [...CHIPS, ...CHIPS];
   return (
     <div className="lp-mask overflow-hidden py-4" aria-hidden="true">

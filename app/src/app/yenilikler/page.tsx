@@ -3,9 +3,10 @@ import Link from "next/link";
 import { ArrowRight, Bell, Boxes, Brain, Camera, CloudSun, Droplets, FileText, Globe, Handshake,
   Layers, MapPin, Satellite, Snowflake, Sprout, Volume2, Wallet } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { getT } from "@/lib/i18n-server";
 
 // C10 — /yenilikler: a public changelog of the major capabilities that now exist. Server Component
-// (no state, no t()) so it ships its own metadata; copy is inline Azerbaijani.
+// (async, translated via getT()) so it ships its own metadata.
 //
 // Honesty rules: entries are framed as "əlavə edildi" and grouped into COARSE periods (season-
 // level, not fake day precision) — the transparency note at the top says the dates are approximate.
@@ -37,137 +38,126 @@ const ICONS: Record<IconKey, LucideIcon> = {
   bell: Bell,
 };
 
-const CHANGELOG: { period: string; entries: Entry[] }[] = [
-  {
-    period: "2026 · Yay",
-    entries: [
-      {
-        icon: "handshake",
-        title: "Marketplace və provayder kataloqu",
-        body:
-          "Laboratoriya, aqronom və təchizatçı üçün pulsuz profillər, region üzrə axtarıla bilən kataloq və birbaşa yazışma əlavə edildi. Fermerlər üçün icma söhbəti də açıldı — vasitəçi və komissiya yoxdur.",
-      },
-      {
-        icon: "layers",
-        title: "Məhsuldarlıq zonaları",
-        body:
-          "Bir neçə mövsümün peyk piksellərindən hesablanmış davamlı güclü/zəif zonalar əlavə edildi — hansı hissəyə daha çox, hansına daha az resurs vermək lazım olduğunu göstərir.",
-      },
-      {
-        icon: "report",
-        title: "Hesabat kitabxanası və paylaşma linki",
-        body:
-          "Mövsüm hesabatı, əməliyyat jurnalı və xərc hesabatı — çap üçün hazır və CSV kimi — əlavə edildi. Sahənin qısa kartını tokenli, istənilən vaxt ləğv edilə bilən linklə paylaşmaq mümkün oldu.",
-      },
-      {
-        icon: "wallet",
-        title: "Genişlənmiş təsərrüfat dəftəri",
-        body:
-          "Anbar, texnika servisi, yığım lotları, alıcı bazası və satış jurnalı əlavə edildi. Xərc və gəlir indi sahə-sahə toplanır; qəbz şəklindən xərc qaralaması avtomatik doldurulur.",
-      },
-      {
-        icon: "globe",
-        title: "Çoxdilli interfeys",
-        body:
-          "Azərbaycan dilinə əlavə olaraq ingilis, türk və alman dilləri əlavə edildi. Brauzer dili avtomatik tanınır, dil istənilən vaxt dəyişdirilə bilər.",
-      },
-      {
-        icon: "camera",
-        title: "Torpaq analizinin oxunması",
-        body:
-          "Laboratoriya sənədinin şəklini və ya PDF-ini yükləmək imkanı əlavə edildi: sistem pH, NPK və üzvi maddə kimi göstəriciləri oxuyub torpaq pasportuna yazır və AI tövsiyələrinə qatır.",
-      },
-    ],
-  },
-  {
-    period: "2026 · Yaz",
-    entries: [
-      {
-        icon: "brain",
-        title: "AI aqronom məsləhəti və söhbət",
-        body:
-          "Hər yeni peyk səhnəsindən sonra avtomatik strukturlu analiz — risklər (şiddət dərəcəsi ilə), tövsiyələr, növbəti addımlar — əlavə edildi. Sahə kontekstini xatırlayan söhbət də açıldı.",
-      },
-      {
-        icon: "camera",
-        title: "Foto diaqnoz",
-        body:
-          "Yarpaq, meyvə və ya torpağın şəklini çəkib xəstəlik/zərərverici izini oxutmaq imkanı əlavə edildi. Şəkillər sahənin arxivində qalır və analizə daxil olur.",
-      },
-      {
-        icon: "droplets",
-        title: "Su balansı və çiləmə pəncərəsi",
-        body:
-          "FAO-56 metodikası ilə torpaq su ehtiyatı hesablaması və 7 günlük proqnozdan çiləmə üçün uyğun pəncərə əlavə edildi.",
-      },
-      {
-        icon: "snow",
-        title: "Hava, şaxta və isti dalğası xəbərdarlığı",
-        body:
-          "Open-Meteo əsaslı hava proqnozu, şaxta və isti dalğası xəbərdarlıqları əlavə edildi. Bildirişlərdə sakit saatlar var — gecə narahat etmirik.",
-      },
-      {
-        icon: "sprout",
-        title: "Gübrə planı və AI doza təklifi",
-        body:
-          "Gübrə qrafiki, NDVI trendinə, məhsul normalarına və (varsa) laboratoriya analizinə əsaslanan doza təklifi əlavə edildi. Hər tətbiq dəftərə və xərcə düşür.",
-      },
-      {
-        icon: "offline",
-        title: "Offline rejim, PWA və səsləndirmə",
-        body:
-          "Tətbiqin telefona quraşdırılması (PWA), son baxılan məlumatın offline açılması, «data qənaəti» rejimi və məsləhəti dinləmək üçün «səsləndir» düyməsi əlavə edildi.",
-      },
-    ],
-  },
-  {
-    period: "2026 · İlkin buraxılış",
-    entries: [
-      {
-        icon: "satellite",
-        title: "Peyk monitorinqi",
-        body:
-          "NASA HLS (30 m) və Sentinel-2 (10 m) səhnələri, 9-dan çox vegetasiya və su indeksi (NDVI, NDMI, NDRE, EVI, SAVI, NBR…), sahəyə kəsilmiş piksel-səviyyəli rəngli xəritə və bulud faizli tarix zolağı ilə platforma işə düşdü.",
-      },
-      {
-        icon: "map-pin",
-        title: "Bir toxunuşla sahə qeydiyyatı",
-        body:
-          "Xəritədə kəndini axtarıb tarlaya toxunmaqla sərhədin avtomatik tanınması əlavə edildi. Əl ilə düzəliş və hazır shapefile (.zip) yükləmə də dəstəklənir.",
-      },
-      {
-        icon: "clipboard",
-        title: "Tapşırıq və əməliyyat jurnalı",
-        body:
-          "Tapşırıq zənciri, əməliyyat qeydiyyatı, yığım məhdudiyyəti (PHI) sayğacı və yığım qeydiyyatı platformanın ilk buraxılışından bəri mövcuddur.",
-      },
-    ],
-  },
-];
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return {
+    title: t("mkt.news.metaTitle"),
+    description: t("mkt.news.metaDescription"),
+    alternates: { canonical: "/yenilikler" },
+  };
+}
 
-export const metadata: Metadata = {
-  title: "Yeniliklər — Bağban AI",
-  description:
-    "Bağban AI-ə əlavə edilən əsas imkanlar: peyk monitorinqi, AI aqronom, təsərrüfat dəftəri, marketplace, məhsuldarlıq zonaları, hava/şaxta xəbərdarlığı və hesabatlar.",
-  alternates: { canonical: "/yenilikler" },
-};
+export default async function ChangelogPage() {
+  const t = await getT();
 
-export default function ChangelogPage() {
+  const CHANGELOG: { period: string; entries: Entry[] }[] = [
+    {
+      period: t("mkt.news.periodSummer"),
+      entries: [
+        {
+          icon: "handshake",
+          title: t("mkt.news.marketplaceTitle"),
+          body: t("mkt.news.marketplaceBody"),
+        },
+        {
+          icon: "layers",
+          title: t("mkt.news.yieldZonesTitle"),
+          body: t("mkt.news.yieldZonesBody"),
+        },
+        {
+          icon: "report",
+          title: t("mkt.news.reportsTitle"),
+          body: t("mkt.news.reportsBody"),
+        },
+        {
+          icon: "wallet",
+          title: t("mkt.news.farmLedgerTitle"),
+          body: t("mkt.news.farmLedgerBody"),
+        },
+        {
+          icon: "globe",
+          title: t("mkt.news.multilangTitle"),
+          body: t("mkt.news.multilangBody"),
+        },
+        {
+          icon: "camera",
+          title: t("mkt.news.soilOcrTitle"),
+          body: t("mkt.news.soilOcrBody"),
+        },
+      ],
+    },
+    {
+      period: t("mkt.news.periodSpring"),
+      entries: [
+        {
+          icon: "brain",
+          title: t("mkt.news.aiAdviceTitle"),
+          body: t("mkt.news.aiAdviceBody"),
+        },
+        {
+          icon: "camera",
+          title: t("mkt.news.photoDiagnosisTitle"),
+          body: t("mkt.news.photoDiagnosisBody"),
+        },
+        {
+          icon: "droplets",
+          title: t("mkt.news.waterBalanceTitle"),
+          body: t("mkt.news.waterBalanceBody"),
+        },
+        {
+          icon: "snow",
+          title: t("mkt.news.weatherAlertsTitle"),
+          body: t("mkt.news.weatherAlertsBody"),
+        },
+        {
+          icon: "sprout",
+          title: t("mkt.news.fertilizerTitle"),
+          body: t("mkt.news.fertilizerBody"),
+        },
+        {
+          icon: "offline",
+          title: t("mkt.news.offlineTitle"),
+          body: t("mkt.news.offlineBody"),
+        },
+      ],
+    },
+    {
+      period: t("mkt.news.periodInitial"),
+      entries: [
+        {
+          icon: "satellite",
+          title: t("mkt.news.satelliteTitle"),
+          body: t("mkt.news.satelliteBody"),
+        },
+        {
+          icon: "map-pin",
+          title: t("mkt.news.fieldRegTitle"),
+          body: t("mkt.news.fieldRegBody"),
+        },
+        {
+          icon: "clipboard",
+          title: t("mkt.news.taskLogTitle"),
+          body: t("mkt.news.taskLogBody"),
+        },
+      ],
+    },
+  ];
+
   return (
     <div className="-mx-4 -mt-6 -mb-24 bg-paper px-4 pt-6 pb-24 md:-mb-6 md:pb-8">
       {/* ---------------------------------------------------------- head */}
       <header className="mx-auto max-w-[720px] py-8 text-center">
         <p className="text-xs font-bold uppercase tracking-[0.14em] text-[color:var(--green)]">
-          yeniliklər
+          {t("mkt.news.eyebrow")}
         </p>
         <h1 className="mt-3 font-display text-[clamp(28px,4vw,44px)] font-bold leading-[1.1] text-[color:var(--brand-ink)]">
-          Nə əlavə edildi
+          {t("mkt.news.h1")}
         </h1>
         <p className="mt-4 text-[17px] leading-relaxed text-[color:var(--brand-ink-2)]">
-          Bağban AI davamlı böyüyür. Aşağıda platformada indi mövcud olan əsas imkanlar toplanıb.
+          {t("mkt.news.intro")}
         </p>
         <p className="mt-3 text-[13px] leading-relaxed text-[color:var(--brand-muted)]">
-          Qeyd: tarixlər dövr səviyyəsində (təxmini) göstərilir — dəqiq gün iddia etmirik.
+          {t("mkt.news.dateNote")}
         </p>
       </header>
 
@@ -198,7 +188,7 @@ export default function ChangelogPage() {
                           {e.title}
                         </h3>
                         <span className="rounded-full border border-[#bfe6cd] bg-mint-soft px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-grass-deep">
-                          Əlavə edildi
+                          {t("mkt.news.addedBadge")}
                         </span>
                       </div>
                       <p className="mt-1.5 text-[14.5px] leading-relaxed text-[color:var(--brand-ink-2)]">
@@ -220,24 +210,24 @@ export default function ChangelogPage() {
           style={{ background: "linear-gradient(150deg,#0f4b42,#0a2f2a)" }}
         >
           <h2 className="font-display text-[clamp(22px,3vw,28px)] font-bold text-white">
-            Bu imkanları öz sahənizdə sınayın
+            {t("mkt.news.ctaTitle")}
           </h2>
           <p className="mt-2.5 text-[15px] text-[#a9cdbc]">
-            Fermerlər üçün 1 ay pulsuz · kart lazım deyil
+            {t("mkt.news.ctaSubtitle")}
           </p>
           <div className="mt-5 flex flex-wrap justify-center gap-3">
             <Link
               href="/signup"
               className="inline-flex min-h-12 items-center gap-2 rounded-full bg-white px-7 text-[15px] font-bold text-teal transition-opacity hover:opacity-90"
             >
-              Pulsuz başla
+              {t("mkt.news.ctaPrimary")}
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
             <Link
               href="/guide"
               className="inline-flex min-h-12 items-center gap-2 rounded-full border-[1.5px] border-white/30 px-7 text-[15px] font-bold text-white transition-colors hover:border-white"
             >
-              Necə başlamalı
+              {t("mkt.news.ctaSecondary")}
             </Link>
           </div>
         </div>

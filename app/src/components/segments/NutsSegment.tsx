@@ -15,7 +15,7 @@
 //
 // Self-contained (data + rendering here) so it lives entirely in the two files C6 owns. It mirrors
 // the /solutions SolutionView visual language section for section. Client component for the FAQ
-// accordion; copy is inline Azerbaijani (the T18 sweep extracts it to t() keys later).
+// accordion; copy is localised via t() (keys under mkt.nuts.*).
 
 import Link from "next/link";
 import { useState } from "react";
@@ -43,6 +43,7 @@ import {
   X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { t, type I18nKey } from "@/lib/i18n";
 
 /* --sh-sm from globals.css — the mockup's card shadow (Tailwind only tokens --sh / --sh-lg). */
 const SH_SM = "shadow-[0_1px_2px_rgba(20,15,10,0.05),0_2px_8px_rgba(20,15,10,0.05)]";
@@ -63,251 +64,119 @@ function SectionHead({ title, sub }: { title: string; sub?: string }) {
 
 interface ValuePoint {
   icon: LucideIcon;
-  title: string;
-  body: string;
+  title: I18nKey;
+  body: I18nKey;
 }
 interface Feature {
   icon: LucideIcon;
-  title: string;
-  body: string;
+  title: I18nKey;
+  body: I18nKey;
 }
 interface DeepBlock {
   icon: LucideIcon;
-  title: string;
-  body: string;
-  bullets: string[];
+  title: I18nKey;
+  body: I18nKey;
+  bullets: I18nKey[];
 }
 
 const VALUE_POINTS: ValuePoint[] = [
-  {
-    icon: Leaf,
-    title: "Çoxillik örtüyü sıravi əkin kimi deyil, bağ kimi oxuyur",
-    body:
-      "Fındıq bağı hər il əkilib-biçilmir — o, illər boyu yerində qalan bir örtükdür. Peyk indeksləri (NDVI canopy sıxlığı, NDMI/NDWI nəmlik, NDRE azot) həmin örtüyün içindəki fərqi göz onu seçməzdən əvvəl açır: suvarma xəttindəki tıxac, bir cərgənin zəifləməsi, xəstəlik ocağı hələ bir neçə ağac ikən xəritədə görünür.",
-  },
-  {
-    icon: Snowflake,
-    title: "Şaxta pəncərəsi — bağın ən böyük riski, rəqəmlə",
-    body:
-      "Erkən yaz və gec payız şaxtası çiçəyi və məhsulu bir gecədə apara bilər. Platforma bölgənizin son 20 ilin iqlim arxivindən yaz şaxtasının təhlükəsiz (p90) və payız şaxtasının erkən (p10) tarixlərini, şaxtasız günlərin sayını və ən soyuq gecələri hesablayır — hər rayon üçün bir dəfə, bütün üzvlərə pulsuz.",
-  },
-  {
-    icon: ThermometerSnowflake,
-    title: "Çiləmə vaxtı və istilik toplanması (GDD)",
-    body:
-      "7 günlük hava proqnozundan çiləmə üçün uyğun pəncərə seçilir, şaxta və isti dalğası üçün xəbərdarlıq verilir. İstilik vahidlərinin (GDD) toplanması isə tumurcuqlanmadan başlayır — zərərverici mərhələlərini və müdaxilə vaxtını təqvimdən deyil, real istidən asılı olaraq izləməyə imkan verir.",
-  },
-  {
-    icon: Layers,
-    title: "Bağ onilliklərlə qalır — zonalar da elə",
-    body:
-      "Bir neçə mövsümün peyk pikselləri üzərində hesablanmış davamlı güclü/zəif zonalar sıravi əkindən daha çox məhz çoxillik bağ üçün dəyərlidir: eyni ağaclar illərlə yerində qaldığı üçün hansı hissəyə daha çox gübrə, su və diqqət lazım olduğunu bir mövsüm yox, bütöv tarixçə göstərir.",
-  },
-  {
-    icon: Nut,
-    title: "Fındıq üçün ayrıca kalibr edilmiş",
-    body:
-      "Buğda və qarğıdalı üçün qurulmuş ümumi alətlərdən fərqli olaraq, burada fındıq üçün ayrıca indeks normaları və böyümə-mərhələsi hədləri yığılıb. Bu, Zaqatala, Şəki və Xudat bağlarında indeks qiymətinin şərhini — «bu NDVI bu mövsümdə yaxşıdır, yoxsa aşağıdır» — daha dəqiq edir.",
-  },
+  { icon: Leaf, title: "mkt.nuts.vp1Title", body: "mkt.nuts.vp1Body" },
+  { icon: Snowflake, title: "mkt.nuts.vp2Title", body: "mkt.nuts.vp2Body" },
+  { icon: ThermometerSnowflake, title: "mkt.nuts.vp3Title", body: "mkt.nuts.vp3Body" },
+  { icon: Layers, title: "mkt.nuts.vp4Title", body: "mkt.nuts.vp4Body" },
+  { icon: Nut, title: "mkt.nuts.vp5Title", body: "mkt.nuts.vp5Body" },
 ];
 
-const STATS: { value: string; label: string }[] = [
-  { value: "20 il", label: "iqlim arxivi — şaxta tarixləri hər rayon üçün bundan hesablanır" },
-  { value: "10 m", label: "Sentinel-2 piksel ölçüsü (NASA HLS 30 m ilə birlikdə örtük analizi)" },
-  { value: "1 ay", label: "tam pulsuz giriş — kart lazım deyil, avtomatik ödəniş yoxdur" },
+const STATS: { value: I18nKey; label: I18nKey }[] = [
+  { value: "mkt.nuts.stat1Value", label: "mkt.nuts.stat1Label" },
+  { value: "mkt.nuts.stat2Value", label: "mkt.nuts.stat2Label" },
+  { value: "mkt.nuts.stat3Value", label: "mkt.nuts.stat3Label" },
 ];
 
-const STEPS: { title: string; body: string }[] = [
-  {
-    title: "Bağı çək",
-    body:
-      "Xəritədə kəndinizi axtarın və bağınıza toxunun — sərhəd avtomatik tanınır. Əl ilə düzəldin və ya hazır shapefile (.zip) yükləyin. Hektar elə həmin anda hesablanır.",
-  },
-  {
-    title: "Peyk arxivi açılsın",
-    body:
-      "Bağ yaradılan kimi emal növbəsinə düşür: son həftələrin səhnələri yüklənir, bulud və kölgə pikselləri maskalanır, hər indeks örtüyünüzün sərhədinə kəsilir. Proqres və gözlənilən vaxt ekranda görünür.",
-  },
-  {
-    title: "Pəncərələri gör, AI-dan soruş",
-    body:
-      "Şaxta tarixləri, çiləmə pəncərəsi, GDD toplanması və örtük indeksləri bir yerdə. Şübhəli yarpağın şəklini çəkin — AI xəstəlik/zərərverici izini oxusun; anlamadığınız yeri söhbətdə soruşun.",
-  },
-  {
-    title: "Məhsulu və qazancı izlə",
-    body:
-      "Yığımı və satışı qeyd edin, dərmandan sonra məhdudiyyət sayğacını izləyin, xərc və gəliri yazın — bağ-üzrə mənfəət mövsüm boyu, mövsüm sonu hesabatı isə hazır olur.",
-  },
+const STEPS: { title: I18nKey; body: I18nKey }[] = [
+  { title: "mkt.nuts.step1Title", body: "mkt.nuts.step1Body" },
+  { title: "mkt.nuts.step2Title", body: "mkt.nuts.step2Body" },
+  { title: "mkt.nuts.step3Title", body: "mkt.nuts.step3Body" },
+  { title: "mkt.nuts.step4Title", body: "mkt.nuts.step4Body" },
 ];
 
 const FEATURES: Feature[] = [
-  {
-    icon: Satellite,
-    title: "Örtük peyk monitorinqi",
-    body:
-      "NASA HLS 30 m və Sentinel-2 10 m səhnələri. NDVI (örtük sıxlığı), NDMI/NDWI (nəmlik), NDRE/CIre (azot), EVI, SAVI, NBR — bağınıza kəsilmiş rəngli raster, tarix zolağı və kontrast rejimi.",
-  },
-  {
-    icon: Snowflake,
-    title: "Bölgənin şaxta tarixləri",
-    body:
-      "Son yaz və ilk payız şaxtasının iqlim tarixləri, şaxtasız günlərin sayı və ən soyuq gecələr — 20 illik arxivdən, hər rayon üçün. Çiçəkləmə və yığım planlaşdırmanın təməli.",
-  },
-  {
-    icon: Sun,
-    title: "Çiləmə pəncərəsi",
-    body:
-      "7 günlük proqnozdan külək, yağış və temperatura görə çiləmə üçün uyğun saatlar. Şaxta və isti dalğası xəbərdarlığı ayrıca gəlir.",
-  },
-  {
-    icon: Droplets,
-    title: "Su balansı (FAO-56)",
-    body:
-      "Torpaq su ehtiyatı FAO-56 metodikası ilə: bağın nə vaxt və təxminən nə qədər suvarmağa ehtiyacı var. Quru dövr indeks düşüşü ilə üst-üstə düşəndə görünür.",
-  },
-  {
-    icon: ThermometerSnowflake,
-    title: "GDD — istilik toplanması",
-    body:
-      "İstilik vahidləri tumurcuqlanmadan toplanır. Zərərverici mərhələlərini və müdaxiləni təqvimə görə deyil, real istiyə görə vaxtlaşdırmağa kömək edir.",
-  },
-  {
-    icon: Brain,
-    title: "AI aqronom və söhbət",
-    body:
-      "Hər yeni peyk səhnəsindən sonra avtomatik analiz: risklər (şiddət dərəcəsi ilə), tövsiyələr, növbəti addımlar. Bağınızın kontekstini xatırlayan söhbətdə istədiyinizi soruşun.",
-  },
-  {
-    icon: Camera,
-    title: "Foto diaqnoz",
-    body:
-      "Yarpağın, fındığın, ağac gövdəsinin şəklini çəkin — AI xəstəlik və ya zərərverici izini oxuyub nə etməli olduğunuzu izah edir. Şəkillər bağ arxivində qalır.",
-  },
-  {
-    icon: Layers,
-    title: "Məhsuldarlıq zonaları",
-    body:
-      "Çox-mövsümlü peyk pikselləri üzərində davamlı güclü/orta/zəif zonalar. Onilliklərlə qalan bağda resursu doğru yerə yönəltməyin ən aydın yolu.",
-  },
-  {
-    icon: Gauge,
-    title: "Sağlamlıq balı — izahlı",
-    body:
-      "Bağın indeks, hava və qeyd məlumatından hesablanan 0–100 bal. Necə yığıldığı göstərilir; giriş çatmayanda uydurma rəqəm verilmir, çəkilər yenidən normallaşdırılır.",
-  },
-  {
-    icon: TrendingUp,
-    title: "Məhsuldarlıq izləmə",
-    body:
-      "Yığımı bağ və mövsüm üzrə qeyd edin; illər arası məhsuldarlıq mənzərəsi yaranır və birbaşa mənfəət hesabına düşür.",
-  },
-  {
-    icon: Wallet,
-    title: "Təsərrüfat dəftəri və mənfəət",
-    body:
-      "Gübrə, dərman, yanacaq, muzd bir tərəfdə; yığım və satış digər tərəfdə. Bağ-üzrə P&L, təşkilat üzrə cəm. Qəbzin şəklindən xərc qaralaması avtomatik doldurulur.",
-  },
-  {
-    icon: LineChart,
-    title: "Mövsüm müqayisəsi",
-    body:
-      "Eyni təqvim günündə keçən illə fərq, p10–p90 zolağı və trend. Örtüyün bu il keçən illərə nisbətən necə olduğunu bir baxışda göstərir.",
-  },
+  { icon: Satellite, title: "mkt.nuts.feat1Title", body: "mkt.nuts.feat1Body" },
+  { icon: Snowflake, title: "mkt.nuts.feat2Title", body: "mkt.nuts.feat2Body" },
+  { icon: Sun, title: "mkt.nuts.feat3Title", body: "mkt.nuts.feat3Body" },
+  { icon: Droplets, title: "mkt.nuts.feat4Title", body: "mkt.nuts.feat4Body" },
+  { icon: ThermometerSnowflake, title: "mkt.nuts.feat5Title", body: "mkt.nuts.feat5Body" },
+  { icon: Brain, title: "mkt.nuts.feat6Title", body: "mkt.nuts.feat6Body" },
+  { icon: Camera, title: "mkt.nuts.feat7Title", body: "mkt.nuts.feat7Body" },
+  { icon: Layers, title: "mkt.nuts.feat8Title", body: "mkt.nuts.feat8Body" },
+  { icon: Gauge, title: "mkt.nuts.feat9Title", body: "mkt.nuts.feat9Body" },
+  { icon: TrendingUp, title: "mkt.nuts.feat10Title", body: "mkt.nuts.feat10Body" },
+  { icon: Wallet, title: "mkt.nuts.feat11Title", body: "mkt.nuts.feat11Body" },
+  { icon: LineChart, title: "mkt.nuts.feat12Title", body: "mkt.nuts.feat12Body" },
 ];
 
-const TWO_COL_LEFT: string[] = [
-  "Sıravi əkin üçün qurulmuş alət örtüyün il-boyu davranışını «anlamır»",
-  "Şaxta riski qulaqdan-qulağa və «keçən il belə olmuşdu» ilə idarə olunur",
-  "Çiləmə vaxtı təqvimə görə seçilir, real istiyə və proqnoza görə yox",
-  "Zəifləyən cərgəni ancaq bağa girəndə, çox vaxt yayılandan sonra görürsən",
-  "Neçə ilin hansı zonasının davamlı zəif olduğu heç yerdə yazılmır",
-  "Hansı bağ qazandırır, hansı zərər verir — mövsüm sonu təxmini",
+const TWO_COL_LEFT: I18nKey[] = [
+  "mkt.nuts.beforeItem1",
+  "mkt.nuts.beforeItem2",
+  "mkt.nuts.beforeItem3",
+  "mkt.nuts.beforeItem4",
+  "mkt.nuts.beforeItem5",
+  "mkt.nuts.beforeItem6",
 ];
 
-const TWO_COL_RIGHT: string[] = [
-  "Örtük NDVI/NDMI/NDRE bağı çoxillik kimi, il-boyu izləyir",
-  "Şaxta tarixləri 20 illik arxivdən rəqəmlə gəlir — pəncərə planlaşdırılır",
-  "Çiləmə pəncərəsi proqnoza, GDD isə real istiyə söykənir",
-  "Zəifləyən zona xəritədə hələ kiçik ləkə ikən görünür",
-  "Çox-mövsümlü zonalar davamlı güclü/zəif hissələri yadda saxlayır",
-  "Hər xərc və gəlir bağa bağlıdır — mənfəət mövsüm boyu görünür",
+const TWO_COL_RIGHT: I18nKey[] = [
+  "mkt.nuts.afterItem1",
+  "mkt.nuts.afterItem2",
+  "mkt.nuts.afterItem3",
+  "mkt.nuts.afterItem4",
+  "mkt.nuts.afterItem5",
+  "mkt.nuts.afterItem6",
 ];
 
 const DEEP: DeepBlock[] = [
   {
     icon: Satellite,
-    title: "Örtük peyk qatı",
-    body:
-      "İki mənbə birləşir: NASA HLS 30 m və Sentinel-2 10 m. Hər səhnədə bulud və kölgə maskalanır, indekslər yalnız bağınızın sərhədi daxilində hesablanır. Çoxillik örtük üçün önəmli olan orta rəqəm deyil — cərgələr arasındakı fərqi göstərən xəritədir.",
+    title: "mkt.nuts.deep1Title",
+    body: "mkt.nuts.deep1Body",
     bullets: [
-      "Piksel-səviyyəli rəngli overlay — cərgə-cərgə fərq görünür",
-      "NDVI sıxlıq, NDMI/NDWI nəmlik, NDRE/CIre azot göstəriciləri",
-      "Tarix zolağı: hər səhnənin tarixi və bulud faizi",
-      "Retrospektiv arxiv: köhnə mövsümləri sonradan doldurmaq",
+      "mkt.nuts.deep1Bullet1",
+      "mkt.nuts.deep1Bullet2",
+      "mkt.nuts.deep1Bullet3",
+      "mkt.nuts.deep1Bullet4",
     ],
   },
   {
     icon: Snowflake,
-    title: "Şaxta və istilik qatı",
-    body:
-      "Şaxta çoxillik bağın ən böyük riskidir. Bölgənin 20 illik Open-Meteo arxivindən son yaz və ilk payız şaxtasının təhlükəsiz tarixləri hesablanır; nəticə rayon üzrə paylaşılan bilik blokunda saxlanır ki, hər bağ təkrar hesablamadan istifadə etsin.",
+    title: "mkt.nuts.deep2Title",
+    body: "mkt.nuts.deep2Body",
     bullets: [
-      "Yaz şaxtası p90 (təhlükəsiz), payız şaxtası p10 (erkən)",
-      "Şaxtasız günlərin sayı və ən soyuq gecələr",
-      "GDD toplanmasının başlanğıcı median son şaxtaya bağlanır",
-      "Çiləmə pəncərəsi 7 günlük proqnozdan seçilir",
+      "mkt.nuts.deep2Bullet1",
+      "mkt.nuts.deep2Bullet2",
+      "mkt.nuts.deep2Bullet3",
+      "mkt.nuts.deep2Bullet4",
     ],
   },
   {
     icon: Wallet,
-    title: "Məhsul və iqtisadiyyat qatı",
-    body:
-      "Bağ investisiyadır: bu il əkilib növbəti il çıxmır, illərlə bəhrə verir. Ona görə yığım, satış, xərc və zonalar bir yerə bağlanır — hansı bağın, hansı zonanın illər boyu qazandırdığı görünən olur.",
+    title: "mkt.nuts.deep3Title",
+    body: "mkt.nuts.deep3Body",
     bullets: [
-      "Bağ-üzrə və təşkilat-üzrə xərc/gəlir",
-      "İllər arası məhsuldarlıq (yield) mənzərəsi",
-      "Qəbz şəklindən avtomatik xərc qaralaması",
-      "Yığım məhdudiyyəti sayğacı dərmandan sonra avtomatik başlayır",
+      "mkt.nuts.deep3Bullet1",
+      "mkt.nuts.deep3Bullet2",
+      "mkt.nuts.deep3Bullet3",
+      "mkt.nuts.deep3Bullet4",
     ],
   },
 ];
 
-const FAQ: { q: string; a: string }[] = [
-  {
-    q: "Nə üçün ümumi peyk alətləri fındıq bağı üçün zəifdir?",
-    a:
-      "Ən tanınmış peyk-monitorinq platformaları sıravi birillik əkinlər — buğda, qarğıdalı, günəbaxan — üçün qurulub və çoxillik fındıq bağı, xüsusən Azərbaycan bağları onların diqqət mərkəzində deyil. Çoxillik örtük il-boyu yerində qalır, indeksləri fərqli oxunur, ən böyük riski isə şaxtadır. Bağban AI məhz bunun üçün qurulub: örtük indeksləri, bölgə şaxta tarixləri, GDD və fındıq üçün ayrıca kalibrlənmiş normalar.",
-  },
-  {
-    q: "Şaxta tarixləri necə hesablanır?",
-    a:
-      "Bağınızın rayonu üçün son 20 ilin iqlim arxivindən son yaz şaxtasının təhlükəsiz (p90) və ilk payız şaxtasının erkən (p10) tarixləri, şaxtasız günlərin sayı və ən soyuq gecələr hesablanır. Nəticə rayon üzrə bir dəfə hesablanıb paylaşılır və bütün üzvlərə pulsuzdur.",
-  },
-  {
-    q: "«Örtük NDVI» nə deməkdir?",
-    a:
-      "NDVI yaşıl örtüyün sıxlığını və canlılığını göstərir. Fındıq bağında bu, ağac çətirlərinin vəziyyətini əks etdirir: bir cərgə zəifləyəndə, suvarma çatmayanda və ya xəstəlik ocağı yaranmanda həmin hissədə NDVI düşür və xəritədə ləkə kimi görünür — çox vaxt gözlə görünməzdən əvvəl.",
-  },
-  {
-    q: "Fındıqdan başqa bağ məhsulları üçün uyğundurmu?",
-    a:
-      "Bəli. Fındıq üçün ayrıca normalar yığılsa da, örtük indeksləri, şaxta tarixləri, su balansı, GDD, dəftər və AI istənilən bağ və ya ağac əkini üçün işləyir. Üzüm üçün də ayrıca normalar var; digər məhsullar da tam izlənir.",
-  },
-  {
-    q: "Başlamaq üçün data yükləməliyəm?",
-    a:
-      "Xeyr. Xəritədə kəndinizi axtarıb bağınıza toxunmaq kifayətdir — sərhəd avtomatik tanınır və istəsəniz əl ilə düzəldilir. Əlinizdə shapefile (.zip) varsa onu da yükləyə bilərsiniz. Heç bir GIS proqramı və ya koordinat cədvəli lazım deyil.",
-  },
-  {
-    q: "Neçəyə başa gəlir?",
-    a:
-      "İlk 1 ay bütün funksiyalar pulsuzdur — kart məlumatı istənilmir və sınaq bitəndə avtomatik pul çıxılmır. Sonra pulsuz paketdə qala, yaxud Paket 2 (10 AZN/ay) və Paket 3 (25 AZN/ay) seçə bilərsiniz. Tam müqayisə Qiymətlər səhifəsindədir.",
-  },
-  {
-    q: "AI səhv desə nə olacaq?",
-    a:
-      "AI aqronom məsləhət verir, qərar sizindir — hər cavabın altında bu barədə xəbərdarlıq var. Model əmin olmayanda dəqiqləşdirici sual verir və cavabın nəyə əsaslandığını göstərir. Ciddi hallarda kataloqdakı laboratoriya və ya aqronomla əlaqə tövsiyə olunur.",
-  },
+const FAQ: { q: I18nKey; a: I18nKey }[] = [
+  { q: "mkt.nuts.faq1Q", a: "mkt.nuts.faq1A" },
+  { q: "mkt.nuts.faq2Q", a: "mkt.nuts.faq2A" },
+  { q: "mkt.nuts.faq3Q", a: "mkt.nuts.faq3A" },
+  { q: "mkt.nuts.faq4Q", a: "mkt.nuts.faq4A" },
+  { q: "mkt.nuts.faq5Q", a: "mkt.nuts.faq5A" },
+  { q: "mkt.nuts.faq6Q", a: "mkt.nuts.faq6A" },
+  { q: "mkt.nuts.faq7Q", a: "mkt.nuts.faq7A" },
 ];
 
 /* ------------------------------------------------------------- hero visual
@@ -318,7 +187,7 @@ function OrchardVisual() {
   return (
     <div className="relative h-full min-h-[340px] w-full">
       <span className="absolute right-3 top-3 z-10 rounded-full bg-panel/90 px-2.5 py-1 text-[11px] font-bold text-[color:var(--brand-muted)] shadow-sm">
-        nümunə
+        {t("mkt.nuts.visualSampleBadge")}
       </span>
       <div
         className="absolute inset-0"
@@ -344,22 +213,22 @@ function OrchardVisual() {
       />
       <div className="absolute left-3 top-3 rounded-xl bg-panel/95 px-3 py-2 shadow-sm">
         <p className="text-[11px] font-bold uppercase tracking-wider text-[color:var(--brand-muted)]">
-          Örtük NDVI
+          {t("mkt.nuts.visualCanopyNdviLabel")}
         </p>
         <p className="font-display text-xl font-bold text-[color:var(--brand-ink)]">0.71</p>
       </div>
       <div className="absolute right-3 top-14 flex items-center gap-2 rounded-xl bg-panel/95 px-3 py-2 shadow-sm">
         <Snowflake className="h-4 w-4 text-sky-600" aria-hidden="true" />
         <span className="text-[12px] font-semibold text-[color:var(--brand-ink-2)]">
-          Son yaz şaxtası ~5 aprel
+          {t("mkt.nuts.visualLastFrostLabel")}
         </span>
       </div>
       <div className="absolute inset-x-3 bottom-3 rounded-xl border border-line bg-panel p-3 shadow-soft sm:left-auto sm:right-3 sm:max-w-[268px]">
         <p className="mb-1 flex items-center gap-1.5 text-[12px] font-bold text-[color:var(--green)]">
-          <Brain className="h-3.5 w-3.5" aria-hidden="true" /> AI Aqronom
+          <Brain className="h-3.5 w-3.5" aria-hidden="true" /> {t("mkt.nuts.visualAiAgronomLabel")}
         </p>
         <p className="text-[12.5px] leading-snug text-[color:var(--brand-ink-2)]">
-          Şimal cərgələrdə nəmlik düşüb — suvarma pəncərəsi açıqdır, çiləmə üçün cümə uyğundur.
+          {t("mkt.nuts.visualAiAdvice")}
         </p>
       </div>
     </div>
@@ -378,34 +247,31 @@ export default function NutsSegment() {
         <div>
           <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-[#ecdcb0] bg-[#fff4d6] px-4 py-1.5 text-[12.5px] font-bold uppercase tracking-wide text-[#8a5f08]">
             <Sprout className="h-4 w-4" aria-hidden="true" />
-            1 ay pulsuz · kart lazım deyil
+            {t("mkt.nuts.heroBadge")}
           </span>
           <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-[color:var(--green)]">
             <Nut className="h-4 w-4" aria-hidden="true" />
-            fındıq və bağ təsərrüfatları üçün
+            {t("mkt.nuts.heroEyebrow")}
           </p>
           <h1 className="mt-3 font-display text-[clamp(28px,4vw,46px)] font-bold leading-[1.08] text-[color:var(--brand-ink)]">
-            Rəqiblərin ikisi də fındığı dəstəkləmir. Biz məhz bunun üçün qurulmuşuq.
+            {t("mkt.nuts.heroTitle")}
           </h1>
           <p className="mt-4 text-[17px] leading-relaxed text-[color:var(--brand-ink-2)]">
-            Ən tanınmış iki peyk-monitorinq platforması sıravi birillik əkinlər üçün qurulub — çoxillik
-            fındıq bağı onların diqqət mərkəzində deyil. Bağban AI isə çətirin özünü izləyir: örtük
-            NDVI/NDMI, bölgənin şaxta tarixləri, çiləmə pəncərəsi, GDD və fındıq üçün ayrıca kalibrlənmiş
-            normalar — hamısı bir telefonda, Azərbaycan dilində. Zaqatala, Şəki, Xudat bağları üçün.
+            {t("mkt.nuts.heroBody")}
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
               href="/signup"
               className="inline-flex min-h-12 items-center gap-2 rounded-full bg-[color:var(--green)] px-6 text-[15px] font-bold text-white shadow-[0_6px_16px_rgba(30,152,82,0.28)] transition-colors hover:bg-grass-deep"
             >
-              1 ay pulsuz başla
+              {t("mkt.nuts.heroCtaPrimary")}
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
             <Link
               href="/pricing"
               className="inline-flex min-h-12 items-center gap-2 rounded-full border-[1.5px] border-line-2 px-6 text-[15px] font-bold text-[color:var(--brand-ink)] transition-colors hover:border-[color:var(--brand-ink)]"
             >
-              Qiymətlərə bax
+              {t("mkt.nuts.heroCtaSecondary")}
             </Link>
           </div>
         </div>
@@ -419,31 +285,28 @@ export default function NutsSegment() {
         <div className={`overflow-hidden rounded-xl2 border-[1.5px] border-line ${SH_SM}`}>
           <div className="border-b border-line bg-teal px-6 py-5">
             <p className="flex items-center gap-2 text-[13px] font-bold uppercase tracking-wide text-[#9dc6b3]">
-              <Sparkles className="h-4 w-4" aria-hidden="true" /> Fərq nədədir
+              <Sparkles className="h-4 w-4" aria-hidden="true" /> {t("mkt.nuts.diffEyebrow")}
             </p>
             <h2 className="mt-1.5 font-display text-[clamp(20px,2.6vw,28px)] font-bold leading-snug text-white">
-              Sıravi əkin üçün alət ilə çoxillik bağ üçün qurulmuş platforma eyni şey deyil.
+              {t("mkt.nuts.diffTitle")}
             </h2>
           </div>
           <div className="grid gap-px bg-line sm:grid-cols-3">
             {[
               {
                 icon: Trees,
-                title: "Çoxillik örtük",
-                body:
-                  "Bağ il-boyu yerində qalır; indeks örtüyün özünü, cərgə-cərgə fərqi izləyir — bir mövsümlük əkin məntiqi ilə yox.",
+                title: t("mkt.nuts.diffCard1Title"),
+                body: t("mkt.nuts.diffCard1Body"),
               },
               {
                 icon: Snowflake,
-                title: "Şaxta birinci risk",
-                body:
-                  "Çiçəyi və məhsulu bir gecədə aparan şaxta 20 illik arxivdən rəqəmlə gəlir — bağçılıq üçün ən vacib məlumat.",
+                title: t("mkt.nuts.diffCard2Title"),
+                body: t("mkt.nuts.diffCard2Body"),
               },
               {
                 icon: Nut,
-                title: "Fındıq üçün kalibr",
-                body:
-                  "İndeks normaları və mərhələ hədləri məhz fındıq üçün yığılıb — «bu göstərici yaxşıdır, yoxsa aşağı» sualına düzgün cavab verir.",
+                title: t("mkt.nuts.diffCard3Title"),
+                body: t("mkt.nuts.diffCard3Body"),
               },
             ].map((c) => (
               <div key={c.title} className="bg-panel p-6">
@@ -464,8 +327,8 @@ export default function NutsSegment() {
       {/* -------------------------------------------------- value points */}
       <section className="py-10">
         <SectionHead
-          title="Fındıq bağçısı üçün niyə fərqlidir"
-          sub="Beş səbəb — hər biri çoxillik bağın gündəlik işində birbaşa qarşılığı olan şey, ekranda gözəl qrafik deyil."
+          title={t("mkt.nuts.valueHeading")}
+          sub={t("mkt.nuts.valueSub")}
         />
         <ol className="grid gap-4 lg:grid-cols-2">
           {VALUE_POINTS.map((p, i) => (
@@ -479,9 +342,9 @@ export default function NutsSegment() {
               <div>
                 <h3 className="font-display text-[16.5px] font-bold text-[color:var(--brand-ink)]">
                   <span className="mr-1.5 text-[color:var(--green)]">{i + 1}.</span>
-                  {p.title}
+                  {t(p.title)}
                 </h3>
-                <p className="mt-1.5 text-[14.5px] leading-relaxed text-[color:var(--brand-ink-2)]">{p.body}</p>
+                <p className="mt-1.5 text-[14.5px] leading-relaxed text-[color:var(--brand-ink-2)]">{t(p.body)}</p>
               </div>
             </li>
           ))}
@@ -493,8 +356,8 @@ export default function NutsSegment() {
         <div className="grid gap-3.5 lg:grid-cols-3">
           {STATS.map((s) => (
             <div key={s.label} className={`rounded-xl2 bg-teal p-6 text-center ${SH_SM}`}>
-              <b className="block font-display text-[32px] font-bold leading-none text-white">{s.value}</b>
-              <span className="mt-2 block text-[13px] leading-snug text-[#9dc6b3]">{s.label}</span>
+              <b className="block font-display text-[32px] font-bold leading-none text-white">{t(s.value)}</b>
+              <span className="mt-2 block text-[13px] leading-snug text-[#9dc6b3]">{t(s.label)}</span>
             </div>
           ))}
         </div>
@@ -503,8 +366,8 @@ export default function NutsSegment() {
       {/* -------------------------------------------------------- steps */}
       <section className="scroll-mt-24 py-10" id="nece-isleyir">
         <SectionHead
-          title="4 addımda dəyər"
-          sub="Nə GIS bilgisi, nə cədvəl, nə də kağız. Qeydiyyatdan ilk peyk xəritənizə qədər adətən bir çay fasiləsi kifayətdir."
+          title={t("mkt.nuts.stepsHeading")}
+          sub={t("mkt.nuts.stepsSub")}
         />
         <div className="grid gap-4 lg:grid-cols-4">
           {STEPS.map((s, i) => (
@@ -515,8 +378,8 @@ export default function NutsSegment() {
               >
                 {i + 1}
               </span>
-              <h3 className="font-display text-[15.5px] font-bold text-[color:var(--brand-ink)]">{s.title}</h3>
-              <p className="mt-1.5 text-[13.5px] leading-relaxed text-[color:var(--brand-ink-2)]">{s.body}</p>
+              <h3 className="font-display text-[15.5px] font-bold text-[color:var(--brand-ink)]">{t(s.title)}</h3>
+              <p className="mt-1.5 text-[13.5px] leading-relaxed text-[color:var(--brand-ink-2)]">{t(s.body)}</p>
             </div>
           ))}
         </div>
@@ -525,8 +388,8 @@ export default function NutsSegment() {
       {/* ----------------------------------------------------- features */}
       <section className="py-10">
         <SectionHead
-          title="Fındıq bağına lazım olan hər şey — bir yerdə"
-          sub="Ayrı-ayrı proqramlar və dəftərçələr əvəzinə tək platforma. Hər modul digərini qidalandırır: dəftərə yazdığınız hər əməliyyat AI-nin cavabını dəqiqləşdirir."
+          title={t("mkt.nuts.featuresHeading")}
+          sub={t("mkt.nuts.featuresSub")}
         />
         <div className="grid gap-4 lg:grid-cols-3">
           {FEATURES.map((f) => (
@@ -537,8 +400,8 @@ export default function NutsSegment() {
               >
                 <f.icon className="h-5 w-5" />
               </span>
-              <h3 className="font-display text-base font-bold text-[color:var(--brand-ink)]">{f.title}</h3>
-              <p className="mt-1.5 text-[13.5px] leading-relaxed text-[color:var(--brand-ink-2)]">{f.body}</p>
+              <h3 className="font-display text-base font-bold text-[color:var(--brand-ink)]">{t(f.title)}</h3>
+              <p className="mt-1.5 text-[13.5px] leading-relaxed text-[color:var(--brand-ink-2)]">{t(f.body)}</p>
             </div>
           ))}
         </div>
@@ -547,13 +410,13 @@ export default function NutsSegment() {
       {/* ------------------------------------------------------- two-col */}
       <section className="py-10">
         <SectionHead
-          title="Əvvəl və sonra"
-          sub="Eyni bağ, eyni adamlar — fərq yalnız məlumatın nə vaxt və hansı formada əlinizə çatmasındadır."
+          title={t("mkt.nuts.beforeAfterHeading")}
+          sub={t("mkt.nuts.beforeAfterSub")}
         />
         <div className={`grid overflow-hidden rounded-xl2 border border-line lg:grid-cols-2 ${SH_SM}`}>
           <div className="border-b border-line bg-panel-2 p-6 lg:border-b-0 lg:border-r">
             <h3 className="mb-3.5 font-display text-base font-bold text-[color:var(--brand-ink)]">
-              Ümumi əkin aləti (və ya dəftərçə) ilə
+              {t("mkt.nuts.beforeColTitle")}
             </h3>
             <ul className="grid gap-2.5">
               {TWO_COL_LEFT.map((it) => (
@@ -564,14 +427,14 @@ export default function NutsSegment() {
                   >
                     <X className="h-3 w-3" />
                   </span>
-                  {it}
+                  {t(it)}
                 </li>
               ))}
             </ul>
           </div>
           <div className="bg-panel p-6">
             <h3 className="mb-3.5 font-display text-base font-bold text-[color:var(--brand-ink)]">
-              Bağban AI ilə
+              {t("mkt.nuts.afterColTitle")}
             </h3>
             <ul className="grid gap-2.5">
               {TWO_COL_RIGHT.map((it) => (
@@ -582,7 +445,7 @@ export default function NutsSegment() {
                   >
                     <Check className="h-3 w-3" />
                   </span>
-                  {it}
+                  {t(it)}
                 </li>
               ))}
             </ul>
@@ -595,60 +458,38 @@ export default function NutsSegment() {
         <div className={`overflow-hidden rounded-xl2 border border-line bg-panel ${SH_SM}`}>
           <div className="border-b border-line bg-panel-2 px-5 py-3">
             <p className="text-[12.5px] font-bold uppercase tracking-wide text-[color:var(--brand-muted)]">
-              Nümunə ssenari — illüstrasiya, ölçülmüş nəticə deyil
+              {t("mkt.nuts.proofBadge")}
             </p>
           </div>
           <div className="p-6">
             <h2 className="font-display text-[clamp(20px,2.4vw,27px)] font-bold text-[color:var(--brand-ink)]">
-              Zaqatalada 8 hektarlıq fındıq bağında bir mövsüm
+              {t("mkt.nuts.proofTitle")}
             </h2>
             <p className="mt-2 text-[15px] leading-relaxed text-[color:var(--brand-ink-2)]">
-              Aşağıdakı ardıcıllıq platformanın real axınıdır: hansı məlumat nə vaxt gəlir və bağçı hansı
-              addımı atır. Tarix və rəqəmlər izah üçün seçilib — sizin bağınızda fərqli olacaq.
+              {t("mkt.nuts.proofBody")}
             </p>
             <ol className="mt-6 space-y-4 border-l-2 border-line pl-5">
               {[
-                {
-                  when: "Erkən yaz",
-                  what:
-                    "Şaxta tarixləri açılır: son yaz şaxtasının təhlükəsiz tarixi ~5 aprel, GDD toplanması həmin tarixdən başlayır. Çiçəkləmə planı buna görə qurulur.",
-                },
-                {
-                  when: "May",
-                  what:
-                    "Yeni Sentinel-2 səhnəsi düşür. Bağın şimal cərgələrində NDMI (nəmlik) qonşu zonalardan aşağıdır; su balansı da eyni yerdə quru dövr göstərir.",
-                },
-                {
-                  when: "May, 10 dəqiqə sonra",
-                  what:
-                    "AI analizi hazırdır: ehtimal olunan səbəblər arasında suvarma çatışmazlığı göstərilir, çiləmə üçün proqnozdan uyğun pəncərə təklif olunur, yoxlama addımları verilir.",
-                },
-                {
-                  when: "İyul",
-                  what:
-                    "Bağçı şübhəli yarpaqların şəklini çəkir; foto diaqnoz zərərverici izini oxuyur. Əməliyyat qeyd edilir, yığım məhdudiyyəti sayğacı avtomatik başlayır.",
-                },
-                {
-                  when: "Payız",
-                  what:
-                    "Yığım bağ üzrə qeyd olunur, satış və xərclər dəftərə düşür. İlk payız şaxtasından əvvəl mövsüm bağlanır; bağ-üzrə mənfəət və mövsüm müqayisəsi hesabatda görünür.",
-                },
-              ].map((t) => (
-                <li key={t.when} className="relative">
+                { when: t("mkt.nuts.proofT1When"), what: t("mkt.nuts.proofT1What") },
+                { when: t("mkt.nuts.proofT2When"), what: t("mkt.nuts.proofT2What") },
+                { when: t("mkt.nuts.proofT3When"), what: t("mkt.nuts.proofT3What") },
+                { when: t("mkt.nuts.proofT4When"), what: t("mkt.nuts.proofT4What") },
+                { when: t("mkt.nuts.proofT5When"), what: t("mkt.nuts.proofT5What") },
+              ].map((row) => (
+                <li key={row.when} className="relative">
                   <span
                     className="absolute -left-[27px] top-1.5 h-3 w-3 rounded-full border-2 border-panel bg-[color:var(--green)]"
                     aria-hidden="true"
                   />
                   <p className="text-[13px] font-bold uppercase tracking-wide text-[color:var(--green)]">
-                    {t.when}
+                    {row.when}
                   </p>
-                  <p className="mt-1 text-[14.5px] leading-relaxed text-[color:var(--brand-ink-2)]">{t.what}</p>
+                  <p className="mt-1 text-[14.5px] leading-relaxed text-[color:var(--brand-ink-2)]">{row.what}</p>
                 </li>
               ))}
             </ol>
             <p className="mt-6 rounded-xl bg-panel-2 p-4 text-[13.5px] leading-relaxed text-[color:var(--brand-ink-2)]">
-              Platforma diaqnoz qoymur və aqronomu əvəz etmir — o, sizin gördüyünüzü genişləndirir və
-              qərarı əsaslandırır. Bütün AI cavabları məsləhət xarakterlidir.
+              {t("mkt.nuts.proofDisclaimer")}
             </p>
           </div>
         </div>
@@ -657,8 +498,8 @@ export default function NutsSegment() {
       {/* ----------------------------------------------------- deep dive */}
       <section className="py-10">
         <SectionHead
-          title="Necə işləyir — dərinliyə baxış"
-          sub="Səthdə sadə görünən şeyin altında ciddi emal var. Çoxillik bağ üçün ən vacib üç qat."
+          title={t("mkt.nuts.deepHeading")}
+          sub={t("mkt.nuts.deepSub")}
         />
         <div className="grid gap-4 lg:grid-cols-3">
           {DEEP.map((d) => (
@@ -670,9 +511,9 @@ export default function NutsSegment() {
                 >
                   <d.icon className="h-5 w-5" />
                 </span>
-                <h3 className="font-display text-[17px] font-bold text-[color:var(--brand-ink)]">{d.title}</h3>
+                <h3 className="font-display text-[17px] font-bold text-[color:var(--brand-ink)]">{t(d.title)}</h3>
               </div>
-              <p className="mt-3 text-[14.5px] leading-relaxed text-[color:var(--brand-ink-2)]">{d.body}</p>
+              <p className="mt-3 text-[14.5px] leading-relaxed text-[color:var(--brand-ink-2)]">{t(d.body)}</p>
               <ul className="mt-4 grid gap-2">
                 {d.bullets.map((b) => (
                   <li key={b} className="flex gap-2.5 text-[13.5px] text-[color:var(--brand-ink-2)]">
@@ -682,7 +523,7 @@ export default function NutsSegment() {
                     >
                       <Check className="h-3 w-3" />
                     </span>
-                    {b}
+                    {t(b)}
                   </li>
                 ))}
               </ul>
@@ -701,23 +542,20 @@ export default function NutsSegment() {
             <Wallet className="h-5 w-5" />
           </span>
           <p className="flex-1 text-[14.5px] leading-relaxed text-grass-deep">
-            Qiymət yalnız fermerlərə aiddir. İlk 1 ay bütün funksiyalar pulsuzdur — kart lazım deyil,
-            avtomatik ödəniş yoxdur. Sonra pulsuz paketdə qalmaq, yaxud Paket 2 (10 AZN/ay) və Paket 3
-            (25 AZN/ay) seçmək sizin ixtiyarınızdadır. Laboratoriya, aqronom və təchizatçılar üçün
-            platforma tam pulsuzdur.
+            {t("mkt.nuts.pricingNote")}
           </p>
           <Link
             href="/pricing"
             className="inline-flex min-h-11 items-center justify-center rounded-full border-[1.5px] border-grass-deep px-5 text-sm font-bold text-grass-deep transition-colors hover:bg-panel"
           >
-            Paketlərə bax
+            {t("mkt.nuts.pricingCta")}
           </Link>
         </div>
       </section>
 
       {/* ----------------------------------------------------------- faq */}
       <section className="scroll-mt-24 py-10" id="suallar">
-        <SectionHead title="Fındıq bağçılarının sualları" />
+        <SectionHead title={t("mkt.nuts.faqHeading")} />
         <div className="mx-auto max-w-[760px]">
           {FAQ.map((item, i) => {
             const open = openFaq === i;
@@ -730,7 +568,7 @@ export default function NutsSegment() {
                   aria-controls={`nut-faq-a-${i}`}
                   className="flex min-h-14 w-full items-center justify-between gap-4 py-4 text-left"
                 >
-                  <span className="text-[16.5px] font-semibold text-[color:var(--brand-ink)]">{item.q}</span>
+                  <span className="text-[16.5px] font-semibold text-[color:var(--brand-ink)]">{t(item.q)}</span>
                   <Plus
                     className={`h-5 w-5 shrink-0 text-[color:var(--brand-muted)] transition-transform duration-200 motion-reduce:transition-none ${
                       open ? "rotate-45" : ""
@@ -745,7 +583,7 @@ export default function NutsSegment() {
                   }`}
                 >
                   <div className="overflow-hidden">
-                    <p className="pb-4 text-[14.5px] leading-relaxed text-[color:var(--brand-ink-2)]">{item.a}</p>
+                    <p className="pb-4 text-[14.5px] leading-relaxed text-[color:var(--brand-ink-2)]">{t(item.a)}</p>
                   </div>
                 </div>
               </div>
@@ -761,16 +599,16 @@ export default function NutsSegment() {
           style={{ background: "linear-gradient(150deg,#0f4b42,#0a2f2a)" }}
         >
           <h2 className="font-display text-[clamp(22px,3vw,28px)] font-bold text-white">
-            Fındıq bağını bu gün peykdən izləməyə başla
+            {t("mkt.nuts.ctaTitle")}
           </h2>
           <p className="mt-2.5 text-[15px] text-[#a9cdbc]">
-            1 ay pulsuz · kart lazım deyil · istənilən vaxt dayandır
+            {t("mkt.nuts.ctaSub")}
           </p>
           <Link
             href="/signup"
             className="mt-5 inline-flex min-h-12 items-center gap-2 rounded-full bg-white px-7 text-[15px] font-bold text-teal transition-opacity hover:opacity-90"
           >
-            1 ay pulsuz başla
+            {t("mkt.nuts.heroCtaPrimary")}
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Link>
         </div>
@@ -779,7 +617,7 @@ export default function NutsSegment() {
       {/* --------------------------------------------------- other roles */}
       <section className="pb-4">
         <p className="mb-3 text-center text-[13px] font-bold uppercase tracking-[0.14em] text-[color:var(--brand-muted)]">
-          bütün həllər
+          {t("mkt.nuts.otherRolesEyebrow")}
         </p>
         <div className="flex flex-wrap justify-center gap-3">
           <Link
@@ -787,7 +625,7 @@ export default function NutsSegment() {
             className={`${CARD} inline-flex items-center gap-2 px-5 py-3 text-sm font-bold text-[color:var(--brand-ink)] transition-colors hover:border-line-2`}
           >
             <Leaf className="h-4 w-4 text-grass-deep" aria-hidden="true" />
-            Fermer, laboratoriya, aqronom və təchizatçı həlləri
+            {t("mkt.nuts.otherRolesLink")}
             <ArrowRight className="h-4 w-4 text-[color:var(--brand-muted)]" aria-hidden="true" />
           </Link>
         </div>

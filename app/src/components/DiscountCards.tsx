@@ -1,10 +1,13 @@
+"use client";
+
 import { Sprout, Users2, GraduationCap, Mail, Info } from "lucide-react";
+import { t } from "@/lib/i18n";
 
 // C3 — three farmer discount programmes shown under the plans. These are MARKETING cards only:
 // there is NO discount-code system in the backend, so the CTA is a plain mailto to support and the
-// discount is applied by hand after review (see the honest note under the cards). Copy is inline
-// Azerbaijani pending the T18 i18n sweep — the marketing surface hard-codes copy today (cf.
-// components/ui/SupportCard.tsx).
+// discount is applied by hand after review (see the honest note under the cards). Rendered inside
+// the client PricingView, so this is a client component and uses the synchronous t(); the programme
+// list is built inside the body so it re-reads the active locale on each render.
 const SUPPORT_EMAIL = "info@agradex.com";
 
 interface Programme {
@@ -16,45 +19,45 @@ interface Programme {
   subject: string; // mailto subject — the operator applies the discount manually after review
 }
 
-const PROGRAMMES: Programme[] = [
-  {
-    icon: Sprout,
-    title: "Gənc fermer",
-    badge: "−50%",
-    who: "40 yaşa qədər fermerlər",
-    body: "40 yaşa qədər və ya yeni başlayan fermerlər üçün Pro və Business paketlərində 50% endirim. Peyk xəritəsi və hava onsuz da pulsuzdur.",
-    subject: "Bağban AI — Gənc fermer endirimi (−50%)",
-  },
-  {
-    icon: Users2,
-    title: "Kooperativ / birlik",
-    badge: "Toplu qiymət",
-    who: "Fermer kooperativləri",
-    body: "Kooperativlər və fermer birlikləri üçün birdən çox təsərrüfatı bir hesabda idarə edən toplu qiymət. Üzv sayına görə fərdi təklif hazırlayırıq.",
-    subject: "Bağban AI — Kooperativ / birlik təklifi",
-  },
-  {
-    icon: GraduationCap,
-    title: "Tələbə-aqronom",
-    badge: "Güzəştli",
-    who: "Aqronomluq tələbələri",
-    body: "Aqronomluq və əkinçilik üzrə təhsil alan tələbələr üçün güzəştli qiymət. Tələbə statusunu təsdiq edən sənədlə müraciət edin.",
-    subject: "Bağban AI — Tələbə-aqronom endirimi",
-  },
-];
-
 export default function DiscountCards() {
+  const programmes: Programme[] = [
+    {
+      icon: Sprout,
+      title: t("mkt.discount.youngTitle"),
+      badge: "−50%",
+      who: t("mkt.discount.youngWho"),
+      body: t("mkt.discount.youngBody"),
+      subject: t("mkt.discount.youngSubject"),
+    },
+    {
+      icon: Users2,
+      title: t("mkt.discount.coopTitle"),
+      badge: t("mkt.discount.coopBadge"),
+      who: t("mkt.discount.coopWho"),
+      body: t("mkt.discount.coopBody"),
+      subject: t("mkt.discount.coopSubject"),
+    },
+    {
+      icon: GraduationCap,
+      title: t("mkt.discount.studentTitle"),
+      badge: t("mkt.discount.studentBadge"),
+      who: t("mkt.discount.studentWho"),
+      body: t("mkt.discount.studentBody"),
+      subject: t("mkt.discount.studentSubject"),
+    },
+  ];
+
   return (
     <section className="space-y-4">
       <div className="text-center">
-        <h2 className="font-display text-xl font-bold text-teal sm:text-2xl">Endirim proqramları</h2>
+        <h2 className="font-display text-xl font-bold text-teal sm:text-2xl">{t("mkt.discount.heading")}</h2>
         <p className="mx-auto mt-1 max-w-2xl text-sm text-slate-600">
-          Fermerlər üçün güzəştlər. Müraciət edin — uyğunluğu yoxlayıb paketinizə tətbiq edək.
+          {t("mkt.discount.intro")}
         </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        {PROGRAMMES.map((p) => {
+        {programmes.map((p) => {
           const Icon = p.icon;
           return (
             <div
@@ -76,7 +79,7 @@ export default function DiscountCards() {
                 href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(p.subject)}`}
                 className="btn-primary mt-4"
               >
-                <Mail className="h-4 w-4" aria-hidden="true" /> Müraciət et
+                <Mail className="h-4 w-4" aria-hidden="true" /> {t("mkt.discount.apply")}
               </a>
             </div>
           );
@@ -86,8 +89,7 @@ export default function DiscountCards() {
       <div className="flex items-start gap-2 rounded-xl border border-line bg-panel-2 px-4 py-3 text-xs text-slate-500">
         <Info className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
         <span>
-          Endirimlər avtomatik tətbiq olunmur. Müraciətinizi yoxladıqdan sonra komandamız endirimi
-          hesabınıza əl ilə tətbiq edir.
+          {t("mkt.discount.note")}
         </span>
       </div>
     </section>

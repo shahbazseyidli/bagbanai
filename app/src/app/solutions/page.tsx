@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight, Check, FlaskConical, Package, Sprout, Users, Wallet } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { INDEX_COPY, SEGMENT_LIST, type IconKey } from "@/components/solutions/content";
+import { getT } from "@/lib/i18n-server";
 
 // W2 / E11 — the /solutions index: the four role segments with the approved mockup's pill + card
 // treatment. Purely presentational (no state, no t()), so it stays a Server Component and ships
@@ -24,7 +25,8 @@ const TAB_ICONS: Partial<Record<IconKey, LucideIcon>> = {
 
 const SH_SM = "shadow-[0_1px_2px_rgba(20,15,10,0.05),0_2px_8px_rgba(20,15,10,0.05)]";
 
-export default function SolutionsIndexPage() {
+export default async function SolutionsIndexPage() {
+  const t = await getT();
   return (
     <div className="-mx-4 -mt-6 -mb-24 bg-paper px-4 pt-6 pb-24 md:-mb-6 md:pb-8">
       {/* ---------------------------------------------------------- head */}
@@ -39,7 +41,7 @@ export default function SolutionsIndexPage() {
       </header>
 
       {/* ---------------------------------------------------------- tabs */}
-      <nav aria-label="Həllər" className="mb-8 flex flex-wrap justify-center gap-2">
+      <nav aria-label={t("mkt.solutions.navAria")} className="mb-8 flex flex-wrap justify-center gap-2">
         {SEGMENT_LIST.map((s) => {
           const Icon = TAB_ICONS[s.tabIcon] ?? Sprout;
           return (
@@ -111,7 +113,7 @@ export default function SolutionsIndexPage() {
                 href={`/solutions/${s.slug}`}
                 className="mt-5 inline-flex min-h-11 w-fit items-center gap-2 rounded-full bg-[color:var(--green)] px-5 text-sm font-bold text-white shadow-[0_6px_16px_rgba(30,152,82,0.28)] transition-colors hover:bg-grass-deep"
               >
-                Ətraflı bax
+                {t("mkt.solutions.detailsCta")}
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </Link>
             </article>

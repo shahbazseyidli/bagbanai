@@ -5,12 +5,13 @@
 // (built alongside this wave) and the in-page anchors.
 import Link from "next/link";
 import { ArrowRight, Leaf } from "lucide-react";
+import { t, type I18nKey } from "@/lib/i18n";
 
-const SOLUTIONS: Array<[string, string]> = [
-  ["/solutions/fermer", "Fermerlər"],
-  ["/solutions/laboratoriya", "Laboratoriyalar"],
-  ["/solutions/konsultant", "Aqronomlar"],
-  ["/solutions/techizatci", "Təchizatçılar"],
+const SOLUTIONS: Array<[string, I18nKey]> = [
+  ["/solutions/fermer", "mkt.footer.solutionFermer"],
+  ["/solutions/laboratoriya", "mkt.footer.solutionLaboratoriya"],
+  ["/solutions/konsultant", "mkt.footer.solutionKonsultant"],
+  ["/solutions/techizatci", "mkt.footer.solutionTechizatci"],
 ];
 
 export default function LandingFooter() {
@@ -20,18 +21,17 @@ export default function LandingFooter() {
         {/* closing CTA */}
         <div className="border-b border-white/10 pb-9 text-center">
           <h2 className="font-display text-[clamp(24px,3.4vw,30px)] font-bold text-white">
-            Bu gün başla — rolunu seç
+            {t("mkt.footer.ctaHeading")}
           </h2>
           <p className="mx-auto mt-3 max-w-[520px] text-[14.5px] text-[#a9cdbc]">
-            Fermerlər üçün 1 ay pulsuz sınaq, kart tələb olunmur. Laboratoriya, aqronom və
-            təchizatçılar pulsuz qoşulur.
+            {t("mkt.footer.ctaSubtitle")}
           </p>
           <div className="mt-5 flex flex-wrap justify-center gap-3">
             <Link href="/signup" className="lp-btn lp-btn-white">
-              Pulsuz qeydiyyat <ArrowRight className="h-5 w-5" aria-hidden="true" />
+              {t("mkt.footer.ctaSignup")} <ArrowRight className="h-5 w-5" aria-hidden="true" />
             </Link>
             <Link href="/login" className="lp-btn lp-btn-teal-ghost">
-              Daxil ol
+              {t("mkt.footer.ctaLogin")}
             </Link>
           </div>
         </div>
@@ -43,44 +43,44 @@ export default function LandingFooter() {
               <Leaf className="h-6 w-6 text-mint" aria-hidden="true" /> Bağban AI
             </div>
             <p className="text-[13px] text-[#9cc3b1]">
-              Peyk, AI, dəftər və marketplace — bir platformada.
+              {t("mkt.footer.tagline")}
             </p>
             <p className="mt-3 text-[12px] text-[#7fae98]">
-              Peyk mənbələri: NASA HLS · Sentinel-2 (Copernicus) · Hava: Open-Meteo
+              {t("mkt.footer.dataSources")}
             </p>
           </div>
 
           <div>
             <h5 className="mb-3 text-[13px] font-semibold uppercase tracking-[0.06em] text-white">
-              Məhsul
+              {t("mkt.footer.colProduct")}
             </h5>
-            <a href="#imkanlar" className="lp-flink">İmkanlar</a>
-            <a href="#canli-demo" className="lp-flink">Canlı demo</a>
-            <Link href="/pricing" className="lp-flink">Qiymətlər</Link>
-            <Link href="/finduq" className="lp-flink">Fındıq bağları</Link>
-            <Link href="/guide" className="lp-flink">Necə başlamalı</Link>
-            <Link href="/yenilikler" className="lp-flink">Yeniliklər</Link>
-            <Link href="/status" className="lp-flink">Status</Link>
+            <a href="#imkanlar" className="lp-flink">{t("mkt.footer.linkImkanlar")}</a>
+            <a href="#canli-demo" className="lp-flink">{t("mkt.footer.linkDemo")}</a>
+            <Link href="/pricing" className="lp-flink">{t("mkt.footer.linkPricing")}</Link>
+            <Link href="/finduq" className="lp-flink">{t("mkt.footer.linkHazelnut")}</Link>
+            <Link href="/guide" className="lp-flink">{t("mkt.footer.linkGuide")}</Link>
+            <Link href="/yenilikler" className="lp-flink">{t("mkt.footer.linkNews")}</Link>
+            <Link href="/status" className="lp-flink">{t("mkt.footer.linkStatus")}</Link>
           </div>
 
           <div>
             <h5 className="mb-3 text-[13px] font-semibold uppercase tracking-[0.06em] text-white">
-              Həllər
+              {t("mkt.footer.colSolutions")}
             </h5>
-            {SOLUTIONS.map(([href, label]) => (
+            {SOLUTIONS.map(([href, labelKey]) => (
               <Link key={href} href={href} className="lp-flink">
-                {label}
+                {t(labelKey)}
               </Link>
             ))}
           </div>
 
           <div>
             <h5 className="mb-3 text-[13px] font-semibold uppercase tracking-[0.06em] text-white">
-              Hesab
+              {t("mkt.footer.colAccount")}
             </h5>
-            <Link href="/signup" className="lp-flink">Pulsuz qeydiyyat</Link>
-            <Link href="/login" className="lp-flink">Daxil ol</Link>
-            <Link href="/catalog" className="lp-flink">Provayder kataloqu</Link>
+            <Link href="/signup" className="lp-flink">{t("mkt.footer.linkSignup")}</Link>
+            <Link href="/login" className="lp-flink">{t("mkt.footer.linkLogin")}</Link>
+            <Link href="/catalog" className="lp-flink">{t("mkt.footer.linkCatalog")}</Link>
           </div>
         </div>
 
