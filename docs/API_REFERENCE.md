@@ -293,3 +293,24 @@ Router: `services/app/routers/health.py` — prefix `/api`.
 **İndekslər:** `?sensor=` NDRE/CIre S2-only (E0). **Sahə:** `PUT /api/fields/{id}` (ad dəyiş), `DELETE /api/fields/{id}` (cascade). **C3:** `POST /api/geo/segment {lon,lat}` (→ geoapi proxy).
 **Abunəlik:** `GET /api/orgs/{id}/subscription` (user tier+usage). **Admin:** `GET /api/admin/subscriptions`, `PUT /api/admin/subscriptions/{org_id}`, `GET /api/admin/tiers`.
 **Internal (X-Internal-Token):** `POST /api/internal/research/drain`, `POST /api/internal/weather/run?field_id=`, `POST /api/internal/weather/drain`.
+
+## 2026-07-25 — v1.13.0 yeni endpoint-lər (email sistemi + məxfilik)
+
+Auth (cookie tələb olunur):
+- `GET /api/auth/name-public` → `{enabled, role}` — fermer ad-görünürlüyü + rol (UI non-fermerə gizlədir).
+- `POST /api/auth/name-public {enabled}` — toggle (New-B).
+- `GET /api/auth/email-lifecycle` → `{enabled}` — lifecycle/marketing email opt-out.
+- `POST /api/auth/email-lifecycle {enabled}` — toggle (E2.4). Transaksion email bunu görməzdən gəlir.
+
+Public (auth yox):
+- `GET /api/emails/unsubscribe?token=` → istifadəçinin dilində HTML təsdiq (email_lifecycle=false).
+- `POST /api/emails/unsubscribe?token=` → `{ok}` (proqramatik).
+- `GET /api/public/share/<token>` — **dəyişiklik:** raster+index indi Sentinel-2-yə üstünlük verir (order by `(sensor='S2') desc`), NASA yalnız S2 yoxdursa. Verdict mətni client-də `interpret()`-lə lokallaşdırılır.
+
+Internal (X-Internal-Token):
+- `POST /api/internal/emails/data-ready?field_id=` — sahə sahibinə "peyk datası hazır" email (idempotent per field). Geo pipeline `_trigger_advice`-dən çağırılır.
+- `POST /api/internal/emails/lifecycle/drain` → `{ok, sent:{template:count}, total}` — davranış email drain (gündəlik cron). Email konfiqurasiya olunmayıbsa no-op.
+
+Admin (`is_admin`):
+- `GET /api/admin/fields`, `GET /api/admin/fields/{id}`, `PATCH /api/admin/users/{id}` (is_active/is_admin/email_verified/full_name), `GET /api/admin/export?format=csv|json`.
+

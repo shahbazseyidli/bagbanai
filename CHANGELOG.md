@@ -3,6 +3,27 @@
 Bütün əhəmiyyətli dəyişikliklər burada qeyd olunur. Format [Keep a Changelog](https://keepachangelog.com/),
 versiyalar [SemVer](https://semver.org/).
 
+## [1.13.0] — 2026-07-25 — Agradex rebrand + email sistemi (E1+E2 CANLI) + panel split aktiv + UX/i18n
+
+> Detallı sessiya jurnalı: `docs/SESSION_2026-07-25.md`.
+
+### Changed
+- **Rebrand: Bağban AI → Agradex** bütün istifadəçi səthlərində (262 yer; app/marketing/7 locale/email/PWA/User-Agent). İnfra id-ləri (`/opt/bagbanai`, repo, `bagban-api` health) qəsdən qaldı.
+- **panel split AKTİVLƏŞDİ:** agradex.com=marketing, app.agradex.com=app (`NEXT_PUBLIC_PANEL_HOST`, `COOKIE_DOMAIN=.agradex.com`). Host məntiqi `useIsAppHost()` hook-unda.
+- **App-host header-dən dil seçimi götürüldü** (yalnız Settings-də); marketinq apex-də qalır.
+- Solution slug-lar ingiliscə: `/solutions/farmer|lab|consultant|supplier` (köhnələr 308 redirect).
+
+### Added
+- **Email sistemi TAM (Resend aktiv):** welcome (rola+dilə, 7 persona), data_ready (peyk hazır), davranış lifecycle cron (no_field 1/3/7 · inactive 10/30 · no_crop · trial · edu drip · həftəlik digest), unsubscribe (login-siz), frontend lifecycle-pref toggle. Migration **0044** (email_sends/last_seen_at/email_lifecycle/email_unsub_tokens). Şablonlar 13 × 7 dil.
+- **Fermer ad-görünürlük məxfiliyi:** migration **0045** (`users.name_public`), qeydiyyatda+Settings toggle, söndürəndə digərləri `user_<hash>` alias görür (chat+peer). `services/app/display.py`.
+- **Admin genişləndirmə:** bütün-sahələr xəritə/siyahı, istifadəçi idarəetmə (deaktiv/rol/admin/email-təsdiq), CSV/JSON ixrac.
+- **How it works səhifəsi** (`/how-it-works`, hazelnut səhifəsindən ümumiləşdirildi, 7 dil).
+- 8 müvəqqəti test user (chat demo, parol `AgradexTest2026`).
+
+### Fixed
+- Panel app-chrome-un marketinq host-una sızması; Nav signed-out flicker (auth localStorage keş).
+- Share kartı NASA əvəzinə **Sentinel-2**-yə üstünlük verir; share verdict + 68 metadataOptions dropdown label 7 dilə tərcümə (əvvəl AZ hardcoded).
+
 ## [1.12.0] — 2026-07-23 — Subsidiya çıxarıldı + panel-split (dormant) + email bildiriş (CANLI)
 
 ### Removed

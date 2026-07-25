@@ -568,3 +568,46 @@ Always-on uvicorn (geo image) `geo_pipeline.segment_api:app`, `mem_limit 700m`, 
 
 ### Sirlər (yeni)
 `EPPO_TOKEN` (boş → pest deqradasiya), `SEARCH_PROVIDER=anthropic`, `NOMINATIM_BASE`, `RESEND_API_KEY` (Sprint B).
+
+## 12. Email sistemi (Resend) — 2026-07-25 CANLI
+
+**Provayder:** Resend (pulsuz tier), domen `agradex.com` verified. `.env`:
+```
+RESEND_API_KEY=re_...
+EMAIL_FROM="Agradex <no-reply@agradex.com>"   # dırnaq VACİB (source .env boşluğu pozur)
+```
+Açar yoxdursa bütün email səliqəli no-op edir (signup auto-verify). Aktivləşəndən sonra:
+yeni signup OTP tələb edir, welcome + data_ready + davranış email-ləri işə düşür.
+
+**Per-dil persona:** hər dil öz göndərənindən (hamısı @agradex.com — tək verified domen): az Ülkər Nəsirova · en Olivia Hayes · tr İrem Çelik · it Chiara Moretti · de Johanna Brandt · hu Réka Tóth · pl Emilia Wójcik. `notify.SENDERS`.
+
+**Şablonlar:** `services/app/ai/emails/` (layout + catalog az/en + catalog_i18n tr/de/hu/it/pl + send). 13 şablon × 7 dil. `send_template` idempotentdir (`email_sends` cədvəli) + `users.email_lifecycle` opt-out-a hörmət edir (transaksion email istisna).
+
+**Unsubscribe:** `/api/emails/unsubscribe?token=` (login-siz, hər lifecycle email footer-ində).
+
+**Bounce-dan qorunma:** demo/@demo.agradex.com hesablarına `email_lifecycle=false` təyin olunub.
+
+**Manual drain testi:**
+```
+cd /opt/bagbanai && set -a && . ./.env && set +a
+curl -sS -X POST http://127.0.0.1:8000/api/internal/emails/lifecycle/drain -H "X-Internal-Token: $INTERNAL_API_TOKEN"
+```
+
+### Yeni cron (root crontab)
+```
+15 6 * * *  cd /opt/bagbanai && bash deploy/lifecycle-emails.sh >> /var/log/bagban-lifecycle.log 2>&1
+```
+Gündəlik davranış email drain (06:15 UTC ≈ AZ 10:15).
+
+### Yeni miqrasiyalar
+- **0044** `email_lifecycle`: email_sends (idempotentlik) + users.last_seen_at + users.email_lifecycle + email_unsub_tokens.
+- **0045** `name_privacy`: users.name_public (fermer ad-görünürlüyü).
+Tətbiq: prod-da `db psql -f - < db/migrations/00XX.sql` + `insert into schema_migrations` (və ya tools profile `db/migrate.sh`). api restart-dan ƏVVƏL tətbiq et (kod yeni sütunlara istinad edir).
+
+## 13. Panel split (app.agradex.com) — 2026-07-25 AKTİV
+`.env`: `NEXT_PUBLIC_PANEL_HOST=app.agradex.com` + `COOKIE_DOMAIN=.agradex.com` → `bash deploy/update.sh`.
+COOKIE_DOMAIN dəyişikliyi bütün istifadəçiləri bir dəfə yenidən login etdirir. DNS/nginx/SSL onsuz da app.agradex.com-u əhatə edirdi.
+
+## 14. ⚠️ .env quoting (vacib)
+`update.sh` `.env`-i `source` edir. Boşluqlu/`<`/`>`-li dəyər (məs. `EMAIL_FROM=Agradex <no-reply@...>`) MÜTLƏQ dırnaqda olmalıdır — yoxsa `source .env` "syntax error near unexpected token newline" verib api-ni crash-loop-a salır.
+

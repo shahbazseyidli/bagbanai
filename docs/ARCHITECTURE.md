@@ -510,3 +510,14 @@ The spec assumes Supabase and a fully paid product. The user deliberately deviat
 - **Demo login**: `demo@agradex.com` / `AgradexDemo2026`.
 </content>
 </invoke>
+
+## Email lifecycle system (2026-07-25)
+
+**Layers:** `services/app/ai/notify.py` (transport: Resend HTTP + SMTP fallback, per-locale sender persona, html+text) → `services/app/ai/emails/` (`layout.py` email-safe HTML; `catalog.py`+`catalog_i18n.py` = 13 templates × 7 langs, fallback locale→en→az; `send.py` = idempotent send_template honoring `email_lifecycle`) → `routers/email_prefs.py` (public unsubscribe) + `routers/internal.py` (data-ready + lifecycle drain) + `ai/emails/lifecycle.py` (behavioral rules).
+
+**Triggers:** welcome = signup verify (`auth._send_welcome`); data_ready = geo pipeline `_trigger_advice` → internal endpoint; behavioral = daily cron `lifecycle-emails.sh` → drain endpoint → `run_lifecycle` (no_field/edu/no_crop/inactive/trial/digest). Idempotency + audit via `public.email_sends`.
+
+**Panel split:** `NEXT_PUBLIC_PANEL_HOST` + middleware host-routing; client `useIsAppHost()` (`lib/host.ts`) gates app chrome (AppShell/BottomNav/Nav) so agradex.com stays marketing and app.agradex.com is the app; cookie shared via `COOKIE_DOMAIN=.agradex.com`.
+
+**Name privacy:** `users.name_public` + `display.public_display_name()` — a farmer who opts out is shown to OTHER users as `user_<hash>` (chat, peer suggestions); applied only at cross-user exposure points.
+

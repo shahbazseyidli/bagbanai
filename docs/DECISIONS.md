@@ -337,3 +337,13 @@ crash-loop. Secrets backup: `/root/agradex.env.bak`.
   reports, official cadastre layer, geocoding search, hillshade/terrain).
 - Phase 2 per spec §28 (Open-Meteo weather + GDD/spray/frost/drought models, rule engine →
   multi-channel notifications, reports, baseline/anomaly/phenology, billing PSP).
+
+## 2026-07-25 decisions
+
+- **Product renamed Bağban AI → Agradex** across all user-facing surfaces. Infra identifiers (`/opt/bagbanai`, git repo, `bagban-api` health string, container/log names) deliberately KEPT — they are not branding and renaming them would break paths/monitoring. CLAUDE.md prose left as "Bağban AI" (internal, not user-facing).
+- **Email personas per locale** — one persona per language, ALL on `@agradex.com` so a single verified Resend domain covers every name (no per-name DNS). Chosen over a single generic sender for warmth/localization.
+- **Email backend text via structured codes** (not raw prose) — computed wellness/pest/weather text emits `*_code`+`*_params`, translated on the frontend; keeps DB/compute unchanged while enabling 7-language output. Same principle applied to the share card (client-side `interpret()`).
+- **Lifecycle email idempotency via `email_sends` ledger** (unique per user+template+dedup_key) rather than per-user timestamps — simplest correct "send once" that also audits; the weekly digest uses the ISO week as dedup_key to allow repeats.
+- **Farmer name privacy = display alias, not data removal** — the real name stays stored (owner sees it); only cross-user views substitute `user_<hash>`. Farmers only (labs/consultants/suppliers are businesses meant to be discoverable).
+- **English solution slugs** aligned to the `user_role` enum (farmer/lab/consultant/supplier); old Azerbaijani slugs 308-redirect.
+

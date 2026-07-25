@@ -218,3 +218,15 @@ Faza 1 tam canlı + üstünə düşən sprintlər. Detal `CHANGELOG.md` [1.0.0]�
    `4a08ee8a-4123-4fe5-a07f-ed24c69c5604`; "test lecet" `860891bd-912c-4ec3-9235-b7d4d0193190`.
 4. **Task bitəndə:** §C-də status xanasını yenilə (⬜→🚀→✅ + commit/tarix), `CHANGELOG.md`-ə sətir,
    lazım olsa `CLAUDE.md`. Fazaları sıra ilə (§28), DoD yoxla.
+
+## 2026-07-25 — SHIPPED (bu sessiya, hamısı CANLI)
+
+- ✅ **Rebrand Bağban AI → Agradex** (bütün istifadəçi səthləri).
+- ✅ **panel split AKTİV** (agradex.com=marketing, app.agradex.com=app).
+- ✅ **Email sistemi TAM** (E1+E2): welcome · data_ready · davranış lifecycle cron (no_field/inactive/no_crop/trial/edu/digest) · 7 dil × persona · unsubscribe · frontend pref. Migration 0044.
+- ✅ **Fermer ad-görünürlük məxfiliyi** (migration 0045).
+- ✅ **Admin genişləndirmə** (bütün-sahələr xəritə/siyahı, user idarəetmə, ixrac).
+- ✅ **How it works səhifəsi** (hazelnut→ümumi) · ingilis slug-lar · app-host dil→Settings.
+- ✅ **Bug fix:** panel chrome sızması · Nav flicker · share NASA→S2 · share verdict+metadataOptions i18n.
+- ⏸ **Google SSO** — welcome (SSO variantı) onunla aktivləşəcək (E2.5, şablon hazır).
+
