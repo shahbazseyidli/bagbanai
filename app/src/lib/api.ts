@@ -80,6 +80,16 @@ export const api = {
     return handle<T>(res);
   },
 
+  async patch<T>(path: string, body?: unknown): Promise<T> {
+    const res = await fetch(url(path), {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    return handle<T>(res);
+  },
+
   async del<T>(path: string): Promise<T> {
     const res = await fetch(url(path), {
       method: "DELETE",
@@ -108,6 +118,7 @@ const ERR_KEYS: Record<string, I18nKey> = {
   email_taken: "app.err.emailTaken",
   invalid_credentials: "app.err.invalidCredentials",
   email_not_verified: "app.err.emailNotVerified",
+  account_disabled: "app.err.accountDisabled",
   invalid_otp: "app.err.invalidOtp",
   otp_expired: "app.err.otpExpired",
   too_many_attempts: "app.err.tooManyAttempts",

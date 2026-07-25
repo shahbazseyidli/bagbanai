@@ -118,10 +118,13 @@ async def resend_otp(body: ResendOtpIn):
 async def login(body: LoginIn, response: Response):
     async with connection() as conn:
         row = await conn.fetchrow(
-            "select id, email, password_hash, full_name, locale, is_admin, email_verified, "
-            "role, country, region from public.users where lower(email)=lower($1)", body.email)
+            "select id, email, password_hash, full_name, locale, is_admin, is_active, "
+            "email_verified, role, country, region from public.users "
+            "where lower(email)=lower($1)", body.email)
     if not row or not verify_password(body.password, row["password_hash"]):
         raise HTTPException(status_code=401, detail="invalid_credentials")
+    if not row["is_active"]:
+        raise HTTPException(status_code=403, detail="account_disabled")
     if not row["email_verified"] and notify.email_configured():
         raise HTTPException(status_code=403, detail="email_not_verified")
     _set_cookie(response, create_token(str(row["id"])))

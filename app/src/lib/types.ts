@@ -257,6 +257,8 @@ export interface AdminUser {
   full_name?: string | null;
   locale?: string | null;
   is_admin: boolean;
+  is_active: boolean;
+  email_verified: boolean;
   created_at: string;
   org_name?: string | null;
   role?: string | null;
@@ -265,6 +267,22 @@ export interface AdminUser {
   output_tokens: number;
   cost_usd: number;
   last_active?: string | null;
+}
+
+// GET /api/admin/fields -> { fields: AdminField[] }
+export interface AdminField {
+  id: string;
+  name: string;
+  area_ha: number | null;
+  crop_type?: string | null;
+  org_id: string;
+  org_name?: string | null;
+  owner_email?: string | null;
+  data_status?: string | null;
+  centroid?: [number, number] | null;
+  geom: Polygon | null;
+  wellness_score?: number | null;
+  wellness_tone?: string | null;
 }
 
 // GET /api/admin/activity -> { activity: AdminActivityItem[] }

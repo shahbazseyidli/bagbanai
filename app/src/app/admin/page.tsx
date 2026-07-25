@@ -21,19 +21,62 @@ import {
   ArrowDownToLine,
   ArrowUpFromLine,
 } from "lucide-react";
-import { api } from "@/lib/api";
+import { api, azError } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { ErrorNote, Placeholder, Spinner } from "@/components/ui";
+import FieldsOverviewMap, { type GeoField, type FieldScoreLite } from "@/components/FieldsOverviewMap";
 import type {
   AdminOverview,
   AdminUser,
+  AdminField,
   AdminActivityItem,
   AdminUsageRow,
   AdminBilling,
 } from "@/lib/types";
 
-type Tab = "overview" | "users" | "subscriptions" | "activity" | "billing";
+type Tab = "overview" | "users" | "fields" | "subscriptions" | "activity" | "billing";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "";
+
+// Wellness tone → chip colours (mirrors lib/indexStatus / FieldsOverviewMap bands).
+const TONE_CHIP: Record<string, string> = {
+  good: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  warn: "bg-amber-100 text-amber-700 border-amber-200",
+  bad: "bg-red-100 text-red-700 border-red-200",
+};
+
+function ScoreChip({ score, tone }: { score?: number | null; tone?: string | null }) {
+  if (typeof score !== "number") {
+    return <span className="text-xs text-slate-400">{t("app.admin.scoreNone")}</span>;
+  }
+  const key = tone === "good" || tone === "warn" || tone === "bad"
+    ? tone
+    : score >= 70 ? "good" : score >= 45 ? "warn" : "bad";
+  return (
+    <span className={`inline-block rounded-md border px-2 py-0.5 text-xs font-semibold ${TONE_CHIP[key]}`}>
+      {score}
+    </span>
+  );
+}
+
+// Trigger a browser download of an admin export. The httpOnly auth cookie rides along on the
+// same-origin request; a Blob + object URL forces the "save as" without navigating away.
+async function downloadExport(kind: "orgs" | "users" | "fields" | "usage") {
+  const res = await fetch(`${API_BASE}/api/admin/export?kind=${kind}&format=csv`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const blob = await res.blob();
+  const objUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = objUrl;
+  a.download = `${kind}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(objUrl);
+}
 
 // Small amounts (AI usage) can be fractions of a cent; show more decimals then.
 function formatUSD(n: number | null | undefined): string {
@@ -106,6 +149,51 @@ function StatCard({
   );
 }
 
+// ---- Export toolbar (CSV downloads) ----
+function ExportToolbar() {
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const KINDS: { id: "orgs" | "users" | "fields" | "usage"; label: string }[] = [
+    { id: "orgs", label: t("app.admin.exportOrgs") },
+    { id: "users", label: t("app.admin.exportUsers") },
+    { id: "fields", label: t("app.admin.exportFields") },
+    { id: "usage", label: t("app.admin.exportUsage") },
+  ];
+  async function run(kind: "orgs" | "users" | "fields" | "usage") {
+    setBusy(kind);
+    setError("");
+    try {
+      await downloadExport(kind);
+    } catch (e) {
+      setError(azError(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+  return (
+    <div className="card">
+      <div className="mb-2 flex items-center gap-2 text-sm text-slate-500">
+        <ArrowUpFromLine className="h-4 w-4 text-emerald-600" />
+        {t("app.admin.exportHeading")}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {KINDS.map((k) => (
+          <button
+            key={k.id}
+            type="button"
+            disabled={busy === k.id}
+            onClick={() => run(k.id)}
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          >
+            {k.label}
+          </button>
+        ))}
+      </div>
+      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+    </div>
+  );
+}
+
 // ---- Overview tab ----
 function OverviewSection() {
   const [data, setData] = useState<AdminOverview | null>(null);
@@ -123,6 +211,8 @@ function OverviewSection() {
 
   return (
     <div className="space-y-6">
+      <ExportToolbar />
+
       <div className="card flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="text-sm text-slate-500">{t("app.admin.aiProviderModel")}</div>
@@ -169,23 +259,70 @@ function OverviewSection() {
 }
 
 // ---- Users tab ----
-function UsersSection() {
+function ActionButton({
+  label,
+  onClick,
+  busy,
+  variant = "default",
+}: {
+  label: string;
+  onClick: () => void;
+  busy: boolean;
+  variant?: "default" | "danger";
+}) {
+  const cls =
+    variant === "danger"
+      ? "border-red-200 text-red-700 hover:bg-red-50"
+      : "border-slate-300 text-slate-700 hover:bg-slate-50";
+  return (
+    <button
+      type="button"
+      disabled={busy}
+      onClick={onClick}
+      className={`rounded-md border px-2 py-1 text-xs font-medium disabled:opacity-50 ${cls}`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function UsersSection({ currentUserId }: { currentUserId: string }) {
   const [users, setUsers] = useState<AdminUser[] | null>(null);
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
 
-  useEffect(() => {
-    api
-      .get<{ users: AdminUser[] }>("/api/admin/users")
-      .then((r) => setUsers(r.users))
-      .catch((err) => setError(err instanceof Error ? err.message : t("app.admin.error")));
+  const load = useCallback(async () => {
+    try {
+      const r = await api.get<{ users: AdminUser[] }>("/api/admin/users");
+      setUsers(r.users);
+    } catch (e) {
+      setError(azError(e));
+    }
   }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
 
-  if (error) return <ErrorNote message={error} />;
+  async function patch(id: string, body: Partial<AdminUser>) {
+    setBusy(id);
+    setError("");
+    try {
+      await api.patch(`/api/admin/users/${id}`, body);
+      await load();
+    } catch (e) {
+      setError(azError(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  if (error && !users) return <ErrorNote message={error} />;
   if (!users) return <Spinner />;
   if (users.length === 0) return <Placeholder>{t("app.admin.usersEmpty")}</Placeholder>;
 
   return (
     <div className="card">
+      {error && <p className="mb-2 text-sm text-red-600">{error}</p>}
       <div className="overflow-x-auto">
         <table className="min-w-full text-left text-sm">
           <thead className="text-slate-500">
@@ -194,22 +331,29 @@ function UsersSection() {
               <th className="py-2 pr-4">{t("app.admin.colName")}</th>
               <th className="py-2 pr-4">{t("app.admin.colOrg")}</th>
               <th className="py-2 pr-4">{t("app.admin.colRole")}</th>
-              <th className="py-2 pr-4">{t("app.admin.colJoined")}</th>
-              <th className="py-2 pr-4 text-right">{t("app.admin.colAiCalls")}</th>
-              <th className="py-2 pr-4 text-right">{t("app.admin.colTokens")}</th>
               <th className="py-2 pr-4 text-right">{t("app.admin.cost")}</th>
-              <th className="py-2 pr-4">{t("app.admin.colLastActive")}</th>
+              <th className="py-2 pr-4">{t("app.admin.colActions")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {users.map((u) => (
               <tr key={u.id}>
                 <td className="py-2 pr-4">
-                  <div className="flex items-center gap-2 text-slate-800">
+                  <div className="flex flex-wrap items-center gap-1.5 text-slate-800">
                     {u.email}
                     {u.is_admin && (
                       <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
                         {t("app.admin.adminBadge")}
+                      </span>
+                    )}
+                    {!u.is_active && (
+                      <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-700">
+                        {t("app.admin.badgeInactive")}
+                      </span>
+                    )}
+                    {!u.email_verified && (
+                      <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
+                        {t("app.admin.badgeUnverified")}
                       </span>
                     )}
                   </div>
@@ -217,13 +361,52 @@ function UsersSection() {
                 <td className="py-2 pr-4 text-slate-600">{u.full_name || "—"}</td>
                 <td className="py-2 pr-4 text-slate-600">{u.org_name || "—"}</td>
                 <td className="py-2 pr-4 text-slate-500">{u.role || "—"}</td>
-                <td className="py-2 pr-4 text-slate-500">{formatDate(u.created_at)}</td>
-                <td className="py-2 pr-4 text-right text-slate-700">{formatInt(u.ai_calls)}</td>
-                <td className="py-2 pr-4 text-right text-slate-500">
-                  {formatInt(u.input_tokens)} / {formatInt(u.output_tokens)}
-                </td>
                 <td className="py-2 pr-4 text-right font-medium text-slate-800">{formatUSD(u.cost_usd)}</td>
-                <td className="py-2 pr-4 text-slate-500">{formatDateTime(u.last_active)}</td>
+                <td className="py-2 pr-4">
+                  <div className="flex flex-wrap gap-1.5">
+                    {u.is_active ? (
+                      <ActionButton
+                        label={t("app.admin.actDeactivate")}
+                        busy={busy === u.id}
+                        variant="danger"
+                        onClick={() => {
+                          if (window.confirm(t("app.admin.confirmDeactivate")))
+                            patch(u.id, { is_active: false });
+                        }}
+                      />
+                    ) : (
+                      <ActionButton
+                        label={t("app.admin.actActivate")}
+                        busy={busy === u.id}
+                        onClick={() => patch(u.id, { is_active: true })}
+                      />
+                    )}
+                    {u.is_admin ? (
+                      <ActionButton
+                        label={t("app.admin.actRemoveAdmin")}
+                        busy={busy === u.id || u.id === currentUserId}
+                        variant="danger"
+                        onClick={() => {
+                          if (window.confirm(t("app.admin.confirmRemoveAdmin")))
+                            patch(u.id, { is_admin: false });
+                        }}
+                      />
+                    ) : (
+                      <ActionButton
+                        label={t("app.admin.actMakeAdmin")}
+                        busy={busy === u.id}
+                        onClick={() => patch(u.id, { is_admin: true })}
+                      />
+                    )}
+                    {!u.email_verified && (
+                      <ActionButton
+                        label={t("app.admin.actVerifyEmail")}
+                        busy={busy === u.id}
+                        onClick={() => patch(u.id, { email_verified: true })}
+                      />
+                    )}
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -426,6 +609,225 @@ function BillingSection() {
   );
 }
 
+// ---- Fields tab (every field across all orgs — list + map) ----
+interface AdminFieldDetail {
+  id: string;
+  name: string;
+  org_name?: string | null;
+  owner_email?: string | null;
+  crop_type?: string | null;
+  variety?: string | null;
+  planting_date?: string | null;
+  growth_stage?: string | null;
+  area_ha: number | null;
+  data_status?: string | null;
+  wellness_score?: number | null;
+  wellness_tone?: string | null;
+  wellness_headline?: string | null;
+  scene_count: number;
+  advice?: { summary?: string | null; generated_at?: string | null } | null;
+  indices: { index_name: string; mean: number | null; p50: number | null; acquired_at: string | null }[];
+}
+
+function FieldDetailModal({ fieldId, onClose }: { fieldId: string; onClose: () => void }) {
+  const router = useRouter();
+  const [data, setData] = useState<AdminFieldDetail | null>(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    api
+      .get<AdminFieldDetail>(`/api/admin/fields/${fieldId}`)
+      .then(setData)
+      .catch((e) => setError(azError(e)));
+  }, [fieldId]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-5 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-slate-900">{t("app.admin.fdTitle")}</h2>
+          <button type="button" onClick={onClose} className="text-sm text-slate-500 hover:text-slate-700">
+            {t("app.admin.fdClose")}
+          </button>
+        </div>
+        {error && <ErrorNote message={error} />}
+        {!data && !error && <Spinner />}
+        {data && (
+          <div className="space-y-3 text-sm">
+            <div className="text-xl font-semibold text-slate-900">{data.name}</div>
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-slate-600">
+              <dt className="text-slate-400">{t("app.admin.colOrg")}</dt>
+              <dd>{data.org_name || "—"}</dd>
+              <dt className="text-slate-400">{t("app.admin.fdOwner")}</dt>
+              <dd>{data.owner_email || "—"}</dd>
+              <dt className="text-slate-400">{t("app.admin.fdCrop")}</dt>
+              <dd>{data.crop_type || "—"}</dd>
+              <dt className="text-slate-400">{t("app.admin.fdArea")}</dt>
+              <dd>{data.area_ha != null ? `${data.area_ha} ha` : "—"}</dd>
+              <dt className="text-slate-400">{t("app.admin.fdStatus")}</dt>
+              <dd>{data.data_status || "—"}</dd>
+              <dt className="text-slate-400">{t("app.admin.fdScore")}</dt>
+              <dd>
+                <ScoreChip score={data.wellness_score} tone={data.wellness_tone} />
+              </dd>
+              <dt className="text-slate-400">{t("app.admin.fdScenes")}</dt>
+              <dd>{formatInt(data.scene_count)}</dd>
+            </dl>
+
+            <div>
+              <div className="mb-1 font-semibold text-slate-800">{t("app.admin.fdAdvice")}</div>
+              {data.advice?.summary ? (
+                <p className="text-slate-600">{data.advice.summary}</p>
+              ) : (
+                <p className="text-slate-400">{t("app.admin.fdNoAdvice")}</p>
+              )}
+            </div>
+
+            {data.indices.length > 0 && (
+              <div>
+                <div className="mb-1 font-semibold text-slate-800">{t("app.admin.fdIndices")}</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {data.indices.map((ix) => (
+                    <span
+                      key={ix.index_name}
+                      className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs text-slate-600"
+                    >
+                      {ix.index_name}: {ix.mean != null ? ix.mean.toFixed(2) : "—"}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => router.push(`/fields/${data.id}`)}
+              className="mt-2 rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700"
+            >
+              {t("app.admin.fdOpenFull")}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FieldsSection() {
+  const [fields, setFields] = useState<AdminField[] | null>(null);
+  const [error, setError] = useState("");
+  const [view, setView] = useState<"list" | "map">("list");
+  const [detailId, setDetailId] = useState<string | null>(null);
+
+  useEffect(() => {
+    api
+      .get<{ fields: AdminField[] }>("/api/admin/fields")
+      .then((r) => setFields(r.fields))
+      .catch((e) => setError(azError(e)));
+  }, []);
+
+  if (error) return <ErrorNote message={error} />;
+  if (!fields) return <Spinner />;
+  if (fields.length === 0) return <Placeholder>{t("app.admin.fieldsEmpty")}</Placeholder>;
+
+  const geoFields: GeoField[] = fields.map((f) => ({
+    id: f.id,
+    name: f.name,
+    area_ha: f.area_ha,
+    data_status: f.data_status ?? undefined,
+    geom: f.geom,
+  }));
+  const scores: Record<string, FieldScoreLite> = {};
+  for (const f of fields) {
+    if (typeof f.wellness_score === "number") {
+      scores[f.id] = { field_id: f.id, score: f.wellness_score, tone: f.wellness_tone };
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setView("list")}
+          className={`rounded-md border px-3 py-1.5 text-sm font-medium ${
+            view === "list"
+              ? "border-emerald-600 bg-emerald-50 text-emerald-700"
+              : "border-slate-300 text-slate-600 hover:bg-slate-50"
+          }`}
+        >
+          {t("app.admin.viewList")}
+        </button>
+        <button
+          type="button"
+          onClick={() => setView("map")}
+          className={`rounded-md border px-3 py-1.5 text-sm font-medium ${
+            view === "map"
+              ? "border-emerald-600 bg-emerald-50 text-emerald-700"
+              : "border-slate-300 text-slate-600 hover:bg-slate-50"
+          }`}
+        >
+          {t("app.admin.viewMap")}
+        </button>
+        <span className="ml-auto text-sm text-slate-400">{formatInt(fields.length)}</span>
+      </div>
+
+      {view === "map" ? (
+        <div className="h-[70vh]">
+          <FieldsOverviewMap fields={geoFields} scores={scores} heightClass="h-full" />
+        </div>
+      ) : (
+        <div className="card">
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="text-slate-500">
+                <tr>
+                  <th className="py-2 pr-4">{t("app.admin.colOrg")}</th>
+                  <th className="py-2 pr-4">{t("app.admin.colOwner")}</th>
+                  <th className="py-2 pr-4">{t("app.admin.colName")}</th>
+                  <th className="py-2 pr-4 text-right">{t("app.admin.colArea")}</th>
+                  <th className="py-2 pr-4">{t("app.admin.colCrop")}</th>
+                  <th className="py-2 pr-4">{t("app.admin.colScore")}</th>
+                  <th className="py-2 pr-4">{t("app.admin.colStatus")}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {fields.map((f) => (
+                  <tr
+                    key={f.id}
+                    onClick={() => setDetailId(f.id)}
+                    className="cursor-pointer hover:bg-slate-50"
+                  >
+                    <td className="py-2 pr-4 text-slate-600">{f.org_name || "—"}</td>
+                    <td className="py-2 pr-4 text-slate-500">{f.owner_email || "—"}</td>
+                    <td className="py-2 pr-4 font-medium text-slate-800">{f.name}</td>
+                    <td className="py-2 pr-4 text-right tabular-nums text-slate-600">
+                      {f.area_ha != null ? f.area_ha : "—"}
+                    </td>
+                    <td className="py-2 pr-4 text-slate-600">{f.crop_type || "—"}</td>
+                    <td className="py-2 pr-4">
+                      <ScoreChip score={f.wellness_score} tone={f.wellness_tone} />
+                    </td>
+                    <td className="py-2 pr-4 text-slate-500">{f.data_status || "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {detailId && <FieldDetailModal fieldId={detailId} onClose={() => setDetailId(null)} />}
+    </div>
+  );
+}
+
 // ---- Subscriptions tab (admin sets each org's package; billing deferred) ----
 interface AdminSub {
   org_id: string;
@@ -543,6 +945,7 @@ export default function AdminPage() {
   const TABS: { id: Tab; label: string }[] = [
     { id: "overview", label: t("app.admin.tabOverview") },
     { id: "users", label: t("app.admin.tabUsers") },
+    { id: "fields", label: t("app.admin.tabFields") },
     { id: "subscriptions", label: t("app.admin.tabSubscriptions") },
     { id: "activity", label: t("app.admin.tabActivity") },
     { id: "billing", label: t("app.admin.tabBilling") },
@@ -580,7 +983,8 @@ export default function AdminPage() {
       </div>
 
       {tab === "overview" && <OverviewSection />}
-      {tab === "users" && <UsersSection />}
+      {tab === "users" && <UsersSection currentUserId={user.id} />}
+      {tab === "fields" && <FieldsSection />}
       {tab === "subscriptions" && <SubscriptionsSection />}
       {tab === "activity" && <ActivitySection />}
       {tab === "billing" && <BillingSection />}
