@@ -29,7 +29,17 @@ export default function HomePage() {
 function HomeInner() {
   const { user, loading } = useAuth();
   const v2 = useUiV2();
+  // Panel split: the apex (agradex.com) is ALWAYS marketing — even for signed-in users — so the
+  // brand/logo can point here and show the landing, not the app. The app dashboard lives on the app
+  // host (app.agradex.com). When the split is off (PANEL_HOST empty) this stays the old behavior.
+  const [appHost, setAppHost] = useState(false);
+  useEffect(() => {
+    const panel = (process.env.NEXT_PUBLIC_PANEL_HOST || "").toLowerCase();
+    const host = typeof window !== "undefined" ? window.location.hostname.toLowerCase() : "";
+    setAppHost(panel ? host === panel || host.startsWith("app.") : true);
+  }, []);
   if (loading) return <Spinner />;
+  if (!appHost) return <Landing />; // apex host → marketing landing (SSR default; corrected on mount)
   if (!user) return <Landing />;
   return v2 ? <TodayHome /> : <Dashboard />;
 }

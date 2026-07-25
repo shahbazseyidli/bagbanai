@@ -2443,6 +2443,16 @@ export const az = {
   "app.err.tooManyAttempts": "Çox cəhd oldu — bir azdan yenidən yoxlayın.",
   "app.field.rainNowcast.hourUnit": "saat",
   "app.field.rainNowcast.minUnit": "dəq",
+  // mkt.meta — page <title>/description (generateMetadata, wave 3 metadata)
+  "mkt.meta.pricingTitle": "Qiymətlər — Bağban AI",
+  "mkt.meta.pricingDesc": "Bağban AI paketləri: pulsuz monitorinqdən AI aqronom məsləhətinə qədər.",
+  "mkt.meta.solutionsTitle": "Həllər — Bağban AI",
+  "mkt.meta.solutionsDesc": "Fermer, laboratoriya, aqronom və təchizatçı üçün ayrı-ayrı həllər. Fermerlərə 1 ay pulsuz, provayderlərə həmişə pulsuz.",
+  "mkt.meta.guideTitle": "Necə başlamalı — Bağban AI bələdçiləri",
+  "mkt.meta.guideDesc": "Sahə əlavə etmək, peyk məlumatını oxumaq, AI aqronom məsləhəti, təsərrüfat dəftəri, gübrə planı və hesabatlar üzrə qısa, addım-addım bələdçilər.",
+  "mkt.meta.finduqTitle": "Fındıq və bağ təsərrüfatları üçün — Bağban AI",
+  "mkt.meta.finduqDesc": "Çoxillik fındıq bağı üçün qurulmuş peyk monitorinqi: örtük NDVI/NDMI, bölgənin şaxta tarixləri, çiləmə pəncərəsi, GDD, məhsuldarlıq zonaları və AI aqronom. Zaqatala, Şəki, Xudat üçün kalibrlənmiş. 1 ay pulsuz.",
+  "mkt.meta.finduqOgDesc": "Çoxillik fındıq bağı üçün örtük peyk analizi, şaxta tarixləri, çiləmə pəncərəsi və AI aqronom. Fındıq üçün ayrıca kalibrlənmiş. 1 ay pulsuz, kart lazım deyil.",
 } as const;
 
 export type I18nKey = keyof typeof az;

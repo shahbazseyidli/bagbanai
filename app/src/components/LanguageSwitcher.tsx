@@ -8,13 +8,17 @@ import { usePathname } from "next/navigation";
 import { Globe } from "lucide-react";
 import { LOCALES, LOCALE_NAMES, getLocale, type Locale } from "@/lib/i18n";
 
+// Strip ANY existing locale prefix (all of en/tr/de/hu/it/pl — az has none) so switching between
+// two prefixed locales replaces the prefix instead of stacking it (which produced /pl/it → 404).
+const PREFIX_RE = new RegExp(`^/(${LOCALES.filter((l) => l !== "az").join("|")})(?=/|$)`);
+
 export default function LanguageSwitcher({ className = "" }: { className?: string }) {
   const pathname = usePathname();
   const [cur, setCur] = useState<Locale>("az");
   useEffect(() => setCur(getLocale()), []);
 
   function switchTo(l: Locale) {
-    const base = pathname.replace(/^\/(en|tr|de)(?=\/|$)/, "") || "/";
+    const base = pathname.replace(PREFIX_RE, "") || "/";
     try {
       localStorage.setItem("bagban_locale", l);
       document.cookie = `bagban_locale=${l}; path=/; max-age=31536000; samesite=lax`;

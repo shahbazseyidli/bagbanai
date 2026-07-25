@@ -10,12 +10,14 @@ import { getT, getServerLocale } from "@/lib/i18n-server";
 // stays a Server Component and ships its own metadata. Copy is inline Azerbaijani (guide/content.ts);
 // the T18 sweep extracts it later. Cards mirror the approved mockup's paper/teal card treatment.
 
-export const metadata: Metadata = {
-  title: "Necə başlamalı — Bağban AI bələdçiləri",
-  description:
-    "Sahə əlavə etmək, peyk məlumatını oxumaq, AI aqronom məsləhəti, təsərrüfat dəftəri, gübrə planı və hesabatlar üzrə qısa, addım-addım bələdçilər.",
-  alternates: { canonical: "/guide" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return {
+    title: t("mkt.meta.guideTitle"),
+    description: t("mkt.meta.guideDesc"),
+    alternates: { canonical: "/guide" },
+  };
+}
 
 const ICONS: Record<GuideIcon, LucideIcon> = {
   "map-pin": MapPin,

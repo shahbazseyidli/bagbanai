@@ -9,12 +9,14 @@ import { getT, getServerLocale } from "@/lib/i18n-server";
 // treatment. Purely presentational (no state, no t()), so it stays a Server Component and ships
 // its own metadata. Copy is inline Azerbaijani; the T18 sweep extracts it later.
 
-export const metadata: Metadata = {
-  title: "Həllər — Bağban AI",
-  description:
-    "Fermer, laboratoriya, aqronom və təchizatçı üçün ayrı-ayrı həllər. Fermerlərə 1 ay pulsuz, provayderlərə həmişə pulsuz.",
-  alternates: { canonical: "/solutions" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return {
+    title: t("mkt.meta.solutionsTitle"),
+    description: t("mkt.meta.solutionsDesc"),
+    alternates: { canonical: "/solutions" },
+  };
+}
 
 const TAB_ICONS: Partial<Record<IconKey, LucideIcon>> = {
   sprout: Sprout,
