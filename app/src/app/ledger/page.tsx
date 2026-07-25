@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Wallet } from "lucide-react";
 import { api, azError } from "@/lib/api";
+import { t } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { ErrorNote, Spinner } from "@/components/ui";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -41,35 +42,35 @@ export default function LedgerPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-slate-900">Təsərrüfat dəftəri</h1>
+        <h1 className="text-2xl font-bold text-slate-900">{t("app.ledger.title")}</h1>
         {orgs.length > 1 && (
           <select className="input max-w-xs" value={orgId} onChange={(e) => setOrgId(e.target.value)}>
             {orgs.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
           </select>
         )}
       </div>
-      <p className="text-sm text-slate-500">Sahə üzrə xərc, gəlir və mənfəət. Xərclər əməliyyat qeydlərindən, gəlir məhsuldarlıq qeydlərindən götürülür.</p>
+      <p className="text-sm text-slate-500">{t("app.ledger.subtitle")}</p>
       <ErrorNote message={error} />
       {data === null ? <Spinner /> : data.fields.length === 0 ? (
         <div className="space-y-4">
           <EmptyState
             icon={Wallet}
-            title="Dəftər hələ boşdur"
-            body="Əvvəlcə sahə əlavə edin. Sonra əməliyyat və məhsuldarlıq qeydləriniz avtomatik olaraq xərc, gəlir və sahə üzrə mənfəətə çevriləcək — hansı sahənin qazandırdığını rəqəmlə görəcəksiniz."
-            action={{ label: "Sahə əlavə et", href: "/onboarding", icon: Plus }}
+            title={t("app.ledger.emptyTitle")}
+            body={t("app.ledger.emptyBody")}
+            action={{ label: t("app.ledger.addField"), href: "/onboarding", icon: Plus }}
           />
           <SupportCard />
         </div>
       ) : (
         <>
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="card"><div className="text-xs text-slate-500">Ümumi xərc</div><div className="mt-1 text-2xl font-bold text-red-600">{fmt(data.totals.expenses)}</div></div>
-            <div className="card"><div className="text-xs text-slate-500">Ümumi gəlir</div><div className="mt-1 text-2xl font-bold text-emerald-700">{fmt(data.totals.revenue)}</div></div>
-            <div className="card border-emerald-300 bg-emerald-50/40"><div className="text-xs text-slate-500">Xalis mənfəət</div><div className="mt-1 text-2xl font-bold text-emerald-700">{fmt(data.totals.profit)}</div></div>
+            <div className="card"><div className="text-xs text-slate-500">{t("app.ledger.totalExpenses")}</div><div className="mt-1 text-2xl font-bold text-red-600">{fmt(data.totals.expenses)}</div></div>
+            <div className="card"><div className="text-xs text-slate-500">{t("app.ledger.totalRevenue")}</div><div className="mt-1 text-2xl font-bold text-emerald-700">{fmt(data.totals.revenue)}</div></div>
+            <div className="card border-emerald-300 bg-emerald-50/40"><div className="text-xs text-slate-500">{t("app.ledger.netProfit")}</div><div className="mt-1 text-2xl font-bold text-emerald-700">{fmt(data.totals.profit)}</div></div>
           </div>
           {data.by_category && data.by_category.length > 0 && (
             <div className="card">
-              <h2 className="mb-3 text-lg font-semibold text-slate-800">Xərc kateqoriyaları</h2>
+              <h2 className="mb-3 text-lg font-semibold text-slate-800">{t("app.ledger.expenseCategories")}</h2>
               <div className="space-y-2">
                 {data.by_category.map((c) => {
                   const pct = data.totals.expenses > 0 ? Math.round((c.amount / data.totals.expenses) * 100) : 0;
@@ -89,13 +90,13 @@ export default function LedgerPage() {
             </div>
           )}
           <div className="card overflow-x-auto">
-            <h2 className="mb-3 text-lg font-semibold text-slate-800">Sahə üzrə</h2>
+            <h2 className="mb-3 text-lg font-semibold text-slate-800">{t("app.ledger.byField")}</h2>
             <table className="w-full text-sm">
               <thead><tr className="text-xs uppercase tracking-wide text-slate-400">
-                <th className="py-2 text-left font-semibold">Sahə</th>
-                <th className="py-2 text-right font-semibold">Xərc</th>
-                <th className="py-2 text-right font-semibold">Gəlir</th>
-                <th className="py-2 text-right font-semibold">Mənfəət</th>
+                <th className="py-2 text-left font-semibold">{t("app.ledger.colField")}</th>
+                <th className="py-2 text-right font-semibold">{t("app.ledger.colExpense")}</th>
+                <th className="py-2 text-right font-semibold">{t("app.ledger.colRevenue")}</th>
+                <th className="py-2 text-right font-semibold">{t("app.ledger.colProfit")}</th>
                 <th className="py-2 text-right font-semibold">/ha</th>
               </tr></thead>
               <tbody>
@@ -108,7 +109,7 @@ export default function LedgerPage() {
                     <td className="py-2.5 text-right tabular-nums text-slate-500">{r.profit_per_ha != null ? `${Math.round(r.profit_per_ha)} ₼` : "—"}</td>
                   </tr>
                 ))}
-                {data.fields.length === 0 && <tr><td colSpan={5} className="py-6 text-center text-slate-500">Hələ sahə yoxdur.</td></tr>}
+                {data.fields.length === 0 && <tr><td colSpan={5} className="py-6 text-center text-slate-500">{t("app.ledger.noFields")}</td></tr>}
               </tbody>
             </table>
           </div>

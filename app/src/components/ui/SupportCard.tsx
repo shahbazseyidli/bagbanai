@@ -10,6 +10,7 @@
 //   * "quiet" — a single muted one-line link ("Kömək lazımdır?" + a small headset icon) for the
 //     always-visible chrome, where a full card would "gözə soxma" (shove itself in the user's face).
 import { Headphones, Mail, Phone } from "lucide-react";
+import { t } from "@/lib/i18n";
 
 export function SupportCard({
   phone,
@@ -24,7 +25,7 @@ export function SupportCard({
   variant?: "card" | "quiet";
   className?: string;
 }) {
-  const subject = encodeURIComponent("Bağban AI — kömək / zəng istəyi");
+  const subject = encodeURIComponent(t("app.ui.supportCard.emailSubject"));
   const mailto = `mailto:${email}?subject=${subject}`;
 
   // Understated one-liner — muted colour, small text, minimal padding; reachable but never dominant.
@@ -35,7 +36,7 @@ export function SupportCard({
         className={`inline-flex items-center gap-1.5 rounded-[9px] px-2 py-1.5 text-[12.5px] text-ink-soft transition-colors hover:bg-mint-soft hover:text-grass focus:text-grass motion-reduce:transition-none ${className}`}
       >
         <Headphones className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-        Kömək lazımdır?
+        {t("app.ui.supportCard.quietLink")}
       </a>
     );
   }
@@ -49,20 +50,20 @@ export function SupportCard({
           <Headphones className="h-5 w-5" aria-hidden="true" />
         </span>
         <div>
-          <p className="font-display text-sm font-bold text-teal">Sualınız var? Zəng istəyin</p>
+          <p className="font-display text-sm font-bold text-teal">{t("app.ui.supportCard.callRequestTitle")}</p>
           <p className="mt-0.5 text-sm text-slate-600">
-            Platformadan istifadədə kömək lazımdırsa, bizə yazın — geri zəng edək.
+            {t("app.ui.supportCard.callRequestBody")}
           </p>
         </div>
       </div>
       <div className="flex shrink-0 gap-2">
         {phone && (
           <a href={`tel:${phone.replace(/\s+/g, "")}`} className="btn-secondary">
-            <Phone className="h-4 w-4" aria-hidden="true" /> Zəng et
+            <Phone className="h-4 w-4" aria-hidden="true" /> {t("app.ui.supportCard.callButton")}
           </a>
         )}
         <a href={mailto} className="btn-primary">
-          <Mail className="h-4 w-4" aria-hidden="true" /> Kömək istə
+          <Mail className="h-4 w-4" aria-hidden="true" /> {t("app.ui.supportCard.emailButton")}
         </a>
       </div>
     </div>

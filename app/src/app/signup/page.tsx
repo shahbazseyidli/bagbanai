@@ -11,15 +11,18 @@ import Link from "next/link";
 import { Sprout, FlaskConical, Users, Package, ArrowRight, ArrowLeft, Check } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { t, type I18nKey } from "@/lib/i18n";
 import { ErrorNote } from "@/components/ui";
 import OtpVerify from "@/components/OtpVerify";
 import type { User, UserRole } from "@/lib/types";
 
-const ROLES: { key: UserRole; title: string; sub: string; Icon: typeof Sprout }[] = [
-  { key: "farmer", title: "Fermer", sub: "Sahələrimi izləyirəm, məhsul yetişdirirəm", Icon: Sprout },
-  { key: "lab", title: "Laboratoriya", sub: "Torpaq nümunə xidməti göstərirəm", Icon: FlaskConical },
-  { key: "consultant", title: "Aqronom", sub: "Çox fermerin sahəsini izləyir, məsləhət verirəm", Icon: Users },
-  { key: "supplier", title: "Təchizatçı", sub: "Toxum, gübrə, dərman satıram", Icon: Package },
+// title/sub stored as i18n keys (constant); resolved with t() at render time so the locale set by
+// LocaleProvider applies (module-level t() would freeze at the default locale).
+const ROLES: { key: UserRole; titleKey: I18nKey; subKey: I18nKey; Icon: typeof Sprout }[] = [
+  { key: "farmer", titleKey: "app.signup.roleFarmerTitle", subKey: "app.signup.roleFarmerSub", Icon: Sprout },
+  { key: "lab", titleKey: "app.signup.roleLabTitle", subKey: "app.signup.roleLabSub", Icon: FlaskConical },
+  { key: "consultant", titleKey: "app.signup.roleConsultantTitle", subKey: "app.signup.roleConsultantSub", Icon: Users },
+  { key: "supplier", titleKey: "app.signup.roleSupplierTitle", subKey: "app.signup.roleSupplierSub", Icon: Package },
 ];
 
 const COUNTRIES = ["Azərbaycan", "Türkiyə", "Gürcüstan", "Rusiya", "Qazaxıstan", "Digər"];
@@ -84,15 +87,15 @@ export default function SignupPage() {
       else if (r.user) await finish(r.user);
     } catch (err) {
       const d = err instanceof ApiError ? err.detail : "";
-      setError(d === "email_taken" ? "Bu e-poçt artıq qeydiyyatdadır" : d || "Xəta baş verdi");
+      setError(d === "email_taken" ? t("app.signup.errEmailTaken") : d || t("app.signup.errGeneric"));
     } finally {
       setBusy(false);
     }
   }
 
   function next2() {
-    if (!email || password.length < 8) { setError("E-poçt və ən azı 8 simvol parol lazımdır"); return; }
-    if (!country) { setError("Ölkə seçin"); return; }
+    if (!email || password.length < 8) { setError(t("app.signup.errEmailPassword")); return; }
+    if (!country) { setError(t("app.signup.errSelectCountry")); return; }
     setError("");
     if (isProvider) setStep(3); else submit();
   }
@@ -100,7 +103,7 @@ export default function SignupPage() {
   if (otpEmail) {
     return (
       <div className="mx-auto max-w-sm"><div className="card">
-        <h1 className="mb-4 text-xl font-bold text-slate-900">E-poçt təsdiqi</h1>
+        <h1 className="mb-4 text-xl font-bold text-slate-900">{t("app.signup.otpTitle")}</h1>
         <OtpVerify email={otpEmail} onVerified={(u) => finish(u)} />
       </div></div>
     );
@@ -109,7 +112,7 @@ export default function SignupPage() {
   return (
     <div className="mx-auto max-w-xl">
       <div className="mb-5 flex items-center justify-center gap-2 text-sm font-medium">
-        {["Rol", "Hesab", "Profil"].map((lbl, i) => {
+        {[t("app.signup.stepRole"), t("app.signup.stepAccount"), t("app.signup.stepProfile")].map((lbl, i) => {
           const n = i + 1;
           const shown = isProvider || n < 3;
           if (!shown) return null;
@@ -128,55 +131,55 @@ export default function SignupPage() {
       <div className="card">
         {step === 1 && (
           <>
-            <h1 className="text-xl font-bold text-slate-900">Rolunuzu seçin</h1>
-            <p className="mt-1 text-sm text-slate-500">Platformadan necə istifadə edəcəksiniz?</p>
+            <h1 className="text-xl font-bold text-slate-900">{t("app.signup.step1Heading")}</h1>
+            <p className="mt-1 text-sm text-slate-500">{t("app.signup.step1Sub")}</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {ROLES.map(({ key, title, sub, Icon }) => (
+              {ROLES.map(({ key, titleKey, subKey, Icon }) => (
                 <button key={key} type="button" onClick={() => setRole(key)}
                   className={`flex items-start gap-3 rounded-xl border-[1.5px] p-4 text-left transition ${
                     role === key ? "border-emerald-500 bg-emerald-50" : "border-slate-300 hover:border-emerald-300"}`}>
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700"><Icon className="h-5 w-5" aria-hidden="true" /></span>
-                  <span><span className="block font-semibold text-slate-900">{title}</span><span className="block text-xs text-slate-500">{sub}</span></span>
+                  <span><span className="block font-semibold text-slate-900">{t(titleKey)}</span><span className="block text-xs text-slate-500">{t(subKey)}</span></span>
                 </button>
               ))}
             </div>
             <div className="mt-5 flex justify-end">
-              <button className="btn-primary" onClick={() => { setSpecs([]); setStep(2); }}>Davam et <ArrowRight className="h-4 w-4" /></button>
+              <button className="btn-primary" onClick={() => { setSpecs([]); setStep(2); }}>{t("app.signup.continue")} <ArrowRight className="h-4 w-4" /></button>
             </div>
           </>
         )}
 
         {step === 2 && (
           <>
-            <h1 className="text-xl font-bold text-slate-900">Hesab və məkan</h1>
+            <h1 className="text-xl font-bold text-slate-900">{t("app.signup.step2Heading")}</h1>
             <div className="mt-4 space-y-3">
-              <div><label className="label">Ad, soyad</label><input className="input" value={fullName} onChange={(e) => setFullName(e.target.value)} /></div>
-              <div><label className="label">E-poçt *</label><input className="input" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></div>
-              <div><label className="label">Parol * (ən azı 8 simvol)</label><input className="input" type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} /></div>
+              <div><label className="label">{t("app.signup.labelFullName")}</label><input className="input" value={fullName} onChange={(e) => setFullName(e.target.value)} /></div>
+              <div><label className="label">{t("app.signup.labelEmail")}</label><input className="input" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+              <div><label className="label">{t("app.signup.labelPassword")}</label><input className="input" type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="label">Ölkə *</label>
+                <div><label className="label">{t("app.signup.labelCountry")}</label>
                   <select className="input" value={country} onChange={(e) => setCountry(e.target.value)}>
                     {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
-                <div><label className="label">Region / rayon</label><input className="input" value={region} onChange={(e) => setRegion(e.target.value)} placeholder="Xaçmaz" /></div>
+                <div><label className="label">{t("app.signup.labelRegion")}</label><input className="input" value={region} onChange={(e) => setRegion(e.target.value)} placeholder="Xaçmaz" /></div>
               </div>
-              <p className="text-xs text-slate-500">Ölkə və region xəritə + hava proqnozunu dəqiqləşdirir (qlobal istifadəçilər üçün ölkə məcburidir).</p>
+              <p className="text-xs text-slate-500">{t("app.signup.locationHint")}</p>
             </div>
             <ErrorNote message={error} />
             <div className="mt-5 flex justify-between">
-              <button className="btn-ghost" onClick={() => setStep(1)}><ArrowLeft className="h-4 w-4" /> Geri</button>
-              <button className="btn-primary" onClick={next2} disabled={busy}>{isProvider ? <>Davam et <ArrowRight className="h-4 w-4" /></> : (busy ? "Yüklənir…" : "Qeydiyyatı tamamla")}</button>
+              <button className="btn-ghost" onClick={() => setStep(1)}><ArrowLeft className="h-4 w-4" /> {t("app.signup.back")}</button>
+              <button className="btn-primary" onClick={next2} disabled={busy}>{isProvider ? <>{t("app.signup.continue")} <ArrowRight className="h-4 w-4" /></> : (busy ? t("app.signup.loading") : t("app.signup.finishSignup"))}</button>
             </div>
           </>
         )}
 
         {step === 3 && isProvider && (
           <>
-            <h1 className="text-xl font-bold text-slate-900">{role === "supplier" ? "Təchizatçı profili" : role === "lab" ? "Laboratoriya profili" : "Aqronom profili"}</h1>
+            <h1 className="text-xl font-bold text-slate-900">{role === "supplier" ? t("app.signup.supplierProfileTitle") : role === "lab" ? t("app.signup.labProfileTitle") : t("app.signup.consultantProfileTitle")}</h1>
             <div className="mt-4 space-y-3">
-              <div><label className="label">{role === "supplier" ? "Şirkət adı *" : role === "lab" ? "Laboratoriya adı *" : "Ad / şirkət *"}</label><input className="input" value={company} onChange={(e) => setCompany(e.target.value)} /></div>
-              <div><label className="label">{role === "supplier" ? "İxtisaslaşma (çoxlu seçim) *" : role === "lab" ? "Xidmətlər" : "İxtisaslaşma"}</label>
+              <div><label className="label">{role === "supplier" ? t("app.signup.labelCompanySupplier") : role === "lab" ? t("app.signup.labelCompanyLab") : t("app.signup.labelCompanyConsultant")}</label><input className="input" value={company} onChange={(e) => setCompany(e.target.value)} /></div>
+              <div><label className="label">{role === "supplier" ? t("app.signup.labelSpecsSupplier") : role === "lab" ? t("app.signup.labelSpecsLab") : t("app.signup.labelSpecsConsultant")}</label>
                 <div className="mt-1 flex flex-wrap gap-2">
                   {SPECS[role].map((s) => (
                     <button key={s} type="button" onClick={() => toggleSpec(s)}
@@ -184,20 +187,20 @@ export default function SignupPage() {
                   ))}
                 </div>
               </div>
-              {role === "supplier" && <div><label className="label">Ünvan *</label><input className="input" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Quba şəh., ..." /></div>}
-              <div><label className="label">Əhatə zonası</label><input className="input" value={coverage} onChange={(e) => setCoverage(e.target.value)} placeholder="Xaçmaz, Quba, Qusar" /></div>
-              <div><label className="label">Telefon</label><input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} /></div>
-              <p className="text-xs text-emerald-700">Provayderlər üçün platforma pulsuzdur — kataloqda görünəcək, fermerlərdən sifariş alacaqsınız.</p>
+              {role === "supplier" && <div><label className="label">{t("app.signup.labelAddress")}</label><input className="input" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Quba şəh., ..." /></div>}
+              <div><label className="label">{t("app.signup.labelCoverage")}</label><input className="input" value={coverage} onChange={(e) => setCoverage(e.target.value)} placeholder="Xaçmaz, Quba, Qusar" /></div>
+              <div><label className="label">{t("app.signup.labelPhone")}</label><input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} /></div>
+              <p className="text-xs text-emerald-700">{t("app.signup.providerFreeNote")}</p>
             </div>
             <ErrorNote message={error} />
             <div className="mt-5 flex justify-between">
-              <button className="btn-ghost" onClick={() => setStep(2)}><ArrowLeft className="h-4 w-4" /> Geri</button>
-              <button className="btn-primary" onClick={submit} disabled={busy || !company}>{busy ? "Yüklənir…" : "Qeydiyyatı tamamla"} <Check className="h-4 w-4" /></button>
+              <button className="btn-ghost" onClick={() => setStep(2)}><ArrowLeft className="h-4 w-4" /> {t("app.signup.back")}</button>
+              <button className="btn-primary" onClick={submit} disabled={busy || !company}>{busy ? t("app.signup.loading") : t("app.signup.finishSignup")} <Check className="h-4 w-4" /></button>
             </div>
           </>
         )}
       </div>
-      <Link href="/login" className="mt-4 block text-center text-sm text-emerald-700 hover:underline">Artıq hesabınız var? Daxil olun</Link>
+      <Link href="/login" className="mt-4 block text-center text-sm text-emerald-700 hover:underline">{t("app.signup.alreadyHaveAccount")}</Link>
     </div>
   );
 }

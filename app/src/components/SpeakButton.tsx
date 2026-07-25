@@ -6,10 +6,11 @@
 // Renders nothing when the browser has no speech synthesis.
 import { useEffect, useRef, useState } from "react";
 import { Volume2, Square } from "lucide-react";
+import { t } from "@/lib/i18n";
 
 export default function SpeakButton({
   text,
-  label = "Səsləndir",
+  label = t("app.speakButton.label"),
   className = "",
 }: {
   text: string;
@@ -66,12 +67,12 @@ export default function SpeakButton({
     <button
       type="button"
       onClick={toggle}
-      aria-label={speaking ? "Səsləndirməni dayandır" : label}
+      aria-label={speaking ? t("app.speakButton.stopAria") : label}
       aria-pressed={speaking}
       className={`inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-sm font-medium text-slate-600 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 ${className}`}
     >
       {speaking ? <Square className="h-4 w-4" aria-hidden="true" /> : <Volume2 className="h-4 w-4" aria-hidden="true" />}
-      {speaking ? "Dayandır" : label}
+      {speaking ? t("app.speakButton.stopLabel") : label}
     </button>
   );
 }

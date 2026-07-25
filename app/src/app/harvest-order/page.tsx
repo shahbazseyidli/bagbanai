@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarDays, ChevronRight, Info, ListOrdered, Satellite, Sprout } from "lucide-react";
 import { api, azError } from "@/lib/api";
+import { t } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { ErrorNote, Placeholder, Spinner } from "@/components/ui";
 import type { Org } from "@/lib/types";
@@ -62,9 +63,9 @@ function tone(score: number | null) {
 
 function harvestLabel(days: number | null): string | null {
   if (days == null) return null;
-  if (days < 0) return `${Math.abs(days)} gün gecikib`;
-  if (days === 0) return "bu gün";
-  return `${days} gün qalıb`;
+  if (days < 0) return `${Math.abs(days)} ${t("app.harvestorder.daysLate")}`;
+  if (days === 0) return t("app.harvestorder.today");
+  return `${days} ${t("app.harvestorder.daysLeft")}`;
 }
 
 export default function HarvestOrderPage() {
@@ -91,7 +92,7 @@ export default function HarvestOrderPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-slate-900">Yığım sırası</h1>
+        <h1 className="text-2xl font-bold text-slate-900">{t("app.harvestorder.pageTitle")}</h1>
         {orgs.length > 1 && (
           <select className="input max-w-xs" value={orgId} onChange={(e) => setOrgId(e.target.value)}>
             {orgs.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
@@ -99,22 +100,20 @@ export default function HarvestOrderPage() {
         )}
       </div>
       <p className="text-sm text-slate-500">
-        Sahələr yığıma hazırlıq üzrə sıralanır: son NDVI ölçüsü, NDVI-nin son həftələrdəki dəyişməsi və
-        planlaşdırılan yığım tarixi. Bu təxmindir — yekun qərarı sahədə yoxlayaraq verin.
+        {t("app.harvestorder.intro")}
       </p>
 
       <ErrorNote message={error} />
 
       {data === null ? (
-        !error && <Spinner label="Sahələr sıralanır…" />
+        !error && <Spinner label={t("app.harvestorder.loading")} />
       ) : data.counts.total === 0 ? (
         <div className="card">
           <Placeholder>
-            Bu təsərrüfatda hələ sahə yoxdur. Əvvəlcə sahə əlavə edin — peyk məlumatı toplandıqca yığım
-            sırası avtomatik hesablanacaq.
+            {t("app.harvestorder.emptyNoFields")}
           </Placeholder>
           <button type="button" className="btn-primary mt-3" onClick={() => router.push("/fields")}>
-            Sahələrə keç
+            {t("app.harvestorder.goToFields")}
           </button>
         </div>
       ) : (
@@ -122,17 +121,15 @@ export default function HarvestOrderPage() {
           <div className="flex items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
             <Info className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
             <span>
-              {data.counts.ranked} sahə sıralandı, {data.counts.unranked} sahə üçün göstərici çatmadı.
-              Hesablanma tarixi: {data.generated_on}.
-              {data.truncated ? " Siyahı ilk 500 sahə ilə məhdudlaşdırılıb." : ""}
+              {data.counts.ranked}{t("app.harvestorder.rankedMid")}{data.counts.unranked}{t("app.harvestorder.unrankedMid")}{data.generated_on}.
+              {data.truncated ? t("app.harvestorder.truncatedNote") : ""}
             </span>
           </div>
 
           {data.fields.length === 0 ? (
             <div className="card">
               <Placeholder>
-                Heç bir sahəni sıralamaq üçün kifayət qədər göstərici yoxdur. Sahələrin planlaşdırılan
-                yığım tarixini qeyd edin və ya peyk məlumatının toplanmasını gözləyin.
+                {t("app.harvestorder.emptyNoRankable")}
               </Placeholder>
             </div>
           ) : (
@@ -178,7 +175,7 @@ export default function HarvestOrderPage() {
                         {hl && (
                           <span className="inline-flex items-center gap-1">
                             <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
-                            Yığım: {hl}
+                            {t("app.harvestorder.harvestPrefix")} {hl}
                             {r.expected_harvest && <span className="text-slate-400">· {r.expected_harvest}</span>}
                           </span>
                         )}
@@ -192,7 +189,7 @@ export default function HarvestOrderPage() {
 
                       {r.missing.length > 0 && (
                         <span className="mt-1 block text-[11px] text-slate-400">
-                          Nəzərə alınmayıb: {r.missing.join(", ")} (məlumat yoxdur)
+                          {t("app.harvestorder.missingPrefix")}{r.missing.join(", ")}{t("app.harvestorder.missingSuffix")}
                         </span>
                       )}
 
@@ -215,10 +212,10 @@ export default function HarvestOrderPage() {
             <div className="card">
               <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-700">
                 <ListOrdered className="h-4 w-4 text-slate-400" />
-                Sıralana bilməyən sahələr ({data.unranked.length})
+                {t("app.harvestorder.unrankableTitle")} ({data.unranked.length})
               </h2>
               <p className="mt-1 text-xs text-slate-500">
-                Bu sahələrə sıra verilmir — uydurma yer əvəzinə çatışmayan məlumat göstərilir.
+                {t("app.harvestorder.unrankableNote")}
               </p>
               <ul className="mt-3 space-y-2">
                 {data.unranked.map((r) => (

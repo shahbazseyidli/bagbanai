@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, History, Minus, Package, Pencil, Plus, Trash2, X } from "lucide-react";
 import { api, azError } from "@/lib/api";
+import { t, type I18nKey } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { ErrorNote, Field as FormField, Placeholder, Spinner } from "@/components/ui";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -43,29 +44,12 @@ interface Move {
   created_at: string | null;
 }
 
-const CATEGORIES: { value: string; label: string }[] = [
-  { value: "seed", label: "Toxum" },
-  { value: "fertilizer", label: "Gübrə" },
-  { value: "pesticide", label: "Dərman" },
-  { value: "fuel", label: "Yanacaq" },
-  { value: "other", label: "Digər" },
-];
+const CATEGORIES = ["seed", "fertilizer", "pesticide", "fuel", "other"] as const;
 
-const CAT_AZ: Record<string, string> = {
-  seed: "Toxum",
-  fertilizer: "Gübrə",
-  pesticide: "Dərman",
-  fuel: "Yanacaq",
-  equipment: "Avadanlıq",
-  other: "Digər",
-};
-
-const REASON_AZ: Record<string, string> = {
-  purchase: "Mədaxil",
-  operation: "Əməliyyat",
-  adjust: "Düzəliş",
-  waste: "İtki",
-};
+// Enum code → localized label. Render-time t() so it follows the active locale (module-scope t()
+// would freeze to the load-time locale). Keys: app.inventory.cat.* / app.inventory.reason.*
+const catLabel = (c: string): string => t(`app.inventory.cat.${c}` as I18nKey);
+const reasonLabel = (r: string): string => t(`app.inventory.reason.${r}` as I18nKey);
 
 const UNITS = ["kq", "ton", "litr", "ədəd", "qab"];
 
@@ -78,13 +62,13 @@ const money = (n: number | null | undefined, cur = "AZN") =>
 /** Backend detail codes this page can produce → plain Azerbaijani. Falls back to azError(). */
 function errMsg(e: unknown): string {
   const detail = (e as { detail?: string } | null)?.detail;
-  if (detail === "inventory_name_taken") return "Bu adda məhsul anbarda artıq var.";
-  if (detail === "name_required") return "Məhsul adı boş ola bilməz.";
-  if (detail === "delta_required") return "Miqdar sıfır ola bilməz.";
-  if (detail === "invalid_reason") return "Hərəkət növü yanlışdır.";
-  if (detail === "invalid_category") return "Kateqoriya yanlışdır.";
-  if (detail === "invalid_number") return "Rəqəm yanlışdır.";
-  if (detail === "item_not_found") return "Məhsul tapılmadı.";
+  if (detail === "inventory_name_taken") return t("app.inventory.errNameTaken");
+  if (detail === "name_required") return t("app.inventory.errNameRequired");
+  if (detail === "delta_required") return t("app.inventory.errDeltaRequired");
+  if (detail === "invalid_reason") return t("app.inventory.errInvalidReason");
+  if (detail === "invalid_category") return t("app.inventory.errInvalidCategory");
+  if (detail === "invalid_number") return t("app.inventory.errInvalidNumber");
+  if (detail === "item_not_found") return t("app.inventory.errItemNotFound");
   return azError(e);
 }
 
@@ -207,7 +191,7 @@ export default function InventoryPage() {
     const raw = step[it.id] ?? "1";
     const amount = Number(String(raw).replace(",", "."));
     if (!amount || Number.isNaN(amount) || amount <= 0) {
-      setError("Miqdar müsbət rəqəm olmalıdır.");
+      setError(t("app.inventory.errPositive"));
       return;
     }
     setError("");
@@ -228,7 +212,7 @@ export default function InventoryPage() {
   }
 
   async function onDelete(it: Item) {
-    if (!window.confirm(`“${it.name}” anbardan silinsin? Hərəkət tarixçəsi də silinəcək.`)) return;
+    if (!window.confirm(`“${it.name}” ${t("app.inventory.deleteConfirm")}`)) return;
     setBusy(true);
     try {
       await api.del(`/api/inventory/${it.id}`);
@@ -267,14 +251,14 @@ export default function InventoryPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <h1 className="flex items-center gap-2 text-2xl font-bold text-slate-900">
-          <Package className="h-6 w-6 text-emerald-700" /> Anbar
+          <Package className="h-6 w-6 text-emerald-700" /> {t("app.inventory.heading")}
         </h1>
         {orgs.length > 1 && (
           <select
             className="input max-w-xs"
             value={orgId}
             onChange={(e) => setOrgId(e.target.value)}
-            aria-label="Təsərrüfat"
+            aria-label={t("app.inventory.orgAria")}
           >
             {orgs.map((o) => (
               <option key={o.id} value={o.id}>
@@ -285,25 +269,22 @@ export default function InventoryPage() {
         )}
       </div>
 
-      <p className="text-sm text-slate-500">
-        Toxum, gübrə, dərman və yanacaq qalığı. Əməliyyat qeyd edəndə istifadə olunan məhsullar
-        anbardan avtomatik çıxılır.
-      </p>
+      <p className="text-sm text-slate-500">{t("app.inventory.subtitle")}</p>
 
       <ErrorNote message={error} />
 
       {items !== null && (
         <div className="grid gap-3 sm:grid-cols-3">
           <div className="card">
-            <div className="text-xs text-slate-500">Məhsul növü</div>
+            <div className="text-xs text-slate-500">{t("app.inventory.statTypes")}</div>
             <div className="mt-1 text-2xl font-bold text-slate-900">{items.length}</div>
           </div>
           <div className="card">
-            <div className="text-xs text-slate-500">Anbar dəyəri</div>
+            <div className="text-xs text-slate-500">{t("app.inventory.statValue")}</div>
             <div className="mt-1 text-2xl font-bold text-emerald-700">{money(totalValue)}</div>
           </div>
           <div className={`card ${lowItems.length > 0 ? "border-amber-300 bg-amber-50/60" : ""}`}>
-            <div className="text-xs text-slate-500">Ehtiyat azdır</div>
+            <div className="text-xs text-slate-500">{t("app.inventory.lowLabel")}</div>
             <div
               className={`mt-1 text-2xl font-bold ${lowItems.length > 0 ? "text-amber-700" : "text-slate-900"}`}
             >
@@ -317,7 +298,11 @@ export default function InventoryPage() {
         <div className="flex items-start gap-3 rounded-xl border-[1.5px] border-amber-300 bg-amber-50 p-3">
           <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
           <div className="text-sm text-amber-900">
-            <p className="font-semibold">Ehtiyat azdır — {lowItems.length} məhsul</p>
+            <p className="font-semibold">
+              {t("app.inventory.lowBannerPre")}
+              {lowItems.length}
+              {t("app.inventory.lowBannerPost")}
+            </p>
             <p className="mt-0.5 text-amber-800">
               {lowItems.map((i) => `${i.name} (${num(i.quantity)} ${i.unit})`).join(" · ")}
             </p>
@@ -333,11 +318,11 @@ export default function InventoryPage() {
         >
           {formOpen && !editId ? (
             <span className="flex items-center gap-2">
-              <X className="h-4 w-4" /> Bağla
+              <X className="h-4 w-4" /> {t("app.inventory.close")}
             </span>
           ) : (
             <span className="flex items-center gap-2">
-              <Plus className="h-4 w-4" /> Yeni məhsul
+              <Plus className="h-4 w-4" /> {t("app.inventory.newItem")}
             </span>
           )}
         </button>
@@ -346,32 +331,32 @@ export default function InventoryPage() {
       {formOpen && (
         <form onSubmit={onSubmit} className="card space-y-3">
           <h2 className="font-semibold text-slate-800">
-            {editId ? "Məhsulu redaktə et" : "Yeni anbar məhsulu"}
+            {editId ? t("app.inventory.editItemTitle") : t("app.inventory.newItemTitle")}
           </h2>
           <div className="grid gap-3 sm:grid-cols-2">
-            <FormField label="Məhsul adı" required>
+            <FormField label={t("app.inventory.fieldName")} required>
               <input
                 className="input"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="Məs. Ammonium nitrat"
+                placeholder={t("app.inventory.namePlaceholder")}
                 required
               />
             </FormField>
-            <FormField label="Kateqoriya">
+            <FormField label={t("app.inventory.fieldCategory")}>
               <select
                 className="input"
                 value={form.category}
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
               >
                 {CATEGORIES.map((c) => (
-                  <option key={c.value} value={c.value}>
-                    {c.label}
+                  <option key={c} value={c}>
+                    {catLabel(c)}
                   </option>
                 ))}
               </select>
             </FormField>
-            <FormField label="Miqdar">
+            <FormField label={t("app.inventory.fieldQuantity")}>
               <input
                 className="input"
                 type="number"
@@ -383,7 +368,7 @@ export default function InventoryPage() {
                 placeholder="0"
               />
             </FormField>
-            <FormField label="Vahid">
+            <FormField label={t("app.inventory.fieldUnit")}>
               <select
                 className="input"
                 value={form.unit}
@@ -396,7 +381,7 @@ export default function InventoryPage() {
                 ))}
               </select>
             </FormField>
-            <FormField label="Minimum">
+            <FormField label={t("app.inventory.fieldMin")}>
               <input
                 className="input"
                 type="number"
@@ -405,10 +390,10 @@ export default function InventoryPage() {
                 inputMode="decimal"
                 value={form.min_quantity}
                 onChange={(e) => setForm({ ...form, min_quantity: e.target.value })}
-                placeholder="Xəbərdarlıq həddi"
+                placeholder={t("app.inventory.minPlaceholder")}
               />
             </FormField>
-            <FormField label="Vahid qiymət">
+            <FormField label={t("app.inventory.fieldUnitCost")}>
               <input
                 className="input"
                 type="number"
@@ -420,15 +405,15 @@ export default function InventoryPage() {
                 placeholder="₼"
               />
             </FormField>
-            <FormField label="Təchizatçı">
+            <FormField label={t("app.inventory.fieldSupplier")}>
               <input
                 className="input"
                 value={form.supplier}
                 onChange={(e) => setForm({ ...form, supplier: e.target.value })}
-                placeholder="Mağaza / şirkət"
+                placeholder={t("app.inventory.supplierPlaceholder")}
               />
             </FormField>
-            <FormField label="Qeyd">
+            <FormField label={t("app.inventory.fieldNote")}>
               <input
                 className="input"
                 value={form.notes}
@@ -436,12 +421,10 @@ export default function InventoryPage() {
               />
             </FormField>
           </div>
-          <p className="text-xs text-slate-500">
-            Minimum həddi doldursanız, qalıq bu həddin altına düşəndə xəbərdarlıq göndərilir.
-          </p>
+          <p className="text-xs text-slate-500">{t("app.inventory.minHelp")}</p>
           <div className="flex gap-2">
             <button type="submit" className="btn-primary min-h-[44px]" disabled={busy}>
-              {busy ? "Yadda saxlanılır…" : "Yadda saxla"}
+              {busy ? t("app.inventory.saving") : t("app.inventory.save")}
             </button>
             <button
               type="button"
@@ -451,7 +434,7 @@ export default function InventoryPage() {
                 setEditId(null);
               }}
             >
-              Ləğv et
+              {t("app.inventory.cancel")}
             </button>
           </div>
         </form>
@@ -462,21 +445,21 @@ export default function InventoryPage() {
       ) : items.length === 0 ? (
         <EmptyState
           icon={Package}
-          title="Anbar boşdur"
-          body="Toxum, gübrə, dərman və yanacaq qalığını əlavə edin. Əməliyyat qeyd edəndə istifadə anbardan avtomatik çıxılacaq və ehtiyat həddin altına düşəndə xəbərdarlıq alacaqsınız."
-          action={{ label: "Yeni məhsul", onClick: openCreate, icon: Plus }}
+          title={t("app.inventory.emptyTitle")}
+          body={t("app.inventory.emptyBody")}
+          action={{ label: t("app.inventory.newItem"), onClick: openCreate, icon: Plus }}
         />
       ) : (
         <div className="card overflow-x-auto">
           <table className="w-full min-w-[720px] text-sm">
             <thead>
               <tr className="text-xs uppercase tracking-wide text-slate-400">
-                <th className="py-2 text-left font-semibold">Məhsul adı</th>
-                <th className="py-2 text-left font-semibold">Kateqoriya</th>
-                <th className="py-2 text-right font-semibold">Miqdar</th>
-                <th className="py-2 text-right font-semibold">Minimum</th>
-                <th className="py-2 text-right font-semibold">Vahid qiymət</th>
-                <th className="py-2 text-center font-semibold">Mədaxil / Məxaric</th>
+                <th className="py-2 text-left font-semibold">{t("app.inventory.fieldName")}</th>
+                <th className="py-2 text-left font-semibold">{t("app.inventory.fieldCategory")}</th>
+                <th className="py-2 text-right font-semibold">{t("app.inventory.fieldQuantity")}</th>
+                <th className="py-2 text-right font-semibold">{t("app.inventory.fieldMin")}</th>
+                <th className="py-2 text-right font-semibold">{t("app.inventory.fieldUnitCost")}</th>
+                <th className="py-2 text-center font-semibold">{t("app.inventory.colMovement")}</th>
                 <th className="py-2 text-right font-semibold"> </th>
               </tr>
             </thead>
@@ -490,12 +473,12 @@ export default function InventoryPage() {
                     <div className="font-medium text-slate-800">{it.name}</div>
                     {it.low && (
                       <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
-                        <AlertTriangle className="h-3 w-3" /> Ehtiyat azdır
+                        <AlertTriangle className="h-3 w-3" /> {t("app.inventory.lowLabel")}
                       </span>
                     )}
                     {it.supplier && <div className="text-xs text-slate-400">{it.supplier}</div>}
                   </td>
-                  <td className="py-2.5 text-slate-600">{CAT_AZ[it.category] ?? it.category}</td>
+                  <td className="py-2.5 text-slate-600">{catLabel(it.category)}</td>
                   <td className="py-2.5 text-right tabular-nums font-semibold text-slate-800">
                     {num(it.quantity)} <span className="font-normal text-slate-500">{it.unit}</span>
                   </td>
@@ -509,7 +492,7 @@ export default function InventoryPage() {
                     <div className="flex items-center justify-center gap-1">
                       <button
                         type="button"
-                        aria-label="Azalt"
+                        aria-label={t("app.inventory.decreaseAria")}
                         className="flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                         disabled={busy}
                         onClick={() => onMove(it, -1)}
@@ -524,11 +507,11 @@ export default function InventoryPage() {
                         inputMode="decimal"
                         value={step[it.id] ?? "1"}
                         onChange={(e) => setStep({ ...step, [it.id]: e.target.value })}
-                        aria-label="Hərəkət miqdarı"
+                        aria-label={t("app.inventory.moveAmountAria")}
                       />
                       <button
                         type="button"
-                        aria-label="Artır"
+                        aria-label={t("app.inventory.increaseAria")}
                         className="flex h-11 w-11 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
                         disabled={busy}
                         onClick={() => onMove(it, 1)}
@@ -541,8 +524,8 @@ export default function InventoryPage() {
                     <div className="flex items-center justify-end gap-1">
                       <button
                         type="button"
-                        aria-label="Tarixçə"
-                        title="Hərəkət tarixçəsi"
+                        aria-label={t("app.inventory.historyAria")}
+                        title={t("app.inventory.historyTitle")}
                         className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
                         onClick={() => openHistory(it.id)}
                       >
@@ -550,7 +533,7 @@ export default function InventoryPage() {
                       </button>
                       <button
                         type="button"
-                        aria-label="Redaktə et"
+                        aria-label={t("app.inventory.editAria")}
                         className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
                         onClick={() => openEdit(it)}
                       >
@@ -558,7 +541,7 @@ export default function InventoryPage() {
                       </button>
                       <button
                         type="button"
-                        aria-label="Sil"
+                        aria-label={t("app.inventory.deleteAria")}
                         className="flex h-11 w-11 items-center justify-center rounded-lg text-red-500 hover:bg-red-50"
                         disabled={busy}
                         onClick={() => onDelete(it)}
@@ -578,12 +561,12 @@ export default function InventoryPage() {
         <div className="card space-y-2">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-slate-800">
-              Hərəkət tarixçəsi —{" "}
+              {t("app.inventory.historyTitle")} —{" "}
               {(items ?? []).find((i) => i.id === historyId)?.name ?? ""}
             </h2>
             <button
               type="button"
-              aria-label="Bağla"
+              aria-label={t("app.inventory.close")}
               className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
               onClick={() => setHistoryId(null)}
             >
@@ -593,7 +576,7 @@ export default function InventoryPage() {
           {moves === null ? (
             <Spinner />
           ) : moves.length === 0 ? (
-            <Placeholder>Hələ hərəkət yoxdur.</Placeholder>
+            <Placeholder>{t("app.inventory.noMoves")}</Placeholder>
           ) : (
             <ul className="divide-y divide-slate-100">
               {moves.map((m) => (
@@ -605,7 +588,7 @@ export default function InventoryPage() {
                       {m.delta > 0 ? "+" : ""}
                       {num(m.delta)}
                     </span>
-                    <span className="ml-2 text-slate-600">{REASON_AZ[m.reason] ?? m.reason}</span>
+                    <span className="ml-2 text-slate-600">{reasonLabel(m.reason)}</span>
                     {m.note && <span className="ml-2 text-slate-400">{m.note}</span>}
                   </div>
                   <span className="shrink-0 text-xs text-slate-400">

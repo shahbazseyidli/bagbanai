@@ -22,7 +22,7 @@ export default function MorePage() {
     { href: "/equipment", label: t("nav.equipment"), Icon: Wrench, authOnly: true },
     { href: "/reports", label: t("nav.reports"), Icon: FileText, authOnly: true },
     { href: "/places", label: t("nav.places"), Icon: MapPin, authOnly: true },
-    { href: "/guide", label: "Necə başlamalı", Icon: GraduationCap, authOnly: false },
+    { href: "/guide", label: t("app.more.howToStart"), Icon: GraduationCap, authOnly: false },
     { href: "/catalog", label: t("nav.catalog"), Icon: Store, authOnly: true },
     { href: "/chat", label: t("nav.community"), Icon: MessageCircle, authOnly: true },
     { href: "/account", label: t("more.account"), Icon: UserCog, authOnly: true },

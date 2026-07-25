@@ -9,6 +9,7 @@ import { Check, AlertTriangle, OctagonAlert, ChevronRight } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { ListSkeleton } from "@/components/Skeleton";
+import { t } from "@/lib/i18n";
 
 interface Notif {
   id: string;
@@ -29,9 +30,9 @@ const SEV: Record<string, { cls: string; Icon: typeof Check }> = {
 
 function timeAgo(iso: string): string {
   const s = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
-  if (s < 60) return "indicə";
-  if (s < 3600) return `${Math.floor(s / 60)} dəq əvvəl`;
-  if (s < 86400) return `${Math.floor(s / 3600)} saat əvvəl`;
+  if (s < 60) return t("app.notifications.justNow");
+  if (s < 3600) return `${Math.floor(s / 60)} ${t("app.notifications.minutesAgo")}`;
+  if (s < 86400) return `${Math.floor(s / 3600)} ${t("app.notifications.hoursAgo")}`;
   return new Date(iso).toISOString().slice(0, 10);
 }
 
@@ -61,12 +62,12 @@ export default function NotificationsPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold text-slate-900">Bildirişlər</h1>
+      <h1 className="text-2xl font-bold text-slate-900">{t("app.notifications.heading")}</h1>
 
       {items.length === 0 ? (
         <div className="card text-center text-slate-600">
           <Check className="mx-auto h-8 w-8 text-emerald-600" />
-          <p className="mt-2">Hələ bildiriş yoxdur. Risk və hava xəbərdarlıqları burada görünəcək.</p>
+          <p className="mt-2">{t("app.notifications.emptyState")}</p>
         </div>
       ) : (
         <ul className="space-y-2">

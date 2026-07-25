@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Bell } from "lucide-react";
 import { api } from "@/lib/api";
+import { t } from "@/lib/i18n";
 
 interface Notif {
   id: string;
@@ -23,11 +24,11 @@ const SEV_DOT: Record<string, string> = {
 };
 
 function timeAgo(iso: string): string {
-  const t = new Date(iso).getTime();
-  const s = Math.max(0, Math.floor((Date.now() - t) / 1000));
-  if (s < 60) return "indicə";
-  if (s < 3600) return `${Math.floor(s / 60)} dəq əvvəl`;
-  if (s < 86400) return `${Math.floor(s / 3600)} saat əvvəl`;
+  const ms = new Date(iso).getTime();
+  const s = Math.max(0, Math.floor((Date.now() - ms) / 1000));
+  if (s < 60) return t("app.notificationBell.justNow");
+  if (s < 3600) return `${Math.floor(s / 60)} ${t("app.notificationBell.minAgo")}`;
+  if (s < 86400) return `${Math.floor(s / 3600)} ${t("app.notificationBell.hourAgo")}`;
   return new Date(iso).toISOString().slice(0, 10);
 }
 
@@ -80,7 +81,7 @@ export default function NotificationBell() {
       <button
         type="button"
         onClick={toggle}
-        aria-label="Bildirişlər"
+        aria-label={t("app.notificationBell.ariaLabel")}
         className="relative rounded-lg p-2 text-slate-600 hover:bg-emerald-50 hover:text-emerald-700"
       >
         <Bell className="h-5 w-5" />
@@ -94,11 +95,11 @@ export default function NotificationBell() {
       {open && (
         <div className="absolute right-0 z-40 mt-2 w-80 max-w-[90vw] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
           <div className="border-b border-slate-100 px-4 py-2 text-sm font-semibold text-slate-700">
-            Bildirişlər
+            {t("app.notificationBell.heading")}
           </div>
           <div className="max-h-96 overflow-y-auto">
             {items.length === 0 ? (
-              <p className="px-4 py-6 text-center text-sm text-slate-400">Hələ bildiriş yoxdur</p>
+              <p className="px-4 py-6 text-center text-sm text-slate-400">{t("app.notificationBell.empty")}</p>
             ) : (
               items.map((n) => {
                 const inner = (

@@ -62,10 +62,10 @@ const TABS: { key: TabKey; labelKey: I18nKey }[] = [
 // D2.3 — collapse the flat tabs into 3 farmer intents. Primary choice is one of 3; each group
 // reveals its own tabs as a secondary chip row. (HYBRID_PLAN W4 added fertilizer/photos/soil.)
 type Group = "vaziyyet" | "isler" | "melumat";
-const GROUPS: { key: Group; label: string; tabs: TabKey[] }[] = [
-  { key: "vaziyyet", label: "Vəziyyət", tabs: ["overview", "sentinel2", "nasa", "weather", "zones"] },
-  { key: "isler", label: "İşlər", tabs: ["ai", "photos", "fertilizer", "scouting", "tasks", "operations", "yields", "harvest"] },
-  { key: "melumat", label: "Məlumat", tabs: ["metadata", "season", "soil", "documents"] },
+const GROUPS: { key: Group; labelKey: I18nKey; tabs: TabKey[] }[] = [
+  { key: "vaziyyet", labelKey: "app.fieldDetail.groupVaziyyet", tabs: ["overview", "sentinel2", "nasa", "weather", "zones"] },
+  { key: "isler", labelKey: "app.fieldDetail.groupIsler", tabs: ["ai", "photos", "fertilizer", "scouting", "tasks", "operations", "yields", "harvest"] },
+  { key: "melumat", labelKey: "app.fieldDetail.groupMelumat", tabs: ["metadata", "season", "soil", "documents"] },
 ];
 const GROUP_OF: Record<TabKey, Group> = {
   overview: "vaziyyet", sentinel2: "vaziyyet", nasa: "vaziyyet", weather: "vaziyyet", zones: "vaziyyet",
@@ -183,12 +183,12 @@ function FieldDetailInner() {
   // and (behind ?ui=v2) the D2.3 map-first sheet. Build each piece once, then compose per branch.
   const undoBar = undoDeleted ? (
     <div className="fixed inset-x-0 bottom-4 z-50 mx-auto flex max-w-md items-center justify-between gap-3 rounded-xl bg-ink px-4 py-3 text-white shadow-lg">
-      <span className="text-sm">“{field.name}” silindi.</span>
+      <span className="text-sm">“{field.name}” {t("app.fieldDetail.fieldDeleted")}</span>
       <button
         onClick={onUndoDelete}
         className="min-h-11 rounded-lg bg-white/20 px-4 py-1.5 text-sm font-bold hover:bg-white/30"
       >
-        Geri qaytar
+        {t("app.fieldDetail.undoRestore")}
       </button>
     </div>
   ) : null;
@@ -206,7 +206,7 @@ function FieldDetailInner() {
             onClick={openEdit}
             className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
           >
-            <Settings className="h-4 w-4" /> Redaktə
+            <Settings className="h-4 w-4" /> {t("app.fieldDetail.editButton")}
           </button>
         ) : undefined
       }
@@ -217,14 +217,14 @@ function FieldDetailInner() {
   const editPanel = (
     <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-slate-800">Sahə ayarları</h3>
+        <h3 className="font-semibold text-slate-800">{t("app.fieldDetail.settingsTitle")}</h3>
         <button onClick={() => setEditing(false)} className="text-sm text-slate-500 hover:text-slate-700">
-          Bağla
+          {t("app.fieldDetail.close")}
         </button>
       </div>
 
       <div className="mt-3">
-        <label className="text-xs font-medium text-slate-500">Sahənin adı</label>
+        <label className="text-xs font-medium text-slate-500">{t("app.fieldDetail.nameLabel")}</label>
         <div className="mt-1 flex gap-2">
           <input
             className="input flex-1"
@@ -236,27 +236,27 @@ function FieldDetailInner() {
             disabled={saving || !editName.trim() || editName.trim() === field.name}
             className="btn-primary shrink-0 disabled:opacity-50"
           >
-            {saving ? "Saxlanır…" : "Saxla"}
+            {saving ? t("app.fieldDetail.saving") : t("app.fieldDetail.save")}
           </button>
         </div>
         <p className="mt-1 text-[11px] text-slate-400">
-          Məhsul növü, torpaq və s. dəyişikliklər üçün “Sahə haqqında məlumat” tabına keçin.
+          {t("app.fieldDetail.editHint")}
         </p>
       </div>
 
       <div className="mt-4 border-t border-slate-200 pt-4">
         {confirmDel ? (
           <div className="flex flex-wrap items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2">
-            <span className="text-sm text-red-700">Sahə silinsin? Silindikdən sonra qısa müddət ərzində geri qaytara bilərsiniz.</span>
+            <span className="text-sm text-red-700">{t("app.fieldDetail.deleteConfirmQuestion")}</span>
             <button
               onClick={onDelete}
               disabled={deleting}
               className="rounded bg-red-600 px-3 py-1 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
             >
-              {deleting ? "Silinir…" : "Bəli, sil"}
+              {deleting ? t("app.fieldDetail.deleting") : t("app.fieldDetail.confirmDelete")}
             </button>
             <button onClick={() => setConfirmDel(false)} disabled={deleting} className="rounded px-2 py-1 text-sm text-slate-600 hover:text-slate-800">
-              Ləğv et
+              {t("app.fieldDetail.cancel")}
             </button>
           </div>
         ) : (
@@ -264,7 +264,7 @@ function FieldDetailInner() {
             onClick={() => setConfirmDel(true)}
             className="rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
           >
-            Sahəni sil
+            {t("app.fieldDetail.deleteButton")}
           </button>
         )}
       </div>
@@ -286,7 +286,7 @@ function FieldDetailInner() {
               activeGroup === g.key ? "bg-white text-emerald-800 shadow-sm" : "text-slate-600"
             }`}
           >
-            {g.label}
+            {t(g.labelKey)}
           </button>
         ))}
       </div>

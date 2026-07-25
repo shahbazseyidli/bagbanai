@@ -22,6 +22,7 @@ import {
   ArrowUpFromLine,
 } from "lucide-react";
 import { api } from "@/lib/api";
+import { t } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { ErrorNote, Placeholder, Spinner } from "@/components/ui";
 import type {
@@ -33,14 +34,6 @@ import type {
 } from "@/lib/types";
 
 type Tab = "overview" | "users" | "subscriptions" | "activity" | "billing";
-
-const TABS: { id: Tab; label: string }[] = [
-  { id: "overview", label: "Ümumi" },
-  { id: "users", label: "İstifadəçilər" },
-  { id: "subscriptions", label: "Abunələr" },
-  { id: "activity", label: "Aktivlik" },
-  { id: "billing", label: "Xərc / Billing" },
-];
 
 // Small amounts (AI usage) can be fractions of a cent; show more decimals then.
 function formatUSD(n: number | null | undefined): string {
@@ -73,16 +66,15 @@ const TYPE_STYLES: Record<string, string> = {
   task: "bg-slate-100 text-slate-600 border-slate-200",
 };
 
-const TYPE_LABELS: Record<string, string> = {
-  signup: "Qeydiyyat",
-  field: "Sahə",
-  advice: "AI məsləhət",
-  chat: "AI söhbət",
-  scouting: "Skautinq",
-  task: "Tapşırıq",
-};
-
 function TypeBadge({ type }: { type: string }) {
+  const TYPE_LABELS: Record<string, string> = {
+    signup: t("app.admin.typeSignup"),
+    field: t("app.admin.typeField"),
+    advice: t("app.admin.typeAdvice"),
+    chat: t("app.admin.typeChat"),
+    scouting: t("app.admin.typeScouting"),
+    task: t("app.admin.typeTask"),
+  };
   const cls = TYPE_STYLES[type] ?? "bg-slate-100 text-slate-600 border-slate-200";
   return (
     <span className={`inline-block rounded-md border px-2 py-0.5 text-xs font-medium ${cls}`}>
@@ -123,7 +115,7 @@ function OverviewSection() {
     api
       .get<AdminOverview>("/api/admin/overview")
       .then(setData)
-      .catch((err) => setError(err instanceof Error ? err.message : "Xəta"));
+      .catch((err) => setError(err instanceof Error ? err.message : t("app.admin.error")));
   }, []);
 
   if (error) return <ErrorNote message={error} />;
@@ -133,7 +125,7 @@ function OverviewSection() {
     <div className="space-y-6">
       <div className="card flex flex-wrap items-center justify-between gap-3">
         <div>
-          <div className="text-sm text-slate-500">AI provayder / model</div>
+          <div className="text-sm text-slate-500">{t("app.admin.aiProviderModel")}</div>
           <div className="font-semibold text-slate-800">
             {data.provider} · {data.model}
           </div>
@@ -145,32 +137,32 @@ function OverviewSection() {
               : "border-red-200 bg-red-50 text-red-700"
           }`}
         >
-          {data.ai_configured ? "AI qoşulub" : "AI qoşulmayıb"}
+          {data.ai_configured ? t("app.admin.aiConnected") : t("app.admin.aiNotConnected")}
         </span>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={<Users className="h-4 w-4" />} label="İstifadəçilər" value={formatInt(data.users)} />
-        <StatCard icon={<Building2 className="h-4 w-4" />} label="Təşkilatlar" value={formatInt(data.orgs)} />
-        <StatCard icon={<Sprout className="h-4 w-4" />} label="Sahələr" value={formatInt(data.fields)} hint={`${formatInt(data.farms)} ferma`} />
+        <StatCard icon={<Users className="h-4 w-4" />} label={t("app.admin.statUsers")} value={formatInt(data.users)} />
+        <StatCard icon={<Building2 className="h-4 w-4" />} label={t("app.admin.statOrgs")} value={formatInt(data.orgs)} />
+        <StatCard icon={<Sprout className="h-4 w-4" />} label={t("app.admin.statFields")} value={formatInt(data.fields)} hint={`${formatInt(data.farms)} ${t("app.admin.farmWord")}`} />
         <StatCard
           icon={<Sparkles className="h-4 w-4" />}
-          label="AI çağırışları"
+          label={t("app.admin.statAiCalls")}
           value={formatInt(data.ai_calls)}
-          hint={`${formatInt(data.advice_count)} məsləhət · ${formatInt(data.chat_count)} söhbət`}
+          hint={`${formatInt(data.advice_count)} ${t("app.admin.adviceWord")} · ${formatInt(data.chat_count)} ${t("app.admin.chatWord")}`}
         />
         <StatCard
           icon={<ArrowDownToLine className="h-4 w-4" />}
-          label="Giriş tokenləri"
+          label={t("app.admin.statInputTokens")}
           value={formatInt(data.input_tokens)}
         />
         <StatCard
           icon={<ArrowUpFromLine className="h-4 w-4" />}
-          label="Çıxış tokenləri"
+          label={t("app.admin.statOutputTokens")}
           value={formatInt(data.output_tokens)}
         />
-        <StatCard icon={<Coins className="h-4 w-4" />} label="Ümumi xərc" value={formatUSD(data.cost_usd)} />
-        <StatCard icon={<CalendarDays className="h-4 w-4" />} label="Bu ay xərc" value={formatUSD(data.cost_usd_month)} />
+        <StatCard icon={<Coins className="h-4 w-4" />} label={t("app.admin.statTotalCost")} value={formatUSD(data.cost_usd)} />
+        <StatCard icon={<CalendarDays className="h-4 w-4" />} label={t("app.admin.statMonthCost")} value={formatUSD(data.cost_usd_month)} />
       </div>
     </div>
   );
@@ -185,12 +177,12 @@ function UsersSection() {
     api
       .get<{ users: AdminUser[] }>("/api/admin/users")
       .then((r) => setUsers(r.users))
-      .catch((err) => setError(err instanceof Error ? err.message : "Xəta"));
+      .catch((err) => setError(err instanceof Error ? err.message : t("app.admin.error")));
   }, []);
 
   if (error) return <ErrorNote message={error} />;
   if (!users) return <Spinner />;
-  if (users.length === 0) return <Placeholder>Hələ istifadəçi yoxdur.</Placeholder>;
+  if (users.length === 0) return <Placeholder>{t("app.admin.usersEmpty")}</Placeholder>;
 
   return (
     <div className="card">
@@ -198,15 +190,15 @@ function UsersSection() {
         <table className="min-w-full text-left text-sm">
           <thead className="text-slate-500">
             <tr>
-              <th className="py-2 pr-4">E-poçt</th>
-              <th className="py-2 pr-4">Ad</th>
-              <th className="py-2 pr-4">Təşkilat</th>
-              <th className="py-2 pr-4">Rol</th>
-              <th className="py-2 pr-4">Qoşulma</th>
-              <th className="py-2 pr-4 text-right">AI çağırışı</th>
-              <th className="py-2 pr-4 text-right">Token (giriş/çıxış)</th>
-              <th className="py-2 pr-4 text-right">Xərc</th>
-              <th className="py-2 pr-4">Son aktivlik</th>
+              <th className="py-2 pr-4">{t("app.admin.colEmail")}</th>
+              <th className="py-2 pr-4">{t("app.admin.colName")}</th>
+              <th className="py-2 pr-4">{t("app.admin.colOrg")}</th>
+              <th className="py-2 pr-4">{t("app.admin.colRole")}</th>
+              <th className="py-2 pr-4">{t("app.admin.colJoined")}</th>
+              <th className="py-2 pr-4 text-right">{t("app.admin.colAiCalls")}</th>
+              <th className="py-2 pr-4 text-right">{t("app.admin.colTokens")}</th>
+              <th className="py-2 pr-4 text-right">{t("app.admin.cost")}</th>
+              <th className="py-2 pr-4">{t("app.admin.colLastActive")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -217,7 +209,7 @@ function UsersSection() {
                     {u.email}
                     {u.is_admin && (
                       <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
-                        admin
+                        {t("app.admin.adminBadge")}
                       </span>
                     )}
                   </div>
@@ -250,12 +242,12 @@ function ActivitySection() {
     api
       .get<{ activity: AdminActivityItem[] }>("/api/admin/activity?limit=60")
       .then((r) => setItems(r.activity))
-      .catch((err) => setError(err instanceof Error ? err.message : "Xəta"));
+      .catch((err) => setError(err instanceof Error ? err.message : t("app.admin.error")));
   }, []);
 
   if (error) return <ErrorNote message={error} />;
   if (!items) return <Spinner />;
-  if (items.length === 0) return <Placeholder>Hələ aktivlik yoxdur.</Placeholder>;
+  if (items.length === 0) return <Placeholder>{t("app.admin.activityEmpty")}</Placeholder>;
 
   return (
     <div className="card">
@@ -263,10 +255,10 @@ function ActivitySection() {
         <table className="min-w-full text-left text-sm">
           <thead className="text-slate-500">
             <tr>
-              <th className="py-2 pr-4">Vaxt</th>
-              <th className="py-2 pr-4">İstifadəçi</th>
-              <th className="py-2 pr-4">Tip</th>
-              <th className="py-2">Detal</th>
+              <th className="py-2 pr-4">{t("app.admin.colTime")}</th>
+              <th className="py-2 pr-4">{t("app.admin.colUser")}</th>
+              <th className="py-2 pr-4">{t("app.admin.colType")}</th>
+              <th className="py-2">{t("app.admin.colDetail")}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -306,7 +298,7 @@ function BillingSection() {
         setDaily(d.rows);
         setByModel(m.rows);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Xəta");
+        setError(err instanceof Error ? err.message : t("app.admin.error"));
       }
     })();
   }, []);
@@ -320,11 +312,11 @@ function BillingSection() {
     <div className="space-y-6">
       {/* Totals */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard icon={<Coins className="h-4 w-4" />} label="Ümumi AI xərci" value={formatUSD(billing.total_cost_usd)} />
-        <StatCard icon={<CalendarDays className="h-4 w-4" />} label="Bu ay xərc" value={formatUSD(billing.month_cost_usd)} />
+        <StatCard icon={<Coins className="h-4 w-4" />} label={t("app.admin.statTotalAiCost")} value={formatUSD(billing.total_cost_usd)} />
+        <StatCard icon={<CalendarDays className="h-4 w-4" />} label={t("app.admin.statMonthCost")} value={formatUSD(billing.month_cost_usd)} />
         <StatCard
           icon={<Coins className="h-4 w-4" />}
-          label="Təklif olunan hesab"
+          label={t("app.admin.statSuggestedCharge")}
           value={formatUSD(billing.total_suggested_usd)}
           hint={`markup ×${billing.markup_x}`}
         />
@@ -332,20 +324,20 @@ function BillingSection() {
 
       {/* Per-org billing */}
       <div className="card">
-        <h2 className="mb-3 font-semibold text-slate-800">Təşkilatlar üzrə</h2>
+        <h2 className="mb-3 font-semibold text-slate-800">{t("app.admin.perOrgHeading")}</h2>
         {billing.orgs.length === 0 ? (
-          <Placeholder>Hələ istifadə yoxdur.</Placeholder>
+          <Placeholder>{t("app.admin.noUsageYet")}</Placeholder>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">
               <thead className="text-slate-500">
                 <tr>
-                  <th className="py-2 pr-4">Təşkilat</th>
-                  <th className="py-2 pr-4">Plan</th>
-                  <th className="py-2 pr-4 text-right">Çağırış</th>
-                  <th className="py-2 pr-4 text-right">Token (giriş/çıxış)</th>
-                  <th className="py-2 pr-4 text-right">AI xərci</th>
-                  <th className="py-2 pr-4 text-right">Təklif olunan hesab</th>
+                  <th className="py-2 pr-4">{t("app.admin.colOrg")}</th>
+                  <th className="py-2 pr-4">{t("app.admin.colPlan")}</th>
+                  <th className="py-2 pr-4 text-right">{t("app.admin.colCalls")}</th>
+                  <th className="py-2 pr-4 text-right">{t("app.admin.colTokens")}</th>
+                  <th className="py-2 pr-4 text-right">{t("app.admin.colAiCost")}</th>
+                  <th className="py-2 pr-4 text-right">{t("app.admin.colSuggestedCharge")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -371,9 +363,9 @@ function BillingSection() {
 
       {/* Daily cost chart */}
       <div className="card">
-        <h2 className="mb-3 font-semibold text-slate-800">Günlük xərc (son 30 gün)</h2>
+        <h2 className="mb-3 font-semibold text-slate-800">{t("app.admin.dailyCostHeading")}</h2>
         {chartData.length === 0 ? (
-          <Placeholder>Məlumat yoxdur.</Placeholder>
+          <Placeholder>{t("app.admin.noData")}</Placeholder>
         ) : (
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
@@ -388,10 +380,10 @@ function BillingSection() {
                 <Tooltip
                   formatter={(v: number | string) => [
                     typeof v === "number" ? formatUSD(v) : v,
-                    "Xərc",
+                    t("app.admin.cost"),
                   ]}
                 />
-                <Line type="monotone" dataKey="cost_usd" name="Xərc" stroke="#059669" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="cost_usd" name={t("app.admin.cost")} stroke="#059669" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -400,18 +392,18 @@ function BillingSection() {
 
       {/* By model */}
       <div className="card">
-        <h2 className="mb-3 font-semibold text-slate-800">Model üzrə</h2>
+        <h2 className="mb-3 font-semibold text-slate-800">{t("app.admin.byModelHeading")}</h2>
         {byModel.length === 0 ? (
-          <Placeholder>Məlumat yoxdur.</Placeholder>
+          <Placeholder>{t("app.admin.noData")}</Placeholder>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">
               <thead className="text-slate-500">
                 <tr>
-                  <th className="py-2 pr-4">Model</th>
-                  <th className="py-2 pr-4 text-right">Çağırış</th>
-                  <th className="py-2 pr-4 text-right">Token (giriş/çıxış)</th>
-                  <th className="py-2 pr-4 text-right">Xərc</th>
+                  <th className="py-2 pr-4">{t("app.admin.colModel")}</th>
+                  <th className="py-2 pr-4 text-right">{t("app.admin.colCalls")}</th>
+                  <th className="py-2 pr-4 text-right">{t("app.admin.colTokens")}</th>
+                  <th className="py-2 pr-4 text-right">{t("app.admin.cost")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -449,13 +441,12 @@ interface AdminSub {
   valid_until: string | null;
 }
 
-const TIER_OPTIONS = [
-  { id: "free", label: "Pulsuz" },
-  { id: "pro", label: "Pro (10 AZN)" },
-  { id: "business", label: "Business (25 AZN)" },
-];
-
 function SubscriptionsSection() {
+  const TIER_OPTIONS = [
+    { id: "free", label: t("app.admin.tierFree") },
+    { id: "pro", label: t("app.admin.tierPro") },
+    { id: "business", label: t("app.admin.tierBusiness") },
+  ];
   const [subs, setSubs] = useState<AdminSub[] | null>(null);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState<string | null>(null);
@@ -465,7 +456,7 @@ function SubscriptionsSection() {
       const r = await api.get<{ subscriptions: AdminSub[] }>("/api/admin/subscriptions");
       setSubs(r?.subscriptions ?? []);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "xəta");
+      setError(e instanceof Error ? e.message : t("app.admin.errorLower"));
     }
   }, []);
   useEffect(() => {
@@ -478,7 +469,7 @@ function SubscriptionsSection() {
       await api.put(`/api/admin/subscriptions/${orgId}`, { tier });
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "xəta");
+      setError(e instanceof Error ? e.message : t("app.admin.errorLower"));
     } finally {
       setSaving(null);
     }
@@ -492,11 +483,11 @@ function SubscriptionsSection() {
       <table className="min-w-full text-left text-sm">
         <thead className="bg-slate-50 text-xs uppercase text-slate-500">
           <tr>
-            <th className="px-3 py-2">Təşkilat</th>
-            <th className="px-3 py-2">Sahib</th>
-            <th className="px-3 py-2">Sahə</th>
-            <th className="px-3 py-2">Bu ay (məsləhət / söhbət)</th>
-            <th className="px-3 py-2">Paket</th>
+            <th className="px-3 py-2">{t("app.admin.colOrg")}</th>
+            <th className="px-3 py-2">{t("app.admin.colOwner")}</th>
+            <th className="px-3 py-2">{t("app.admin.colField")}</th>
+            <th className="px-3 py-2">{t("app.admin.colMonthUsage")}</th>
+            <th className="px-3 py-2">{t("app.admin.colPackage")}</th>
             <th className="px-3 py-2" />
           </tr>
         </thead>
@@ -549,6 +540,14 @@ export default function AdminPage() {
   const { user, loading } = useAuth();
   const [tab, setTab] = useState<Tab>("overview");
 
+  const TABS: { id: Tab; label: string }[] = [
+    { id: "overview", label: t("app.admin.tabOverview") },
+    { id: "users", label: t("app.admin.tabUsers") },
+    { id: "subscriptions", label: t("app.admin.tabSubscriptions") },
+    { id: "activity", label: t("app.admin.tabActivity") },
+    { id: "billing", label: t("app.admin.tabBilling") },
+  ];
+
   const guard = useCallback(() => {
     if (!loading && !user?.is_admin) router.replace("/");
   }, [loading, user, router]);
@@ -561,7 +560,7 @@ export default function AdminPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-slate-900">Admin panel</h1>
+      <h1 className="text-2xl font-bold text-slate-900">{t("app.admin.title")}</h1>
 
       <div className="flex flex-wrap gap-1 border-b border-slate-200">
         {TABS.map((tb) => (

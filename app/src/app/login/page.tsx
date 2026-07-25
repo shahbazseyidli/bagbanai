@@ -65,7 +65,7 @@ export default function LoginPage() {
     <div className="mx-auto max-w-sm">
       <div className="card">
         <h1 className="mb-4 text-xl font-bold text-slate-900">
-          {otpEmail ? "Email təsdiqi" : t("auth.loginTitle")}
+          {otpEmail ? t("app.login.emailVerifyTitle") : t("auth.loginTitle")}
         </h1>
         {otpEmail ? (
           <OtpVerify email={otpEmail} onVerified={onVerified} />

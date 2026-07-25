@@ -8,6 +8,7 @@
 import { useState } from "react";
 import { CalendarCheck, ClipboardList, X } from "lucide-react";
 import { api, azError } from "@/lib/api";
+import { t } from "@/lib/i18n";
 import { ErrorNote, Field as FormField } from "@/components/ui";
 
 interface BulkActionsProps {
@@ -84,7 +85,7 @@ export default function BulkActions({ orgId, fieldIds, onDone }: BulkActionsProp
     setError("");
     setDone("");
     if (!title.trim()) {
-      setError("Tapşırığın adını yazın.");
+      setError(t("app.bulkActions.taskTitleRequired"));
       return;
     }
     setBusy(true);
@@ -98,7 +99,7 @@ export default function BulkActions({ orgId, fieldIds, onDone }: BulkActionsProp
         priority,
         notes: taskNotes.trim() || undefined,
       });
-      setDone(`${res.created} sahəyə tapşırıq əlavə edildi.`);
+      setDone(`${res.created}${t("app.bulkActions.tasksAddedSuffix")}`);
       resetTask();
       setMode("");
       onDone?.();
@@ -114,16 +115,16 @@ export default function BulkActions({ orgId, fieldIds, onDone }: BulkActionsProp
     setError("");
     setDone("");
     if (!opType.trim()) {
-      setError("Əməliyyat növünü seçin.");
+      setError(t("app.bulkActions.opTypeRequired"));
       return;
     }
     if (!performedOn) {
-      setError("Tarixi seçin.");
+      setError(t("app.bulkActions.dateRequired"));
       return;
     }
     const c = cost.trim() ? Number(cost) : undefined;
     if (c !== undefined && (!Number.isFinite(c) || c < 0)) {
-      setError("Xərc düzgün deyil.");
+      setError(t("app.bulkActions.costInvalid"));
       return;
     }
     setBusy(true);
@@ -137,7 +138,7 @@ export default function BulkActions({ orgId, fieldIds, onDone }: BulkActionsProp
         currency,
         notes: opNotes.trim() || undefined,
       });
-      setDone(`${res.created} sahəyə əməliyyat yazıldı.`);
+      setDone(`${res.created}${t("app.bulkActions.opsAddedSuffix")}`);
       resetOp();
       setMode("");
       onDone?.();
@@ -152,7 +153,7 @@ export default function BulkActions({ orgId, fieldIds, onDone }: BulkActionsProp
     <div className="sticky bottom-20 z-30 md:bottom-4">
       <div className="rounded-xl border-[1.5px] border-emerald-300 bg-white p-3 shadow-lg">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-sm font-semibold text-slate-800">{count} sahə seçildi</p>
+          <p className="text-sm font-semibold text-slate-800">{count}{t("app.bulkActions.fieldsSelectedSuffix")}</p>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
@@ -163,7 +164,7 @@ export default function BulkActions({ orgId, fieldIds, onDone }: BulkActionsProp
                 setMode(mode === "task" ? "" : "task");
               }}
             >
-              <ClipboardList className="h-4 w-4" /> Tapşırıq əlavə et
+              <ClipboardList className="h-4 w-4" /> {t("app.bulkActions.addTask")}
             </button>
             <button
               type="button"
@@ -174,7 +175,7 @@ export default function BulkActions({ orgId, fieldIds, onDone }: BulkActionsProp
                 setMode(mode === "op" ? "" : "op");
               }}
             >
-              <CalendarCheck className="h-4 w-4" /> Əməliyyat əlavə et
+              <CalendarCheck className="h-4 w-4" /> {t("app.bulkActions.addOperation")}
             </button>
           </div>
         </div>
@@ -187,13 +188,13 @@ export default function BulkActions({ orgId, fieldIds, onDone }: BulkActionsProp
           <div className="mt-3 border-t border-slate-200 pt-3">
             <div className="mb-2 flex items-center justify-between">
               <h3 className="font-semibold text-slate-800">
-                {mode === "task" ? "Seçilmiş sahələrə tapşırıq" : "Seçilmiş sahələrə əməliyyat"}
+                {mode === "task" ? t("app.bulkActions.taskFormHeading") : t("app.bulkActions.opFormHeading")}
               </h3>
               <button
                 type="button"
                 className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
                 onClick={closeForm}
-                aria-label="Bağla"
+                aria-label={t("app.bulkActions.close")}
               >
                 <X className="h-5 w-5" />
               </button>
@@ -202,22 +203,22 @@ export default function BulkActions({ orgId, fieldIds, onDone }: BulkActionsProp
 
             {mode === "task" ? (
               <form onSubmit={submitTask} className="mt-2 space-y-3">
-                <FormField label="Başlıq" required>
+                <FormField label={t("app.bulkActions.titleLabel")} required>
                   <input
                     className="input"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Məsələn: Suvarma yoxlaması"
+                    placeholder={t("app.bulkActions.titlePlaceholder")}
                   />
                 </FormField>
                 <div className="grid gap-3 sm:grid-cols-3">
-                  <FormField label="Növ">
+                  <FormField label={t("app.bulkActions.typeLabel")}>
                     <select
                       className="input"
                       value={taskType}
                       onChange={(e) => setTaskType(e.target.value)}
                     >
-                      <option value="">Seçilməyib</option>
+                      <option value="">{t("app.bulkActions.notSelected")}</option>
                       {TASK_TYPES.map((v) => (
                         <option key={v} value={v}>
                           {v}
@@ -225,7 +226,7 @@ export default function BulkActions({ orgId, fieldIds, onDone }: BulkActionsProp
                       ))}
                     </select>
                   </FormField>
-                  <FormField label="Son tarix">
+                  <FormField label={t("app.bulkActions.dueDateLabel")}>
                     <input
                       className="input"
                       type="date"
@@ -233,7 +234,7 @@ export default function BulkActions({ orgId, fieldIds, onDone }: BulkActionsProp
                       onChange={(e) => setDue(e.target.value)}
                     />
                   </FormField>
-                  <FormField label="Prioritet">
+                  <FormField label={t("app.bulkActions.priorityLabel")}>
                     <select
                       className="input"
                       value={priority}
@@ -247,7 +248,7 @@ export default function BulkActions({ orgId, fieldIds, onDone }: BulkActionsProp
                     </select>
                   </FormField>
                 </div>
-                <FormField label="Qeyd">
+                <FormField label={t("app.bulkActions.note")}>
                   <textarea
                     className="input"
                     rows={2}
@@ -256,13 +257,13 @@ export default function BulkActions({ orgId, fieldIds, onDone }: BulkActionsProp
                   />
                 </FormField>
                 <button type="submit" className="btn-primary" disabled={busy}>
-                  {busy ? "Yazılır…" : `${count} sahəyə əlavə et`}
+                  {busy ? t("app.bulkActions.saving") : `${count}${t("app.bulkActions.addToFieldsSuffix")}`}
                 </button>
               </form>
             ) : (
               <form onSubmit={submitOp} className="mt-2 space-y-3">
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <FormField label="Əməliyyat" required>
+                  <FormField label={t("app.bulkActions.operationLabel")} required>
                     <select
                       className="input"
                       value={opType}
@@ -275,7 +276,7 @@ export default function BulkActions({ orgId, fieldIds, onDone }: BulkActionsProp
                       ))}
                     </select>
                   </FormField>
-                  <FormField label="Tarix" required>
+                  <FormField label={t("app.bulkActions.dateLabel")} required>
                     <input
                       className="input"
                       type="date"
@@ -285,7 +286,7 @@ export default function BulkActions({ orgId, fieldIds, onDone }: BulkActionsProp
                   </FormField>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <FormField label="Xərc (hər sahə üçün)">
+                  <FormField label={t("app.bulkActions.costLabel")}>
                     <input
                       className="input"
                       inputMode="decimal"
@@ -294,7 +295,7 @@ export default function BulkActions({ orgId, fieldIds, onDone }: BulkActionsProp
                       placeholder="0"
                     />
                   </FormField>
-                  <FormField label="Valyuta">
+                  <FormField label={t("app.bulkActions.currencyLabel")}>
                     <select
                       className="input"
                       value={currency}
@@ -308,7 +309,7 @@ export default function BulkActions({ orgId, fieldIds, onDone }: BulkActionsProp
                     </select>
                   </FormField>
                 </div>
-                <FormField label="Qeyd">
+                <FormField label={t("app.bulkActions.note")}>
                   <textarea
                     className="input"
                     rows={2}
@@ -317,7 +318,7 @@ export default function BulkActions({ orgId, fieldIds, onDone }: BulkActionsProp
                   />
                 </FormField>
                 <button type="submit" className="btn-primary" disabled={busy}>
-                  {busy ? "Yazılır…" : `${count} sahəyə yaz`}
+                  {busy ? t("app.bulkActions.saving") : `${count}${t("app.bulkActions.writeToFieldsSuffix")}`}
                 </button>
               </form>
             )}

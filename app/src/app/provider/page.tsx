@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
 import { api, azError } from "@/lib/api";
+import { t } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { ErrorNote, Spinner } from "@/components/ui";
 import type { UserRole } from "@/lib/types";
@@ -54,7 +55,7 @@ export default function ProviderPage() {
     try {
       await api.put("/api/providers/me", { kind: p.kind, company: p.company, bio: p.bio || undefined, specializations: p.specializations, country: p.country || undefined, region: p.region || undefined, address: p.address || undefined, coverage: p.coverage || undefined, phone: p.phone || undefined });
       setItems(await api.get<Item[]>("/api/providers/me/catalog"));
-      setOk("Yadda saxlanıldı");
+      setOk(t("app.provider.savedToast"));
     } catch (err) { setError(azError(err)); }
   }
 
@@ -75,11 +76,11 @@ export default function ProviderPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
-      <h1 className="text-2xl font-bold text-slate-900">Provayder profili</h1>
+      <h1 className="text-2xl font-bold text-slate-900">{t("app.provider.title")}</h1>
       <div className="card space-y-3">
-        <div><label className="label">Şirkət / ad</label><input className="input" value={p.company} onChange={(e) => setP({ ...p, company: e.target.value })} /></div>
-        <div><label className="label">Haqqında</label><textarea className="input" rows={2} value={p.bio || ""} onChange={(e) => setP({ ...p, bio: e.target.value })} /></div>
-        <div><label className="label">İxtisaslaşma</label>
+        <div><label className="label">{t("app.provider.companyLabel")}</label><input className="input" value={p.company} onChange={(e) => setP({ ...p, company: e.target.value })} /></div>
+        <div><label className="label">{t("app.provider.bioLabel")}</label><textarea className="input" rows={2} value={p.bio || ""} onChange={(e) => setP({ ...p, bio: e.target.value })} /></div>
+        <div><label className="label">{t("app.provider.specializationsLabel")}</label>
           <div className="mt-1 flex flex-wrap gap-2">
             {(SPECS[kind] || []).map((s) => (
               <button key={s} type="button" onClick={() => toggleSpec(s)} className={`rounded-full border-[1.5px] px-3 py-1.5 text-sm font-medium ${p.specializations.includes(s) ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-slate-300 text-slate-600"}`}>{s}</button>
@@ -87,18 +88,18 @@ export default function ProviderPage() {
           </div>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <div><label className="label">Region</label><input className="input" value={p.region || ""} onChange={(e) => setP({ ...p, region: e.target.value })} /></div>
-          <div><label className="label">Telefon</label><input className="input" value={p.phone || ""} onChange={(e) => setP({ ...p, phone: e.target.value })} /></div>
+          <div><label className="label">{t("app.provider.regionLabel")}</label><input className="input" value={p.region || ""} onChange={(e) => setP({ ...p, region: e.target.value })} /></div>
+          <div><label className="label">{t("app.provider.phoneLabel")}</label><input className="input" value={p.phone || ""} onChange={(e) => setP({ ...p, phone: e.target.value })} /></div>
         </div>
-        <div><label className="label">Ünvan</label><input className="input" value={p.address || ""} onChange={(e) => setP({ ...p, address: e.target.value })} /></div>
-        <div><label className="label">Əhatə zonası</label><input className="input" value={p.coverage || ""} onChange={(e) => setP({ ...p, coverage: e.target.value })} /></div>
+        <div><label className="label">{t("app.provider.addressLabel")}</label><input className="input" value={p.address || ""} onChange={(e) => setP({ ...p, address: e.target.value })} /></div>
+        <div><label className="label">{t("app.provider.coverageLabel")}</label><input className="input" value={p.coverage || ""} onChange={(e) => setP({ ...p, coverage: e.target.value })} /></div>
         <ErrorNote message={error} />
         {ok && <p className="text-sm text-emerald-700">{ok}</p>}
-        <button className="btn-primary" onClick={save} disabled={!p.company}>Yadda saxla</button>
+        <button className="btn-primary" onClick={save} disabled={!p.company}>{t("app.provider.saveButton")}</button>
       </div>
 
       <div className="card">
-        <h2 className="mb-3 text-lg font-semibold text-slate-800">Kataloq</h2>
+        <h2 className="mb-3 text-lg font-semibold text-slate-800">{t("app.provider.catalogHeading")}</h2>
         <div className="space-y-2">
           {items.map((it) => (
             <div key={it.id} className="flex items-center gap-3 rounded-lg border border-slate-200 p-2.5">
@@ -106,15 +107,15 @@ export default function ProviderPage() {
               <button onClick={() => delItem(it.id)} className="text-slate-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
             </div>
           ))}
-          {items.length === 0 && <p className="text-sm text-slate-500">Hələ məhsul yoxdur.</p>}
+          {items.length === 0 && <p className="text-sm text-slate-500">{t("app.provider.noItems")}</p>}
         </div>
         <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <input className="input" placeholder="Ad" value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} />
-          <input className="input" placeholder="Kateqoriya" value={newItem.category} onChange={(e) => setNewItem({ ...newItem, category: e.target.value })} />
-          <input className="input" placeholder="Vahid" value={newItem.unit} onChange={(e) => setNewItem({ ...newItem, unit: e.target.value })} />
-          <input className="input" placeholder="Qiymət" value={newItem.price} onChange={(e) => setNewItem({ ...newItem, price: e.target.value })} />
+          <input className="input" placeholder={t("app.provider.namePlaceholder")} value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} />
+          <input className="input" placeholder={t("app.provider.categoryPlaceholder")} value={newItem.category} onChange={(e) => setNewItem({ ...newItem, category: e.target.value })} />
+          <input className="input" placeholder={t("app.provider.unitPlaceholder")} value={newItem.unit} onChange={(e) => setNewItem({ ...newItem, unit: e.target.value })} />
+          <input className="input" placeholder={t("app.provider.pricePlaceholder")} value={newItem.price} onChange={(e) => setNewItem({ ...newItem, price: e.target.value })} />
         </div>
-        <button className="btn-secondary mt-2" onClick={addItem}><Plus className="h-4 w-4" /> Məhsul əlavə et</button>
+        <button className="btn-secondary mt-2" onClick={addItem}><Plus className="h-4 w-4" /> {t("app.provider.addItemButton")}</button>
       </div>
     </div>
   );

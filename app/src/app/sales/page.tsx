@@ -8,6 +8,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, Receipt, Trash2, Users, X, Pencil } from "lucide-react";
 import { api, azError } from "@/lib/api";
+import { t, type I18nKey } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { ErrorNote, Field as FormField, Spinner } from "@/components/ui";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -70,37 +71,43 @@ interface Summary {
 
 interface FieldLite { id: string; name: string }
 
-const PAYMENTS: { value: string; label: string; cls: string }[] = [
-  { value: "paid", label: "Ödənilib", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-  { value: "pending", label: "Gözləyir", cls: "bg-amber-50 text-amber-700 border-amber-200" },
-  { value: "partial", label: "Qismən", cls: "bg-sky-50 text-sky-700 border-sky-200" },
+const PAYMENTS: { value: string; labelKey: I18nKey; cls: string }[] = [
+  { value: "paid", labelKey: "app.sales.payPaid", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  { value: "pending", labelKey: "app.sales.payPending", cls: "bg-amber-50 text-amber-700 border-amber-200" },
+  { value: "partial", labelKey: "app.sales.payPartial", cls: "bg-sky-50 text-sky-700 border-sky-200" },
 ];
-const BUYER_KINDS: { value: string; label: string }[] = [
-  { value: "trader", label: "Alverçi" },
-  { value: "processor", label: "Emal müəssisəsi" },
-  { value: "market", label: "Bazar / market" },
-  { value: "export", label: "İxracatçı" },
-  { value: "other", label: "Digər" },
+const BUYER_KINDS: { value: string; labelKey: I18nKey }[] = [
+  { value: "trader", labelKey: "app.sales.kindTrader" },
+  { value: "processor", labelKey: "app.sales.kindProcessor" },
+  { value: "market", labelKey: "app.sales.kindMarket" },
+  { value: "export", labelKey: "app.sales.kindExport" },
+  { value: "other", labelKey: "app.sales.kindOther" },
 ];
+// Resolve a buyer-kind code to its localised label at render time (t() must not run at module load).
+const kindLabel = (kind?: string | null): string | undefined => {
+  const k = BUYER_KINDS.find((x) => x.value === kind);
+  return k ? t(k.labelKey) : undefined;
+};
 const UNITS = ["kq", "ton"];
 
 const money = (n: number | null | undefined) => `${Math.round(Number(n ?? 0)).toLocaleString("az")} ₼`;
 const qty = (n: number | null | undefined, unit?: string) =>
   n == null ? "—" : `${Number(n).toLocaleString("az")} ${unit ?? ""}`.trim();
 
-const ERRORS: Record<string, string> = {
-  buyer_name_taken: "Bu adda alıcı artıq var.",
-  buyer_not_found: "Alıcı tapılmadı.",
-  lot_not_found: "Yığım partiyası tapılmadı.",
-  sale_not_found: "Satış tapılmadı.",
-  invalid_buyer_kind: "Alıcı növü yanlışdır.",
-  invalid_payment_status: "Ödəniş statusu yanlışdır.",
-  invalid_unit: "Ölçü vahidi yanlışdır.",
-  invalid_currency: "Valyuta yanlışdır.",
+const ERRORS: Record<string, I18nKey> = {
+  buyer_name_taken: "app.sales.errBuyerNameTaken",
+  buyer_not_found: "app.sales.errBuyerNotFound",
+  lot_not_found: "app.sales.errLotNotFound",
+  sale_not_found: "app.sales.errSaleNotFound",
+  invalid_buyer_kind: "app.sales.errInvalidBuyerKind",
+  invalid_payment_status: "app.sales.errInvalidPaymentStatus",
+  invalid_unit: "app.sales.errInvalidUnit",
+  invalid_currency: "app.sales.errInvalidCurrency",
 };
 function saleError(err: unknown): string {
   const code = err instanceof Error ? err.message : "";
-  return ERRORS[code] ?? azError(err);
+  const key = ERRORS[code];
+  return key ? t(key) : azError(err);
 }
 
 export default function SalesPage() {
@@ -274,7 +281,7 @@ function SalesInner() {
   }
 
   async function removeSale(id: string) {
-    if (!window.confirm("Bu satış qeydi silinsin?")) return;
+    if (!window.confirm(t("app.sales.confirmDeleteSale"))) return;
     setError("");
     try {
       await api.del(`/api/sales/${id}`);
@@ -336,7 +343,7 @@ function SalesInner() {
   }
 
   async function removeBuyer(id: string) {
-    if (!window.confirm("Bu alıcı silinsin? Satış tarixçəsi qalır, sadəcə alıcı adı boşalır.")) return;
+    if (!window.confirm(t("app.sales.confirmDeleteBuyer"))) return;
     setError("");
     try {
       await api.del(`/api/buyers/${id}`);
@@ -352,7 +359,7 @@ function SalesInner() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-slate-900">Satış və alıcılar</h1>
+        <h1 className="text-2xl font-bold text-slate-900">{t("app.sales.title")}</h1>
         {orgs.length > 1 && (
           <select
             className="input max-w-xs"
@@ -371,13 +378,13 @@ function SalesInner() {
         )}
       </div>
       <p className="text-sm text-slate-500">
-        Yığımdan satışa qədər tam qeyd: kimə satdınız, nə qədər, hansı qiymətə və pul gəldimi.
+        {t("app.sales.subtitle")}
       </p>
 
       <div className="flex gap-2">
         {([
-          { key: "sales", label: "Satışlar", Icon: Receipt },
-          { key: "buyers", label: "Alıcılar", Icon: Users },
+          { key: "sales", label: t("app.sales.tabSales"), Icon: Receipt },
+          { key: "buyers", label: t("app.sales.tabBuyers"), Icon: Users },
         ] as const).map((s) => (
           <button
             key={s.key}
@@ -400,25 +407,25 @@ function SalesInner() {
         <>
           {/* filters */}
           <div className="grid gap-3 sm:grid-cols-3">
-            <FormField label="Mövsüm">
+            <FormField label={t("app.sales.filterSeason")}>
               <select className="input" value={season} onChange={(e) => setSeason(e.target.value)}>
-                <option value="">Hamısı</option>
+                <option value="">{t("app.sales.filterAll")}</option>
                 {seasonOptions.map((y) => (
                   <option key={y} value={String(y)}>{y}</option>
                 ))}
               </select>
             </FormField>
-            <FormField label="Alıcı">
+            <FormField label={t("app.sales.buyer")}>
               <select className="input" value={buyerFilter} onChange={(e) => setBuyerFilter(e.target.value)}>
-                <option value="">Hamısı</option>
+                <option value="">{t("app.sales.filterAll")}</option>
                 {buyers.map((b) => (
                   <option key={b.id} value={b.id}>{b.name}</option>
                 ))}
               </select>
             </FormField>
-            <FormField label="Sahə">
+            <FormField label={t("app.sales.field")}>
               <select className="input" value={fieldFilter} onChange={(e) => setFieldFilter(e.target.value)}>
-                <option value="">Hamısı</option>
+                <option value="">{t("app.sales.filterAll")}</option>
                 {fieldList.map((f) => (
                   <option key={f.id} value={f.id}>{f.name}</option>
                 ))}
@@ -430,21 +437,21 @@ function SalesInner() {
           {summary && (
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="card">
-                <div className="text-xs text-slate-500">Ümumi satış gəliri</div>
+                <div className="text-xs text-slate-500">{t("app.sales.totalRevenue")}</div>
                 <div className="mt-1 text-2xl font-bold text-emerald-700">{money(summary.totals.revenue)}</div>
-                <div className="mt-1 text-xs text-slate-500">{summary.totals.count} satış qeydi</div>
+                <div className="mt-1 text-xs text-slate-500">{summary.totals.count} {t("app.sales.salesRecordsSuffix")}</div>
               </div>
               <div className="card">
-                <div className="text-xs text-slate-500">Satılan miqdar</div>
+                <div className="text-xs text-slate-500">{t("app.sales.soldQuantity")}</div>
                 <div className="mt-1 text-2xl font-bold text-slate-800">
                   {Math.round(summary.totals.quantity).toLocaleString("az")}
                 </div>
-                <div className="mt-1 text-xs text-slate-500">ölçü vahidi qeydə görə</div>
+                <div className="mt-1 text-xs text-slate-500">{t("app.sales.unitPerRecord")}</div>
               </div>
               <div className={`card ${summary.outstanding.amount > 0 ? "border-amber-300 bg-amber-50/40" : ""}`}>
-                <div className="text-xs text-slate-500">Gözləyən ödəniş</div>
+                <div className="text-xs text-slate-500">{t("app.sales.outstandingPayment")}</div>
                 <div className="mt-1 text-2xl font-bold text-amber-700">{money(summary.outstanding.amount)}</div>
-                <div className="mt-1 text-xs text-slate-500">{summary.outstanding.count} qeyd</div>
+                <div className="mt-1 text-xs text-slate-500">{summary.outstanding.count} {t("app.sales.recordsSuffix")}</div>
               </div>
             </div>
           )}
@@ -452,12 +459,12 @@ function SalesInner() {
           {/* create */}
           {!showSaleForm ? (
             <button type="button" className="btn-primary" onClick={() => setShowSaleForm(true)}>
-              <Plus className="h-4 w-4" /> Yeni satış
+              <Plus className="h-4 w-4" /> {t("app.sales.newSale")}
             </button>
           ) : (
             <form onSubmit={submitSale} className="card space-y-3">
               <div className="flex items-center justify-between">
-                <h2 className="font-semibold text-slate-800">Yeni satış</h2>
+                <h2 className="font-semibold text-slate-800">{t("app.sales.newSale")}</h2>
                 <button
                   type="button"
                   className="btn-ghost"
@@ -470,18 +477,18 @@ function SalesInner() {
                 </button>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
-                <FormField label="Satış tarixi" required>
+                <FormField label={t("app.sales.saleDate")} required>
                   <input className="input" type="date" required value={soldOn} onChange={(e) => setSoldOn(e.target.value)} />
                 </FormField>
-                <FormField label="Alıcı">
+                <FormField label={t("app.sales.buyer")}>
                   <select className="input" value={sBuyer} onChange={(e) => setSBuyer(e.target.value)}>
-                    <option value="">Seçilməyib</option>
+                    <option value="">{t("app.sales.notSelected")}</option>
                     {buyers.map((b) => (
                       <option key={b.id} value={b.id}>{b.name}</option>
                     ))}
                   </select>
                 </FormField>
-                <FormField label="Sahə">
+                <FormField label={t("app.sales.field")}>
                   <select
                     className="input"
                     value={sField}
@@ -490,13 +497,13 @@ function SalesInner() {
                       setSLot("");
                     }}
                   >
-                    <option value="">Seçilməyib</option>
+                    <option value="">{t("app.sales.notSelected")}</option>
                     {fieldList.map((f) => (
                       <option key={f.id} value={f.id}>{f.name}</option>
                     ))}
                   </select>
                 </FormField>
-                <FormField label="Yığım partiyası (izləmə kodu)">
+                <FormField label={t("app.sales.harvestLot")}>
                   <select
                     className="input"
                     value={sLot}
@@ -514,7 +521,7 @@ function SalesInner() {
                       }
                     }}
                   >
-                    <option value="">Seçilməyib</option>
+                    <option value="">{t("app.sales.notSelected")}</option>
                     {lotOptions.map((l) => (
                       <option key={l.id} value={l.id}>
                         {l.trace_code} · {l.harvested_on} · {qty(l.quantity, l.unit)}
@@ -522,39 +529,39 @@ function SalesInner() {
                     ))}
                   </select>
                 </FormField>
-                <FormField label="Miqdar">
+                <FormField label={t("app.sales.quantity")}>
                   <input className="input" type="number" step="any" min="0" value={sQty} onChange={(e) => setSQty(e.target.value)} />
                 </FormField>
-                <FormField label="Ölçü vahidi">
+                <FormField label={t("app.sales.unit")}>
                   <select className="input" value={sUnit} onChange={(e) => setSUnit(e.target.value)}>
                     {UNITS.map((u) => (
                       <option key={u} value={u}>{u}</option>
                     ))}
                   </select>
                 </FormField>
-                <FormField label="Qiymət (vahid üçün, ₼)">
+                <FormField label={t("app.sales.priceLabel")}>
                   <input className="input" type="number" step="any" min="0" value={sPrice} onChange={(e) => setSPrice(e.target.value)} />
                 </FormField>
-                <FormField label="Ödəniş">
+                <FormField label={t("app.sales.payment")}>
                   <select className="input" value={sPayment} onChange={(e) => setSPayment(e.target.value)}>
                     {PAYMENTS.map((p) => (
-                      <option key={p.value} value={p.value}>{p.label}</option>
+                      <option key={p.value} value={p.value}>{t(p.labelKey)}</option>
                     ))}
                   </select>
                 </FormField>
-                <FormField label="Qaimə / faktura №">
+                <FormField label={t("app.sales.invoiceNo")}>
                   <input className="input" value={sInvoice} onChange={(e) => setSInvoice(e.target.value)} />
                 </FormField>
               </div>
-              <FormField label="Qeyd">
+              <FormField label={t("app.sales.note")}>
                 <textarea className="input h-20" value={sNotes} onChange={(e) => setSNotes(e.target.value)} />
               </FormField>
               <p className="text-xs text-slate-500">
-                Məbləğ avtomatik hesablanır: miqdar × qiymət.
-                {sQty && sPrice ? ` Təxmini: ${money(Number(sQty) * Number(sPrice))}` : ""}
+                {t("app.sales.amountAutoCalc")}
+                {sQty && sPrice ? ` ${t("app.sales.estimatePrefix")} ${money(Number(sQty) * Number(sPrice))}` : ""}
               </p>
               <button className="btn-primary" type="submit" disabled={busy}>
-                <Plus className="h-4 w-4" /> {busy ? "Yadda saxlanılır…" : "Satışı yaz"}
+                <Plus className="h-4 w-4" /> {busy ? t("app.sales.saving") : t("app.sales.submitSale")}
               </button>
             </form>
           )}
@@ -566,9 +573,9 @@ function SalesInner() {
             <div className="space-y-4">
               <EmptyState
                 icon={Receipt}
-                title="Hələ satış qeydi yoxdur"
-                body="Kimə, nə qədər və hansı qiymətə satdığınızı yazın. Ümumi gəlir, gözləyən ödəniş və alıcı üzrə bölgü avtomatik hesablanacaq — kimin borcu qaldığını da görəcəksiniz."
-                action={showSaleForm ? undefined : { label: "Yeni satış", onClick: () => setShowSaleForm(true), icon: Plus }}
+                title={t("app.sales.emptySalesTitle")}
+                body={t("app.sales.emptySalesBody")}
+                action={showSaleForm ? undefined : { label: t("app.sales.newSale"), onClick: () => setShowSaleForm(true), icon: Plus }}
               />
               <SupportCard />
             </div>
@@ -577,13 +584,13 @@ function SalesInner() {
               <table className="w-full min-w-[720px] text-sm">
                 <thead>
                   <tr className="text-xs uppercase tracking-wide text-slate-400">
-                    <th className="py-2 text-left font-semibold">Satış tarixi</th>
-                    <th className="py-2 text-left font-semibold">Sahə</th>
-                    <th className="py-2 text-left font-semibold">Alıcı</th>
-                    <th className="py-2 text-right font-semibold">Miqdar</th>
-                    <th className="py-2 text-right font-semibold">Qiymət</th>
-                    <th className="py-2 text-right font-semibold">Məbləğ</th>
-                    <th className="py-2 text-left font-semibold">Ödəniş</th>
+                    <th className="py-2 text-left font-semibold">{t("app.sales.saleDate")}</th>
+                    <th className="py-2 text-left font-semibold">{t("app.sales.field")}</th>
+                    <th className="py-2 text-left font-semibold">{t("app.sales.buyer")}</th>
+                    <th className="py-2 text-right font-semibold">{t("app.sales.quantity")}</th>
+                    <th className="py-2 text-right font-semibold">{t("app.sales.priceCol")}</th>
+                    <th className="py-2 text-right font-semibold">{t("app.sales.amountCol")}</th>
+                    <th className="py-2 text-left font-semibold">{t("app.sales.payment")}</th>
                     <th className="py-2" />
                   </tr>
                 </thead>
@@ -607,14 +614,14 @@ function SalesInner() {
                         <td className="py-2.5 text-right font-semibold tabular-nums text-emerald-700">{money(s.revenue)}</td>
                         <td className="py-2.5">
                           <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs ${pay?.cls ?? "border-slate-200 bg-slate-50 text-slate-600"}`}>
-                            {pay?.label ?? s.payment_status}
+                            {pay ? t(pay.labelKey) : s.payment_status}
                           </span>
                         </td>
                         <td className="py-2.5 text-right">
                           <button
                             type="button"
                             className="btn-ghost min-h-11 text-red-600"
-                            aria-label="Satışı sil"
+                            aria-label={t("app.sales.deleteSaleAria")}
                             onClick={() => removeSale(s.id)}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -633,7 +640,7 @@ function SalesInner() {
             <div className="grid gap-3 sm:grid-cols-2">
               {summary.by_buyer.length > 0 && (
                 <div className="card">
-                  <h2 className="mb-3 text-lg font-semibold text-slate-800">Alıcı üzrə</h2>
+                  <h2 className="mb-3 text-lg font-semibold text-slate-800">{t("app.sales.byBuyer")}</h2>
                   <ul className="space-y-2">
                     {summary.by_buyer.map((b, i) => {
                       const pct = summary.totals.revenue > 0 ? Math.round((b.revenue / summary.totals.revenue) * 100) : 0;
@@ -654,7 +661,7 @@ function SalesInner() {
               )}
               {summary.by_crop.length > 0 && (
                 <div className="card">
-                  <h2 className="mb-3 text-lg font-semibold text-slate-800">Məhsul üzrə</h2>
+                  <h2 className="mb-3 text-lg font-semibold text-slate-800">{t("app.sales.byCrop")}</h2>
                   <ul className="space-y-2">
                     {summary.by_crop.map((c, i) => {
                       const pct = summary.totals.revenue > 0 ? Math.round((c.revenue / summary.totals.revenue) * 100) : 0;
@@ -679,45 +686,45 @@ function SalesInner() {
       ) : (
         <>
           <form onSubmit={submitBuyer} className="card space-y-3">
-            <h2 className="font-semibold text-slate-800">{bEditing ? "Alıcını redaktə et" : "Yeni alıcı"}</h2>
+            <h2 className="font-semibold text-slate-800">{bEditing ? t("app.sales.editBuyer") : t("app.sales.newBuyer")}</h2>
             <div className="grid gap-3 sm:grid-cols-2">
-              <FormField label="Ad" required>
-                <input className="input" required value={bName} onChange={(e) => setBName(e.target.value)} placeholder="Məsələn: Zaqatala Fındıq MMC" />
+              <FormField label={t("app.sales.name")} required>
+                <input className="input" required value={bName} onChange={(e) => setBName(e.target.value)} placeholder={t("app.sales.namePlaceholder")} />
               </FormField>
-              <FormField label="Növ">
+              <FormField label={t("app.sales.kind")}>
                 <select className="input" value={bKind} onChange={(e) => setBKind(e.target.value)}>
-                  <option value="">Seçilməyib</option>
+                  <option value="">{t("app.sales.notSelected")}</option>
                   {BUYER_KINDS.map((k) => (
-                    <option key={k.value} value={k.value}>{k.label}</option>
+                    <option key={k.value} value={k.value}>{t(k.labelKey)}</option>
                   ))}
                 </select>
               </FormField>
-              <FormField label="Əlaqədar şəxs">
+              <FormField label={t("app.sales.contactPerson")}>
                 <input className="input" value={bContact} onChange={(e) => setBContact(e.target.value)} />
               </FormField>
-              <FormField label="Telefon">
+              <FormField label={t("app.sales.phone")}>
                 <input className="input" type="tel" value={bPhone} onChange={(e) => setBPhone(e.target.value)} />
               </FormField>
-              <FormField label="Email">
+              <FormField label={t("app.sales.email")}>
                 <input className="input" type="email" value={bEmail} onChange={(e) => setBEmail(e.target.value)} />
               </FormField>
-              <FormField label="Rayon / bölgə">
+              <FormField label={t("app.sales.region")}>
                 <input className="input" value={bRegion} onChange={(e) => setBRegion(e.target.value)} />
               </FormField>
-              <FormField label="Ünvan">
+              <FormField label={t("app.sales.address")}>
                 <input className="input" value={bAddress} onChange={(e) => setBAddress(e.target.value)} />
               </FormField>
             </div>
-            <FormField label="Qeyd">
+            <FormField label={t("app.sales.note")}>
               <textarea className="input h-20" value={bNotes} onChange={(e) => setBNotes(e.target.value)} />
             </FormField>
             <div className="flex gap-2">
               <button className="btn-primary" type="submit" disabled={busy}>
-                <Plus className="h-4 w-4" /> {busy ? "Yadda saxlanılır…" : bEditing ? "Yadda saxla" : "Alıcı əlavə et"}
+                <Plus className="h-4 w-4" /> {busy ? t("app.sales.saving") : bEditing ? t("app.sales.save") : t("app.sales.addBuyer")}
               </button>
               {bEditing && (
                 <button type="button" className="btn-secondary" onClick={resetBuyerForm}>
-                  İmtina
+                  {t("app.sales.cancel")}
                 </button>
               )}
             </div>
@@ -726,8 +733,8 @@ function SalesInner() {
           {buyers.length === 0 ? (
             <EmptyState
               icon={Users}
-              title="Hələ alıcı yoxdur"
-              body="Məhsulu satdığınız alıcıları yuxarıdakı forma ilə əlavə edin. Sonra hər satışı alıcıya bağlaya, əlaqə və ödəniş tarixçəsini bir yerdə saxlaya bilərsiniz."
+              title={t("app.sales.emptyBuyersTitle")}
+              body={t("app.sales.emptyBuyersBody")}
             />
           ) : (
             <ul className="space-y-2">
@@ -736,17 +743,17 @@ function SalesInner() {
                   <div>
                     <p className="font-medium text-slate-900">{b.name}</p>
                     <p className="text-xs text-slate-500">
-                      {[BUYER_KINDS.find((k) => k.value === b.kind)?.label, b.contact_name, b.phone, b.region]
+                      {[kindLabel(b.kind), b.contact_name, b.phone, b.region]
                         .filter(Boolean)
-                        .join(" · ") || "Əlavə məlumat yoxdur"}
+                        .join(" · ") || t("app.sales.noExtraInfo")}
                     </p>
                     {b.notes && <p className="mt-1 text-sm text-slate-700">{b.notes}</p>}
                   </div>
                   <div className="flex shrink-0 gap-1">
-                    <button type="button" className="btn-ghost min-h-11" aria-label="Redaktə et" onClick={() => editBuyer(b)}>
+                    <button type="button" className="btn-ghost min-h-11" aria-label={t("app.sales.editAria")} onClick={() => editBuyer(b)}>
                       <Pencil className="h-4 w-4" />
                     </button>
-                    <button type="button" className="btn-ghost min-h-11 text-red-600" aria-label="Sil" onClick={() => removeBuyer(b.id)}>
+                    <button type="button" className="btn-ghost min-h-11 text-red-600" aria-label={t("app.sales.deleteAria")} onClick={() => removeBuyer(b.id)}>
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>

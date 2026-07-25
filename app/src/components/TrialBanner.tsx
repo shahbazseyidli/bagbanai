@@ -17,6 +17,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Gift, Clock, ArrowRight, X } from "lucide-react";
 import { api } from "@/lib/api";
+import { t } from "@/lib/i18n";
 
 type TrialInfo = {
   active?: boolean;
@@ -90,12 +91,12 @@ export default function TrialBanner({ orgId }: { orgId: string }) {
   const daysLeft = Math.max(0, Math.round(trial.days_left ?? 0));
   const title = isActive
     ? daysLeft <= 1
-      ? "Pro sınağı: son gün"
-      : `Pro sınağı: ${daysLeft} gün qalıb`
-    : "Sınaq bitdi — pulsuz rejimdəsiniz";
+      ? t("app.trialBanner.titleLastDay")
+      : `${t("app.trialBanner.titleDaysLeftPre")}${daysLeft}${t("app.trialBanner.titleDaysLeftPost")}`
+    : t("app.trialBanner.titleExpired");
   const body = isActive
-    ? "Bütün Pro imkanları açıqdır — kart tələb olunmur."
-    : "Pro imkanlarını geri qaytarmaq üçün paket seçin. Peyk xəritəsi və hava pulsuz qalır.";
+    ? t("app.trialBanner.bodyActive")
+    : t("app.trialBanner.bodyExpired");
 
   return (
     <div
@@ -126,14 +127,14 @@ export default function TrialBanner({ orgId }: { orgId: string }) {
             : "bg-emerald-600 text-white hover:bg-brand-dark"
         }`}
       >
-        {isActive ? "Paketlər" : "Paket seç"}
+        {isActive ? t("app.trialBanner.ctaPackages") : t("app.trialBanner.ctaChoosePackage")}
         <ArrowRight className="h-4 w-4" aria-hidden="true" />
       </Link>
 
       <button
         type="button"
         onClick={close}
-        aria-label="Bağla"
+        aria-label={t("app.trialBanner.close")}
         className="-mr-1 shrink-0 rounded-lg p-2 text-ink-soft hover:text-ink"
       >
         <X className="h-4 w-4" aria-hidden="true" />

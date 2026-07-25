@@ -15,6 +15,7 @@ import {
   Wrench,
 } from "lucide-react";
 import { api, azError } from "@/lib/api";
+import { t, type I18nKey } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { ErrorNote, Field as FormField, Spinner } from "@/components/ui";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -66,33 +67,34 @@ interface DueResp {
   notified: number;
 }
 
-const KINDS = [
-  { value: "tractor", label: "Traktor" },
-  { value: "sprayer", label: "Çiləyici" },
-  { value: "harvester", label: "Kombayn" },
-  { value: "pump", label: "Nasos" },
-  { value: "other", label: "Digər" },
+const KINDS: { value: string; labelKey: I18nKey }[] = [
+  { value: "tractor", labelKey: "app.equipment.kindTractor" },
+  { value: "sprayer", labelKey: "app.equipment.kindSprayer" },
+  { value: "harvester", labelKey: "app.equipment.kindHarvester" },
+  { value: "pump", labelKey: "app.equipment.kindPump" },
+  { value: "other", labelKey: "app.equipment.optOther" },
 ];
 
-const STATUSES = [
-  { value: "active", label: "Aktiv" },
-  { value: "service", label: "Servisdə" },
-  { value: "retired", label: "İstifadədən çıxıb" },
+const STATUSES: { value: string; labelKey: I18nKey }[] = [
+  { value: "active", labelKey: "app.equipment.statusActive" },
+  { value: "service", labelKey: "app.equipment.statusService" },
+  { value: "retired", labelKey: "app.equipment.statusRetired" },
 ];
 
-const SERVICE_TYPES = [
-  { value: "oil", label: "Yağ dəyişimi" },
-  { value: "filter", label: "Filtr dəyişimi" },
-  { value: "tyres", label: "Təkərlər" },
-  { value: "inspection", label: "Texniki baxış" },
-  { value: "other", label: "Digər" },
+const SERVICE_TYPES: { value: string; labelKey: I18nKey }[] = [
+  { value: "oil", labelKey: "app.equipment.svcOil" },
+  { value: "filter", labelKey: "app.equipment.svcFilter" },
+  { value: "tyres", labelKey: "app.equipment.svcTyres" },
+  { value: "inspection", labelKey: "app.equipment.svcInspection" },
+  { value: "other", labelKey: "app.equipment.optOther" },
 ];
 
 const DUE_DAYS = 30;
 
-function label(list: { value: string; label: string }[], value: string | null): string {
+function label(list: { value: string; labelKey: I18nKey }[], value: string | null): string {
   if (!value) return "—";
-  return list.find((o) => o.value === value)?.label ?? value;
+  const found = list.find((o) => o.value === value);
+  return found ? t(found.labelKey) : value;
 }
 
 function fmtDate(iso: string | null): string {
@@ -116,12 +118,12 @@ function StatusPill({ status }: { status: string }) {
 }
 
 function DuePill({ s }: { s: Service }) {
-  if (!s.next_due_on) return <span className="text-xs text-slate-400">Plan yoxdur</span>;
+  if (!s.next_due_on) return <span className="text-xs text-slate-400">{t("app.equipment.noPlan")}</span>;
   if (s.overdue) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700">
         <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
-        Gecikib · {Math.abs(s.days_left ?? 0)} gün
+        {t("app.equipment.overdueLabel")} · {Math.abs(s.days_left ?? 0)} {t("app.equipment.days")}
       </span>
     );
   }
@@ -133,7 +135,7 @@ function DuePill({ s }: { s: Service }) {
       }`}
     >
       <CalendarClock className="h-3.5 w-3.5" aria-hidden="true" />
-      {s.days_left} gün qalıb
+      {s.days_left} {t("app.equipment.daysLeft")}
     </span>
   );
 }
@@ -232,7 +234,7 @@ export default function EquipmentPage() {
 
   async function removeEquipment(id: string) {
     if (!orgId) return;
-    if (!window.confirm("Bu texnika silinsin? Servis qeydləri də silinəcək.")) return;
+    if (!window.confirm(t("app.equipment.confirmDelete"))) return;
     setError("");
     setBusy(true);
     try {
@@ -274,7 +276,7 @@ export default function EquipmentPage() {
     setBusy(true);
     try {
       await api.post(`/api/service/${serviceId}/done`, {});
-      setInfo("Servis qeyd olundu.");
+      setInfo(t("app.equipment.serviceMarkedDone"));
       await load(orgId);
     } catch (err) {
       setError(azError(err));
@@ -295,8 +297,8 @@ export default function EquipmentPage() {
       );
       setInfo(
         r.created > 0
-          ? `${r.created} servis tapşırığı yaradıldı — “İşlər” bölməsində görünəcək.`
-          : "Yeni tapşırıq yoxdur — bütün yaxın servislər artıq tapşırıqdadır.",
+          ? `${r.created}${t("app.equipment.tasksCreatedSuffix")}`
+          : t("app.equipment.noNewTasks"),
       );
       await load(orgId);
     } catch (err) {
@@ -309,7 +311,7 @@ export default function EquipmentPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-slate-900">Texnika</h1>
+        <h1 className="text-2xl font-bold text-slate-900">{t("app.equipment.title")}</h1>
         {orgs.length > 1 && (
           <select className="input max-w-xs" value={orgId} onChange={(e) => setOrgId(e.target.value)}>
             {orgs.map((o) => (
@@ -320,10 +322,7 @@ export default function EquipmentPage() {
           </select>
         )}
       </div>
-      <p className="text-sm text-slate-500">
-        Traktor, çiləyici və digər texnikanın reyestri, iş saatı və servis qrafiki. Vaxtı çatan servislər
-        tapşırığa çevrilə bilər.
-      </p>
+      <p className="text-sm text-slate-500">{t("app.equipment.subtitle")}</p>
 
       <ErrorNote message={error} />
       {info && (
@@ -340,15 +339,15 @@ export default function EquipmentPage() {
           {/* Summary + reminder actions */}
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="card">
-              <div className="text-xs text-slate-500">Texnika sayı</div>
+              <div className="text-xs text-slate-500">{t("app.equipment.equipmentCount")}</div>
               <div className="mt-1 text-2xl font-bold text-slate-900">{items.length}</div>
             </div>
             <div className="card">
-              <div className="text-xs text-slate-500">{DUE_DAYS} gün ərzində servis</div>
+              <div className="text-xs text-slate-500">{DUE_DAYS}{t("app.equipment.dueWithinSuffix")}</div>
               <div className="mt-1 text-2xl font-bold text-amber-600">{due?.items.length ?? 0}</div>
             </div>
             <div className={`card ${(due?.overdue ?? 0) > 0 ? "border-red-300 bg-red-50/40" : ""}`}>
-              <div className="text-xs text-slate-500">Gecikib</div>
+              <div className="text-xs text-slate-500">{t("app.equipment.overdueLabel")}</div>
               <div className="mt-1 text-2xl font-bold text-red-600">{due?.overdue ?? 0}</div>
             </div>
           </div>
@@ -360,7 +359,7 @@ export default function EquipmentPage() {
               onClick={() => setAddOpen((v) => !v)}
             >
               <Plus className="h-4 w-4" aria-hidden="true" />
-              Texnika əlavə et
+              {t("app.equipment.addEquipment")}
             </button>
             <button
               type="button"
@@ -369,41 +368,41 @@ export default function EquipmentPage() {
               disabled={busy || !due || due.items.length === 0}
             >
               <ClipboardList className="h-4 w-4" aria-hidden="true" />
-              Tapşırıq yarat
+              {t("app.equipment.createTasks")}
             </button>
           </div>
 
           {addOpen && (
             <form className="card space-y-3" onSubmit={addEquipment}>
-              <h2 className="text-lg font-semibold text-slate-800">Yeni texnika</h2>
+              <h2 className="text-lg font-semibold text-slate-800">{t("app.equipment.newEquipment")}</h2>
               <div className="grid gap-3 sm:grid-cols-2">
-                <FormField label="Ad" required>
+                <FormField label={t("app.equipment.fieldName")} required>
                   <input
                     className="input"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Məsələn: MTZ-892"
+                    placeholder={t("app.equipment.namePlaceholder")}
                     required
                   />
                 </FormField>
-                <FormField label="Növ">
+                <FormField label={t("app.equipment.fieldKind")}>
                   <select className="input" value={kind} onChange={(e) => setKind(e.target.value)}>
                     {KINDS.map((k) => (
                       <option key={k.value} value={k.value}>
-                        {k.label}
+                        {t(k.labelKey)}
                       </option>
                     ))}
                   </select>
                 </FormField>
-                <FormField label="Model">
+                <FormField label={t("app.equipment.fieldModel")}>
                   <input
                     className="input"
                     value={makeModel}
                     onChange={(e) => setMakeModel(e.target.value)}
-                    placeholder="Marka / model"
+                    placeholder={t("app.equipment.modelPlaceholder")}
                   />
                 </FormField>
-                <FormField label="İş saatı">
+                <FormField label={t("app.equipment.fieldHours")}>
                   <input
                     className="input"
                     type="number"
@@ -415,25 +414,25 @@ export default function EquipmentPage() {
                     placeholder="0"
                   />
                 </FormField>
-                <FormField label="Vəziyyət">
+                <FormField label={t("app.equipment.fieldStatus")}>
                   <select className="input" value={status} onChange={(e) => setStatus(e.target.value)}>
                     {STATUSES.map((s) => (
                       <option key={s.value} value={s.value}>
-                        {s.label}
+                        {t(s.labelKey)}
                       </option>
                     ))}
                   </select>
                 </FormField>
-                <FormField label="Qeyd">
+                <FormField label={t("app.equipment.fieldNote")}>
                   <input className="input" value={notes} onChange={(e) => setNotes(e.target.value)} />
                 </FormField>
               </div>
               <div className="flex gap-2">
                 <button type="submit" className="btn-primary min-h-11" disabled={busy || !name.trim()}>
-                  Yadda saxla
+                  {t("app.equipment.save")}
                 </button>
                 <button type="button" className="btn-secondary min-h-11" onClick={() => setAddOpen(false)}>
-                  İmtina
+                  {t("app.equipment.cancel")}
                 </button>
               </div>
             </form>
@@ -442,9 +441,9 @@ export default function EquipmentPage() {
           {items.length === 0 ? (
             <EmptyState
               icon={Tractor}
-              title="Hələ texnika yoxdur"
-              body="Traktor, çiləyici və digər texnikanı əlavə edin. İş saatını və servis qrafikini izləyin — vaxtı çatan servis avtomatik tapşırığa çevriləcək, texnika gözlənilmədən dayanmayacaq."
-              action={{ label: "Texnika əlavə et", onClick: () => setAddOpen(true), icon: Plus }}
+              title={t("app.equipment.emptyTitle")}
+              body={t("app.equipment.emptyBody")}
+              action={{ label: t("app.equipment.addEquipment"), onClick: () => setAddOpen(true), icon: Plus }}
             />
           ) : (
             <div className="space-y-3">
@@ -461,7 +460,7 @@ export default function EquipmentPage() {
                         <div className="mt-0.5 text-sm text-slate-500">
                           {label(KINDS, eq.kind)}
                           {eq.make_model ? ` · ${eq.make_model}` : ""}
-                          {eq.hours != null ? ` · İş saatı: ${Math.round(eq.hours)}` : ""}
+                          {eq.hours != null ? ` · ${t("app.equipment.fieldHours")}: ${Math.round(eq.hours)}` : ""}
                         </div>
                       </div>
                     </div>
@@ -469,7 +468,7 @@ export default function EquipmentPage() {
                       <StatusPill status={eq.status} />
                       <button
                         type="button"
-                        aria-label="Texnikanı sil"
+                        aria-label={t("app.equipment.deleteAria")}
                         className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600"
                         onClick={() => void removeEquipment(eq.id)}
                         disabled={busy}
@@ -483,10 +482,10 @@ export default function EquipmentPage() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
                       <Wrench className="h-3.5 w-3.5" aria-hidden="true" />
-                      Servis qrafiki
+                      {t("app.equipment.serviceSchedule")}
                     </div>
                     {eq.services.length === 0 ? (
-                      <p className="text-sm text-slate-500">Servis qrafiki yoxdur.</p>
+                      <p className="text-sm text-slate-500">{t("app.equipment.noServiceSchedule")}</p>
                     ) : (
                       <ul className="space-y-2">
                         {eq.services.map((s) => (
@@ -501,9 +500,9 @@ export default function EquipmentPage() {
                                 {label(SERVICE_TYPES, s.service_type)}
                               </div>
                               <div className="text-xs text-slate-500">
-                                Növbəti servis: {fmtDate(s.next_due_on)}
-                                {s.interval_days ? ` · hər ${s.interval_days} gün` : ""}
-                                {s.last_done_on ? ` · son: ${fmtDate(s.last_done_on)}` : ""}
+                                {t("app.equipment.colNextService")}: {fmtDate(s.next_due_on)}
+                                {s.interval_days ? ` · ${t("app.equipment.every")} ${s.interval_days} ${t("app.equipment.days")}` : ""}
+                                {s.last_done_on ? ` · ${t("app.equipment.lastDone")}: ${fmtDate(s.last_done_on)}` : ""}
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
@@ -514,7 +513,7 @@ export default function EquipmentPage() {
                                 onClick={() => void markDone(s.id)}
                                 disabled={busy}
                               >
-                                Servis edildi
+                                {t("app.equipment.markDone")}
                               </button>
                             </div>
                           </li>
@@ -524,16 +523,16 @@ export default function EquipmentPage() {
 
                     {svcFor === eq.id ? (
                       <form className="grid gap-3 rounded-lg border border-slate-200 p-3 sm:grid-cols-3" onSubmit={(e) => addService(e, eq.id)}>
-                        <FormField label="Servis növü">
+                        <FormField label={t("app.equipment.fieldServiceType")}>
                           <select className="input" value={svcType} onChange={(e) => setSvcType(e.target.value)}>
                             {SERVICE_TYPES.map((s) => (
                               <option key={s.value} value={s.value}>
-                                {s.label}
+                                {t(s.labelKey)}
                               </option>
                             ))}
                           </select>
                         </FormField>
-                        <FormField label="Interval (gün)">
+                        <FormField label={t("app.equipment.fieldInterval")}>
                           <input
                             className="input"
                             type="number"
@@ -544,7 +543,7 @@ export default function EquipmentPage() {
                             onChange={(e) => setSvcInterval(e.target.value)}
                           />
                         </FormField>
-                        <FormField label="Son servis tarixi">
+                        <FormField label={t("app.equipment.fieldLastServiceDate")}>
                           <input
                             className="input"
                             type="date"
@@ -554,14 +553,14 @@ export default function EquipmentPage() {
                         </FormField>
                         <div className="flex gap-2 sm:col-span-3">
                           <button type="submit" className="btn-primary min-h-11" disabled={busy}>
-                            Əlavə et
+                            {t("app.equipment.add")}
                           </button>
                           <button
                             type="button"
                             className="btn-secondary min-h-11"
                             onClick={() => setSvcFor(null)}
                           >
-                            İmtina
+                            {t("app.equipment.cancel")}
                           </button>
                         </div>
                       </form>
@@ -572,7 +571,7 @@ export default function EquipmentPage() {
                         onClick={() => setSvcFor(eq.id)}
                       >
                         <Plus className="h-4 w-4" aria-hidden="true" />
-                        Servis əlavə et
+                        {t("app.equipment.addService")}
                       </button>
                     )}
                   </div>
@@ -584,14 +583,14 @@ export default function EquipmentPage() {
           {/* Upcoming across the org */}
           {due && due.items.length > 0 && (
             <div className="card overflow-x-auto">
-              <h2 className="mb-3 text-lg font-semibold text-slate-800">Yaxın servislər ({DUE_DAYS} gün)</h2>
+              <h2 className="mb-3 text-lg font-semibold text-slate-800">{t("app.equipment.upcomingServices")} ({DUE_DAYS} {t("app.equipment.days")})</h2>
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-xs uppercase tracking-wide text-slate-400">
-                    <th className="py-2 text-left font-semibold">Texnika</th>
-                    <th className="py-2 text-left font-semibold">Servis</th>
-                    <th className="py-2 text-right font-semibold">Növbəti servis</th>
-                    <th className="py-2 text-right font-semibold">Vəziyyət</th>
+                    <th className="py-2 text-left font-semibold">{t("app.equipment.title")}</th>
+                    <th className="py-2 text-left font-semibold">{t("app.equipment.colService")}</th>
+                    <th className="py-2 text-right font-semibold">{t("app.equipment.colNextService")}</th>
+                    <th className="py-2 text-right font-semibold">{t("app.equipment.fieldStatus")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -602,9 +601,9 @@ export default function EquipmentPage() {
                       <td className="py-2.5 text-right tabular-nums text-slate-700">{fmtDate(d.next_due_on)}</td>
                       <td className="py-2.5 text-right">
                         {d.overdue ? (
-                          <span className="font-semibold text-red-600">Gecikib</span>
+                          <span className="font-semibold text-red-600">{t("app.equipment.overdueLabel")}</span>
                         ) : (
-                          <span className="text-slate-500">{d.days_left} gün</span>
+                          <span className="text-slate-500">{d.days_left} {t("app.equipment.days")}</span>
                         )}
                       </td>
                     </tr>

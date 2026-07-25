@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Send } from "lucide-react";
 import { api } from "@/lib/api";
 import { track, markDone } from "@/lib/track";
+import { t } from "@/lib/i18n";
 
 interface TgStatus {
   configured: boolean;
@@ -42,18 +43,18 @@ export default function TelegramConnect() {
     <div className="card">
       <div className="flex items-center gap-2">
         <Send className="h-4 w-4 text-sky-600" />
-        <h3 className="font-semibold text-slate-800">Telegram bildirişləri</h3>
+        <h3 className="font-semibold text-slate-800">{t("app.telegramConnect.heading")}</h3>
       </div>
       {s.connected ? (
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-          <span className="text-sm text-emerald-700">✓ Qoşulub — risk və hava alertləri Telegram-a gəlir.</span>
+          <span className="text-sm text-emerald-700">✓ {t("app.telegramConnect.connectedStatus")}</span>
           <label className="flex items-center gap-2 text-sm text-slate-600">
-            <input type="checkbox" checked={s.opt_in} onChange={toggle} className="accent-emerald-600" /> Aktiv
+            <input type="checkbox" checked={s.opt_in} onChange={toggle} className="accent-emerald-600" /> {t("app.telegramConnect.activeLabel")}
           </label>
         </div>
       ) : (
         <div className="mt-2">
-          <p className="text-sm text-slate-600">Sahə risk və hava xəbərdarlıqlarını birbaşa Telegram-da alın.</p>
+          <p className="text-sm text-slate-600">{t("app.telegramConnect.promptText")}</p>
           {s.connect_url && (
             <a
               href={s.connect_url}
@@ -62,7 +63,7 @@ export default function TelegramConnect() {
               onClick={() => setTimeout(load, 4000)}
               className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-sky-600 px-3 py-2 text-sm font-medium text-white hover:bg-sky-700"
             >
-              <Send className="h-4 w-4" /> Telegram-a qoşul
+              <Send className="h-4 w-4" /> {t("app.telegramConnect.connectButton")}
             </a>
           )}
         </div>

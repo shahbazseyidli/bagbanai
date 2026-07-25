@@ -13,6 +13,7 @@ import { Leaf, MapPin, Ruler, Satellite, CalendarDays, ArrowRight, Link2Off } fr
 import { api } from "@/lib/api";
 import { Spinner } from "@/components/ui";
 import { cropLabelOf } from "@/lib/insights";
+import { t } from "@/lib/i18n";
 import type { Polygon } from "@/lib/types";
 
 // MapLibre is heavy — keep it out of the first paint of a link opened on a village 3G phone.
@@ -89,7 +90,7 @@ export default function PublicSharePage() {
   if (loading) {
     return (
       <div className="mx-auto max-w-xl py-10">
-        <Spinner label="Sahə kartı yüklənir…" />
+        <Spinner label={t("app.s.loadingCard")} />
       </div>
     );
   }
@@ -101,17 +102,16 @@ export default function PublicSharePage() {
           <Link2Off className="h-6 w-6" aria-hidden="true" />
         </span>
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Keçid işləmir</h1>
+          <h1 className="text-xl font-bold text-slate-900">{t("app.s.linkBrokenTitle")}</h1>
           <p className="mx-auto mt-2 max-w-sm text-sm text-slate-600">
-            Bu paylaşım keçidi mövcud deyil, ləğv edilib və ya vaxtı bitib. Keçidi göndərən şəxsdən
-            yenisini istəyin.
+            {t("app.s.linkBrokenBody")}
           </p>
         </div>
         <Link
           href="/"
           className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-base font-bold text-white hover:bg-emerald-700"
         >
-          Agradex-ə keç <ArrowRight className="h-5 w-5" aria-hidden="true" />
+          {t("app.s.goToAgradex")} <ArrowRight className="h-5 w-5" aria-hidden="true" />
         </Link>
       </div>
     );
@@ -126,7 +126,7 @@ export default function PublicSharePage() {
       {/* Header */}
       <header className="space-y-2">
         <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-emerald-700">
-          <Satellite className="h-3.5 w-3.5" aria-hidden="true" /> Peyk ilə sahə kartı
+          <Satellite className="h-3.5 w-3.5" aria-hidden="true" /> {t("app.s.satelliteFieldCard")}
         </p>
         <h1 className="text-2xl font-bold leading-tight text-slate-900">{card.field.name}</h1>
         <div className="flex flex-wrap gap-2">
@@ -157,7 +157,7 @@ export default function PublicSharePage() {
           <div>
             <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
               <span className={`h-2.5 w-2.5 rounded-full ${ui.dot}`} aria-hidden="true" />
-              Bitki sağlamlığı (NDVI)
+              {t("app.s.plantHealthNdvi")}
             </p>
             <p className={`mt-1 text-2xl font-bold ${ui.text}`}>
               {card.index.value != null ? card.index.value.toFixed(2) : "—"}
@@ -168,17 +168,17 @@ export default function PublicSharePage() {
           </div>
         </div>
         <p className="mt-2 text-sm text-slate-700">
-          {card.index.text ?? "Bu sahə üçün hələ peyk ölçüsü yoxdur — yeni səhnə düşəndə görünəcək."}
+          {card.index.text ?? t("app.s.noSatelliteYet")}
         </p>
         {card.index.date && (
-          <p className="mt-1 text-xs text-slate-500">Ən son peyk səhnəsi: {fmtDate(card.index.date)}</p>
+          <p className="mt-1 text-xs text-slate-500">{t("app.s.latestSceneLabel")}{fmtDate(card.index.date)}</p>
         )}
       </section>
 
       {/* Map + NDVI overlay */}
       <section className="card space-y-3">
         <p className="flex items-center gap-1.5 text-sm font-semibold text-slate-800">
-          <MapPin className="h-4 w-4 text-emerald-600" aria-hidden="true" /> Sahənin sərhədi
+          <MapPin className="h-4 w-4 text-emerald-600" aria-hidden="true" /> {t("app.s.fieldBoundary")}
         </p>
         {card.field.geometry ? (
           <>
@@ -195,38 +195,37 @@ export default function PublicSharePage() {
                   aria-hidden="true"
                 />
                 <div className="mt-1 flex justify-between text-[11px] font-medium text-slate-500">
-                  <span>Zəif</span>
-                  <span>Orta</span>
-                  <span>Sağlam</span>
+                  <span>{t("app.s.legendWeak")}</span>
+                  <span>{t("app.s.legendMedium")}</span>
+                  <span>{t("app.s.legendHealthy")}</span>
                 </div>
                 <p className="mt-1 text-[11px] text-slate-400">
-                  Rəngli təbəqə {fmtDate(card.raster.date)} tarixli peyk şəklindən hesablanıb.
+                  {t("app.s.rasterCaptionPre")}{fmtDate(card.raster.date)}{t("app.s.rasterCaptionPost")}
                 </p>
               </div>
             )}
           </>
         ) : (
           <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
-            Sahə sərhədi mövcud deyil.
+            {t("app.s.noBoundary")}
           </div>
         )}
       </section>
 
       {/* Branded footer + CTA */}
       <footer className="rounded-2xl border-[1.5px] border-emerald-200 bg-emerald-50 p-4 text-center">
-        <p className="text-sm font-bold text-emerald-900">Agradex — peyk ilə əkin monitorinqi</p>
+        <p className="text-sm font-bold text-emerald-900">{t("app.s.footerBrandTagline")}</p>
         <p className="mx-auto mt-1 max-w-sm text-sm text-emerald-800">
-          Öz sahənizin sağlamlığını, nəmliyini və inkişafını pulsuz izləyin.
+          {t("app.s.footerSubtext")}
         </p>
         <Link
           href="/signup"
           className="mt-3 inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 text-base font-bold text-white hover:bg-emerald-700"
         >
-          Öz sahəni yoxla <ArrowRight className="h-5 w-5" aria-hidden="true" />
+          {t("app.s.checkYourField")} <ArrowRight className="h-5 w-5" aria-hidden="true" />
         </Link>
         <p className="mt-3 text-[11px] text-emerald-800/70">
-          Bu kart yalnız oxunuş üçündür. Məlumat NASA HLS / Sentinel-2 peyk şəkillərindən
-          hesablanır və məsləhət xarakteri daşıyır.
+          {t("app.s.readOnlyDisclaimer")}
         </p>
       </footer>
     </div>

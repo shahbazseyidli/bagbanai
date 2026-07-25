@@ -24,6 +24,7 @@ import { useAuth } from "@/lib/auth";
 import { ErrorNote, Field as FormField, Spinner } from "@/components/ui";
 import { EmptyState } from "@/components/ui/EmptyState";
 import type { Org } from "@/lib/types";
+import { t, type I18nKey } from "@/lib/i18n";
 
 interface PlaceProps {
   id: string;
@@ -54,13 +55,14 @@ interface PlaceCollection {
   features: PlaceFeature[];
 }
 
-const KINDS: { value: string; label: string; Icon: typeof MapPin; tone: string }[] = [
-  { value: "building", label: "Tikili", Icon: Building2, tone: "text-slate-600" },
-  { value: "water", label: "Su xətti", Icon: Droplets, tone: "text-sky-600" },
-  { value: "storage", label: "Anbar", Icon: Warehouse, tone: "text-amber-600" },
-  { value: "hazard", label: "Təhlükə", Icon: AlertTriangle, tone: "text-red-600" },
-  { value: "road", label: "Yol", Icon: Route, tone: "text-slate-500" },
-  { value: "other", label: "Digər", Icon: MapPin, tone: "text-emerald-600" },
+// labelKey resolved via t() at render time (module-level t() would freeze the locale to az).
+const KINDS: { value: string; labelKey: I18nKey; Icon: typeof MapPin; tone: string }[] = [
+  { value: "building", labelKey: "app.places.kindBuilding", Icon: Building2, tone: "text-slate-600" },
+  { value: "water", labelKey: "app.places.kindWater", Icon: Droplets, tone: "text-sky-600" },
+  { value: "storage", labelKey: "app.places.kindStorage", Icon: Warehouse, tone: "text-amber-600" },
+  { value: "hazard", labelKey: "app.places.kindHazard", Icon: AlertTriangle, tone: "text-red-600" },
+  { value: "road", labelKey: "app.places.kindRoad", Icon: Route, tone: "text-slate-500" },
+  { value: "other", labelKey: "app.places.kindOther", Icon: MapPin, tone: "text-emerald-600" },
 ];
 
 /** First [lon, lat] pair of any Point / LineString / Polygon — enough to show and re-centre. */
@@ -84,10 +86,11 @@ function firstCoord(geom: PlaceGeometry | null): [number, number] | null {
   return null;
 }
 
-const GEOM_AZ: Record<string, string> = {
-  Point: "Nöqtə",
-  LineString: "Xətt",
-  Polygon: "Sahə",
+// Geometry type (GeoJSON enum, do not translate) → i18n key resolved via t() at render time.
+const GEOM_AZ: Record<string, I18nKey> = {
+  Point: "app.places.geomPoint",
+  LineString: "app.places.geomLineString",
+  Polygon: "app.places.geomPolygon",
 };
 
 export default function PlacesPage() {
@@ -188,7 +191,7 @@ export default function PlacesPage() {
 
   function useMyLocation() {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setError("Cihaz məkanı dəstəkləmir.");
+      setError(t("app.places.geolocationUnsupported"));
       return;
     }
     navigator.geolocation.getCurrentPosition(
@@ -196,7 +199,7 @@ export default function PlacesPage() {
         setLat(pos.coords.latitude.toFixed(6));
         setLon(pos.coords.longitude.toFixed(6));
       },
-      () => setError("Məkan alınmadı — koordinatı əl ilə yazın."),
+      () => setError(t("app.places.locationFailed")),
       { enableHighAccuracy: true, timeout: 10000 },
     );
   }
@@ -209,7 +212,7 @@ export default function PlacesPage() {
     setError("");
     if (!orgId) return;
     if (!name.trim()) {
-      setError("Ad yazın.");
+      setError(t("app.places.errNameRequired"));
       return;
     }
     const la = Number(lat);
@@ -217,11 +220,11 @@ export default function PlacesPage() {
     const needCoords = !editingId || isPointEdit;
     if (needCoords) {
       if (!lat.trim() || !lon.trim() || !Number.isFinite(la) || !Number.isFinite(lo)) {
-        setError("Koordinatları yazın (enlik və uzunluq).");
+        setError(t("app.places.errCoordsRequired"));
         return;
       }
       if (la < -90 || la > 90 || lo < -180 || lo > 180) {
-        setError("Koordinat aralıqdan kənardır.");
+        setError(t("app.places.errCoordsRange"));
         return;
       }
     }
@@ -254,7 +257,7 @@ export default function PlacesPage() {
   }
 
   async function onDelete(f: PlaceFeature) {
-    if (typeof window !== "undefined" && !window.confirm(`"${f.properties.name}" silinsin?`)) return;
+    if (typeof window !== "undefined" && !window.confirm(`"${f.properties.name}" ${t("app.places.confirmDeleteSuffix")}`)) return;
     setError("");
     setBusy(true);
     try {
@@ -276,7 +279,7 @@ export default function PlacesPage() {
     // Defensive: a row saved before the kind list existed still shows up somewhere.
     {
       value: "__unknown",
-      label: "Təsnif edilməyib",
+      labelKey: "app.places.kindUnknown" as I18nKey,
       Icon: MapPin,
       tone: "text-slate-500",
       items: (places || []).filter((f) => !known.has(f.properties.kind)),
@@ -286,13 +289,13 @@ export default function PlacesPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-slate-900">Yerlər</h1>
+        <h1 className="text-2xl font-bold text-slate-900">{t("app.places.title")}</h1>
         {orgs.length > 1 && (
           <select
             className="input max-w-xs"
             value={orgId}
             onChange={(e) => setOrgId(e.target.value)}
-            aria-label="Təsərrüfat seçimi"
+            aria-label={t("app.places.orgSelectAria")}
           >
             {orgs.map((o) => (
               <option key={o.id} value={o.id}>
@@ -302,15 +305,12 @@ export default function PlacesPage() {
           </select>
         )}
       </div>
-      <p className="text-sm text-slate-500">
-        Sahə olmayan obyektlər: tikili, su xətti, anbar, təhlükə və yollar. Xəritədə göstərmək üçün
-        koordinatı yazın və ya cari məkanınızı götürün.
-      </p>
+      <p className="text-sm text-slate-500">{t("app.places.intro")}</p>
       <ErrorNote message={error} />
 
       {!open && (
         <button type="button" className="btn-primary" onClick={startAdd} disabled={!orgId}>
-          <Plus className="h-4 w-4" /> Yer əlavə et
+          <Plus className="h-4 w-4" /> {t("app.places.addPlace")}
         </button>
       )}
 
@@ -318,7 +318,7 @@ export default function PlacesPage() {
         <form onSubmit={onSubmit} className="card space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-slate-800">
-              {editingId ? "Yeri redaktə et" : "Yeni yer"}
+              {editingId ? t("app.places.formEditTitle") : t("app.places.formNewTitle")}
             </h2>
             <button
               type="button"
@@ -327,26 +327,26 @@ export default function PlacesPage() {
                 resetForm();
                 setOpen(false);
               }}
-              aria-label="Bağla"
+              aria-label={t("app.places.closeAria")}
             >
               <X className="h-5 w-5" />
             </button>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <FormField label="Ad" required>
+            <FormField label={t("app.places.labelName")} required>
               <input
                 className="input"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Məsələn: Su nasosu"
+                placeholder={t("app.places.namePlaceholder")}
               />
             </FormField>
-            <FormField label="Növ" required>
+            <FormField label={t("app.places.labelKind")} required>
               <select className="input" value={kind} onChange={(e) => setKind(e.target.value)}>
                 {KINDS.map((k) => (
                   <option key={k.value} value={k.value}>
-                    {k.label}
+                    {t(k.labelKey)}
                   </option>
                 ))}
               </select>
@@ -356,7 +356,7 @@ export default function PlacesPage() {
           {isPointEdit ? (
             <>
               <div className="grid gap-3 sm:grid-cols-2">
-                <FormField label="Enlik (lat)" required>
+                <FormField label={t("app.places.labelLat")} required>
                   <input
                     className="input"
                     inputMode="decimal"
@@ -365,7 +365,7 @@ export default function PlacesPage() {
                     placeholder="40.409200"
                   />
                 </FormField>
-                <FormField label="Uzunluq (lon)" required>
+                <FormField label={t("app.places.labelLon")} required>
                   <input
                     className="input"
                     inputMode="decimal"
@@ -376,29 +376,36 @@ export default function PlacesPage() {
                 </FormField>
               </div>
               <button type="button" className="btn-secondary" onClick={useMyLocation}>
-                <LocateFixed className="h-4 w-4" /> Cari məkanımı götür
+                <LocateFixed className="h-4 w-4" /> {t("app.places.useMyLocation")}
               </button>
             </>
           ) : (
             <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600">
-              Bu yerin həndəsəsi xəritədə çəkilib ({GEOM_AZ[editingGeom?.type || ""] || "həndəsə"}) —
-              burada yalnız ad, növ və qeyd dəyişir.
+              {t("app.places.geomDrawnPre")} (
+              {editingGeom && GEOM_AZ[editingGeom.type]
+                ? t(GEOM_AZ[editingGeom.type])
+                : t("app.places.geomFallback")}
+              ){t("app.places.geomDrawnPost")}
             </p>
           )}
 
-          <FormField label="Qeyd">
+          <FormField label={t("app.places.labelNotes")}>
             <textarea
               className="input"
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Əlavə məlumat"
+              placeholder={t("app.places.notesPlaceholder")}
             />
           </FormField>
 
           <div className="flex gap-2">
             <button type="submit" className="btn-primary" disabled={busy}>
-              {busy ? "Yaddaşa yazılır…" : editingId ? "Yadda saxla" : "Əlavə et"}
+              {busy
+                ? t("app.places.saving")
+                : editingId
+                  ? t("app.places.save")
+                  : t("app.places.add")}
             </button>
             <button
               type="button"
@@ -408,7 +415,7 @@ export default function PlacesPage() {
                 setOpen(false);
               }}
             >
-              Ləğv et
+              {t("app.places.cancel")}
             </button>
           </div>
         </form>
@@ -419,9 +426,9 @@ export default function PlacesPage() {
       ) : places.length === 0 ? (
         <EmptyState
           icon={MapPin}
-          title="Hələ yer əlavə edilməyib"
-          body="Sahə olmayan obyektləri xəritəyə əlavə edin: tikili, su xətti, anbar, təhlükə və yollar. Hamısı bir xəritədə görünsün — texnika və işçilər üçün istiqamət olsun."
-          action={orgId ? { label: "Yer əlavə et", onClick: startAdd, icon: Plus } : undefined}
+          title={t("app.places.emptyTitle")}
+          body={t("app.places.emptyBody")}
+          action={orgId ? { label: t("app.places.addPlace"), onClick: startAdd, icon: Plus } : undefined}
         />
       ) : (
         <div className="space-y-4">
@@ -429,7 +436,7 @@ export default function PlacesPage() {
             <div key={g.value} className="card">
               <div className="mb-3 flex items-center gap-2">
                 <g.Icon className={`h-5 w-5 ${g.tone}`} aria-hidden="true" />
-                <h2 className="text-lg font-semibold text-slate-800">{g.label}</h2>
+                <h2 className="text-lg font-semibold text-slate-800">{t(g.labelKey)}</h2>
                 <span className="text-sm text-slate-500">({g.items.length})</span>
               </div>
               <ul className="space-y-2">
@@ -446,7 +453,7 @@ export default function PlacesPage() {
                           {f.properties.name}
                         </p>
                         <p className="truncate text-sm text-slate-500">
-                          {GEOM_AZ[gt] || gt || "—"}
+                          {gt && GEOM_AZ[gt] ? t(GEOM_AZ[gt]) : gt || "—"}
                           {c ? ` · ${c[1].toFixed(5)}, ${c[0].toFixed(5)}` : ""}
                         </p>
                         {f.properties.notes && (
@@ -458,7 +465,7 @@ export default function PlacesPage() {
                           type="button"
                           className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
                           onClick={() => startEdit(f)}
-                          aria-label="Redaktə et"
+                          aria-label={t("app.places.editAria")}
                         >
                           <Pencil className="h-5 w-5" />
                         </button>
@@ -467,7 +474,7 @@ export default function PlacesPage() {
                           className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-red-500 hover:bg-red-50"
                           onClick={() => void onDelete(f)}
                           disabled={busy}
-                          aria-label="Sil"
+                          aria-label={t("app.places.deleteAria")}
                         >
                           <Trash2 className="h-5 w-5" />
                         </button>

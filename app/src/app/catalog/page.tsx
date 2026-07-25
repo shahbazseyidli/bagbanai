@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FlaskConical, Users, Package, Star, Search } from "lucide-react";
 import { api, azError } from "@/lib/api";
+import { t } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { ErrorNote } from "@/components/ui";
 import { ListSkeleton } from "@/components/Skeleton";
@@ -17,12 +18,12 @@ interface Provider {
 }
 
 const KINDS: { key: string; label: string; Icon: typeof Package }[] = [
-  { key: "", label: "Hamısı", Icon: Search },
-  { key: "lab", label: "Laboratoriya", Icon: FlaskConical },
-  { key: "consultant", label: "Aqronom", Icon: Users },
-  { key: "supplier", label: "Təchizatçı", Icon: Package },
+  { key: "", label: t("app.catalog.kindAll"), Icon: Search },
+  { key: "lab", label: t("app.catalog.kindLab"), Icon: FlaskConical },
+  { key: "consultant", label: t("app.catalog.kindConsultant"), Icon: Users },
+  { key: "supplier", label: t("app.catalog.kindSupplier"), Icon: Package },
 ];
-const KIND_LABEL: Record<string, string> = { lab: "Laboratoriya", consultant: "Aqronom", supplier: "Təchizatçı" };
+const KIND_LABEL: Record<string, string> = { lab: t("app.catalog.kindLab"), consultant: t("app.catalog.kindConsultant"), supplier: t("app.catalog.kindSupplier") };
 const KIND_COLOR: Record<string, string> = { lab: "#2f6ca8", consultant: "#7a5bd0", supplier: "#c07a1f" };
 
 export default function CatalogPage() {
@@ -56,8 +57,8 @@ export default function CatalogPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold text-slate-900">Kataloq</h1>
-      <p className="text-sm text-slate-500">Laboratoriya, aqronom və təchizatçıları tapın, birbaşa yazın.</p>
+      <h1 className="text-2xl font-bold text-slate-900">{t("app.catalog.title")}</h1>
+      <p className="text-sm text-slate-500">{t("app.catalog.subtitle")}</p>
       <div className="flex flex-wrap gap-2">
         {KINDS.map(({ key, label, Icon }) => (
           <button key={key} onClick={() => setKind(key)}
@@ -69,7 +70,7 @@ export default function CatalogPage() {
       </div>
       <ErrorNote message={error} />
       {list === null ? <ListSkeleton count={4} /> : list.length === 0 ? (
-        <div className="card text-center text-slate-600">Bu kateqoriyada hələ provayder yoxdur.</div>
+        <div className="card text-center text-slate-600">{t("app.catalog.empty")}</div>
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {list.map((p) => (
@@ -90,7 +91,7 @@ export default function CatalogPage() {
                   {p.region && <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-600">{p.region}</span>}
                 </div>
                 <div className="mt-3 flex gap-2">
-                  <button className="btn-primary" onClick={() => contact(p)}>Müraciət et</button>
+                  <button className="btn-primary" onClick={() => contact(p)}>{t("app.catalog.contact")}</button>
                 </div>
               </div>
             </div>

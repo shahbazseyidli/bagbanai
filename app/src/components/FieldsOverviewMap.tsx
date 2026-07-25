@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import maplibregl from "maplibre-gl";
 import { api } from "@/lib/api";
 import { BLANK_STYLE, applyBasemap, getSavedBasemap } from "@/lib/basemaps";
+import { t } from "@/lib/i18n";
 import type { Polygon } from "@/lib/types";
 
 export interface GeoField {
@@ -38,22 +39,32 @@ type StatusKey = "ready" | "partial" | "pending";
 // Score bands — deliberately deeper hues than the status palette below, so the two classifications
 // cannot be confused on the same map. Single source of truth for BOTH the paint and the legend.
 const BAND_COLOR: Record<Band, string> = { good: "#15803D", warn: "#B45309", bad: "#B91C1C" };
-const BAND_LABEL: Record<Band, string> = {
-  good: "70+ (yaxşı)",
-  warn: "45-69 (orta)",
-  bad: "45-dən aşağı (risk)",
-};
+// Labels resolved at render time so the active locale wins (a module-level t() would freeze the
+// default locale at import).
+function bandLabel(b: Band): string {
+  return t(
+    b === "good"
+      ? "app.fieldsOverviewMap.bandGood"
+      : b === "warn"
+        ? "app.fieldsOverviewMap.bandWarn"
+        : "app.fieldsOverviewMap.bandBad",
+  );
+}
 // Unchanged D4.3 processing-status palette — the fallback for fields that have no score yet.
 const STATUS_COLOR: Record<StatusKey, string> = {
   ready: "#10b981",
   partial: "#f59e0b",
   pending: "#94a3b8",
 };
-const STATUS_LABEL: Record<StatusKey, string> = {
-  ready: "hazır",
-  partial: "qismən",
-  pending: "gözləyir",
-};
+function statusLabel(s: StatusKey): string {
+  return t(
+    s === "ready"
+      ? "app.fieldsOverviewMap.statusReady"
+      : s === "partial"
+        ? "app.fieldsOverviewMap.statusPartial"
+        : "app.fieldsOverviewMap.statusPending",
+  );
+}
 
 const BAND_ORDER: Band[] = ["good", "warn", "bad"];
 const STATUS_ORDER: StatusKey[] = ["ready", "partial", "pending"];
@@ -290,7 +301,7 @@ export default function FieldsOverviewMap({
         <div className="pointer-events-none absolute bottom-2 left-2 z-10 max-w-[75%] rounded-lg border border-slate-200 bg-white/90 px-2.5 py-2 text-[11px] leading-tight text-slate-700 shadow-soft">
           {bandItems.length > 0 && (
             <>
-              <p className="font-bold text-slate-800">Sağlamlıq balı</p>
+              <p className="font-bold text-slate-800">{t("app.fieldsOverviewMap.legendScoreTitle")}</p>
               <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
                 {bandItems.map((b) => (
                   <span key={b} className="flex items-center gap-1.5">
@@ -299,7 +310,7 @@ export default function FieldsOverviewMap({
                       style={{ backgroundColor: BAND_COLOR[b] }}
                       aria-hidden="true"
                     />
-                    {BAND_LABEL[b]}
+                    {bandLabel(b)}
                   </span>
                 ))}
               </div>
@@ -308,7 +319,7 @@ export default function FieldsOverviewMap({
           {statusItems.length > 0 && (
             <>
               <p className={`font-bold text-slate-800 ${bandItems.length > 0 ? "mt-2" : ""}`}>
-                {bandItems.length > 0 ? "Balı olmayan sahələr" : "Peyk emalı"}
+                {bandItems.length > 0 ? t("app.fieldsOverviewMap.legendNoScore") : t("app.fieldsOverviewMap.legendSatProcessing")}
               </p>
               <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
                 {statusItems.map((s) => (
@@ -318,7 +329,7 @@ export default function FieldsOverviewMap({
                       style={{ backgroundColor: STATUS_COLOR[s] }}
                       aria-hidden="true"
                     />
-                    {STATUS_LABEL[s]}
+                    {statusLabel(s)}
                   </span>
                 ))}
               </div>

@@ -9,8 +9,17 @@ import { useAuth } from "@/lib/auth";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import DataSaverToggle from "@/components/DataSaverToggle";
 import EmailAlertsToggle from "@/components/EmailAlertsToggle";
+import { t } from "@/lib/i18n";
 
-const ROLE_AZ: Record<string, string> = { farmer: "Fermer", lab: "Laboratoriya", consultant: "Aqronom", supplier: "Təchizatçı" };
+// Role code → localized label. Resolved at render time (not module load) so the active locale applies.
+function roleLabel(role?: string): string {
+  switch (role) {
+    case "lab": return t("app.account.roleLab");
+    case "consultant": return t("app.account.roleConsultant");
+    case "supplier": return t("app.account.roleSupplier");
+    default: return t("app.account.roleFarmer");
+  }
+}
 
 function Card({ Icon, title, value, action }: { Icon: typeof Mail; title: string; value?: string; action?: React.ReactNode }) {
   return (
@@ -34,20 +43,20 @@ export default function AccountPage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl font-bold text-slate-900">Parametrlər</h1>
+      <h1 className="text-2xl font-bold text-slate-900">{t("app.account.title")}</h1>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <Card Icon={Mail} title="E-poçt" value={user?.email} />
-        <Card Icon={Lock} title="Parol" value="Hesabınızı qoruyun" action={<span className="text-xs font-semibold text-emerald-700">Dəyiş</span>} />
-        <Card Icon={Globe} title="Dil" action={<LanguageSwitcher />} />
-        <Card Icon={Ruler} title="Ölçü sistemi" value="Metrik (ha, mm, °C)" />
-        <Card Icon={MapPin} title="Ölkə & region" value={[user?.country, user?.region].filter(Boolean).join(" · ") || "Təyin olunmayıb"} />
-        <Card Icon={Download} title="Məlumatı endir" value="Sahə və sərhədlər" action={<span className="text-xs font-semibold text-emerald-700">Yüklə</span>} />
-        <Card Icon={UserCog} title="Rol" value={user?.role ? ROLE_AZ[user.role] : "Fermer"} />
+        <Card Icon={Mail} title={t("app.account.emailTitle")} value={user?.email} />
+        <Card Icon={Lock} title={t("app.account.passwordTitle")} value={t("app.account.passwordValue")} action={<span className="text-xs font-semibold text-emerald-700">{t("app.account.change")}</span>} />
+        <Card Icon={Globe} title={t("app.account.languageTitle")} action={<LanguageSwitcher />} />
+        <Card Icon={Ruler} title={t("app.account.unitsTitle")} value={t("app.account.unitsValue")} />
+        <Card Icon={MapPin} title={t("app.account.countryRegionTitle")} value={[user?.country, user?.region].filter(Boolean).join(" · ") || t("app.account.notSet")} />
+        <Card Icon={Download} title={t("app.account.downloadTitle")} value={t("app.account.downloadValue")} action={<span className="text-xs font-semibold text-emerald-700">{t("app.account.downloadCta")}</span>} />
+        <Card Icon={UserCog} title={t("app.account.roleTitle")} value={roleLabel(user?.role)} />
         {isProvider && (
           <Link href="/provider" className="rounded-xl border-[1.5px] border-emerald-300 bg-emerald-50 p-4 hover:border-emerald-500">
             <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700"><Store className="h-4 w-4" aria-hidden="true" /></span>
-            <h4 className="mt-3 text-sm font-semibold text-slate-900">Provayder profili</h4>
-            <p className="mt-0.5 text-xs text-slate-600">Kataloq və xidmətləri redaktə et →</p>
+            <h4 className="mt-3 text-sm font-semibold text-slate-900">{t("app.account.providerTitle")}</h4>
+            <p className="mt-0.5 text-xs text-slate-600">{t("app.account.providerBody")}</p>
           </Link>
         )}
       </div>
@@ -60,7 +69,7 @@ export default function AccountPage() {
       {user && (
         <button onClick={onLogout} className="flex min-h-12 w-full items-center gap-3 rounded-xl border-[1.5px] border-slate-300 bg-white px-4 py-3 text-left hover:border-red-300">
           <LogOut className="h-5 w-5 shrink-0 text-red-600" aria-hidden="true" />
-          <span className="text-base font-medium text-slate-900">Çıxış ({user.email})</span>
+          <span className="text-base font-medium text-slate-900">{t("app.account.logout")} ({user.email})</span>
         </button>
       )}
     </div>

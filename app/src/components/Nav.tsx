@@ -94,7 +94,7 @@ export default function Nav() {
             <button
               className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-700 hover:bg-emerald-50"
               onClick={() => setOpen((v) => !v)}
-              aria-label={open ? "Menyunu bağla" : "Menyu"}
+              aria-label={open ? t("app.nav.menuClose") : t("app.nav.menuOpen")}
               aria-expanded={open}
             >
               {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}

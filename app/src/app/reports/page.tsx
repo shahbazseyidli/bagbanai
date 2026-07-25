@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ClipboardList, Coins, Download, ExternalLink, FileText, Printer, RefreshCw } from "lucide-react";
 import { api, azError } from "@/lib/api";
+import { t, type I18nKey } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { ErrorNote, Field as FormField, Placeholder, Spinner } from "@/components/ui";
 import type { Org } from "@/lib/types";
@@ -50,27 +51,18 @@ interface LibraryRow {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "";
 
-const FALLBACK: Record<string, { title: string; description: string }> = {
-  season: {
-    title: "Mövsüm hesabatı",
-    description:
-      "Bir sahənin bir mövsümü: məhsul, peyk xülasəsi, əməliyyatlar və xərc, məhsuldarlıq, tapşırıqlar və son AI məsləhəti.",
-  },
-  journal: {
-    title: "Əməliyyat jurnalı",
-    description:
-      "Seçilmiş tarix aralığında sahədə baş verən hər şey bir xronoloji cədvəldə: əməliyyatlar, tapşırıqlar və skautinq.",
-  },
-  cost: {
-    title: "Xərc xülasəsi",
-    description: "Təsərrüfat üzrə xərc: sahə-sahə xərc/gəlir/mənfəət və kateqoriya üzrə bölgü.",
-  },
+// i18n keys for report titles/descriptions. t() is called at render time (see title()/description()
+// below) — NOT here — so the active locale is applied instead of being frozen at module-load time.
+const FALLBACK: Record<string, { title: I18nKey; description: I18nKey }> = {
+  season: { title: "app.reports.seasonTitle", description: "app.reports.seasonDesc" },
+  journal: { title: "app.reports.journalTitle", description: "app.reports.journalDesc" },
+  cost: { title: "app.reports.costTitle", description: "app.reports.costDesc" },
 };
 
-const TYPE_AZ: Record<string, string> = {
-  season: "Mövsüm hesabatı",
-  journal: "Əməliyyat jurnalı",
-  cost: "Xərc xülasəsi",
+const TYPE_KEY: Record<string, I18nKey> = {
+  season: "app.reports.seasonTitle",
+  journal: "app.reports.journalTitle",
+  cost: "app.reports.costTitle",
 };
 
 function isoDay(d: Date): string {
@@ -148,10 +140,10 @@ export default function ReportsPage() {
   }, [catalog]);
 
   function title(id: string): string {
-    return meta[id]?.title || FALLBACK[id].title;
+    return meta[id]?.title || t(FALLBACK[id].title);
   }
   function description(id: string): string {
-    return meta[id]?.description || FALLBACK[id].description;
+    return meta[id]?.description || t(FALLBACK[id].description);
   }
 
   const seasonUrl = (fmt: string) =>
@@ -168,13 +160,13 @@ export default function ReportsPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-slate-900">Hesabatlar</h1>
+        <h1 className="text-2xl font-bold text-slate-900">{t("app.reports.pageTitle")}</h1>
         {orgs.length > 1 && (
           <select
             className="input max-w-xs"
             value={orgId}
             onChange={(e) => setOrgId(e.target.value)}
-            aria-label="Təsərrüfat"
+            aria-label={t("app.reports.orgAriaLabel")}
           >
             {orgs.map((o) => (
               <option key={o.id} value={o.id}>
@@ -186,15 +178,15 @@ export default function ReportsPage() {
       </div>
 
       <p className="text-sm text-slate-500">
-        Hazır hesabatlar platformadakı qeydlərdən dərhal yaradılır. HTML variantını açıb brauzerin
-        <span className="font-medium text-slate-700"> “Çap et / PDF kimi saxla” </span>
-        düyməsi ilə PDF-ə çevirə, CSV variantını isə Excel-də aça bilərsiniz.
+        {t("app.reports.introPre")}
+        <span className="font-medium text-slate-700"> “{t("app.reports.printSave")}” </span>
+        {t("app.reports.introPost")}
       </p>
 
       <ErrorNote message={error} />
 
       {orgId && scope === null ? (
-        <Spinner label="Yüklənir…" />
+        <Spinner label={t("app.reports.loading")} />
       ) : (
         <div className="space-y-4">
           {/* ---------- Mövsüm hesabatı ---------- */}
@@ -203,22 +195,22 @@ export default function ReportsPage() {
             title={title("season")}
             description={description("season")}
             ready={hasField}
-            notReadyNote="Əvvəlcə sahə əlavə edin."
+            notReadyNote={t("app.reports.needField")}
             htmlHref={seasonUrl("html")}
             csvHref={seasonUrl("csv")}
           >
             <div className="grid gap-3 sm:grid-cols-2">
-              <FormField label="Sahə">
+              <FormField label={t("app.reports.field")}>
                 <select className="input" value={fieldId} onChange={(e) => setFieldId(e.target.value)}>
                   {(scope?.fields || []).map((f) => (
                     <option key={f.id} value={f.id}>
                       {f.name}
                     </option>
                   ))}
-                  {(scope?.fields || []).length === 0 && <option value="">Sahə yoxdur</option>}
+                  {(scope?.fields || []).length === 0 && <option value="">{t("app.reports.noField")}</option>}
                 </select>
               </FormField>
-              <FormField label="Mövsüm">
+              <FormField label={t("app.reports.season")}>
                 <select className="input" value={season} onChange={(e) => setSeason(e.target.value)}>
                   {seasons.map((y) => (
                     <option key={y} value={String(y)}>
@@ -236,22 +228,22 @@ export default function ReportsPage() {
             title={title("journal")}
             description={description("journal")}
             ready={hasField && periodOk}
-            notReadyNote={hasField ? "Tarix aralığı düzgün deyil." : "Əvvəlcə sahə əlavə edin."}
+            notReadyNote={hasField ? t("app.reports.badDateRange") : t("app.reports.needField")}
             htmlHref={journalUrl("html")}
             csvHref={journalUrl("csv")}
           >
             <div className="grid gap-3 sm:grid-cols-3">
-              <FormField label="Sahə">
+              <FormField label={t("app.reports.field")}>
                 <select className="input" value={fieldId} onChange={(e) => setFieldId(e.target.value)}>
                   {(scope?.fields || []).map((f) => (
                     <option key={f.id} value={f.id}>
                       {f.name}
                     </option>
                   ))}
-                  {(scope?.fields || []).length === 0 && <option value="">Sahə yoxdur</option>}
+                  {(scope?.fields || []).length === 0 && <option value="">{t("app.reports.noField")}</option>}
                 </select>
               </FormField>
-              <FormField label="Başlanğıc">
+              <FormField label={t("app.reports.dateFrom")}>
                 <input
                   type="date"
                   className="input"
@@ -260,7 +252,7 @@ export default function ReportsPage() {
                   onChange={(e) => setDateFrom(e.target.value)}
                 />
               </FormField>
-              <FormField label="Son">
+              <FormField label={t("app.reports.dateTo")}>
                 <input
                   type="date"
                   className="input"
@@ -278,12 +270,12 @@ export default function ReportsPage() {
             title={title("cost")}
             description={description("cost")}
             ready={Boolean(orgId)}
-            notReadyNote="Təsərrüfat seçin."
+            notReadyNote={t("app.reports.selectOrg")}
             htmlHref={costUrl("html")}
             csvHref={costUrl("csv")}
           >
             <div className="grid gap-3 sm:grid-cols-2">
-              <FormField label="Mövsüm">
+              <FormField label={t("app.reports.season")}>
                 <select className="input" value={season} onChange={(e) => setSeason(e.target.value)}>
                   {seasons.map((y) => (
                     <option key={y} value={String(y)}>
@@ -298,18 +290,18 @@ export default function ReportsPage() {
           {/* ---------- Son hazırlanan hesabatlar ---------- */}
           <div className="card">
             <div className="mb-3 flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold text-slate-800">Son hazırlanan hesabatlar</h2>
+              <h2 className="text-lg font-semibold text-slate-800">{t("app.reports.recentTitle")}</h2>
               <button
                 type="button"
                 onClick={() => orgId && loadLibrary(orgId)}
                 className="btn-secondary inline-flex min-h-11 items-center gap-2"
               >
                 <RefreshCw className="h-4 w-4" aria-hidden="true" />
-                Yenilə
+                {t("app.reports.refresh")}
               </button>
             </div>
             {library.length === 0 ? (
-              <Placeholder>Hələ hesabat yaradılmayıb. Yuxarıdan birini açın.</Placeholder>
+              <Placeholder>{t("app.reports.empty")}</Placeholder>
             ) : (
               <ul className="space-y-2">
                 {library.map((r) => (
@@ -320,7 +312,7 @@ export default function ReportsPage() {
                     <div className="min-w-0">
                       <div className="truncate text-sm font-medium text-slate-900">{r.title}</div>
                       <div className="text-xs text-slate-500">
-                        {TYPE_AZ[r.type] || r.type}
+                        {TYPE_KEY[r.type] ? t(TYPE_KEY[r.type]) : r.type}
                         {r.field_name ? ` · ${r.field_name}` : ""}
                         {r.generated_at ? ` · ${r.generated_at.slice(0, 16).replace("T", " ")}` : ""}
                       </div>
@@ -333,7 +325,7 @@ export default function ReportsPage() {
                         className="btn-secondary inline-flex min-h-11 items-center gap-2"
                       >
                         <ExternalLink className="h-4 w-4" aria-hidden="true" />
-                        Aç
+                        {t("app.reports.open")}
                       </a>
                     )}
                   </li>
@@ -390,25 +382,25 @@ function ReportCard({
               className="btn-primary inline-flex min-h-11 items-center gap-2"
             >
               <ExternalLink className="h-4 w-4" aria-hidden="true" />
-              HTML aç
+              {t("app.reports.openHtml")}
             </a>
             <a href={csvHref} download className="btn-secondary inline-flex min-h-11 items-center gap-2">
               <Download className="h-4 w-4" aria-hidden="true" />
-              CSV yüklə
+              {t("app.reports.downloadCsv")}
             </a>
           </>
         ) : (
           <>
             <span className="btn-primary pointer-events-none inline-flex min-h-11 items-center gap-2 opacity-50" aria-disabled="true">
               <ExternalLink className="h-4 w-4" aria-hidden="true" />
-              HTML aç
+              {t("app.reports.openHtml")}
             </span>
             <span className="text-sm text-slate-500">{notReadyNote}</span>
           </>
         )}
         <span className="inline-flex items-center gap-1 text-xs text-slate-400">
           <Printer className="h-3.5 w-3.5" aria-hidden="true" />
-          Çap et / PDF kimi saxla
+          {t("app.reports.printSave")}
         </span>
       </div>
     </div>

@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, MapPin, Plus } from "lucide-react";
 import { api, azError } from "@/lib/api";
+import { t } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { ErrorNote } from "@/components/ui";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -45,7 +46,7 @@ function bandOf(s: FieldScore): Tone {
 
 function ScoreChip({ s }: { s: FieldScore }) {
   const band = bandOf(s);
-  const tip = [s.headline, s.computed_on ? `Hesablanma: ${s.computed_on}` : null]
+  const tip = [s.headline, s.computed_on ? `${t("app.fieldsList.computedOnLabel")}${s.computed_on}` : null]
     .filter(Boolean)
     .join(" · ");
   return (
@@ -55,7 +56,7 @@ function ScoreChip({ s }: { s: FieldScore }) {
         s.stale ? "opacity-70" : ""
       }`}
     >
-      <span className="sr-only">Sağlamlıq balı: </span>
+      <span className="sr-only">{t("app.fieldsList.srScoreLabel")}</span>
       {s.score}
       <span className="text-[10px] font-normal opacity-70">/100</span>
     </span>
@@ -132,15 +133,15 @@ export default function FieldsListPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl font-bold text-teal">Sahələr</h1>
+          <h1 className="font-display text-2xl font-bold text-teal">{t("app.fieldsList.heading")}</h1>
           {fields.length > 0 && (
             <p className="mt-0.5 text-sm text-ink-soft">
-              {fields.length} sahə · {totalHa.toFixed(2)} ha
+              {fields.length}{t("app.fieldsList.fieldsCountSep")}{totalHa.toFixed(2)} ha
             </p>
           )}
         </div>
         <Link href="/onboarding" className="btn-primary">
-          <Plus className="h-4 w-4" /> Sahə əlavə et
+          <Plus className="h-4 w-4" /> {t("app.fieldsList.addField")}
         </Link>
       </div>
       <ErrorNote message={error} />
@@ -148,9 +149,9 @@ export default function FieldsListPage() {
       {fields.length === 0 ? (
         <EmptyState
           icon={MapPin}
-          title="Sahələrinizi əlavə edin"
-          body="Peyk monitorinqi, hava proqnozu və AI aqronom məsləhəti üçün ilk sahənizi xəritədə çəkin — bir neçə dəqiqə çəkir."
-          action={{ label: "Sahə əlavə et", href: "/onboarding", icon: Plus }}
+          title={t("app.fieldsList.emptyTitle")}
+          body={t("app.fieldsList.emptyBody")}
+          action={{ label: t("app.fieldsList.addField"), href: "/onboarding", icon: Plus }}
         >
           <SupportCard />
         </EmptyState>
@@ -177,7 +178,7 @@ export default function FieldsListPage() {
                         type="checkbox"
                         className="h-5 w-5 accent-emerald-600"
                         checked={selected.includes(f.id)}
-                        aria-label={`${f.name} seç`}
+                        aria-label={`${f.name}${t("app.fieldsList.selectFieldAria")}`}
                         onChange={(e) =>
                           setSelected((prev) =>
                             e.target.checked ? [...prev, f.id] : prev.filter((x) => x !== f.id),
