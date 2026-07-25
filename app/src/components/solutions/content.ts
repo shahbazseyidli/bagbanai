@@ -155,7 +155,7 @@ const farmer: Segment = {
   eyebrow: "fermerlər üçün",
   headline: "Tarlanı gör. Anla. Qazan.",
   lead:
-    "NASA HLS və Sentinel-2 peykləri, süni intellekt aqronom, su balansı və təsərrüfat dəftəri — hamısı bir telefonda, Azərbaycan dilində. Sahənizi qeyd etmək üçün xəritədə bir toxunuş kifayətdir: qalanını platforma edir. Problem hələ gözlə görünməzdən əvvəl xəritədə görünür, hər tövsiyə sadə dildə izah olunur, hər manat isə sahə-sahə hesablanır.",
+    "10 metr dəqiqlikli peyk görüntüsü, süni intellekt aqronom, su balansı və təsərrüfat dəftəri — hamısı bir telefonda, Azərbaycan dilində. Sahənizi qeyd etmək üçün xəritədə bir toxunuş kifayətdir: qalanını platforma edir. Problem hələ gözlə görünməzdən əvvəl xəritədə görünür, hər tövsiyə sadə dildə izah olunur, hər manat isə sahə-sahə hesablanır.",
   primaryCta: { label: "1 ay pulsuz başla", href: "/signup" },
   secondaryCta: { label: "Qiymətlərə bax", href: "/pricing" },
   visual: "field",
@@ -199,7 +199,7 @@ const farmer: Segment = {
   ],
   stats: [
     { value: "9+", label: "vegetasiya indeksi — NDVI, NDMI, NDRE, EVI, SAVI, NBR…" },
-    { value: "10 m", label: "Sentinel-2 piksel ölçüsü (NASA HLS 30 m ilə birlikdə)" },
+    { value: "10 m", label: "Peyk görüntüsünün piksel ölçüsü" },
     { value: "1 ay", label: "tam pulsuz giriş — kart lazım deyil, avtomatik ödəniş yoxdur" },
   ],
   stepsTitle: "4 addımda dəyər",
@@ -235,7 +235,7 @@ const farmer: Segment = {
       icon: "satellite",
       title: "Peyk monitorinq",
       body:
-        "NASA HLS 30 m və Sentinel-2 10 m səhnələri. NDVI, NDMI, NDRE, CIre, EVI, SAVI, MSAVI, NDWI, NBR — sahənizə kəsilmiş rəngli raster, tarix zolağı (hər səhnə üçün bulud faizi ilə) və kontrast rejimi.",
+        "10 metr dəqiqlikli peyk səhnələri. NDVI, NDMI, NDRE, CIre, EVI, SAVI, MSAVI, NDWI, NBR — sahənizə kəsilmiş rəngli raster, tarix zolağı (hər səhnə üçün bulud faizi ilə) və kontrast rejimi.",
     },
     {
       icon: "brain",
@@ -349,7 +349,7 @@ const farmer: Segment = {
       icon: "satellite",
       title: "Peyk qatı",
       body:
-        "İki mənbə birləşdirilir: NASA-nın uyğunlaşdırılmış Landsat–Sentinel (HLS) məhsulu 30 metr piksellə və Sentinel-2 10 metr piksellə. Hər səhnə üçün bulud və kölgə maskası tətbiq olunur, sonra indekslər yalnız sahənizin sərhədi daxilində hesablanır.",
+        "Peyk səhnələri 10 metr piksellə emal olunur. Hər səhnə üçün bulud və kölgə maskası tətbiq olunur, sonra indekslər yalnız sahənizin sərhədi daxilində hesablanır.",
       bullets: [
         "Sahə üzərində piksel-səviyyəli rəngli overlay — orta rəqəm deyil, xəritə",
         "Tarix zolağı: hər səhnənin tarixi və bulud faizi",
@@ -411,7 +411,7 @@ const farmer: Segment = {
     {
       q: "Peyk şəkilləri nə qədər tez-tez yenilənir?",
       a:
-        "İki mənbədən — NASA HLS və Sentinel-2 — istifadə etdiyimiz üçün orta hesabla bir neçə gündə bir keçid olur. Buludlu günlər praktikada bu intervalı uzada bilər, ona görə hər səhnənin bulud faizi göstərilir və bulud/kölgə pikselləri hesablamadan çıxarılır. Yeni səhnə düşən kimi analiz özü yenilənir.",
+        "Peyk orta hesabla bir neçə gündə bir sahənizin üzərindən keçir. Buludlu günlər praktikada bu intervalı uzada bilər, ona görə hər səhnənin bulud faizi göstərilir və bulud/kölgə pikselləri hesablamadan çıxarılır. Yeni səhnə düşən kimi analiz özü yenilənir.",
     },
     {
       q: "İnternet zəif olan kənddə işləyirmi?",

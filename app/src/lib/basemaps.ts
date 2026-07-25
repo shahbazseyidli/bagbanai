@@ -37,7 +37,7 @@ export const BASEMAPS: Basemap[] = [
   },
   {
     id: "s2",
-    label: "Sentinel-2 (buludsuz)",
+    label: "Buludsuz peyk",
     tiles: ["https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2023_3857/default/g/{z}/{y}/{x}.jpg"],
     attribution: "Sentinel-2 cloudless 2023 — EOX (CC BY-NC-SA 4.0)",
     maxzoom: 18,

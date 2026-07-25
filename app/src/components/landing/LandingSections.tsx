@@ -218,14 +218,14 @@ export function ModuleRows() {
             title={t("mkt.sections.mod1Title")}
             lead={t("mkt.sections.mod1Lead")}
             points={[
-              "NASA HLS 30m + Sentinel-2 10m",
+              t("mkt.sections.mod1Point1"),
               t("mkt.sections.mod1Point2"),
               t("mkt.sections.mod1Point3"),
             ]}
           />
         }
         shot={
-          <Shot title="Sentinel-2 · NDVI trend">
+          <Shot title={t("mkt.sections.mod1ShotTitle")}>
             <svg viewBox="0 0 320 120" preserveAspectRatio="none" className="h-[120px] w-full" role="img" aria-label={t("mkt.sections.mod1ChartAria")}>
               <defs>
                 <linearGradient id="lpSpark1" x1="0" x2="0" y1="0" y2="1">
@@ -552,7 +552,7 @@ export function Testimonials() {
 
 export function Marquee() {
   const CHIPS = [
-    { e: "🛰️", b: t("mkt.sections.chipSat"), t: "NASA + Sentinel-2" },
+    { e: "🛰️", b: t("mkt.sections.chipSat"), t: "" },
     { e: "🌱", b: "", t: t("mkt.sections.chipCalib") },
     { e: "🧪", b: t("mkt.sections.chipLabs"), t: "" },
     { e: "👨‍🌾", b: "", t: t("mkt.sections.chipCommunity") },

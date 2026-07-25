@@ -112,7 +112,7 @@ const peykOxu: Guide = {
   icon: "satellite",
   meta: "6 addım · ~3 dəq",
   intro:
-    "Peyk qatı sahənizin içindəki fərqi göz onu seçməzdən əvvəl açır. İki mənbə birləşdirilir: NASA HLS 30 metr və Sentinel-2 10 metr piksellə. Hər səhnədə bulud və kölgə pikselləri maskalanır, indekslər isə yalnız sizin sərhədiniz daxilində hesablanır. Aşağıda bu xəritəni necə oxumaq göstərilir.",
+    "Peyk qatı sahənizin içindəki fərqi göz onu seçməzdən əvvəl açır. Görüntülər 10 metr piksellə emal olunur. Hər səhnədə bulud və kölgə pikselləri maskalanır, indekslər isə yalnız sizin sərhədiniz daxilində hesablanır. Aşağıda bu xəritəni necə oxumaq göstərilir.",
   where: "Sahə → «Baxış» tab",
   steps: [
     {
@@ -146,7 +146,7 @@ const peykOxu: Guide = {
     {
       title: "Sensoru və kontrastı dəyiş",
       body:
-        "Daha incə görüntü üçün Sentinel-2 (10 m), daha geniş arxiv üçün NASA HLS (30 m) seçin. «Kontrast» rejimi zəif fərqləri gözə görünən edir. Keçən illə müqayisə də buradadır.",
+        "«Kontrast» rejimi zəif fərqləri gözə görünən edir. Keçən illə müqayisə də buradadır.",
     },
   ],
   tips: [
