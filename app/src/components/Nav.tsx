@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Leaf, Menu, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { useIsAppHost } from "@/lib/host";
 import { t } from "@/lib/i18n";
 import NotificationBell from "@/components/NotificationBell";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
@@ -18,7 +19,8 @@ const HOME_HREF = APEX_HOST ? `https://${APEX_HOST}/` : "/";
 const APP_HREF = PANEL_HOST ? `https://${PANEL_HOST}/` : "/";
 
 export default function Nav() {
-  const { user, logout } = useAuth();
+  const { user, loading, logout } = useAuth();
+  const appHost = useIsAppHost();
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
@@ -36,7 +38,13 @@ export default function Nav() {
     { href: "/finduq", label: t("nav.hazelnut") },
     { href: "/pricing", label: t("nav.pricing") },
   ];
-  const links = user ? [] : marketingLinks;
+  // While auth is still resolving (and we have no cached user) we don't yet know whether to show the
+  // marketing links or the signed-in bar, so we show neither — a neutral logo+language bar — instead
+  // of flashing the signed-out marketing chrome and then flipping to signed-in.
+  const resolved = !loading || !!user;
+  const links = user || !resolved ? [] : marketingLinks;
+  // "Panelə keç" only belongs on the marketing apex — never on the app host itself.
+  const showToApp = !!user && !!PANEL_HOST && !appHost;
 
   return (
     <header className="sticky top-0 z-30 border-b border-emerald-100 bg-white/90 backdrop-blur">
@@ -60,7 +68,7 @@ export default function Nav() {
           {user ? (
             <div className="ml-2 flex items-center gap-2">
               {/* On the marketing apex a signed-in visitor needs a way into the app host. */}
-              {PANEL_HOST && (
+              {showToApp && (
                 <a href={APP_HREF} className="btn-primary whitespace-nowrap">
                   {t("nav.toApp")}
                 </a>
@@ -73,7 +81,7 @@ export default function Nav() {
                 {t("nav.logout")}
               </button>
             </div>
-          ) : (
+          ) : resolved ? (
             <div className="ml-2 flex items-center gap-2">
               <Link href="/login" className="btn-ghost">
                 {t("nav.login")}
@@ -82,7 +90,7 @@ export default function Nav() {
                 {t("nav.signup")}
               </Link>
             </div>
-          )}
+          ) : null}
         </nav>
 
         {/* Mobile: signed-in users navigate via the bottom nav (D2.1) — only the bell stays up top.
@@ -90,7 +98,7 @@ export default function Nav() {
         <div className="flex items-center gap-1 md:hidden">
           {user ? (
             <NotificationBell />
-          ) : (
+          ) : resolved ? (
             <button
               className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-700 hover:bg-emerald-50"
               onClick={() => setOpen((v) => !v)}
@@ -99,7 +107,7 @@ export default function Nav() {
             >
               {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
-          )}
+          ) : null}
         </div>
       </div>
 

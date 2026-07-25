@@ -21,21 +21,53 @@ interface AuthState {
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
 
+// Last-known user, cached so a page RELOAD can paint the signed-in chrome (rail, account nav)
+// immediately instead of flashing the signed-out marketing chrome while /me is in flight — the
+// "menu bar sometimes disappears" flicker. /me still runs and reconciles (e.g. clears it if the
+// session has expired).
+const CACHE_KEY = "agradex_user";
+function readCache(): User | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const s = window.localStorage.getItem(CACHE_KEY);
+    return s ? (JSON.parse(s) as User) : null;
+  } catch {
+    return null;
+  }
+}
+function writeCache(u: User | null) {
+  if (typeof window === "undefined") return;
+  try {
+    if (u) window.localStorage.setItem(CACHE_KEY, JSON.stringify(u));
+    else window.localStorage.removeItem(CACHE_KEY);
+  } catch {
+    // ignore (private mode / quota)
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUserState] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const setUser = useCallback((u: User | null) => {
+    setUserState(u);
+    writeCache(u);
+  }, []);
+
+  // Revalidate against /me. Deliberately does NOT flip `loading` back to true: once the UI has
+  // painted a state, a background revalidation must not blink it away to a spinner/signed-out.
   const refresh = useCallback(async () => {
-    setLoading(true);
     try {
       const me = await api.get<User>("/api/auth/me");
-      setUser(me);
+      setUserState(me);
+      writeCache(me);
     } catch (err) {
-      // 401 = not logged in; anything else we also treat as logged out.
+      // 401 = not logged in; any other error (incl. network) also resolves to logged out.
       if (!(err instanceof ApiError)) {
-        // network error — still resolve to logged out so UI is usable
+        // network error — still resolve to logged out so the UI stays usable
       }
-      setUser(null);
+      setUserState(null);
+      writeCache(null);
     } finally {
       setLoading(false);
     }
@@ -47,10 +79,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // ignore
     }
-    setUser(null);
+    setUserState(null);
+    writeCache(null);
   }, []);
 
   useEffect(() => {
+    // Optimistically paint the last-known user (set in an effect, not the initial state, to avoid
+    // an SSR/hydration mismatch), then reconcile with the server.
+    const cached = readCache();
+    if (cached) {
+      setUserState(cached);
+      setLoading(false);
+    }
     void refresh();
   }, [refresh]);
 
