@@ -6,6 +6,7 @@ export const az = {
   "brand": "Bağban AI",
   "nav.dashboard": "Sahələrim",
   "nav.pricing": "Qiymətlər",
+  "nav.toApp": "Panelə keç",
   "nav.solutions": "Həllər",
   "nav.hazelnut": "Fındıq",
   "nav.catalog": "Kataloq",

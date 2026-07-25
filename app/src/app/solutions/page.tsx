@@ -11,7 +11,7 @@ import { INDEX_COPY, SEGMENT_LIST, type IconKey } from "@/components/solutions/c
 export const metadata: Metadata = {
   title: "Həllər — Bağban AI",
   description:
-    "Fermer, laboratoriya, aqro-konsultant və təchizatçı üçün ayrı-ayrı həllər. Fermerlərə 1 ay pulsuz, provayderlərə həmişə pulsuz.",
+    "Fermer, laboratoriya, aqronom və təchizatçı üçün ayrı-ayrı həllər. Fermerlərə 1 ay pulsuz, provayderlərə həmişə pulsuz.",
   alternates: { canonical: "/solutions" },
 };
 

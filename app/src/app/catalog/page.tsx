@@ -19,10 +19,10 @@ interface Provider {
 const KINDS: { key: string; label: string; Icon: typeof Package }[] = [
   { key: "", label: "Hamısı", Icon: Search },
   { key: "lab", label: "Laboratoriya", Icon: FlaskConical },
-  { key: "consultant", label: "Konsultant", Icon: Users },
+  { key: "consultant", label: "Aqronom", Icon: Users },
   { key: "supplier", label: "Təchizatçı", Icon: Package },
 ];
-const KIND_LABEL: Record<string, string> = { lab: "Laboratoriya", consultant: "Konsultant", supplier: "Təchizatçı" };
+const KIND_LABEL: Record<string, string> = { lab: "Laboratoriya", consultant: "Aqronom", supplier: "Təchizatçı" };
 const KIND_COLOR: Record<string, string> = { lab: "#2f6ca8", consultant: "#7a5bd0", supplier: "#c07a1f" };
 
 export default function CatalogPage() {
@@ -57,7 +57,7 @@ export default function CatalogPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold text-slate-900">Kataloq</h1>
-      <p className="text-sm text-slate-500">Laboratoriya, konsultant və təchizatçıları tapın, birbaşa yazın.</p>
+      <p className="text-sm text-slate-500">Laboratoriya, aqronom və təchizatçıları tapın, birbaşa yazın.</p>
       <div className="flex flex-wrap gap-2">
         {KINDS.map(({ key, label, Icon }) => (
           <button key={key} onClick={() => setKind(key)}

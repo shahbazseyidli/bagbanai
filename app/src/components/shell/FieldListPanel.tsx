@@ -508,11 +508,11 @@ export default function FieldListPanel() {
         )}
       </div>
 
-      {/* Pinned to the bottom (outside the scroller) so it is always reachable — OneSoil's
-          "Request a free call". Forced to a stacked layout so the shared SupportCard reads cleanly
-          in this narrow column instead of squeezing icon+text+button into one row. */}
-      <div className="shrink-0 border-t border-line p-3">
-        <SupportCard className="!flex-col !items-stretch" />
+      {/* Pinned to the bottom (outside the scroller) so it stays reachable — but discreet. A full
+          "request a call" card here dominated the always-visible chrome ("gözə soxma"), so this is
+          the quiet one-line variant: a muted "Kömək lazımdır?" mailto link, not a card. */}
+      <div className="shrink-0 border-t border-line px-3 py-1.5">
+        <SupportCard variant="quiet" className="w-full justify-center" />
       </div>
     </nav>
   );

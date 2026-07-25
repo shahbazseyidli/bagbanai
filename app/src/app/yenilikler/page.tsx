@@ -45,7 +45,7 @@ const CHANGELOG: { period: string; entries: Entry[] }[] = [
         icon: "handshake",
         title: "Marketplace və provayder kataloqu",
         body:
-          "Laboratoriya, aqro-konsultant və təchizatçı üçün pulsuz profillər, region üzrə axtarıla bilən kataloq və birbaşa yazışma əlavə edildi. Fermerlər üçün icma söhbəti də açıldı — vasitəçi və komissiya yoxdur.",
+          "Laboratoriya, aqronom və təchizatçı üçün pulsuz profillər, region üzrə axtarıla bilən kataloq və birbaşa yazışma əlavə edildi. Fermerlər üçün icma söhbəti də açıldı — vasitəçi və komissiya yoxdur.",
       },
       {
         icon: "layers",

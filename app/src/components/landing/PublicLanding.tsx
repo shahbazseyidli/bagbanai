@@ -127,7 +127,7 @@ export default function PublicLanding() {
           </h1>
           <p className="lp-ink2 mx-auto mt-5 max-w-[660px] text-[clamp(16px,2vw,20px)]">
             NASA və Sentinel-2 peyk indeksləri, AI aqronom, təsərrüfat dəftəri — üstəlik
-            laboratoriya, konsultant və təchizatçıların bir yerdə olduğu platforma. Fermerlər,
+            laboratoriya, aqronom və təchizatçıların bir yerdə olduğu platforma. Fermerlər,
             kooperativlər və aqronomlar üçün.
           </p>
           <div className="mt-7 flex flex-wrap justify-center gap-3">

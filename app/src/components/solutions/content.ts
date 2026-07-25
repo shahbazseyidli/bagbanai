@@ -286,7 +286,7 @@ const fermer: Segment = {
       icon: "message",
       title: "Fermer icması və provayder kataloqu",
       body:
-        "Eyni məhsulu əkən və ya yaxın zonadakı fermerlərlə məsləhətləşin. Laboratoriya, aqro-konsultant və təchizatçını region üzrə tapıb birbaşa yazın — vasitəçi yoxdur.",
+        "Eyni məhsulu əkən və ya yaxın zonadakı fermerlərlə məsləhətləşin. Laboratoriya, aqronom və təchizatçını region üzrə tapıb birbaşa yazın — vasitəçi yoxdur.",
     },
     {
       icon: "offline",
@@ -310,7 +310,7 @@ const fermer: Segment = {
       "Suvarma və gübrə qərarları «keçən il belə etmişdik» prinsipi ilə verilir",
       "Xərclər dəftərçədə, qəbzlər cibdə, hesablama mövsümün sonunda təxmini",
       "Aqronom məsləhəti üçün gözləmək, yaxud heç kimə çatmamaq",
-      "Laboratoriya, gübrə satıcısı və konsultant tanış-tanış vasitəsilə axtarılır",
+      "Laboratoriya, gübrə satıcısı və aqronom tanış-tanış vasitəsilə axtarılır",
       "Dərmandan sonra neçə gün keçdiyi yaddaşda saxlanılır",
     ],
     rightTitle: "Bağban AI ilə",
@@ -382,17 +382,17 @@ const fermer: Segment = {
       icon: "handshake",
       title: "Platforma qatı",
       body:
-        "Fermer tək deyil: laboratoriya, aqro-konsultant və təchizatçı eyni platformada, sizin regionunuz üzrə axtarıla bilər. Digər fermerlərlə isə birbaşa məsləhətləşə bilərsiniz.",
+        "Fermer tək deyil: laboratoriya, aqronom və təchizatçı eyni platformada, sizin regionunuz üzrə axtarıla bilər. Digər fermerlərlə isə birbaşa məsləhətləşə bilərsiniz.",
       bullets: [
         "Kataloq: ölkə, region və ixtisas üzrə filtr",
         "Birbaşa yazışma — vasitəçi və komissiya yoxdur",
         "Kontekstual təklif: analiz blokunun yanında oxşar təcrübəsi olan fermerlər",
-        "Komanda: təsərrüfata işçi və ya konsultant dəvət etmək",
+        "Komanda: təsərrüfata işçi və ya aqronom dəvət etmək",
       ],
     },
   ],
   pricingNote:
-    "Qiymət yalnız fermerlərə aiddir. İlk 1 ay bütün funksiyalar pulsuzdur — kart lazım deyil, avtomatik ödəniş yoxdur. Sonra pulsuz paketdə qalmaq, yaxud Paket 2 (10 AZN/ay) və Paket 3 (25 AZN/ay) seçmək sizin ixtiyarınızdadır. Laboratoriya, konsultant və təchizatçılar üçün platforma tam pulsuzdur.",
+    "Qiymət yalnız fermerlərə aiddir. İlk 1 ay bütün funksiyalar pulsuzdur — kart lazım deyil, avtomatik ödəniş yoxdur. Sonra pulsuz paketdə qalmaq, yaxud Paket 2 (10 AZN/ay) və Paket 3 (25 AZN/ay) seçmək sizin ixtiyarınızdadır. Laboratoriya, aqronom və təchizatçılar üçün platforma tam pulsuzdur.",
   faqTitle: "Fermerlərin ən çox verdiyi suallar",
   faq: [
     {
@@ -423,7 +423,7 @@ const fermer: Segment = {
     {
       q: "AI səhv desə nə olacaq?",
       a:
-        "AI aqronom məsləhət verir, qərar sizindir — hər cavabın altında bu barədə xəbərdarlıq var. Model əmin olmayanda dəqiqləşdirici sual verir, cavabın nəyə əsaslandığını göstərir. Ciddi hallarda kataloqdakı laboratoriya və ya konsultantla əlaqə saxlamağı tövsiyə edirik.",
+        "AI aqronom məsləhət verir, qərar sizindir — hər cavabın altında bu barədə xəbərdarlıq var. Model əmin olmayanda dəqiqləşdirici sual verir, cavabın nəyə əsaslandığını göstərir. Ciddi hallarda kataloqdakı laboratoriya və ya aqronomla əlaqə saxlamağı tövsiyə edirik.",
     },
     {
       q: "Məlumatım kimə aiddir?",
@@ -701,29 +701,29 @@ const laboratoriya: Segment = {
 
 const konsultant: Segment = {
   slug: "konsultant",
-  label: "Konsultant",
-  short: "Fermerlərə aqro-məsləhət verirəm",
+  label: "Aqronom",
+  short: "Bir çox fermerin sahəsini izləyir, məsləhət verirəm",
   tabIcon: "users",
   accent: "#7A5BD0",
   badge: { text: "Pulsuz qoşul · abunə haqqı yoxdur", tone: "free" },
-  eyebrow: "aqro-konsultantlar üçün",
+  eyebrow: "aqronomlar üçün",
   headline: "Təcrübəni miqyaslandır. Tövsiyəni rəqəmlə sübut et.",
   lead:
-    "Müştərilərinizin sahələrini bir yerdən izləyin, hər sahə üçün hazır AI analizi ilə vaxta qənaət edin, mövsüm sonunda isə tövsiyənizin nəticəsini hesabatla göstərin. Komandanızı böyütmədən daha çox fermerə çatın — konsultantlar üçün platforma tam pulsuzdur.",
+    "Peşəkar aqronom kimi bir çox fermerin sahəsinə bir yerdən çıxış əldə edin: hər tarlanı peyk monitorinqi və hazır AI analizi ilə uzaqdan izləyin, müştərilərinizə məsləhət verin, mövsüm sonunda isə tövsiyənizin nəticəsini hesabatla göstərin. Çox-müştəri sahə girişi, məsləhət və monitorinq bir ekranda — komandanızı böyütmədən daha çox fermerə xidmət edin. Aqronomlar üçün platforma tam pulsuzdur.",
   primaryCta: { label: "Pulsuz qoşul", href: "/signup" },
   secondaryCta: { label: "Necə qazanırsan", href: "#nece-isleyir" },
   visual: "clients",
-  metaTitle: "Aqro-konsultantlar üçün — Bağban AI",
+  metaTitle: "Aqronomlar üçün — Bağban AI",
   metaDescription:
-    "Müştəri sahələrini bir yerdən izləyin, AI hazır analizi ilə sürətlənin, mövsüm nəticəsini hesabatla sübut edin. Konsultantlar üçün pulsuz.",
+    "Peşəkar aqronom kimi çox müştərinin sahələrini bir yerdən izləyin, hazır AI analizi ilə sürətlənin, mövsüm nəticəsini hesabatla sübut edin. Aqronomlar üçün pulsuz.",
   cardBullets: [
     "Müştəri təşkilatları arasında bir kliklə keçid",
     "Hər sahə üçün hazır AI analizi — vaxta qənaət",
     "Mövsüm müqayisəsi və P&L ilə nəticənin sübutu",
   ],
-  valueTitle: "Konsultant üçün burada nə var",
+  valueTitle: "Aqronom üçün burada nə var",
   valueSub:
-    "Konsultantın darboğazı bilik deyil — vaxt və sübutdur. Platforma hər ikisini gücləndirir.",
+    "Aqronomun darboğazı bilik deyil — vaxt və sübutdur. Platforma hər ikisini gücləndirir.",
   valuePoints: [
     {
       title: "Bütün müştərilər eyni metodologiya ilə",
@@ -752,11 +752,11 @@ const konsultant: Segment = {
     },
   ],
   stats: [
-    { value: "Pulsuz", label: "konsultantlar üçün platforma — abunə haqqı yoxdur" },
+    { value: "Pulsuz", label: "aqronomlar üçün platforma — abunə haqqı yoxdur" },
     { value: "Limitsiz", label: "müştəri təşkilatı — hamısı arasında sürətli keçid" },
     { value: "Avtomatik", label: "hər yeni peyk səhnəsindən sonra hazır AI analizi" },
   ],
-  stepsTitle: "Konsultant necə qazanır",
+  stepsTitle: "Aqronom necə qazanır",
   stepsSub: "Standartlaşdır, AI ilə sürətləndir, nəticəni sübut et, müştərini saxla.",
   steps: [
     {
@@ -780,8 +780,8 @@ const konsultant: Segment = {
         "Dəyər mövsüm boyu davam etdiyi üçün müştəri bir dəfəlik məsləhətdən illik əməkdaşlığa keçir.",
     },
   ],
-  featuresTitle: "Konsultantlar üçün alətlər",
-  featuresSub: "Hamısı pulsuz — konsultantlar üçün ödənişli səviyyə yoxdur.",
+  featuresTitle: "Aqronomlar üçün alətlər",
+  featuresSub: "Hamısı pulsuz — aqronomlar üçün ödənişli səviyyə yoxdur.",
   features: [
     {
       icon: "users",
@@ -846,8 +846,8 @@ const konsultant: Segment = {
   ],
   twoCol: {
     title: "İki tərəf üçün də qazanc",
-    sub: "Konsultant vaxt qazanır və nəticəni sübut edir; fermer isə davamlı, izlənən dəstək alır.",
-    leftTitle: "Konsultant üçün",
+    sub: "Aqronom vaxt qazanır və nəticəni sübut edir; fermer isə davamlı, izlənən dəstək alır.",
+    leftTitle: "Aqronom üçün",
     leftItems: [
       "Bütün müştəri sahələri eyni göstəricilərlə bir yerdə",
       "Hazır AI analizi ilə hazırlıq vaxtının qısalması",
@@ -857,18 +857,18 @@ const konsultant: Segment = {
     ],
     rightTitle: "Fermer üçün",
     rightItems: [
-      "Konsultant sahəni bir baxışda görür — izahat vaxtı qısalır",
+      "Aqronom sahəni bir baxışda görür — izahat vaxtı qısalır",
       "Tövsiyələr yazılı qalır və tarixçədə saxlanılır",
       "Tapşırıqlar təqvimə düşür, unudulmur",
       "Mövsüm sonunda nəticə rəqəmlə görünür",
-      "Konsultantla eyni ekranda danışırlar — anlaşılmazlıq azalır",
+      "Aqronomla eyni ekranda danışırlar — anlaşılmazlıq azalır",
     ],
   },
   proof: {
     label: "Nümunə ssenari — illüstrasiya, ölçülmüş nəticə deyil",
-    title: "Bir konsultantın həftəsi necə qurula bilər",
+    title: "Bir aqronomun həftəsi necə qurula bilər",
     body:
-      "Aşağıda platformanın konsultant üçün real iş axını göstərilir. Sahə sayı və vaxtlar izah üçün seçilib.",
+      "Aşağıda platformanın aqronom üçün real iş axını göstərilir. Sahə sayı və vaxtlar izah üçün seçilib.",
     timeline: [
       { when: "Bazar ertəsi səhər", what: "Bütün müştəri təşkilatları gözdən keçirilir; vəziyyəti pisləşən sahələr önə çıxır." },
       { when: "Bazar ertəsi günorta", what: "Hər problemli sahə üçün hazır AI analizi oxunur, öz təcrübəsi ilə düzəliş edilir və müştəriyə göndərilir." },
@@ -877,10 +877,10 @@ const konsultant: Segment = {
       { when: "Mövsüm sonu", what: "Mövsüm müqayisəsi və sahə-üzrə mənfəət hesabatı ilə tövsiyələrin nəticəsi təqdim edilir." },
     ],
     note:
-      "AI konsultantı əvəz etmir: o, ilkin analizi hazırlayır, qərar və məsuliyyət mütəxəssisdə qalır.",
+      "AI aqronomu əvəz etmir: o, ilkin analizi hazırlayır, qərar və məsuliyyət mütəxəssisdə qalır.",
   },
   deepTitle: "Necə qurulub",
-  deepSub: "Konsultantın müştəri sahələrinə girişi necə işləyir və hansı alətlərlə bağlıdır.",
+  deepSub: "Aqronomun müştəri sahələrinə girişi necə işləyir və hansı alətlərlə bağlıdır.",
   deep: [
     {
       icon: "users",
@@ -920,8 +920,8 @@ const konsultant: Segment = {
     },
   ],
   pricingNote:
-    "Ödənişli paketlər yalnız fermerlərə aiddir (onlar 1 ay pulsuz sınaqla başlayır). Aqro-konsultantlar üçün qoşulma, profil, çox-müştəri girişi və yazışma tam pulsuzdur.",
-  faqTitle: "Konsultantların sualları",
+    "Ödənişli paketlər yalnız fermerlərə aiddir (onlar 1 ay pulsuz sınaqla başlayır). Aqronomlar üçün qoşulma, profil, çox-müştəri girişi və yazışma tam pulsuzdur.",
+  faqTitle: "Aqronomların sualları",
   faq: [
     {
       q: "AI məni əvəz edəcək?",
@@ -931,7 +931,7 @@ const konsultant: Segment = {
     {
       q: "Qoşulmaq nə qədərdir?",
       a:
-        "Konsultantlar üçün platforma tam pulsuzdur — qoşulma haqqı, abunə və komissiya yoxdur. Ödənişli paketlər yalnız fermerlərə aiddir.",
+        "Aqronomlar üçün platforma tam pulsuzdur — qoşulma haqqı, abunə və komissiya yoxdur. Ödənişli paketlər yalnız fermerlərə aiddir.",
     },
     {
       q: "Müştərimin sahələrini necə görürəm?",
@@ -1239,10 +1239,10 @@ export const INDEX_COPY = {
   eyebrow: "həllər",
   title: "Hər rol üçün ayrı həll",
   lead:
-    "Bağban AI tək-tərəfli bir alət deyil: fermer sahəsini izləyir, laboratoriya nümunə götürür, konsultant tövsiyə verir, təchizatçı isə materialı çatdırır — hamısı eyni platformada, eyni sahə məlumatı ətrafında. Rolunuzu seçin və sizin üçün nə dəyişdiyini görün.",
+    "Bağban AI tək-tərəfli bir alət deyil: fermer sahəsini izləyir, laboratoriya nümunə götürür, aqronom tövsiyə verir, təchizatçı isə materialı çatdırır — hamısı eyni platformada, eyni sahə məlumatı ətrafında. Rolunuzu seçin və sizin üçün nə dəyişdiyini görün.",
   pricingTitle: "Kim ödəyir?",
   pricingBody:
-    "Yalnız fermerlər. Onlar da 1 ay tam pulsuz sınaqla başlayır — kart lazım deyil, sınaq bitəndə avtomatik pul çıxılmır. Laboratoriya, aqro-konsultant və təchizatçılar üçün platforma tam pulsuzdur: qoşulma haqqı, abunə və satış komissiyası yoxdur.",
+    "Yalnız fermerlər. Onlar da 1 ay tam pulsuz sınaqla başlayır — kart lazım deyil, sınaq bitəndə avtomatik pul çıxılmır. Laboratoriya, aqronom və təchizatçılar üçün platforma tam pulsuzdur: qoşulma haqqı, abunə və satış komissiyası yoxdur.",
   pricingLink: { label: "Fermer paketlərinə bax", href: "/pricing" },
   ctaTitle: "Rolunu seç və bu gün başla",
   ctaSub: "Fermerlər üçün 1 ay pulsuz · provayderlər üçün həmişə pulsuz",

@@ -9,7 +9,7 @@ import { ArrowRight, Leaf } from "lucide-react";
 const SOLUTIONS: Array<[string, string]> = [
   ["/solutions/fermer", "Fermerlər"],
   ["/solutions/laboratoriya", "Laboratoriyalar"],
-  ["/solutions/konsultant", "Konsultantlar"],
+  ["/solutions/konsultant", "Aqronomlar"],
   ["/solutions/techizatci", "Təchizatçılar"],
 ];
 
@@ -23,7 +23,7 @@ export default function LandingFooter() {
             Bu gün başla — rolunu seç
           </h2>
           <p className="mx-auto mt-3 max-w-[520px] text-[14.5px] text-[#a9cdbc]">
-            Fermerlər üçün 1 ay pulsuz sınaq, kart tələb olunmur. Laboratoriya, konsultant və
+            Fermerlər üçün 1 ay pulsuz sınaq, kart tələb olunmur. Laboratoriya, aqronom və
             təchizatçılar pulsuz qoşulur.
           </p>
           <div className="mt-5 flex flex-wrap justify-center gap-3">

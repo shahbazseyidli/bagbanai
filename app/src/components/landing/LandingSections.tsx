@@ -74,9 +74,9 @@ const ROLES = [
   },
   {
     href: "/solutions/konsultant",
-    title: "Konsultant",
-    body: "Təcrübəni miqyasla — çox-müştəri idarəetmə, sübut hesabatları, AI dəstəyi.",
-    cta: "Konsultantlar üçün",
+    title: "Aqronom",
+    body: "Çox fermerə xidmət et — çox-müştəri sahə girişi, monitorinq, sübut hesabatları, AI dəstəyi.",
+    cta: "Aqronomlar üçün",
     gradient: "linear-gradient(165deg,#7a5bd0,#3a2668)",
     Icon: Users,
   },
@@ -96,7 +96,7 @@ export function RoleCards() {
       <SectionHead
         eyebrow="bir platforma · dörd rol"
         title="Kim üçün?"
-        sub="Fermerlər, laboratoriyalar, konsultantlar və təchizatçılar bir ekosistemdə görüşür."
+        sub="Fermerlər, laboratoriyalar, aqronomlar və təchizatçılar bir ekosistemdə görüşür."
       />
       <div className="grid gap-4 min-[920px]:grid-cols-4">
         {ROLES.map(({ href, title, body, cta, gradient, Icon }) => (
@@ -118,7 +118,7 @@ export function RoleCards() {
         ))}
       </div>
       <p className="lp-muted mt-4 text-center text-[13px]">
-        Laboratoriya, konsultant və təchizatçılar platformaya <b className="text-grass">pulsuz</b>{" "}
+        Laboratoriya, aqronom və təchizatçılar platformaya <b className="text-grass">pulsuz</b>{" "}
         qoşulur — abunə yalnız fermerlər üçündür.
       </p>
     </Wrap>
@@ -343,7 +343,7 @@ export function ModuleRows() {
         text={
           <ModText
             eyebrow="marketplace · icma"
-            title="Laboratoriya, konsultant, təchizatçı — və digər fermerlər"
+            title="Laboratoriya, aqronom, təchizatçı — və digər fermerlər"
             lead="Kataloqdan xidmət provayderi seç, birbaşa yaz. Fermer icmasında eyni məhsulu əkənlərlə məsləhətləş."
             points={[
               "Provayder kataloqu (ölkə/region/ixtisas filtri)",
@@ -445,7 +445,7 @@ export function WhyUs() {
           </span>
           <h4 className="lp-ink font-display text-[17px] font-semibold">AI + Marketplace</h4>
           <p className="lp-ink2 mt-1.5 text-[13.5px]">
-            AI aqronom + laboratoriya/konsultant/təchizatçı kataloqu + fermer icması — bir yerdə.
+            AI aqronom + laboratoriya/aqronom/təchizatçı kataloqu + fermer icması — bir yerdə.
           </p>
         </div>
       </div>
@@ -499,19 +499,19 @@ export function WhyUs() {
 
 const TESTIS = [
   {
-    q: "Peykdən sahəni görüb, elə oradaca gübrə satıcısına yazdım. Hər şey bir yerdə.",
-    n: "Elşən M.",
-    r: "Fındıq · Xaçmaz · 8 ha",
+    q: "Bağın bir küncü peykdə zəif göründü — gedib baxdım, suvarma xətti tutulmuşdu. Bütün blok solmadan düzəltdim.",
+    n: "Nail Q.",
+    r: "Fındıq · Zaqatala · 7 ha",
   },
   {
-    q: "AI şəkildən xəstəliyi tanıdı, yaxın fermerlə də məsləhətləşdim. Məhsulu xilas etdim.",
-    n: "Rəşad Q.",
-    r: "Üzüm · Şamaxı · 5 ha",
+    q: "Müştərilərimin sahələrini bir ekrandan izləyirəm, hazır analizi öz imzamla göndərirəm — yol vaxtına qənaət.",
+    n: "Ramil H.",
+    r: "Aqronom · Quba",
   },
   {
-    q: "Konsultant kimi 40 sahəni bir ekranda idarə edirəm, hesabatları müştərilərə göndərirəm.",
-    n: "Səbinə A.",
-    r: "Aqro-konsultant · Gəncə",
+    q: "Hər sahənin xərcini və gəlirini ayrıca yazıram; mövsüm sonu hansı tarlanın qazandırdığını dəqiq bilirəm.",
+    n: "Gülnar Ə.",
+    r: "Tərəvəz · Lənkəran · 2.5 ha",
   },
 ];
 

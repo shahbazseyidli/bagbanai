@@ -10,7 +10,7 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 import DataSaverToggle from "@/components/DataSaverToggle";
 import EmailAlertsToggle from "@/components/EmailAlertsToggle";
 
-const ROLE_AZ: Record<string, string> = { farmer: "Fermer", lab: "Laboratoriya", consultant: "Aqro-konsultant", supplier: "Təchizatçı" };
+const ROLE_AZ: Record<string, string> = { farmer: "Fermer", lab: "Laboratoriya", consultant: "Aqronom", supplier: "Təchizatçı" };
 
 function Card({ Icon, title, value, action }: { Icon: typeof Mail; title: string; value?: string; action?: React.ReactNode }) {
   return (

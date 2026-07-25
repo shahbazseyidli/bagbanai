@@ -61,7 +61,7 @@ const FAQ: QA[] = [
     a: "Bunlar Business paketinə daxildir və mərhələli açılır (tezliklə). Foto diaqnoz ayda 30 şəkli əhatə edir.",
   },
   {
-    q: "Laboratoriya, konsultant və təchizatçılar üçün qiymət nədir?",
+    q: "Laboratoriya, aqronom və təchizatçılar üçün qiymət nədir?",
     a: "Provayderlər üçün platforma tamamilə pulsuzdur — abunə, qoşulma haqqı və komissiya yoxdur. Yuxarıdakı qiymətlər yalnız fermerlər üçündür.",
   },
   {

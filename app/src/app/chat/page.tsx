@@ -12,7 +12,7 @@ import { Spinner, ErrorNote } from "@/components/ui";
 interface Conv { id: string; other_user_id: string; other_name?: string | null; other_role?: string | null; kind: string; last_text?: string | null; last_at?: string | null; }
 interface Msg { id: string; sender_id: string; body: string; created_at: string; mine: boolean; }
 
-const ROLE_AZ: Record<string, string> = { farmer: "Fermer", lab: "Laboratoriya", consultant: "Konsultant", supplier: "Təchizatçı" };
+const ROLE_AZ: Record<string, string> = { farmer: "Fermer", lab: "Laboratoriya", consultant: "Aqronom", supplier: "Təchizatçı" };
 
 export default function ChatPage() {
   return <Suspense fallback={<Spinner />}><ChatInner /></Suspense>;

@@ -9,6 +9,14 @@ import { t } from "@/lib/i18n";
 import NotificationBell from "@/components/NotificationBell";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 
+// Phase 2 host split: when app.agradex.com is the app host, the brand/logo points at the marketing
+// apex (so "clicking home takes me to agradex.com"), and signed-in users get a "Panelə keç" link
+// into the app host. Empty until NEXT_PUBLIC_PANEL_HOST is set → logo is the normal "/".
+const PANEL_HOST = (process.env.NEXT_PUBLIC_PANEL_HOST || "").toLowerCase();
+const APEX_HOST = PANEL_HOST ? PANEL_HOST.replace(/^(app|panel)\./, "") : "";
+const HOME_HREF = APEX_HOST ? `https://${APEX_HOST}/` : "/";
+const APP_HREF = PANEL_HOST ? `https://${PANEL_HOST}/` : "/";
+
 export default function Nav() {
   const { user, logout } = useAuth();
   const router = useRouter();
@@ -33,10 +41,10 @@ export default function Nav() {
   return (
     <header className="sticky top-0 z-30 border-b border-emerald-100 bg-white/90 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <Link href="/" className="flex shrink-0 items-center gap-2 text-emerald-700">
+        <a href={HOME_HREF} className="flex shrink-0 items-center gap-2 text-emerald-700">
           <Leaf className="h-6 w-6 shrink-0" />
           <span className="whitespace-nowrap text-lg font-bold">{t("brand")}</span>
-        </Link>
+        </a>
 
         <nav className="hidden items-center gap-1 md:flex">
           {links.map((l) => (
@@ -51,6 +59,12 @@ export default function Nav() {
           <LanguageSwitcher className="ml-2" />
           {user ? (
             <div className="ml-2 flex items-center gap-2">
+              {/* On the marketing apex a signed-in visitor needs a way into the app host. */}
+              {PANEL_HOST && (
+                <a href={APP_HREF} className="btn-primary whitespace-nowrap">
+                  {t("nav.toApp")}
+                </a>
+              )}
               <NotificationBell />
               <span className="max-w-[168px] truncate text-sm text-slate-500" title={user.email}>
                 {user.email}

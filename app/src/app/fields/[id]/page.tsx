@@ -365,11 +365,11 @@ function FieldDetailInner() {
         <FieldMapSheet
           field={field}
           onCamera={() => {
-            // Camera FAB: open the AI (photo-diagnose) tab AND expand the sheet to full in one nav,
-            // then scroll straight to the photo-diagnose card (D5.4+ guided capture).
+            // Camera FAB: open the AI (photo-diagnose) tab, then scroll straight to the
+            // photo-diagnose card (D5.4+ guided capture). Content is in normal flow now, so a plain
+            // scrollIntoView reaches it.
             const sp = new URLSearchParams(searchParams.toString());
             sp.set("tab", "ai");
-            sp.set("panel", "full");
             router.push(`${pathname}?${sp.toString()}`, { scroll: false });
             setTimeout(
               () => document.getElementById("photo-diagnose")?.scrollIntoView({ behavior: "smooth", block: "start" }),

@@ -17,7 +17,7 @@ const QA: Array<{ q: string; a: string }> = [
   },
   {
     q: "Provayder kimi necə qoşulum?",
-    a: "Qeydiyyatda rolunuzu seçin (laboratoriya / konsultant / təchizatçı), profil və xidmətlərinizi əlavə edin — kataloqda görünəcəksiniz. Provayderlər üçün qoşulma pulsuzdur; abunə yalnız fermerlər üçündür.",
+    a: "Qeydiyyatda rolunuzu seçin (laboratoriya / aqronom / təchizatçı), profil və xidmətlərinizi əlavə edin — kataloqda görünəcəksiniz. Provayderlər üçün qoşulma pulsuzdur; abunə yalnız fermerlər üçündür.",
   },
   {
     q: "Məlumatımı kim görür?",

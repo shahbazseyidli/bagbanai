@@ -18,7 +18,7 @@ import type { User, UserRole } from "@/lib/types";
 const ROLES: { key: UserRole; title: string; sub: string; Icon: typeof Sprout }[] = [
   { key: "farmer", title: "Fermer", sub: "Sahələrimi izləyirəm, məhsul yetişdirirəm", Icon: Sprout },
   { key: "lab", title: "Laboratoriya", sub: "Torpaq nümunə xidməti göstərirəm", Icon: FlaskConical },
-  { key: "consultant", title: "Aqro-konsultant", sub: "Fermerlərə məsləhət verirəm", Icon: Users },
+  { key: "consultant", title: "Aqronom", sub: "Çox fermerin sahəsini izləyir, məsləhət verirəm", Icon: Users },
   { key: "supplier", title: "Təchizatçı", sub: "Toxum, gübrə, dərman satıram", Icon: Package },
 ];
 
@@ -173,7 +173,7 @@ export default function SignupPage() {
 
         {step === 3 && isProvider && (
           <>
-            <h1 className="text-xl font-bold text-slate-900">{role === "supplier" ? "Təchizatçı profili" : role === "lab" ? "Laboratoriya profili" : "Konsultant profili"}</h1>
+            <h1 className="text-xl font-bold text-slate-900">{role === "supplier" ? "Təchizatçı profili" : role === "lab" ? "Laboratoriya profili" : "Aqronom profili"}</h1>
             <div className="mt-4 space-y-3">
               <div><label className="label">{role === "supplier" ? "Şirkət adı *" : role === "lab" ? "Laboratoriya adı *" : "Ad / şirkət *"}</label><input className="input" value={company} onChange={(e) => setCompany(e.target.value)} /></div>
               <div><label className="label">{role === "supplier" ? "İxtisaslaşma (çoxlu seçim) *" : role === "lab" ? "Xidmətlər" : "İxtisaslaşma"}</label>

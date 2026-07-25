@@ -42,17 +42,29 @@ export function middleware(req: NextRequest) {
   // --- Panel/marketing host split (dormant unless PANEL_HOST set); operates on the stripped path ---
   if (PANEL_HOST) {
     const host = (req.headers.get("host") || "").toLowerCase();
-    const apexHost = PANEL_HOST.replace(/^panel\./, "");
-    const isPanel = host === PANEL_HOST || host.startsWith("panel.");
+    // The panel host is app.agradex.com (or legacy panel.*). Strip that leading label to get the
+    // marketing apex — a `/^panel\./` regex would NOT strip "app." and apexHost would equal the
+    // panel host, sending the login redirect to itself → infinite loop.
+    const apexHost = PANEL_HOST.replace(/^(app|panel)\./, "");
+    const isPanel = host === PANEL_HOST || host.startsWith("app.") || host.startsWith("panel.");
     const hasAuth = req.cookies.has(AUTH_COOKIE);
     if (isPanel) {
+      // On the app host: anything but a real signed-in session goes to the marketing login.
       if (!hasAuth) {
         const u = new URL(`https://${apexHost}/login`);
         if (path !== "/") u.searchParams.set("next", path);
         return NextResponse.redirect(u);
       }
-      if (path === "/pricing") return NextResponse.redirect(new URL(`https://${apexHost}${path}`));
-    } else if ((hasAuth && isAppPath(path)) || (path !== "/" && isAppPath(path))) {
+      // Marketing-only pages live on the apex, even for signed-in users.
+      if (path === "/pricing" || path === "/solutions" || path.startsWith("/solutions/") ||
+          path === "/finduq" || path === "/guide" || path.startsWith("/guide/") ||
+          path === "/yenilikler" || path === "/status") {
+        return NextResponse.redirect(new URL(`https://${apexHost}${path}${search}`));
+      }
+    } else if (path !== "/" && isAppPath(path)) {
+      // On the apex: real app paths jump to the app host. The home "/" ALWAYS stays marketing
+      // (even for signed-in users) so the brand/logo can point here — clicking it shows marketing,
+      // exactly as requested, and a signed-in visitor gets a "Panelə keç" link into the app.
       return NextResponse.redirect(new URL(`https://${PANEL_HOST}${path}${search}`));
     }
   }

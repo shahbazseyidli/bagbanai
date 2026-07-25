@@ -195,7 +195,7 @@ const aiMeslehet: Guide = {
     },
   ],
   tips: [
-    "AI diaqnoz qoymur və aqronomu əvəz etmir — o, sizin gördüyünüzü genişləndirir. Ciddi hallarda kataloqdakı laboratoriya və ya konsultantla əlaqə saxlayın.",
+    "AI diaqnoz qoymur və aqronomu əvəz etmir — o, sizin gördüyünüzü genişləndirir. Ciddi hallarda kataloqdakı laboratoriya və ya aqronomla əlaqə saxlayın.",
     "Model əmin olmayanda dəqiqləşdirici sual verir — cavablayın ki, tövsiyə dəqiqləşsin.",
     "Dəftərə yazdığınız hər əməliyyat növbəti analizi daha dəqiq edir.",
   ],
@@ -244,7 +244,7 @@ const isVeEmeliyyat: Guide = {
     },
   ],
   tips: [
-    "Tapşırıqları təqvim faylı kimi ixrac edib konsultant və ya işçi ilə paylaşa bilərsiniz.",
+    "Tapşırıqları təqvim faylı kimi ixrac edib aqronom və ya işçi ilə paylaşa bilərsiniz.",
     "Qəbzin şəklini çəksəniz, sistem xərc qaralamasını özü doldurur.",
     "Anbar qalığı əməliyyatdan avtomatik çıxılır və azalanda xəbərdarlıq gəlir.",
   ],

@@ -207,7 +207,7 @@ export default function FieldsListPage() {
             </ul>
 
             {/* OneSoil-style "request a free call" support card, pinned under the list. */}
-            <SupportCard />
+            <SupportCard variant="quiet" />
           </div>
         </div>
       )}

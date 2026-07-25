@@ -306,7 +306,7 @@ const FAQ: { q: string; a: string }[] = [
   {
     q: "AI səhv desə nə olacaq?",
     a:
-      "AI aqronom məsləhət verir, qərar sizindir — hər cavabın altında bu barədə xəbərdarlıq var. Model əmin olmayanda dəqiqləşdirici sual verir və cavabın nəyə əsaslandığını göstərir. Ciddi hallarda kataloqdakı laboratoriya və ya konsultantla əlaqə tövsiyə olunur.",
+      "AI aqronom məsləhət verir, qərar sizindir — hər cavabın altında bu barədə xəbərdarlıq var. Model əmin olmayanda dəqiqləşdirici sual verir və cavabın nəyə əsaslandığını göstərir. Ciddi hallarda kataloqdakı laboratoriya və ya aqronomla əlaqə tövsiyə olunur.",
   },
 ];
 
@@ -703,7 +703,7 @@ export default function NutsSegment() {
           <p className="flex-1 text-[14.5px] leading-relaxed text-grass-deep">
             Qiymət yalnız fermerlərə aiddir. İlk 1 ay bütün funksiyalar pulsuzdur — kart lazım deyil,
             avtomatik ödəniş yoxdur. Sonra pulsuz paketdə qalmaq, yaxud Paket 2 (10 AZN/ay) və Paket 3
-            (25 AZN/ay) seçmək sizin ixtiyarınızdadır. Laboratoriya, konsultant və təchizatçılar üçün
+            (25 AZN/ay) seçmək sizin ixtiyarınızdadır. Laboratoriya, aqronom və təchizatçılar üçün
             platforma tam pulsuzdur.
           </p>
           <Link
@@ -787,7 +787,7 @@ export default function NutsSegment() {
             className={`${CARD} inline-flex items-center gap-2 px-5 py-3 text-sm font-bold text-[color:var(--brand-ink)] transition-colors hover:border-line-2`}
           >
             <Leaf className="h-4 w-4 text-grass-deep" aria-hidden="true" />
-            Fermer, laboratoriya, konsultant və təchizatçı həlləri
+            Fermer, laboratoriya, aqronom və təchizatçı həlləri
             <ArrowRight className="h-4 w-4 text-[color:var(--brand-muted)]" aria-hidden="true" />
           </Link>
         </div>
