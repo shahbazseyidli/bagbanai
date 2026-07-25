@@ -45,6 +45,18 @@ async def email_data_ready(field_id: str):
     return {"ok": ok}
 
 
+@router.post("/emails/lifecycle/drain")
+async def emails_lifecycle_drain():
+    """Evaluate behavioral/lifecycle email rules across all users and send the matching templates
+    (E2.3). Idempotent; run daily by cron. No-op if email isn't configured."""
+    from ..ai import notify
+    if not notify.email_configured():
+        return {"ok": False, "reason": "email_not_configured"}
+    from ..ai.emails.lifecycle import run_lifecycle
+    async with connection(None) as conn:
+        return {"ok": True, **await run_lifecycle(conn)}
+
+
 @router.post("/pipeline/run")
 async def run_pipeline(field_id: str, days_back: int = 120):
     try:
