@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Sparkles, Send } from "lucide-react";
 import { api } from "@/lib/api";
+import { getLocale } from "@/lib/i18n";
 import { Spinner } from "@/components/ui";
 import KnowledgePassport from "@/components/field/KnowledgePassport";
 import SpeakButton from "@/components/SpeakButton";
@@ -75,7 +76,7 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
     setMsgs((m) => [...m, { role: "user", content: text }]);
     setSending(true);
     try {
-      const r = await api.post<{ reply: string }>(`/api/fields/${fieldId}/chat`, { message: text });
+      const r = await api.post<{ reply: string }>(`/api/fields/${fieldId}/chat`, { message: text, locale: getLocale() });
       setMsgs((m) => [...m, { role: "assistant", content: r.reply }]);
     } catch {
       setMsgs((m) => [...m, { role: "assistant", content: "Bağışlayın, cavab alınmadı. Sonra yenidən yoxlayın." }]);

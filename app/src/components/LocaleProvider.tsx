@@ -9,6 +9,9 @@ import { registerDict, setLocale, type Locale } from "@/lib/i18n";
 import { en } from "@/lib/locales/en";
 import { tr } from "@/lib/locales/tr";
 import { de } from "@/lib/locales/de";
+import { hu } from "@/lib/locales/hu";
+import { it } from "@/lib/locales/it";
+import { pl } from "@/lib/locales/pl";
 
 let registered = false;
 
@@ -24,6 +27,9 @@ export default function LocaleProvider({
       registerDict("en", en);
       registerDict("tr", tr);
       registerDict("de", de);
+      registerDict("hu", hu);
+      registerDict("it", it);
+      registerDict("pl", pl);
       registered = true;
     }
     setLocale(initialLocale);

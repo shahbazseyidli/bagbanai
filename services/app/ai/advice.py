@@ -15,6 +15,33 @@ from .context import build_field_context
 DISCLAIMER = ("Bu məsləhətlər peyk və sahə məlumatlarına əsaslanan avtomatik təhlildir; "
               "yekun qərar üçün sahəni yerində yoxlayın.")
 
+# Phase 4 — advice can be generated in the caller's language. The severity CODES
+# (aşağı/orta/yüksək) always stay Azerbaijani (the frontend maps them to badges); only the
+# human-readable prose is written in the target language.
+LANG_NAMES = {
+    "az": "Azerbaijani (Azərbaycan dili)", "en": "English", "tr": "Turkish (Türkçe)",
+    "de": "German (Deutsch)", "hu": "Hungarian (Magyar)", "it": "Italian (Italiano)",
+    "pl": "Polish (Polski)",
+}
+DISCLAIMERS = {
+    "az": DISCLAIMER,
+    "en": "This advice is an automated analysis based on satellite and field data; verify on-site before deciding.",
+    "tr": "Bu tavsiyeler uydu ve tarla verilerine dayanan otomatik bir analizdir; karar vermeden önce sahada doğrulayın.",
+    "de": "Diese Empfehlungen sind eine automatische Analyse auf Basis von Satelliten- und Felddaten; vor der Entscheidung vor Ort prüfen.",
+    "hu": "Ez a tanács műholdas és tábla-adatokon alapuló automatikus elemzés; döntés előtt ellenőrizze a helyszínen.",
+    "it": "Questo consiglio è un'analisi automatica basata su dati satellitari e di campo; verifica sul posto prima di decidere.",
+    "pl": "Ta porada to automatyczna analiza oparta na danych satelitarnych i polowych; przed decyzją sprawdź w terenie.",
+}
+
+
+def _lang_clause(lang: str) -> str:
+    if lang == "az" or lang not in LANG_NAMES:
+        return ""
+    name = LANG_NAMES[lang]
+    return ("\n\nDİL: Bütün oxunaqlı mətni (summary, risk title/detail, recommendations, next_steps) "
+            f"{name} dilində yaz. LAKİN hər riskin `severity` dəyərini DƏYİŞMƏ — o, kod kimi qalır: "
+            "yalnız aşağı, orta və ya yüksək.")
+
 
 class Risk(BaseModel):
     title: str = Field(description="Riskin qısa adı (Azərbaycanca)")
@@ -61,10 +88,12 @@ def _signature(risks: list[dict], recs: list[dict]) -> str:
     return json.dumps({"r": r, "c": c}, ensure_ascii=False)
 
 
-async def generate_and_store(conn, field_id: str, force: bool = False) -> Optional[dict]:
+async def generate_and_store(conn, field_id: str, force: bool = False,
+                             lang: str = "az") -> Optional[dict]:
     """Generate advice for a field, store it, and notify on material change.
     Returns the stored advice dict, or None if the LLM is not configured or the
-    15-day throttle skips regeneration (unless force=True)."""
+    15-day throttle skips regeneration (unless force=True). `lang` decides the prose
+    language (severity codes stay Azerbaijani)."""
     if not llm.is_configured():
         return None
 
@@ -101,11 +130,13 @@ async def generate_and_store(conn, field_id: str, force: bool = False) -> Option
             + "\n\nBu sahə üçün xülasə, risklər, məsləhətlər və növbəti addımları çıxar.")
 
     try:
-        result, usage = await llm.complete_structured(SYSTEM, user, AdviceResult, model=tier_model)
+        result, usage = await llm.complete_structured(
+            SYSTEM + _lang_clause(lang), user, AdviceResult, model=tier_model)
     except llm.LLMUnavailable:
         return None
 
     provider, model = llm.model_info()
+    disclaimer = DISCLAIMERS.get(lang, DISCLAIMER)
     findings = {
         "risks": [r.model_dump() for r in result.risks],
         "recommendations": [r.model_dump() for r in result.recommendations],
@@ -128,7 +159,7 @@ async def generate_and_store(conn, field_id: str, force: bool = False) -> Option
               summary, findings, disclaimer)
            values ($1::uuid,$2::uuid,$3,$4,$5::jsonb,$6,$7::jsonb,$8)""",
         field_id, org_id, provider, model, json.dumps(ctx),
-        result.summary, json.dumps(findings), DISCLAIMER)
+        result.summary, json.dumps(findings), disclaimer)
 
     # Record token usage / cost, attributed to the org owner (best-effort).
     try:
@@ -146,7 +177,7 @@ async def generate_and_store(conn, field_id: str, force: bool = False) -> Option
     if changed or is_first:
         await _notify(conn, field_id, org_id, field_name, result, changed)
 
-    return {"summary": result.summary, "findings": findings, "disclaimer": DISCLAIMER,
+    return {"summary": result.summary, "findings": findings, "disclaimer": disclaimer,
             "model_provider": provider, "model_name": model}
 
 

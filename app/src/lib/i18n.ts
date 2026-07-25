@@ -372,12 +372,13 @@ export const az = {
 export type I18nKey = keyof typeof az;
 export type Dict = Partial<Record<I18nKey, string>>;
 
-// Phase 4 — 4 locales. az is the complete source of truth; en/tr/de are machine-translated and fall
-// back to az for any missing key. Translations live in lib/locales/{en,tr,de}.ts.
-export type Locale = "az" | "en" | "tr" | "de";
-export const LOCALES: Locale[] = ["az", "en", "tr", "de"];
+// Phase 4 — 7 locales. az is the complete source of truth; the rest are machine-translated and fall
+// back to az for any missing key. Translations live in lib/locales/{en,tr,de,hu,it,pl}.ts.
+export type Locale = "az" | "en" | "tr" | "de" | "hu" | "it" | "pl";
+export const LOCALES: Locale[] = ["az", "en", "tr", "de", "hu", "it", "pl"];
 export const LOCALE_NAMES: Record<Locale, string> = {
   az: "Azərbaycan", en: "English", tr: "Türkçe", de: "Deutsch",
+  hu: "Magyar", it: "Italiano", pl: "Polski",
 };
 
 // Registered lazily by LocaleProvider so this module has no import cycle with the big dicts.

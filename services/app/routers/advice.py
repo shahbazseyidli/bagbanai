@@ -1,8 +1,20 @@
 """AI advice + per-field chatbot + notifications (§AI advice/chat)."""
 import json
 
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
+
+_LOCALES = {"az", "en", "tr", "de", "hu", "it", "pl"}
+
+
+def _resolve_locale(request: Request, body_locale: Optional[str]) -> str:
+    """Prefer an explicit body locale, else the bagban_locale cookie, else az."""
+    for cand in (body_locale, request.cookies.get("bagban_locale")):
+        if cand and cand in _LOCALES:
+            return cand
+    return "az"
 
 from ..ai import advice as advice_svc
 from ..ai import chat as chat_svc
@@ -16,6 +28,7 @@ router = APIRouter(prefix="/api", tags=["ai"])
 
 class ChatIn(BaseModel):
     message: str
+    locale: Optional[str] = None
 
 
 @router.get("/fields/{field_id}/advice")
@@ -36,13 +49,15 @@ async def get_advice(field_id: str, user_id: str = Depends(get_current_user_id))
 
 
 @router.post("/fields/{field_id}/advice/generate")
-async def generate_advice(field_id: str, user_id: str = Depends(get_current_user_id)):
+async def generate_advice(field_id: str, request: Request,
+                          user_id: str = Depends(get_current_user_id)):
     if not llm.is_configured():
         raise HTTPException(status_code=503, detail="ai_not_configured")
+    locale = _resolve_locale(request, None)
     async with connection(user_id) as conn:
         org_id = await _org_of_field(conn, field_id)
         await require_member(conn, user_id, org_id)
-        result = await advice_svc.generate_and_store(conn, field_id, force=True)
+        result = await advice_svc.generate_and_store(conn, field_id, force=True, lang=locale)
     if result is None:
         raise HTTPException(status_code=503, detail="ai_unavailable")
     return result
@@ -58,15 +73,17 @@ async def get_chat(field_id: str, user_id: str = Depends(get_current_user_id)):
 
 
 @router.post("/fields/{field_id}/chat")
-async def post_chat(field_id: str, body: ChatIn, user_id: str = Depends(get_current_user_id)):
+async def post_chat(field_id: str, body: ChatIn, request: Request,
+                    user_id: str = Depends(get_current_user_id)):
     if not body.message.strip():
         raise HTTPException(status_code=400, detail="empty_message")
     if not llm.is_configured():
         raise HTTPException(status_code=503, detail="ai_not_configured")
+    locale = _resolve_locale(request, body.locale)
     async with connection(user_id) as conn:
         org_id = await _org_of_field(conn, field_id)
         await require_member(conn, user_id, org_id)
-        reply = await chat_svc.answer(conn, field_id, user_id, body.message)
+        reply = await chat_svc.answer(conn, field_id, user_id, body.message, locale=locale)
     if reply is None:
         raise HTTPException(status_code=503, detail="ai_unavailable")
     return {"reply": reply}

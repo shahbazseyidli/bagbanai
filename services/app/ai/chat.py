@@ -9,12 +9,54 @@ from typing import Optional
 from . import llm, usage as ai_usage
 from .context import build_field_context
 
+# Persona is language-neutral; the reply language is decided per turn by _lang_directive so a farmer
+# gets answers in whatever language they write (Phase 4 — 7 locales).
 SYSTEM = (
-    "Sən Bağban AI — Azərbaycan fermeri üçün sahə üzrə aqronom köməkçisən. Sənə həmin "
+    "Sən Bağban AI — fermerlər üçün sahə üzrə aqronom köməkçisən. Sənə həmin "
     "sahənin peyk indeksləri, məhsul məlumatı, görülmüş işlər və son AI məsləhəti kontekst "
-    "kimi verilir. Suallara BU kontekstə əsaslanaraq, qısa və praktiki, Azərbaycan dilində "
+    "kimi verilir. Suallara BU kontekstə əsaslanaraq, qısa və praktiki "
     "cavab ver. Bilmədiyini uydurma; məlumat çatışmırsa bunu de. Fermerə birbaşa müraciət et."
 )
+
+# Locale code → English language name the model reliably recognizes.
+LANG_NAMES = {
+    "az": "Azerbaijani (Azərbaycan dili)", "en": "English", "tr": "Turkish (Türkçe)",
+    "de": "German (Deutsch)", "hu": "Hungarian (Magyar)", "it": "Italian (Italiano)",
+    "pl": "Polish (Polski)",
+}
+
+
+def _lang_directive(locale: str) -> str:
+    """Reply in the language the farmer wrote in; fall back to their UI locale when ambiguous."""
+    name = LANG_NAMES.get(locale, LANG_NAMES["az"])
+    return ("\n\nDİL QAYDASI: İstifadəçinin sualını hansı dildə yazdığını müəyyən et və cavabı "
+            f"MÜTLƏQ EYNİ dildə ver. Dil qeyri-müəyyəndirsə cavabı {name} dilində ver.")
+
+
+# Tier-gate messages, localized (fall back to az). Shown when chat is unavailable / quota is spent.
+_GATE_PAID = {
+    "az": "AI söhbət Pro (10 AZN) və Business paketlərindədir. Paketi yüksəldin.",
+    "en": "AI chat is on the Pro (10 AZN) and Business plans. Please upgrade.",
+    "tr": "AI sohbet Pro (10 AZN) ve Business paketlerindedir. Paketi yükseltin.",
+    "de": "KI-Chat ist in den Paketen Pro (10 AZN) und Business enthalten. Bitte upgraden.",
+    "hu": "Az AI-csevegés a Pro (10 AZN) és Business csomagban érhető el. Kérjük, váltson magasabb csomagra.",
+    "it": "La chat AI è nei piani Pro (10 AZN) e Business. Esegui l'upgrade.",
+    "pl": "Czat AI jest w planach Pro (10 AZN) i Business. Przejdź na wyższy plan.",
+}
+_GATE_LIMIT = {
+    "az": "Bu ay AI söhbət limitiniz ({n} mesaj) bitib. Növbəti ay yenilənir və ya paketi yüksəldin.",
+    "en": "You've reached this month's AI chat limit ({n} messages). It resets next month — or upgrade.",
+    "tr": "Bu ayki AI sohbet limitiniz ({n} mesaj) doldu. Gelecek ay yenilenir ya da paketi yükseltin.",
+    "de": "Ihr KI-Chat-Limit für diesen Monat ({n} Nachrichten) ist erreicht. Es wird nächsten Monat zurückgesetzt — oder upgraden.",
+    "hu": "Elérte a havi AI-csevegési korlátot ({n} üzenet). Jövő hónapban visszaáll — vagy váltson csomagot.",
+    "it": "Hai raggiunto il limite di chat AI di questo mese ({n} messaggi). Si azzera il mese prossimo — o esegui l'upgrade.",
+    "pl": "Osiągnięto miesięczny limit czatu AI ({n} wiadomości). Zresetuje się w przyszłym miesiącu — lub przejdź na wyższy plan.",
+}
+
+
+def _gate(table: dict, locale: str) -> str:
+    return table.get(locale) or table["az"]
+
 
 HISTORY_LIMIT = 12
 
@@ -36,7 +78,7 @@ async def history(conn, field_id: str) -> list[dict]:
              "created_at": r["created_at"].isoformat()} for r in rows]
 
 
-async def answer(conn, field_id: str, user_id: str, message: str) -> Optional[str]:
+async def answer(conn, field_id: str, user_id: str, message: str, locale: str = "az") -> Optional[str]:
     if not llm.is_configured():
         return None
 
@@ -52,9 +94,9 @@ async def answer(conn, field_id: str, user_id: str, message: str) -> Optional[st
     tier = await tiers.org_tier(conn, org_id)
     chat_limit = tiers.limit(tier, "chat_per_month")
     if chat_limit <= 0:
-        return "AI söhbət Pro (10 AZN) və Business paketlərindədir. Paketi yüksəldin."
+        return _gate(_GATE_PAID, locale)
     if await tiers.month_count(conn, org_id, "chat") >= chat_limit:
-        return f"Bu ay AI söhbət limitiniz ({chat_limit} mesaj) bitib. Növbəti ay yenilənir və ya paketi yüksəldin."
+        return _gate(_GATE_LIMIT, locale).format(n=chat_limit)
     tier_model = tiers.model_for(tier)
 
     ctx = await build_field_context(conn, field_id)
@@ -66,7 +108,7 @@ async def answer(conn, field_id: str, user_id: str, message: str) -> Optional[st
         f = latest["findings"] if isinstance(latest["findings"], dict) else json.loads(latest["findings"] or "{}")
         ctx_block["latest_advice"] = {"summary": latest["summary"], **f}
 
-    system = SYSTEM + "\n\nKONTEKST (JSON):\n" + json.dumps(ctx_block, ensure_ascii=False)
+    system = SYSTEM + _lang_directive(locale) + "\n\nKONTEKST (JSON):\n" + json.dumps(ctx_block, ensure_ascii=False)
     msgs = await _load_history(conn, field_id)
     msgs.append({"role": "user", "content": message})
 
