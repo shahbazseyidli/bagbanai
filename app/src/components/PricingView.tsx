@@ -24,7 +24,7 @@ export default function PricingView() {
       <div className="flex items-center justify-center gap-2 rounded-xl border-[1.5px] border-emerald-200 bg-emerald-50 px-4 py-3 text-center">
         <Gift className="h-5 w-5 shrink-0 text-emerald-600" aria-hidden="true" />
         <p className="text-sm font-medium text-emerald-900">
-          Hər yeni hesab avtomatik <b>1 ay pulsuz Pro</b> alır — kart lazım deyil, sonra Pulsuz paketə keçir.
+          {t("mkt.pkg.trialPre")}<b>{t("mkt.pkg.trialBold")}</b>{t("mkt.pkg.trialPost")}
         </p>
       </div>
 

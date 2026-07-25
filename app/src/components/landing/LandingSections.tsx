@@ -396,18 +396,24 @@ export function ModuleRows() {
 /* ----------------------------------------------------------------- why us */
 
 function CmpCell({ v }: { v: string }) {
+  // v is an enum CODE ("var"/"yox"/"məhdud"/"qismən"); the code stays, only the display is localized.
   if (v === "var")
     return (
       <span className="inline-flex items-center gap-1 font-bold text-grass">
-        <Check className="h-4 w-4" aria-hidden="true" /> var
+        <Check className="h-4 w-4" aria-hidden="true" /> {t("mkt.sections.cmpYes")}
       </span>
     );
-  return <span className="lp-muted">{v}</span>;
+  const label =
+    v === "yox" ? t("mkt.sections.cmpNo")
+    : v === "məhdud" ? t("mkt.sections.cmpLimited")
+    : v === "qismən" ? t("mkt.sections.cmpPartial")
+    : v;
+  return <span className="lp-muted">{label}</span>;
 }
 
 export function WhyUs() {
-  // NOTE: the 2nd–4th tuple values ("yox"/"var"/"məhdud"/"qismən") are ENUM CODES compared in
-  // CmpCell (v === "var"); they are intentionally NOT translated here. Only the feature label is.
+  // The 2nd–4th tuple values ("yox"/"var"/"məhdud"/"qismən") are ENUM CODES; CmpCell compares the
+  // code (v === "var") and localizes the DISPLAY, so the codes stay in the data unchanged.
   const CMP: Array<[string, string, string, string]> = [
     [t("mkt.sections.cmpRow1"), "yox", "yox", "var"],
     [t("mkt.sections.cmpRow2"), "məhdud", "yox", "var"],

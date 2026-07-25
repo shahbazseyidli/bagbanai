@@ -41,6 +41,7 @@ import {
   X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { t } from "@/lib/i18n";
 import {
   SEGMENT_LIST,
   type IconKey,
@@ -99,7 +100,7 @@ function SectionHead({ title, sub }: { title: string; sub?: string }) {
 function SampleTag() {
   return (
     <span className="absolute right-3 top-3 z-10 rounded-full bg-panel/90 px-2.5 py-1 text-[11px] font-bold text-[color:var(--brand-muted)] shadow-sm">
-      nümunə
+      {t("mkt.solution.sampleTag")}
     </span>
   );
 }
@@ -127,10 +128,10 @@ function FieldVisual() {
       </div>
       <div className="absolute inset-x-3 bottom-3 rounded-xl border border-line bg-panel p-3 shadow-soft sm:left-auto sm:right-3 sm:max-w-[260px]">
         <p className="mb-1 flex items-center gap-1.5 text-[12px] font-bold text-[color:var(--green)]">
-          <Brain className="h-3.5 w-3.5" aria-hidden="true" /> AI Aqronom
+          <Brain className="h-3.5 w-3.5" aria-hidden="true" /> {t("mkt.solution.aiAgronom")}
         </p>
         <p className="text-[12.5px] leading-snug text-[color:var(--brand-ink-2)]">
-          Şimal-qərb zonasında nəmlik düşüb — suvarma və yerində yoxlama tövsiyə olunur.
+          {t("mkt.solution.sampleAdvice")}
         </p>
       </div>
     </div>
@@ -200,15 +201,15 @@ function ProviderVisual({
 
 function ClientsVisual() {
   const rows = [
-    { score: 38, color: "var(--ndvi-1)", name: "Müştəri C · üzüm", note: "diqqət" },
-    { score: 54, color: "var(--ndvi-2)", name: "Müştəri A · fındıq", note: "" },
-    { score: 82, color: "var(--ndvi-5)", name: "Müştəri B · buğda", note: "" },
+    { score: 38, color: "var(--ndvi-1)", name: t("mkt.solution.clientC"), note: t("mkt.solution.attention") },
+    { score: 54, color: "var(--ndvi-2)", name: t("mkt.solution.clientA"), note: "" },
+    { score: 82, color: "var(--ndvi-5)", name: t("mkt.solution.clientB"), note: "" },
   ];
   return (
     <div className="relative h-full min-h-[320px] w-full bg-panel-2 p-5">
       <SampleTag />
       <p className="mb-3 flex items-center gap-2 text-[13px] font-bold text-[color:var(--brand-ink-2)]">
-        <Users className="h-4 w-4" aria-hidden="true" /> Müştəri sahələri · ən pis birinci
+        <Users className="h-4 w-4" aria-hidden="true" /> {t("mkt.solution.clientsHeader")}
       </p>
       <div className="space-y-2.5">
         {rows.map((r) => (
@@ -230,7 +231,7 @@ function ClientsVisual() {
         ))}
       </div>
       <p className="mt-3 text-[12.5px] text-[color:var(--brand-muted)]">
-        Sağlamlıq balı sahənin indeks, hava və qeyd məlumatından hesablanır.
+        {t("mkt.solution.healthScoreNote")}
       </p>
     </div>
   );
@@ -238,15 +239,15 @@ function ClientsVisual() {
 
 function CatalogVisual() {
   const items = [
-    { name: "Karbamid (N 46%)", cat: "Gübrə" },
-    { name: "Fındıq üçün yarpaq gübrəsi", cat: "Gübrə" },
-    { name: "Damcı suvarma dəsti", cat: "Avadanlıq" },
+    { name: t("mkt.solution.catUrea"), cat: t("mkt.solution.catFertilizer") },
+    { name: t("mkt.solution.catFoliar"), cat: t("mkt.solution.catFertilizer") },
+    { name: t("mkt.solution.catDrip"), cat: t("mkt.solution.catEquipment") },
   ];
   return (
     <div className="relative h-full min-h-[320px] w-full bg-panel-2 p-5">
       <SampleTag />
       <p className="mb-3 flex items-center gap-2 text-[13px] font-bold text-[color:var(--brand-ink-2)]">
-        <Boxes className="h-4 w-4" aria-hidden="true" /> Kataloq · təchizatçı profili
+        <Boxes className="h-4 w-4" aria-hidden="true" /> {t("mkt.solution.catalogHeader")}
       </p>
       <div className="space-y-2.5">
         {items.map((it) => (
@@ -266,7 +267,7 @@ function CatalogVisual() {
         ))}
       </div>
       <p className="mt-3 text-[12.5px] text-[color:var(--brand-muted)]">
-        Fermer region və kateqoriya üzrə filtrləyir, sonra birbaşa yazır.
+        {t("mkt.solution.catalogNote")}
       </p>
     </div>
   );
@@ -280,10 +281,10 @@ function HeroVisual({ visual, accent }: { visual: VisualKey; accent: string }) {
     <ProviderVisual
       initials="La"
       accent={accent}
-      name="Laboratoriya profili"
-      tags={["Torpaq analizi", "NPK · pH", "Region: Quba, Xaçmaz"]}
-      meta={["Kataloqda belə görünür", "Fermer birbaşa yazır"]}
-      actions={["Müraciət et", "Profil"]}
+      name={t("mkt.solution.labProfile")}
+      tags={[t("mkt.solution.tagSoilAnalysis"), t("mkt.solution.tagNpkPh"), t("mkt.solution.tagRegionQuba")]}
+      meta={[t("mkt.solution.metaCatalog"), t("mkt.solution.metaDirectMsg")]}
+      actions={[t("mkt.solution.actionApply"), t("mkt.solution.actionProfile")]}
     />
   );
 }
@@ -297,7 +298,7 @@ export default function SolutionView({ segment }: { segment: Segment }) {
   return (
     <div className="-mx-4 -mt-6 -mb-24 bg-paper px-4 pt-6 pb-24 md:-mb-6 md:pb-8">
       {/* segment switcher — the mockup's .soltabs, as real links */}
-      <nav aria-label="Həllər" className="mb-2 flex flex-wrap justify-center gap-2">
+      <nav aria-label={t("mkt.solution.navAria")} className="mb-2 flex flex-wrap justify-center gap-2">
         {SEGMENT_LIST.map((s) => {
           const Icon = ICONS[s.tabIcon];
           const on = s.slug === segment.slug;
@@ -434,7 +435,7 @@ export default function SolutionView({ segment }: { segment: Segment }) {
                   {f.title}
                   {f.soon && (
                     <span className="rounded-full bg-[color:var(--amber-soft)] px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[color:var(--amber)]">
-                      Yaxında
+                      {t("mkt.solution.soon")}
                     </span>
                   )}
                 </h3>
@@ -568,7 +569,7 @@ export default function SolutionView({ segment }: { segment: Segment }) {
             href="/pricing"
             className="inline-flex min-h-11 items-center justify-center rounded-full border-[1.5px] border-grass-deep px-5 text-sm font-bold text-grass-deep transition-colors hover:bg-panel"
           >
-            Paketlərə bax
+            {t("mkt.solution.viewPackages")}
           </Link>
         </div>
       </section>
@@ -633,7 +634,7 @@ export default function SolutionView({ segment }: { segment: Segment }) {
       {/* --------------------------------------------------- other roles */}
       <section className="pb-4">
         <p className="mb-3 text-center text-[13px] font-bold uppercase tracking-[0.14em] text-[color:var(--brand-muted)]">
-          digər rollar
+          {t("mkt.solution.otherRoles")}
         </p>
         <div className="grid gap-3 lg:grid-cols-3">
           {SEGMENT_LIST.filter((s) => s.slug !== segment.slug).map((s) => {

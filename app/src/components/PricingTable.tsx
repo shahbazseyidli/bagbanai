@@ -8,18 +8,15 @@ import { t, type I18nKey } from "@/lib/i18n";
 // free-core line makes clear the satellite health map + weather are always free.
 const ICON = [Sprout, Leaf, Gem] as const;
 
-/** Turn a tier's comparison value into a readable bullet detail ("" when it's a plain ✅). */
-function detailOf(v: string): string {
-  if (v === "✅") return "";
-  return v.replace(/^✅\s*\+?\s*/, "").replace(/^🎁\s*/, "").trim();
-}
-
 function bulletsFor(tierIdx: number) {
-  return FEATURES.filter((f) => f.values[tierIdx] !== "✕").map((f) => ({
-    label: f.label,
-    detail: detailOf(f.values[tierIdx]),
-    soon: f.soon,
-  }));
+  return FEATURES.filter((f) => f.tiers[tierIdx].on).map((f) => {
+    const cell = f.tiers[tierIdx];
+    return {
+      labelKey: f.labelKey,
+      noteKey: cell.on ? cell.note : undefined, // narrowed: cell.on is true here
+      soon: f.soon,
+    };
+  });
 }
 
 export default function PricingTable({ showCta = true }: { showCta?: boolean }) {
@@ -77,11 +74,11 @@ export default function PricingTable({ showCta = true }: { showCta?: boolean }) 
 
               <ul className="mt-4 space-y-2">
                 {bullets.map((b) => (
-                  <li key={b.label} className="flex items-start gap-2 text-sm">
+                  <li key={b.labelKey} className="flex items-start gap-2 text-sm">
                     <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
                     <span className="text-slate-700">
-                      {b.label}
-                      {b.detail && <span className="text-slate-500"> — {b.detail}</span>}
+                      {t(b.labelKey)}
+                      {b.noteKey && <span className="text-slate-500"> — {t(b.noteKey)}</span>}
                       {b.soon && (
                         <span className="ml-1.5 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
                           {t("price.soon")}
