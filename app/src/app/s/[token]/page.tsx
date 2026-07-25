@@ -13,6 +13,7 @@ import { Leaf, MapPin, Ruler, Satellite, CalendarDays, ArrowRight, Link2Off } fr
 import { api } from "@/lib/api";
 import { Spinner } from "@/components/ui";
 import { cropLabelOf } from "@/lib/insights";
+import { interpret } from "@/lib/indexStatus";
 import { t } from "@/lib/i18n";
 import type { Polygon } from "@/lib/types";
 
@@ -117,7 +118,13 @@ export default function PublicSharePage() {
     );
   }
 
-  const tone: Tone = card.index.tone ?? "warn";
+  // Localize the NDVI verdict on the client from the value via interpret() (fully i18n'd in all 7
+  // languages) instead of the backend's Azerbaijani-only status/text — otherwise the share card
+  // always read Azerbaijani regardless of the viewer's language.
+  const interp = card.index.value != null ? interpret("NDVI", card.index.value) : null;
+  const tone: Tone = interp?.tone ?? card.index.tone ?? "warn";
+  const idxStatus = interp?.status ?? card.index.status;
+  const idxText = interp?.note ?? card.index.text;
   const ui = TONE_UI[tone];
   const cropLabel = card.field.crop_type ? cropLabelOf(card.field.crop_type) : null;
 
@@ -161,14 +168,14 @@ export default function PublicSharePage() {
             </p>
             <p className={`mt-1 text-2xl font-bold ${ui.text}`}>
               {card.index.value != null ? card.index.value.toFixed(2) : "—"}
-              {card.index.status && (
-                <span className="ml-2 align-middle text-base font-semibold">· {card.index.status}</span>
+              {idxStatus && (
+                <span className="ml-2 align-middle text-base font-semibold">· {idxStatus}</span>
               )}
             </p>
           </div>
         </div>
         <p className="mt-2 text-sm text-slate-700">
-          {card.index.text ?? t("app.s.noSatelliteYet")}
+          {idxText ?? t("app.s.noSatelliteYet")}
         </p>
         {card.index.date && (
           <p className="mt-1 text-xs text-slate-500">{t("app.s.latestSceneLabel")}{fmtDate(card.index.date)}</p>

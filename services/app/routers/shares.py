@@ -223,17 +223,19 @@ async def public_share(token: str):
                 raise HTTPException(status_code=404, detail="not_found")
 
         field_id = str(row["field_id"])
+        # Prefer Sentinel-2 (10m, sensor='S2') over NASA HLS (30m, 'S30'/'L30') — the public card is a
+        # "main view" and must show the finer S2 scene; NASA only fills in when no S2 exists.
         stat = await conn.fetchrow(
             """select mean, acquired_at from public.index_stats
                where field_id=$1::uuid and index_name=$2
-               order by acquired_at desc limit 1""", field_id, PUBLIC_INDEX)
+               order by (sensor = 'S2') desc, acquired_at desc limit 1""", field_id, PUBLIC_INDEX)
 
         raster = None
         if row["include_ndvi"]:
             raster = await conn.fetchrow(
                 """select storage_path, acquired_at from public.index_rasters
                    where field_id=$1::uuid and index_name=$2
-                   order by acquired_at desc limit 1""", field_id, PUBLIC_INDEX)
+                   order by (sensor = 'S2') desc, acquired_at desc limit 1""", field_id, PUBLIC_INDEX)
 
         # Counter update stays inside the same transaction; single indexed row, no contention risk.
         await conn.execute(
