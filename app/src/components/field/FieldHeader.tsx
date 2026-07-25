@@ -19,6 +19,7 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { api } from "@/lib/api";
 import { t } from "@/lib/i18n";
+import { wellnessHeadline } from "@/lib/wellnessText";
 import StatusChip from "@/components/StatusChip";
 import { cropLabelOf } from "@/lib/insights";
 import type { Tone } from "@/lib/indexStatus";
@@ -30,6 +31,8 @@ interface WellnessLite {
   score?: number | null;
   tone?: string | null;
   headline?: string | null;
+  headline_code?: string | null;
+  headline_params?: Record<string, unknown> | null;
   computed_on?: string | null;
 }
 
@@ -151,7 +154,7 @@ export default function FieldHeader({
         return {
           score: Math.round(raw),
           tone: toneOf(w?.tone, raw),
-          headline: w?.headline ?? null,
+          headline: wellnessHeadline(w?.headline_code, w?.headline_params, w?.headline) || null,
           computedOn: w?.computed_on ?? null,
         };
       }).then((v) => {

@@ -131,15 +131,19 @@ async def _vegetation(conn, field_id: str, crop_type: Optional[str]) -> Optional
         """select p10, p50, p90, n from public.field_index_baseline
            where field_id=$1::uuid and index_name='NDVI' and week=$2""", field_id, row["wk"])
     baseline_used = None
+    baseline_pos = None  # below | within | above — localizable enum for the frontend renderer
     if base and base["n"] is not None and base["n"] >= MIN_HISTORY and base["p50"] is not None:
         baseline_used = _baseline_score(
             latest, float(base["p10"] or 0.0), float(base["p50"]), float(base["p90"] or base["p50"]))
         score = 0.6 * level + 0.4 * baseline_used
         if latest < float(base["p10"] or 0.0):
+            baseline_pos = "below"
             parts.append("öz çoxillik normasından aşağı")
         elif latest > float(base["p90"] or base["p50"]):
+            baseline_pos = "above"
             parts.append("öz normasından yuxarı")
         else:
+            baseline_pos = "within"
             parts.append("öz norması daxilində")
 
     trend, delta = None, None
@@ -159,9 +163,15 @@ async def _vegetation(conn, field_id: str, crop_type: Optional[str]) -> Optional
         "value": round(latest, 3),
         "sensor": family,
         "reason": ", ".join(parts) + ".",
+        # Machine-readable twin of `reason`: a stable code + the raw params the frontend renders in
+        # the active locale. `reason` above stays the AZ fallback. veg is a COMPOSITE the frontend
+        # assembles from these flags (calibrated / baseline / delta).
         "extra": {"level_score": round(level, 1),
                   "baseline_score": round(baseline_used, 1) if baseline_used is not None else None,
                   "trend": trend, "delta": delta, "calibrated": calibrated,
+                  "baseline": baseline_pos,
+                  "reason_code": "veg",
+                  "reason_params": {"ndvi": f"{latest:.2f}", "crop": crop_type},
                   "measured_on": row["acquired_at"].isoformat() if row["acquired_at"] else None},
     }
 
@@ -185,16 +195,22 @@ async def _water(conn, field_id: str) -> Optional[dict]:
         if dr <= raw:
             score = 100.0 - 40.0 * (dr / raw)
             why = "kök zonasında su ehtiyatı kifayətdir"
+            code = "water.sufficient"
         else:
             score = 60.0 - 60.0 * min(1.0, (dr - raw) / max(taw - raw, 1e-6))
             why = "su ehtiyatı kritik həddi keçib — suvarma lazımdır"
+            code = "water.critical"
         reco = _f(wb["reco_mm"])
         if reco:
             why += f" (tövsiyə ≈ {reco:.0f} mm)"
+        params = {"depletion": int(round(dr)), "raw": int(round(raw))}
+        if reco:
+            params["reco"] = int(round(reco))
         return {"score": round(_clamp(score), 1), "value": round(dr, 1), "sensor": None,
                 "reason": f"Su balansı: çatışmazlıq {dr:.0f} mm / RAW {raw:.0f} mm — {why}.",
                 "extra": {"source": "water_balance", "depletion_mm": round(dr, 1),
-                          "raw_mm": round(raw, 1), "taw_mm": round(taw, 1), "reco_mm": reco}}
+                          "raw_mm": round(raw, 1), "taw_mm": round(taw, 1), "reco_mm": reco,
+                          "reason_code": code, "reason_params": params}}
 
     ndmi = await conn.fetchrow(
         """select mean, sensor from public.index_stats
@@ -207,7 +223,8 @@ async def _water(conn, field_id: str) -> Optional[dict]:
         score = _clamp((v + 0.05) / 0.45 * 100.0)
         return {"score": round(score, 1), "value": round(v, 3), "sensor": _sensor_family(ndmi["sensor"]),
                 "reason": f"Peyk nəmlik siqnalı NDMI {v:.2f} (torpaq-su balansı hesablanmayıb).",
-                "extra": {"source": "ndmi"}}
+                "extra": {"source": "ndmi",
+                          "reason_code": "water.ndmi", "reason_params": {"ndmi": f"{v:.2f}"}}}
     return None
 
 
@@ -231,12 +248,15 @@ async def _pest(conn, field_id: str, crop_type: Optional[str]) -> Optional[dict]
     score = _clamp(100.0 - 30.0 * n, 10.0, 100.0)
     if n == 0:
         reason = f"Aktiv zərərverici/xəstəlik pəncərəsi yoxdur (GDD {float(gdd):.0f})."
+        code, params = "pest.none", {"gdd": int(round(float(gdd)))}
     else:
         names = ", ".join(c["rule_type"].split(":", 1)[-1] for c in candidates[:3])
         reason = f"{n} aktiv risk pəncərəsi: {names}."
+        code, params = "pest.active", {"n": n, "names": names}
     return {"score": round(score, 1), "value": n, "sensor": None, "reason": reason,
             "extra": {"active": n, "gdd": round(float(gdd), 1),
-                      "pests": [c["rule_type"].split(":", 1)[-1] for c in candidates]}}
+                      "pests": [c["rule_type"].split(":", 1)[-1] for c in candidates],
+                      "reason_code": code, "reason_params": params}}
 
 
 async def _gdd(conn, field_id: str) -> Optional[dict]:
@@ -262,16 +282,21 @@ async def _gdd(conn, field_id: str) -> Optional[dict]:
     ratio = now_v / prior_v
     score = _clamp(100.0 - min(60.0, abs(ratio - 1.0) * 200.0), 40.0, 100.0)
     pct = round((ratio - 1.0) * 100.0, 1)
+    gdd_i = int(round(now_v))
     if pct <= -5:
         why = f"keçən mövsümün bu vaxtından {abs(pct):.0f}% geri"
+        code, params = "gdd.behind", {"gdd": gdd_i, "pct": int(round(abs(pct)))}
     elif pct >= 5:
         why = f"keçən mövsümün bu vaxtından {pct:.0f}% qabaq"
+        code, params = "gdd.ahead", {"gdd": gdd_i, "pct": int(round(pct))}
     else:
         why = "keçən mövsümlə eyni templə"
+        code, params = "gdd.onpace", {"gdd": gdd_i}
     return {"score": round(score, 1), "value": round(now_v, 1), "sensor": None,
             "reason": f"İstilik toplanması {now_v:.0f} GDD — {why}.",
             "extra": {"current": round(now_v, 1), "prior": round(prior_v, 1),
-                      "prior_season": prior["season_year"], "pct_diff": pct, "doy": cur["doy"]}}
+                      "prior_season": prior["season_year"], "pct_diff": pct, "doy": cur["doy"],
+                      "reason_code": code, "reason_params": params}}
 
 
 def _tone(score: float) -> str:
@@ -295,6 +320,21 @@ def _headline(score: int, tone: str, worst_key: Optional[str], worst_score: Opti
     return f"Sahədə ciddi problem var ({score}/100)."
 
 
+def _headline_code(score: int, tone: str, worst_key: Optional[str],
+                   worst_score: Optional[float]) -> tuple[str, dict]:
+    """Machine-readable twin of `_headline`: a stable code + raw params the frontend renders in the
+    active locale. The AZ string from `_headline` is kept alongside as the fallback."""
+    if tone == "good":
+        return "headline.good", {"score": score}
+    if tone == "warn":
+        if worst_key and worst_score is not None:
+            return "headline.warn.worst", {"worst_key": worst_key, "worst": int(round(worst_score))}
+        return "headline.warn.generic", {"score": score}
+    if worst_key and worst_score is not None:
+        return "headline.bad.worst", {"worst_key": worst_key, "worst": int(round(worst_score))}
+    return "headline.bad.generic", {"score": score}
+
+
 async def compute_wellness(conn, field_id: str, *, store: bool = True) -> dict[str, Any]:
     """Compute (and by default upsert) today's wellness score for one field.
 
@@ -307,7 +347,8 @@ async def compute_wellness(conn, field_id: str, *, store: bool = True) -> dict[s
     if not frow:
         return {"available": False, "field_id": field_id, "reason": "field_not_found",
                 "missing": list(WEIGHTS), "missing_labels": [LABELS[k] for k in WEIGHTS],
-                "components": {}, "headline": "Sahə tapılmadı."}
+                "components": {}, "headline": "Sahə tapılmadı.",
+                "headline_code": "headline.fieldNotFound", "headline_params": {}}
     org_id, crop_type = str(frow["org_id"]), frow["crop_type"]
 
     raw: dict[str, Optional[dict]] = {
@@ -323,7 +364,8 @@ async def compute_wellness(conn, field_id: str, *, store: bool = True) -> dict[s
         return {"available": False, "field_id": field_id, "reason": "no_inputs",
                 "score": None, "tone": None, "components": {},
                 "missing": missing, "missing_labels": [LABELS[k] for k in missing],
-                "headline": "Hələ kifayət qədər məlumat yoxdur — peyk və hava məlumatı toplandıqca bal hesablanacaq."}
+                "headline": "Hələ kifayət qədər məlumat yoxdur — peyk və hava məlumatı toplandıqca bal hesablanacaq.",
+                "headline_code": "headline.noInputs", "headline_params": {}}
 
     total_w = sum(WEIGHTS[k] for k in present)
     score_f = sum(present[k]["score"] * (WEIGHTS[k] / total_w) for k in present)
@@ -344,7 +386,9 @@ async def compute_wellness(conn, field_id: str, *, store: bool = True) -> dict[s
         }
 
     worst_key = min(present, key=lambda k: present[k]["score"])
-    headline = _headline(score, tone, worst_key, float(present[worst_key]["score"]))
+    worst_score = float(present[worst_key]["score"])
+    headline = _headline(score, tone, worst_key, worst_score)
+    headline_code, headline_params = _headline_code(score, tone, worst_key, worst_score)
     sensor = (present.get("ndvi") or {}).get("sensor")
 
     if store:
@@ -366,7 +410,8 @@ async def compute_wellness(conn, field_id: str, *, store: bool = True) -> dict[s
 
     return {
         "available": True, "field_id": field_id, "score": score, "tone": tone,
-        "headline": headline, "sensor": sensor, "components": components,
+        "headline": headline, "headline_code": headline_code, "headline_params": headline_params,
+        "sensor": sensor, "components": components,
         "missing": missing, "missing_labels": [LABELS[k] for k in missing],
         "worst": worst_key, "fresh": True,
     }
@@ -389,9 +434,17 @@ async def load_wellness(conn, field_id: str) -> Optional[dict[str, Any]]:
             comps = {}
     missing = list(row["missing"] or [])
     worst = min(comps, key=lambda k: comps[k].get("score", 100)) if comps else None
+    # Reconstruct the localizable headline twin from the stored row — no schema/write change needed:
+    # score + tone + the worst component (from the components jsonb) are all we require.
+    worst_score = comps[worst].get("score") if (worst and comps) else None
+    headline_code, headline_params = _headline_code(
+        int(row["score"]) if row["score"] is not None else 0,
+        row["tone"] or _tone(float(row["score"] or 0)), worst,
+        float(worst_score) if worst_score is not None else None)
     return {
         "available": True, "field_id": field_id, "score": row["score"], "tone": row["tone"],
-        "headline": row["headline"], "sensor": row["sensor"], "components": comps or {},
+        "headline": row["headline"], "headline_code": headline_code, "headline_params": headline_params,
+        "sensor": row["sensor"], "components": comps or {},
         "missing": missing, "missing_labels": [LABELS.get(k, k) for k in missing],
         "worst": worst, "fresh": False,
         "computed_on": row["computed_on"].isoformat() if row["computed_on"] else None,

@@ -2453,6 +2453,66 @@ export const az = {
   "mkt.meta.finduqTitle": "Fındıq və bağ təsərrüfatları üçün — Bağban AI",
   "mkt.meta.finduqDesc": "Çoxillik fındıq bağı üçün qurulmuş peyk monitorinqi: örtük NDVI/NDMI, bölgənin şaxta tarixləri, çiləmə pəncərəsi, GDD, məhsuldarlıq zonaları və AI aqronom. Zaqatala, Şəki, Xudat üçün kalibrlənmiş. 1 ay pulsuz.",
   "mkt.meta.finduqOgDesc": "Çoxillik fındıq bağı üçün örtük peyk analizi, şaxta tarixləri, çiləmə pəncərəsi və AI aqronom. Fındıq üçün ayrıca kalibrlənmiş. 1 ay pulsuz, kart lazım deyil.",
+
+  // ── Backend-generated, machine-coded prose (rendered via tf() from wellnessText/pest/weather
+  // renderers). Numbers are {placeholders}; units (mm, /100, °C, km/s) and enum ids stay literal. ──
+  // Field Wellness — component reasons (app.wl.*)
+  "app.wl.label.ndvi": "Bitki örtüyü",
+  "app.wl.label.water": "Su balansı",
+  "app.wl.label.pest": "Zərərverici riski",
+  "app.wl.label.gdd": "İstilik toplanması (GDD)",
+  "app.wl.labelLower.ndvi": "bitki örtüyü",
+  "app.wl.labelLower.water": "su balansı",
+  "app.wl.labelLower.pest": "zərərverici riski",
+  "app.wl.labelLower.gdd": "istilik toplanması (gdd)",
+  // vegetation (composite — assembled from base + optional parts)
+  "app.wl.veg.base": "NDVI {ndvi}",
+  "app.wl.veg.calibrated": ", {crop} normaları üzrə",
+  "app.wl.veg.baseline.below": ", öz çoxillik normasından aşağı",
+  "app.wl.veg.baseline.above": ", öz normasından yuxarı",
+  "app.wl.veg.baseline.within": ", öz norması daxilində",
+  "app.wl.veg.trend.up": ", son həftələrdə yüksəlir",
+  "app.wl.veg.trend.down": ", son həftələrdə düşür",
+  "app.wl.veg.trend.flat": ", son həftələrdə sabit",
+  // water
+  "app.wl.water.sufficient": "Su balansı: çatışmazlıq {depletion} mm / RAW {raw} mm — kök zonasında su ehtiyatı kifayətdir.",
+  "app.wl.water.critical": "Su balansı: çatışmazlıq {depletion} mm / RAW {raw} mm — su ehtiyatı kritik həddi keçib — suvarma lazımdır.",
+  "app.wl.water.recoSuffix": " (tövsiyə ≈ {reco} mm)",
+  "app.wl.water.ndmi": "Peyk nəmlik siqnalı NDMI {ndmi} (torpaq-su balansı hesablanmayıb).",
+  // pest
+  "app.wl.pest.none": "Aktiv zərərverici/xəstəlik pəncərəsi yoxdur (GDD {gdd}).",
+  "app.wl.pest.active": "{n} aktiv risk pəncərəsi: {names}.",
+  // gdd
+  "app.wl.gdd.behind": "İstilik toplanması {gdd} GDD — keçən mövsümün bu vaxtından {pct}% geri.",
+  "app.wl.gdd.ahead": "İstilik toplanması {gdd} GDD — keçən mövsümün bu vaxtından {pct}% qabaq.",
+  "app.wl.gdd.onpace": "İstilik toplanması {gdd} GDD — keçən mövsümlə eyni templə.",
+  // headlines
+  "app.wl.headline.good": "Sahə yaxşı vəziyyətdədir ({score}/100).",
+  "app.wl.headline.warn.worst": "Diqqət: {label} zəifdir ({worst}/100).",
+  "app.wl.headline.warn.generic": "Sahə orta vəziyyətdədir ({score}/100).",
+  "app.wl.headline.bad.worst": "Risk: {label} kritik səviyyədədir ({worst}/100).",
+  "app.wl.headline.bad.generic": "Sahədə ciddi problem var ({score}/100).",
+  "app.wl.headline.noInputs": "Hələ kifayət qədər məlumat yoxdur — peyk və hava məlumatı toplandıqca bal hesablanacaq.",
+  "app.wl.headline.fieldNotFound": "Sahə tapılmadı.",
+  // Pest risk candidates (app.pestrisk.*)
+  "app.pestrisk.title": "🐛 Risk: {pest}",
+  "app.pestrisk.kind.disease": "Xəstəlik",
+  "app.pestrisk.kind.pest": "Zərərverici",
+  "app.pestrisk.body": "{kind} inkişaf pəncərəsi aktivdir (GDD {gdd}). {note} Sahəni yoxlayın. Preparat üçün Azərbaycanda qeydiyyatdan keçmiş vasitələr siyahısına baxın və aqronomla məsləhətləşin (dəqiq ad/doza AI tərəfindən verilmir).",
+  // Weather recommendations (app.weatherrec.*)
+  "app.weatherrec.water.high": "Növbəti 7 gündə təxmini su tələbatı ~{net} mm-dir (yağış çıxılmaqla). Suvarma planlaşdır.",
+  "app.weatherrec.water.mid": "Növbəti 7 gündə orta su tələbatı (~{net} mm). Torpaq nəmliyini izlə.",
+  "app.weatherrec.water.low": "Növbəti 7 gündə su balansı qənaətbəxşdir (~{net} mm net tələbat).",
+  "app.weatherrec.spray.noData": "məlumat yoxdur",
+  "app.weatherrec.spray.windLow": "külək çox zəif — inversiya, dreyf riski",
+  "app.weatherrec.spray.windHigh": "külək güclü — dreyf",
+  "app.weatherrec.spray.temp": "temperatur uyğun deyil",
+  "app.weatherrec.spray.dry": "hava quru — damcı buxarlanır",
+  "app.weatherrec.spray.rain": "yağış",
+  "app.weatherrec.spray.rainSoon": "4 saat içində yağış — yuyulma",
+  "app.weatherrec.alert.frost": "Növbəti 48 saatda minimum {tmin}°C",
+  "app.weatherrec.alert.heat": "Növbəti 48 saatda maksimum {tmax}°C (istilik stresi)",
+  "app.weatherrec.alert.wind": "Güclü külək {wind} km/s",
 } as const;
 
 export type I18nKey = keyof typeof az;
@@ -2497,4 +2557,21 @@ export function detectLocale(): Locale {
 export function t(key: I18nKey): string {
   const d = DICTS[_locale];
   return (d && d[key]) || az[key] || (key as string);
+}
+
+/**
+ * Like t(), but interpolates {placeholder} tokens in the resolved string with String(params[name]).
+ * Used to render backend-generated, machine-coded prose (wellness/pest/weather reasons) in the
+ * active locale — the codes + raw params come from the API, the sentence template lives here.
+ * Unmatched tokens are left intact. Accepts any key string (backend codes map to app.* keys that
+ * exist in the dictionaries but are not all in the I18nKey union at authoring time).
+ */
+export function tf(key: string, params?: Record<string, unknown>): string {
+  const d = DICTS[_locale] as unknown as Record<string, string> | undefined;
+  const azAny = az as unknown as Record<string, string>;
+  const raw = (d && d[key]) || azAny[key] || key;
+  if (!params) return raw;
+  return raw.replace(/\{(\w+)\}/g, (m, name) =>
+    Object.prototype.hasOwnProperty.call(params, name) ? String(params[name]) : m,
+  );
 }

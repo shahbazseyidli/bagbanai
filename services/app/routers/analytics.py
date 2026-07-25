@@ -73,7 +73,7 @@ async def org_wellness(org_id: str, user_id: str = Depends(get_current_user_id))
             return {"org_id": org_id, "as_of": today.isoformat(), "fields": []}
         rows = await conn.fetch(
             """select distinct on (w.field_id)
-                      w.field_id, w.score, w.tone, w.headline, w.sensor, w.computed_on
+                      w.field_id, w.score, w.tone, w.headline, w.sensor, w.computed_on, w.components
                from public.field_wellness w
                join public.fields f on f.id = w.field_id
                join public.farms fm on fm.id = f.farm_id
@@ -85,12 +85,28 @@ async def org_wellness(org_id: str, user_id: str = Depends(get_current_user_id))
         score = int(r["score"])
         computed_on = r["computed_on"]
         age = (today - computed_on).days if computed_on is not None else None
+        tone = r["tone"] or wellness_mod._tone(float(score))
+        # Reconstruct the localizable headline twin (code + params) from the stored components jsonb
+        # so the field-list chips render the headline in the viewer's locale. Falls back gracefully
+        # to just the score when the components blob is missing/unparsable.
+        comps = r["components"]
+        if isinstance(comps, str):
+            try:
+                comps = json.loads(comps)
+            except ValueError:
+                comps = None
+        worst = min(comps, key=lambda k: comps[k].get("score", 100)) if isinstance(comps, dict) and comps else None
+        worst_score = comps[worst].get("score") if worst else None
+        headline_code, headline_params = wellness_mod._headline_code(
+            score, tone, worst, float(worst_score) if worst_score is not None else None)
         out.append({
             "field_id": str(r["field_id"]),
             "score": score,
             # tone is NOT NULL in 0037; derive from the same thresholds if an old row lacks it.
-            "tone": r["tone"] or wellness_mod._tone(float(score)),
+            "tone": tone,
             "headline": r["headline"],
+            "headline_code": headline_code,
+            "headline_params": headline_params,
             "sensor": r["sensor"],
             "computed_on": computed_on.isoformat() if computed_on is not None else None,
             "age_days": age,

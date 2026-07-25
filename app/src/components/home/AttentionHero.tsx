@@ -13,6 +13,7 @@ import { ChevronRight, Droplets } from "lucide-react";
 import { t } from "@/lib/i18n";
 import PeerSuggest from "@/components/field/PeerSuggest";
 import { ScoreDot, bandOf, type FieldScore } from "./ScoreBadge";
+import { wellnessHeadline } from "@/lib/wellnessText";
 import type { FieldToday } from "@/lib/today";
 import type { Tone } from "@/lib/indexStatus";
 
@@ -35,7 +36,10 @@ export default function AttentionHero({
   // Tone: the stored score wins (it folds in more evidence than the index verdict); otherwise the
   // İcmal verdict; otherwise a neutral warn, since this card only renders for flagged fields.
   const tone: Tone = score ? bandOf(score) : (ft.verdict?.tone ?? "warn");
-  const headline = ft.verdict?.title ?? score?.headline ?? null;
+  const headline =
+    ft.verdict?.title ??
+    (score ? wellnessHeadline(score.headline_code, score.headline_params, score.headline) : null) ??
+    null;
   const sub = ft.verdict ? ft.verdict.sub : null;
 
   return (

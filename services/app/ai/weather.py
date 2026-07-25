@@ -56,13 +56,18 @@ async def refresh_field(conn, field_id: str, *, base: str = "https://api.open-me
     net_need = round(max(0.0, etc - precip), 1)
     if net_need >= 20:
         rec = f"Növbəti 7 gündə təxmini su tələbatı ~{net_need} mm-dir (yağış çıxılmaqla). Suvarma planlaşdır."
+        rec_code = "water.high"
     elif net_need >= 8:
         rec = f"Növbəti 7 gündə orta su tələbatı (~{net_need} mm). Torpaq nəmliyini izlə."
+        rec_code = "water.mid"
     else:
         rec = f"Növbəti 7 gündə su balansı qənaətbəxşdir (~{net_need} mm net tələbat)."
+        rec_code = "water.low"
 
+    # `recommendation` stays the AZ fallback; the *_code/params twins let the frontend localize it.
     content = {"et0_total_mm": et0, "precip_total_mm": precip, "kc": kc, "etc_mm": etc,
-               "net_irrigation_mm": net_need, "recommendation": rec, "horizon_days": 7}
+               "net_irrigation_mm": net_need, "recommendation": rec, "horizon_days": 7,
+               "recommendation_code": rec_code, "recommendation_params": {"net": net_need}}
     # T8: upgrade the coarse net-need to a full FAO-56 daily depletion balance when the field has a
     # soil profile (TAW/RAW). Falls back to the 7-day net-need above when soil data is absent.
     try:
@@ -73,6 +78,10 @@ async def refresh_field(conn, field_id: str, *, base: str = "https://api.open-me
                                 ("reco_mm", "reco_date", "recommendation", "ndmi_mismatch",
                                  "taw_mm", "raw_mm", "kc")}
             content["recommendation"] = bal["recommendation"]
+            # The FAO-56 recommendation replaces the coarse 7-day one, so the coarse code no longer
+            # describes the visible text — drop it and let the frontend fall back to the string.
+            content.pop("recommendation_code", None)
+            content.pop("recommendation_params", None)
     except Exception:  # noqa: BLE001 — irrigation upgrade is best-effort
         pass
     await kb.upsert_field_block(
@@ -89,11 +98,24 @@ async def refresh_field(conn, field_id: str, *, base: str = "https://api.open-me
 
 
 # ===== Spray window + weather alerts (v2.1 B3/E2) =====
-def _spray_suitability(hour: dict, next_hours: list) -> tuple[str, list]:
-    """Per-hour spray suitability (spec B3.3). good | marginal | unsuitable + AZ reasons."""
+# AZ reason text ⇄ stable code. The text stays the fallback; the code lets the frontend localize.
+_SPRAY_REASON_CODES: dict[str, str] = {
+    "məlumat yoxdur": "spray.noData",
+    "külək çox zəif — inversiya, dreyf riski": "spray.windLow",
+    "külək güclü — dreyf": "spray.windHigh",
+    "temperatur uyğun deyil": "spray.temp",
+    "hava quru — damcı buxarlanır": "spray.dry",
+    "yağış": "spray.rain",
+    "4 saat içində yağış — yuyulma": "spray.rainSoon",
+}
+
+
+def _spray_suitability(hour: dict, next_hours: list) -> tuple[str, list, list]:
+    """Per-hour spray suitability (spec B3.3). Returns (suitability, AZ reasons, reason codes)."""
     wind, temp, rh = hour.get("wind"), hour.get("temp"), hour.get("rh")
     if wind is None or temp is None or rh is None:
-        return "unsuitable", ["məlumat yoxdur"]
+        r = ["məlumat yoxdur"]
+        return "unsuitable", r, [_SPRAY_REASON_CODES[x] for x in r]
     reasons = []
     if wind < 3:
         reasons.append("külək çox zəif — inversiya, dreyf riski")
@@ -107,20 +129,21 @@ def _spray_suitability(hour: dict, next_hours: list) -> tuple[str, list]:
         reasons.append("yağış")
     if any((h.get("precip") or 0) > 0.2 for h in next_hours[:4]):
         reasons.append("4 saat içində yağış — yuyulma")
+    codes = [_SPRAY_REASON_CODES[x] for x in reasons]
     if not reasons:
-        return "good", []
+        return "good", [], []
     # A single soft factor (dryness) → marginal; anything else → unsuitable.
     if reasons == ["hava quru — damcı buxarlanır"]:
-        return "marginal", reasons
-    return "unsuitable", reasons
+        return "marginal", reasons, codes
+    return "unsuitable", reasons, codes
 
 
 def compute_spray_window(hours: list) -> dict:
     """Hourly suitability + the earliest good daytime window (≥2 consecutive good hours)."""
     graded = []
     for i, h in enumerate(hours):
-        s, r = _spray_suitability(h, hours[i + 1:i + 6])
-        graded.append({"ts": h["ts"], "suitability": s, "reasons": r,
+        s, r, rc = _spray_suitability(h, hours[i + 1:i + 6])
+        graded.append({"ts": h["ts"], "suitability": s, "reasons": r, "reason_codes": rc,
                        "wind": h.get("wind"), "temp": h.get("temp"), "rh": h.get("rh")})
     best = None
     run: list = []
@@ -148,15 +171,18 @@ def compute_alerts(hours: list, frost_c: Optional[float], heat_c: Optional[float
         thr = frost_c if frost_c is not None else 2.0
         if tmin <= thr:
             alerts.append({"type": "frost", "severity": "critical" if sensitive else "warning",
-                           "detail": f"Növbəti 48 saatda minimum {tmin:.0f}°C"})
+                           "detail": f"Növbəti 48 saatda minimum {tmin:.0f}°C",
+                           "detail_code": "alert.frost", "detail_params": {"tmin": int(round(tmin))}})
         tmax = max(h["temp"] for h in nxt)
         if heat_c is not None and tmax >= heat_c:
             alerts.append({"type": "heat", "severity": "warning",
-                           "detail": f"Növbəti 48 saatda maksimum {tmax:.0f}°C (istilik stresi)"})
+                           "detail": f"Növbəti 48 saatda maksimum {tmax:.0f}°C (istilik stresi)",
+                           "detail_code": "alert.heat", "detail_params": {"tmax": int(round(tmax))}})
     winds = [h["wind"] for h in hours[:48] if h.get("wind") is not None]
     if winds and max(winds) > 40:
         alerts.append({"type": "wind", "severity": "warning",
-                       "detail": f"Güclü külək {max(winds):.0f} km/s"})
+                       "detail": f"Güclü külək {max(winds):.0f} km/s",
+                       "detail_code": "alert.wind", "detail_params": {"wind": int(round(max(winds)))}})
     return alerts
 
 

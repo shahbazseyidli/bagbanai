@@ -37,6 +37,7 @@ import {
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { t } from "@/lib/i18n";
+import { wellnessHeadline } from "@/lib/wellnessText";
 import { SupportCard } from "@/components/ui/SupportCard";
 import type { Tone } from "@/lib/indexStatus";
 import type { Farm, Field, Org, Role } from "@/lib/types";
@@ -80,6 +81,8 @@ interface ScoreRow {
   score: number;
   tone: Tone | null;
   headline: string | null;
+  headline_code?: string | null;
+  headline_params?: Record<string, unknown> | null;
   stale?: boolean;
 }
 
@@ -152,7 +155,9 @@ function StatusLine({ row, score }: { row: Row; score?: ScoreRow }) {
           <Icon className="h-3 w-3 shrink-0" aria-hidden="true" />
           {pillWord(tone)}
         </span>
-        <span className="truncate">{score.headline || fallbackLine(tone)}</span>
+        <span className="truncate">
+          {wellnessHeadline(score.headline_code, score.headline_params, score.headline) || fallbackLine(tone)}
+        </span>
       </>
     );
   }

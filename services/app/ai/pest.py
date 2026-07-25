@@ -59,6 +59,7 @@ async def pest_candidates(conn, field_id: str) -> list[dict]:
             if not wet:
                 continue
         kind = "Xəstəlik" if m["pest_type"] == "disease" else "Zərərverici"
+        kind_key = "disease" if m["pest_type"] == "disease" else "pest"
         out.append({
             "rule_type": f"pest:{m['pest_name']}",
             "severity": "warning",
@@ -67,6 +68,12 @@ async def pest_candidates(conn, field_id: str) -> list[dict]:
             "body": (f"{kind} inkişaf pəncərəsi aktivdir (GDD {gdd:.0f}). {m['note'] or ''} "
                      f"Sahəni yoxlayın. Preparat üçün Azərbaycanda qeydiyyatdan keçmiş vasitələr "
                      f"siyahısına baxın və aqronomla məsləhətləşin (dəqiq ad/doza AI tərəfindən verilmir)."),
+            # Machine-readable twins; `title`/`body` above stay the AZ fallback. pest_name / note are
+            # free text and are passed through as params (never translated).
+            "title_code": "pestrisk.title",
+            "title_params": {"pest": m["pest_name"]},
+            "body_code": "pestrisk.body",
+            "body_params": {"kind_key": kind_key, "gdd": int(round(gdd)), "note": m["note"] or ""},
             "dedup_key": "",
         })
     return out

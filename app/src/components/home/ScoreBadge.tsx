@@ -7,6 +7,7 @@
 // score per field (never computed on read, see services/app/routers/analytics.py). A field with no
 // stored score renders an em-dash, NEVER an invented or back-filled number.
 import { t } from "@/lib/i18n";
+import { wellnessHeadline } from "@/lib/wellnessText";
 import type { Tone } from "@/lib/indexStatus";
 
 /** One row of GET /api/orgs/{org_id}/wellness. Fields without a stored score are simply absent. */
@@ -15,6 +16,8 @@ export interface FieldScore {
   score: number;
   tone?: string | null;
   headline?: string | null;
+  headline_code?: string | null;
+  headline_params?: Record<string, unknown> | null;
   computed_on?: string | null;
   stale?: boolean;
 }
@@ -45,7 +48,8 @@ const PILL: Record<Tone, string> = {
 /** Hover/AT detail — the stored headline + the day it was computed (never faked). */
 function detail(s?: FieldScore | null): string | undefined {
   if (!s) return undefined;
-  const bits = [s.headline, s.computed_on ? `${t("app.home.scoreBadge.computedOn")}${s.computed_on}` : null].filter(Boolean);
+  const headline = wellnessHeadline(s.headline_code, s.headline_params, s.headline);
+  const bits = [headline, s.computed_on ? `${t("app.home.scoreBadge.computedOn")}${s.computed_on}` : null].filter(Boolean);
   return bits.length ? bits.join(" · ") : undefined;
 }
 

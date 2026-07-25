@@ -9,6 +9,7 @@ import Link from "next/link";
 import { ChevronLeft, MapPin, Plus } from "lucide-react";
 import { api, azError } from "@/lib/api";
 import { t } from "@/lib/i18n";
+import { wellnessHeadline } from "@/lib/wellnessText";
 import { useAuth } from "@/lib/auth";
 import { ErrorNote } from "@/components/ui";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -27,6 +28,8 @@ interface FieldScore {
   score: number;
   tone: Tone | null;
   headline: string | null;
+  headline_code?: string | null;
+  headline_params?: Record<string, unknown> | null;
   computed_on: string | null;
   stale: boolean;
 }
@@ -46,7 +49,10 @@ function bandOf(s: FieldScore): Tone {
 
 function ScoreChip({ s }: { s: FieldScore }) {
   const band = bandOf(s);
-  const tip = [s.headline, s.computed_on ? `${t("app.fieldsList.computedOnLabel")}${s.computed_on}` : null]
+  const tip = [
+    wellnessHeadline(s.headline_code, s.headline_params, s.headline),
+    s.computed_on ? `${t("app.fieldsList.computedOnLabel")}${s.computed_on}` : null,
+  ]
     .filter(Boolean)
     .join(" · ");
   return (

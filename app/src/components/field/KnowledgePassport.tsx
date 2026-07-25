@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { BookOpen, Droplets, Mountain, Bug, CalendarDays, Wind, AlertTriangle } from "lucide-react";
 import { api } from "@/lib/api";
 import { t } from "@/lib/i18n";
+import { weatherAlert, weatherRecommendation } from "@/lib/wellnessText";
 
 // The research worker fills these blocks (knowledge layer M3/M8). This panel makes them
 // visible to the farmer so the "passport" isn't just fuel for the AI advice — degrades to
@@ -63,10 +64,21 @@ export default function KnowledgePassport({ fieldId }: { fieldId: string }) {
   const waterC = water?.content as {
     net_irrigation_mm?: number;
     recommendation?: string;
+    recommendation_code?: string | null;
+    recommendation_params?: Record<string, unknown> | null;
     fao56?: { reco_mm?: number | null; reco_date?: string | null; ndmi_mismatch?: string | null };
   } | undefined;
   const sprayC = spray?.content as
-    | { best_window?: { start: string; end: string } | null; alerts?: { type: string; severity: string; detail: string }[] }
+    | {
+        best_window?: { start: string; end: string } | null;
+        alerts?: {
+          type: string;
+          severity: string;
+          detail: string;
+          detail_code?: string | null;
+          detail_params?: Record<string, unknown> | null;
+        }[];
+      }
     | undefined;
   const fmtHour = (ts?: string) => (ts && ts.length >= 16 ? ts.slice(5, 16).replace("T", " ") : ts ?? "");
   const pestsC = pests?.content as
@@ -99,7 +111,7 @@ export default function KnowledgePassport({ fieldId }: { fieldId: string }) {
               }`}
             >
               <AlertTriangle className="h-4 w-4 shrink-0" />
-              <span>{a.detail}</span>
+              <span>{weatherAlert(a.detail_code, a.detail_params, a.detail)}</span>
             </div>
           ))}
         </div>
@@ -144,7 +156,9 @@ export default function KnowledgePassport({ fieldId }: { fieldId: string }) {
                 <span className="rounded-full bg-sky-50 px-1.5 py-0.5 text-[10px] font-medium text-sky-700">FAO-56</span>
               )}
             </div>
-            <p className="text-xs text-slate-600">{waterC.recommendation}</p>
+            <p className="text-xs text-slate-600">
+              {weatherRecommendation(waterC.recommendation_code, waterC.recommendation_params, waterC.recommendation)}
+            </p>
             {waterC.fao56?.ndmi_mismatch && (
               <p className="mt-1 flex items-start gap-1 rounded bg-amber-50 p-1.5 text-[11px] text-amber-800">
                 <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" /> {waterC.fao56.ndmi_mismatch}
