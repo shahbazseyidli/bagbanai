@@ -235,13 +235,23 @@ export default function FieldsOverviewMap({
       map.on("mouseenter", "fields-fill", () => { map.getCanvas().style.cursor = "pointer"; });
       map.on("mouseleave", "fields-fill", () => { map.getCanvas().style.cursor = ""; });
     }
-    // Draw when the style is ready; `idle` is a safety net if `load` was missed. `styledata` is a
-    // third net: on a slow first paint neither `load` nor `idle` had fired for some sessions and
-    // the panel stayed an empty grey box with only the controls and legend drawn over it.
-    if (map.isStyleLoaded()) draw();
-    else map.on("load", draw);
-    map.on("styledata", draw);
-    map.on("idle", draw);
+    // Register the listeners BEFORE attempting a synchronous draw, and never let a draw throw out
+    // of this effect. `isStyleLoaded()` can report true on a freshly constructed inline style while
+    // addSource still rejects with "style is not done loading" — that throw escaped the effect
+    // before any listener was attached, so the panel stayed an empty grey box forever (controls and
+    // legend are drawn by other code, which is why it looked like a map that had simply lost its
+    // tiles). Every other map in the app applies the basemap inside on("load") only.
+    const drawSafe = () => {
+      try {
+        draw();
+      } catch {
+        /* the style wasn't ready — the next load/styledata/idle retries */
+      }
+    };
+    map.on("load", drawSafe);
+    map.on("styledata", drawSafe);
+    map.on("idle", drawSafe);
+    if (map.isStyleLoaded()) drawSafe();
     // First idle = the earliest moment the container has certainly laid out; resize once here so
     // the map paints promptly instead of waiting for the 250/800ms safety timers.
     map.once("idle", () => map.resize());
