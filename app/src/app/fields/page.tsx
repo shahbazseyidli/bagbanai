@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, MapPin, Plus } from "lucide-react";
 import { api, azError } from "@/lib/api";
-import { t, tp } from "@/lib/i18n";
+import { t, tf, tp, type I18nKey } from "@/lib/i18n";
 import { useFormatArea } from "@/lib/units";
 import { wellnessHeadline } from "@/lib/wellnessText";
 import { useAuth } from "@/lib/auth";
@@ -71,6 +71,109 @@ function ScoreChip({ s }: { s: FieldScore }) {
   );
 }
 
+// The latest NDVI raster of a field, rendered by TiTiler as one finished PNG (the COGs are clipped
+// and masked to the boundary, so the picture IS the field). One org-wide request, like the scores.
+interface Thumb {
+  field_id: string;
+  url: string;
+  date: string;
+  sensor: string;
+}
+
+// Package consumption for the header bar. ha_cap is null unless an admin set one, in which case
+// the bar counts fields instead — there is no hectare limit to invent from the tier.
+interface Usage {
+  tier: string;
+  fields_used: number;
+  fields_max: number;
+  ha_used: number;
+  ha_cap: number | null;
+}
+
+// Typed as Record<string, I18nKey> and not by tier name: `tier` arrives as a plain string from the
+// API, so an unrecognised value must still land on a real key rather than on `undefined`.
+const PLAN: Record<string, I18nKey> = {
+  free: "app.plan.free",
+  pro: "app.plan.pro",
+  business: "app.plan.business",
+};
+
+function FieldThumb({ thumb, loading }: { thumb?: Thumb; loading: boolean }) {
+  const [broken, setBroken] = useState(false);
+  // Still fetching: a neutral square keeps the row heights and the text baseline from jumping.
+  if (loading)
+    return <div className="h-11 w-11 shrink-0 rounded-lg bg-slate-100 sm:h-12 sm:w-12" aria-hidden="true" />;
+  // No raster yet (or TiTiler could not render it) → NOTHING. A grey square with an icon would be a
+  // picture of data this field does not have.
+  if (!thumb?.url || broken) return null;
+  return (
+    <img
+      src={thumb.url}
+      // Decorative: the name is right beside it, and a screen reader cannot read a colour ramp.
+      alt=""
+      aria-hidden="true"
+      loading="lazy"
+      decoding="async"
+      title={tf("app.fieldsList.thumbTitle", { date: thumb.date?.slice(0, 10) ?? "" })}
+      onError={() => setBroken(true)}
+      // No Tailwind utility for image-rendering; these PNGs are ~30x25px on purpose and must stay
+      // crisp squares when the browser upscales them.
+      style={{ imageRendering: "pixelated" }}
+      className="h-11 w-11 shrink-0 rounded-lg border border-line bg-slate-100 object-contain sm:h-12 sm:w-12"
+    />
+  );
+}
+
+// Informational, not a wall: it says how much of the package is used and turns amber at the limit,
+// but it never claims the farmer cannot add a field — that decision belongs to the server gate.
+function UsageBar({ u, fmtArea }: { u: Usage; fmtArea: (ha: number | null | undefined) => string }) {
+  const byArea = u.ha_cap != null && u.ha_cap > 0;
+  const used = byArea ? u.ha_used : u.fields_used;
+  const max = byArea ? (u.ha_cap as number) : u.fields_max;
+  // business is max_fields 100000 — a "0 / 100000" track is noise, so say "limitsiz" and draw none.
+  const unlimited = !byArea && u.fields_max >= 1000;
+  const pct = max > 0 ? Math.min(100, Math.round((used / max) * 100)) : 0;
+  const atLimit = !unlimited && used >= max;
+  const reading = unlimited
+    ? t("app.fieldsList.usage.unlimited")
+    : byArea
+      ? `${fmtArea(u.ha_used)} / ${fmtArea(u.ha_cap)}`
+      : `${u.fields_used} / ${u.fields_max} ${tp("app.plural.fields", u.fields_max)}`;
+  return (
+    <div className="mt-1.5 w-40 sm:w-48">
+      <div className="flex items-baseline justify-between gap-2 text-[11.5px]">
+        <span className="text-ink-soft">{t(PLAN[u.tier] ?? "app.plan.free")}</span>
+        <span className={`tabular-nums ${atLimit ? "font-bold text-amber-700" : "text-ink-soft"}`}>
+          {reading}
+        </span>
+      </div>
+      {!unlimited && (
+        <div
+          className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-200"
+          role="progressbar"
+          aria-label={t("app.fieldsList.usage.aria")}
+          aria-valuenow={pct}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
+          <div
+            className={`h-full rounded-full ${atLimit ? "bg-amber-500" : "bg-grass"}`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      )}
+      {atLimit && (
+        <Link
+          href="/pricing"
+          className="mt-1 inline-block text-[11.5px] font-semibold text-amber-700 underline"
+        >
+          {t("app.fieldsList.usage.full")} · {t("upgrade.viewPlans")}
+        </Link>
+      )}
+    </div>
+  );
+}
+
 export default function FieldsListPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
@@ -81,6 +184,11 @@ export default function FieldsListPage() {
   const [selected, setSelected] = useState<string[]>([]);
   // A3 — field_id → latest stored wellness score (may stay empty; the chips are optional garnish).
   const [scores, setScores] = useState<Record<string, FieldScore>>({});
+  // field_id → latest NDVI raster. `null` means "still loading" and an empty/partial map means
+  // "definitively no raster", which is why the failure path also writes an object: the two states
+  // render differently (placeholder square vs nothing at all).
+  const [thumbs, setThumbs] = useState<Record<string, Thumb> | null>(null);
+  const [usage, setUsage] = useState<Usage | null>(null);
   // P1.2 — every area on this screen is rendered in the farmer's own unit (ha / dönüm / sot).
   const fmtArea = useFormatArea();
   // Map hero — the org's field geometries (name + area + data_status + geom in one call). Best-effort:
@@ -107,18 +215,25 @@ export default function FieldsListPage() {
         const flat = lists.flat();
         setFields(flat);
         if (flat.length > 0) {
-          // A3 — one org-wide read for every chip (never one request per field). Best-effort: a
-          // failure just means no chips, never a broken list.
-          try {
-            const w = await api.get<{ fields: FieldScore[] }>(`/api/orgs/${orgs[0].id}/wellness`);
-            const map: Record<string, FieldScore> = {};
-            for (const s of w?.fields ?? []) {
-              if (s && s.field_id && typeof s.score === "number") map[s.field_id] = s;
-            }
-            setScores(map);
-          } catch {
-            /* score chips are optional — the list stands on its own */
+          // Three org-wide reads fired together (never one request per field), each best-effort:
+          // a failure costs a chip, a picture or the bar, never the list itself. Usage is fetched
+          // only when the org has fields — the empty state shows the demo link, not a 0/1 bar.
+          const [w, th, us] = await Promise.all([
+            api.get<{ fields: FieldScore[] }>(`/api/orgs/${orgs[0].id}/wellness`).catch(() => null),
+            api.get<{ thumbs: Thumb[] }>(`/api/orgs/${orgs[0].id}/thumbs`).catch(() => null),
+            api.get<Usage>(`/api/orgs/${orgs[0].id}/usage`).catch(() => null),
+          ]);
+          const map: Record<string, FieldScore> = {};
+          for (const s of w?.fields ?? []) {
+            if (s && s.field_id && typeof s.score === "number") map[s.field_id] = s;
           }
+          setScores(map);
+          const tmap: Record<string, Thumb> = {};
+          for (const item of th?.thumbs ?? []) {
+            if (item && item.field_id && item.url) tmap[item.field_id] = item;
+          }
+          setThumbs(tmap);
+          if (us) setUsage(us);
         }
       } catch (err) {
         setError(azError(err));
@@ -141,6 +256,7 @@ export default function FieldsListPage() {
               {fields.length} {tp("app.plural.fields", fields.length)} · {fmtArea(totalHa)}
             </p>
           )}
+          {fields.length > 0 && usage && <UsageBar u={usage} fmtArea={fmtArea} />}
         </div>
         <Link href="/onboarding" className="btn-primary">
           <Plus className="h-4 w-4" /> {t("app.fieldsList.addField")}
@@ -155,6 +271,15 @@ export default function FieldsListPage() {
           body={t("app.fieldsList.emptyBody")}
           action={{ label: t("app.fieldsList.addField"), href: "/onboarding", icon: Plus }}
         >
+          {/* Secondary on purpose — a link, not a second primary button, so it never competes with
+              "Sahə əlavə et". Seeing a finished field is the cheapest way to understand the product
+              before drawing your own. */}
+          <div className="mb-4">
+            <Link href="/demo" className="text-sm font-bold text-grass underline">
+              {t("app.fieldsList.demoLink")}
+            </Link>
+            <p className="mt-1 text-sm text-slate-600">{t("app.fieldsList.demoHint")}</p>
+          </div>
           <SupportCard />
         </EmptyState>
       ) : (
@@ -182,6 +307,11 @@ export default function FieldsListPage() {
                       href={`/fields/${f.id}`}
                       className="flex min-h-14 flex-1 items-center justify-between gap-3 rounded-xl2 border border-line bg-white px-4 py-3 transition hover:border-grass hover:shadow-soft"
                     >
+                      {/* Inside the card, before the name: the standard avatar-list order
+                          (image → title → meta → chip → chevron). It sits after the checkbox so
+                          the 44px selection target stays at the row's edge, and tapping the
+                          picture opens the field — which is what a picture of a field should do. */}
+                      <FieldThumb thumb={thumbs?.[f.id]} loading={thumbs === null} />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-base font-bold text-ink">{f.name}</p>
                         <p className="text-sm text-ink-soft">
@@ -197,7 +327,7 @@ export default function FieldsListPage() {
                     {/* Sibling of the row link, never nested inside it — an <a> may not contain a
                         button. ShareButton fetches nothing until it is opened. */}
                     <div className="shrink-0">
-                      <ShareButton fieldId={f.id} />
+                      <ShareButton fieldId={f.id} compactOnMobile />
                     </div>
                   </li>
                 );

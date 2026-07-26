@@ -87,6 +87,36 @@ async def org_subscription(org_id: str, user_id: str = Depends(get_current_user_
     }
 
 
+@router.get("/{org_id}/usage")
+async def org_usage(org_id: str, user_id: str = Depends(get_current_user_id)):
+    """Field/hectare consumption vs the org's package — the slim header bar on /fields.
+
+    Deliberately smaller than /{org_id}/subscription: no trial block, no AI counters, no feature
+    matrix, so a list screen pays for one row-count instead of four queries.
+
+    fields_used counts EXACTLY what the create-field gate counts (deleted_at is null), so the bar
+    can never say "1 / 1" while the add button still works, or the reverse. The effective tier
+    comes from tiers.org_tier, never the raw column, so a lapsed trial shows the free limit that
+    will actually be applied. ha_cap is whatever an admin stored in hectare_cap and is null when
+    unset — the endpoint does not invent a hectare limit from the tier, because there isn't one."""
+    org_id = safe_uuid(org_id, "org_not_found")
+    async with connection(user_id) as conn:
+        await require_member(conn, user_id, org_id)
+        tier = await tiers.org_tier(conn, org_id)
+        row = await conn.fetchrow(
+            """select count(*) as n, coalesce(sum(area_ha), 0) as ha
+               from public.fields where org_id=$1::uuid and deleted_at is null""", org_id)
+        cap = await conn.fetchval(
+            "select hectare_cap from public.org_subscriptions where org_id=$1::uuid", org_id)
+    return {
+        "tier": tier,
+        "fields_used": int(row["n"] or 0),
+        "fields_max": tiers.limit(tier, "max_fields"),
+        "ha_used": round(float(row["ha"] or 0), 2),
+        "ha_cap": float(cap) if cap is not None else None,
+    }
+
+
 @router.get("", response_model=list[OrgOut])
 async def list_orgs(user_id: str = Depends(get_current_user_id)):
     async with connection(user_id) as conn:

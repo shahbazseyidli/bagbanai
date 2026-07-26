@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 
+from .. import notify_prefs
 from ..ai import notify
 from ..config import settings
 from ..db import connection
@@ -411,3 +412,54 @@ async def set_email_lifecycle(body: dict, user_id: str = Depends(get_current_use
     async with connection(user_id) as conn:
         await conn.execute("update public.users set email_lifecycle=$2 where id=$1::uuid", user_id, enabled)
     return {"enabled": enabled}
+
+
+async def _notify_prefs_payload(conn, user_id: str) -> dict:
+    """The settings screen needs more than the matrix to be honest about it: whether the weekly
+    email is switched off entirely (then the digest column decides nothing right now) and whether
+    Telegram is even reachable (no bot token → the column is stored but dormant)."""
+    from ..messaging import telegram
+
+    row = await conn.fetchrow(
+        """select u.notify_prefs, u.email_lifecycle,
+                  (c.chat_id is not null and c.verified and c.opt_in) as tg_linked
+           from public.users u
+           left join public.messaging_channels c
+             on c.user_id = u.id and c.channel = 'telegram'
+           where u.id=$1::uuid""", user_id)
+    if not row:
+        raise HTTPException(status_code=401, detail="unauthorized")
+    return {
+        # Expanded, never the stored opt-out shape: the client should not have to know that a
+        # missing key means "on".
+        "prefs": notify_prefs.normalize(row["notify_prefs"]),
+        "categories": list(notify_prefs.CATEGORIES),
+        "channels": list(notify_prefs.CHANNELS),
+        "digest_enabled": row["email_lifecycle"] is not False,
+        "telegram": {"configured": telegram.configured(), "linked": bool(row["tg_linked"])},
+    }
+
+
+@router.get("/notify-prefs")
+async def get_notify_prefs(user_id: str = Depends(get_current_user_id)):
+    """The per-category notification matrix (5 categories × 3 channels) + what the UI needs to
+    describe it truthfully. See services/app/notify_prefs.py for the category mapping."""
+    async with connection(user_id) as conn:
+        return await _notify_prefs_payload(conn, user_id)
+
+
+@router.put("/notify-prefs")
+async def set_notify_prefs(body: dict, user_id: str = Depends(get_current_user_id)):
+    """Store the matrix. The body may be full or sparse; only the switched-OFF cells are persisted,
+    so `PUT {"prefs": {}}` IS "reset to recommended". Returns the same shape as GET so the client
+    reconciles from one response instead of re-fetching."""
+    raw = body.get("prefs") if isinstance(body, dict) else None
+    try:
+        prefs = notify_prefs.parse(raw)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="invalid_notify_prefs")
+    stored = notify_prefs.compact(prefs)
+    async with connection(user_id) as conn:
+        await conn.execute("update public.users set notify_prefs=$2::jsonb where id=$1::uuid",
+                           user_id, json.dumps(stored))
+        return await _notify_prefs_payload(conn, user_id)

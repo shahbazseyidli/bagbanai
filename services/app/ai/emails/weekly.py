@@ -25,6 +25,11 @@ hand-written; every other locale falls back to EN, exactly like `catalog.build`.
 FIELD ORDER: worst wellness score first (nulls last, then oldest field). The farmer should open the
 mail on the field that needs attention — and "the first field", whose satellite image we embed, is
 that same field.
+
+NOTIFICATION MATRIX: the five "digest" switches in users.notify_prefs govern the ALERT BULLETS and
+the ADVICE QUOTES only — those are the two sections built out of category events. The field list,
+the score, the satellite image, the crop nudge and the trial line are not events and always render;
+turning the email off as a whole is users.email_lifecycle, which send_template already enforces.
 """
 from __future__ import annotations
 
@@ -33,6 +38,7 @@ from datetime import date
 from typing import Any
 from urllib.parse import quote
 
+from ... import notify_prefs
 from .send import app_url, site_url
 
 # The single recurring template. `catalog` keys its copy by these variant names.
@@ -307,17 +313,22 @@ async def _trend(conn, ids: list) -> dict[str, dict]:
     return out
 
 
-async def _alerts(conn, ids: list) -> list[dict]:
+async def _alerts(conn, ids: list, prefs: Any = None) -> list[dict]:
     """This week's rule-engine notifications, one row per (field, rule type).
 
     The engine's cooldown is 18h, so a week of bad weather writes the same frost alert up to nine
     times. DISTINCT ON collapses them to the most severe / most recent instance and the window
     count (evaluated before DISTINCT) reports how often it fired. `ai_advice` notifications are
     excluded — the advice section below says the same thing in full.
+
+    Categories the reader muted for the digest are dropped in Python, not in SQL: the (source, type)
+    → category mapping lives in notify_prefs and a SQL copy of it would be the second copy that
+    drifts. The `hits` count is still computed over the raw rows, so a kept alert reports how often
+    it really fired.
     """
     rows = await conn.fetch(
         """select distinct on (n.field_id, n.type)
-                  n.field_id, n.type, n.severity, n.title, n.body, n.created_at,
+                  n.field_id, n.source, n.type, n.severity, n.title, n.body, n.created_at,
                   count(*) over (partition by n.field_id, n.type) as hits
            from public.notifications n
            where n.field_id = any($1::uuid[])
@@ -326,7 +337,8 @@ async def _alerts(conn, ids: list) -> list[dict]:
            order by n.field_id, n.type,
                     case n.severity when 'critical' then 3 when 'warning' then 2 else 1 end desc,
                     n.created_at desc""", ids, ALERT_DAYS)
-    return [dict(r) for r in rows]
+    return [dict(r) for r in rows
+            if notify_prefs.allows_notification(prefs, r["source"], r["type"], "digest")]
 
 
 async def _advice(conn, ids: list) -> dict[str, dict]:
@@ -398,6 +410,9 @@ async def build_weekly(conn, user: dict) -> dict | None:
     """Assemble one user's digest. Returns {"variant", "ctx", "blocks"} or None when this user
     should get no recurring email at all (a lab/supplier with no fields)."""
     uid = str(user["id"])
+    # Fetched here rather than widened into lifecycle's eligibility query: one tiny read per user
+    # per week keeps the digest's category filtering inside the module that does the filtering.
+    prefs = await notify_prefs.load(conn, uid)
     loc = user.get("locale")
     role = user.get("role") or "farmer"
     d = _L(loc)
@@ -425,8 +440,9 @@ async def build_weekly(conn, user: dict) -> dict | None:
     ids = [f["id"] for f in fields]
     wellness = await _wellness(conn, ids)
     trends = await _trend(conn, ids)
-    alerts = await _alerts(conn, ids)
-    advice = await _advice(conn, ids)
+    alerts = await _alerts(conn, ids, prefs)
+    # "AI aqronom" muted for the digest → skip the query entirely; step 7 then renders nothing.
+    advice = await _advice(conn, ids) if notify_prefs.allows(prefs, "advice", "digest") else {}
     rasters = await _rasters(conn, ids)
 
     fields.sort(key=lambda f: _sort_key(f, wellness))

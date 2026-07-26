@@ -9,6 +9,11 @@ import { MailCheck } from "lucide-react";
 import { api } from "@/lib/api";
 import { t } from "@/lib/i18n";
 
+// Fired after this switch is successfully saved. NotifyMatrix sits below it and tells the farmer
+// whether the digest column currently decides anything — that note goes stale the instant this
+// toggle flips, so the two cards stay in step through the event instead of a reload.
+export const EMAIL_LIFECYCLE_EVENT = "agradex:email-lifecycle";
+
 export default function EmailLifecycleToggle() {
   const [on, setOn] = useState<boolean | null>(null);
 
@@ -25,6 +30,7 @@ export default function EmailLifecycleToggle() {
     setOn(next);
     try {
       await api.post("/api/auth/email-lifecycle", { enabled: next });
+      window.dispatchEvent(new Event(EMAIL_LIFECYCLE_EVENT));
     } catch {
       setOn(!next);
     }

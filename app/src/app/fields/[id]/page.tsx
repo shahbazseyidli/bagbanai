@@ -37,7 +37,14 @@ import ShareButton from "@/components/field/ShareButton";
 import BackfillCard from "@/components/field/BackfillCard";
 import RainNowcast from "@/components/field/RainNowcast";
 import FieldHeader from "@/components/field/FieldHeader";
+import FieldWorkbench from "@/components/field/workbench/FieldWorkbench";
+import { useStageWidth } from "@/components/field/workbench/useStageWidth";
 import type { FieldDetail } from "@/lib/types";
+
+// The status section becomes the two-column workbench only when the measured stage can afford it:
+// a 360px rail plus a map that is still worth looking at. Below this the stacked layout is better,
+// and it is what xl-with-an-expanded-field-list (~778px) gets until the farmer collapses the list.
+const WORKBENCH_MIN = 920;
 
 export default function FieldDetailPage() {
   // useSearchParams (tab state) requires a Suspense boundary under the app router.
@@ -72,6 +79,8 @@ function FieldDetailInner() {
   const [confirmDel, setConfirmDel] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [undoDeleted, setUndoDeleted] = useState(false);
+  // Feature D — the status section lays itself out from its MEASURED width, not a breakpoint.
+  const [stageRef, stageW] = useStageWidth();
 
   function openEdit() {
     if (field) setEditName(field.name);
@@ -289,12 +298,31 @@ function FieldDetailInner() {
         {t(sectionOf(tab).labelKey)}
       </h2>
       {tab === "status" && (
-        <div className="space-y-4">
-          <RainNowcast fieldId={field.id} />
-          <FieldPulse field={field} />
-          <SatelliteGlance field={field} onOpenSatellite={() => setTab("satellite")} />
-          <SignalsActions fieldId={field.id} onOpenAnalysis={() => setTab("analysis")} />
-          <ShareButton fieldId={field.id} />
+        // The ResizeObserver target: always rendered, always the full stage width, in every branch.
+        <div ref={stageRef}>
+          {stageW === null ? (
+            // One frame. Rendering the stacked branch here would construct a MapLibre map on a wide
+            // screen and tear it down again the moment the measurement lands.
+            <div className="h-[460px] animate-pulse rounded-xl bg-paper-2" aria-hidden="true" />
+          ) : stageW >= WORKBENCH_MIN ? (
+            <div className="space-y-4">
+              <RainNowcast fieldId={field.id} />
+              <FieldWorkbench
+                field={field}
+                stageW={stageW}
+                onOpenSatellite={() => setTab("satellite")}
+                onOpenAnalysis={() => setTab("analysis")}
+              />
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <RainNowcast fieldId={field.id} />
+              <FieldPulse field={field} />
+              <SatelliteGlance field={field} onOpenSatellite={() => setTab("satellite")} />
+              <SignalsActions fieldId={field.id} onOpenAnalysis={() => setTab("analysis")} />
+              <ShareButton fieldId={field.id} />
+            </div>
+          )}
         </div>
       )}
       {tab === "satellite" && <SatelliteTab field={field} sensor="S2" />}

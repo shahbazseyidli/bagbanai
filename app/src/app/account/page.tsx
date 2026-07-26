@@ -11,6 +11,7 @@ import DataSaverToggle from "@/components/DataSaverToggle";
 import EmailLifecycleToggle from "@/components/EmailLifecycleToggle";
 import AreaUnitSetting from "@/components/AreaUnitSetting";
 import NamePublicToggle from "@/components/NamePublicToggle";
+import NotifyMatrix from "@/components/NotifyMatrix";
 import { t } from "@/lib/i18n";
 
 // Role code → localized label. Resolved at render time (not module load) so the active locale applies.
@@ -66,6 +67,8 @@ export default function AccountPage() {
         <DataSaverToggle />
         {user && <AreaUnitSetting />}
         {user && <EmailLifecycleToggle />}
+        {/* Directly under the master email switch: its digest column refers to that switch. */}
+        {user && <NotifyMatrix />}
         {user && <NamePublicToggle />}
       </div>
 

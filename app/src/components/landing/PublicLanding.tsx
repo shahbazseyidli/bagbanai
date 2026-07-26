@@ -12,7 +12,7 @@
 // what utilities cannot express (keyframes, gradient text, masks, a few composite pieces). It is
 // scoped with an `lp-` prefix so it cannot collide with the app shell.
 import Link from "next/link";
-import { ArrowRight, Play } from "lucide-react";
+import { ArrowRight, Compass, Play } from "lucide-react";
 import { t } from "@/lib/i18n";
 import LandingHeroMap from "./LandingHeroMap";
 import LandingFaq from "./LandingFaq";
@@ -133,6 +133,12 @@ export default function PublicLanding() {
           <div className="mt-7 flex flex-wrap justify-center gap-3">
             <Link href="/signup" className="lp-btn lp-btn-pri">
               {t("mkt.hero.ctaStart")} <ArrowRight className="h-5 w-5" aria-hidden="true" />
+            </Link>
+            {/* The guided tour of the real demo field. The #live-demo anchor below is left exactly
+                as it is: its own comment records that the hero link must keep landing on the live
+                tap-to-detect map, and repointing it here would be an unrelated regression. */}
+            <Link href="/demo" className="lp-btn lp-btn-ghost">
+              <Compass className="h-5 w-5" aria-hidden="true" /> {t("mkt.hero.ctaTour")}
             </Link>
             <a href="#live-demo" className="lp-btn lp-btn-ghost">
               <Play className="h-5 w-5" aria-hidden="true" /> {t("mkt.hero.ctaDemo")}

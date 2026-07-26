@@ -477,11 +477,15 @@ export function DisplayMap({
   rasterUrl,
   rasterOpacity = 0.85,
   heightClass = "h-64",
+  fill = false,
 }: {
   polygon: Polygon | null | undefined;
   rasterUrl?: string | null;
   rasterOpacity?: number;
   heightClass?: string;
+  /** Fill a sized, positioned parent instead of using a fixed height. The parent must be
+   *  `relative` and must already have a height — the map is built once, at that size. */
+  fill?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -697,10 +701,12 @@ export function DisplayMap({
   }
 
   return (
-    <div className="relative">
+    // With `fill` the map takes over a sized parent. `position: absolute` is still a containing
+    // block, so the measure toolbar, BasemapControl and CoordBar keep anchoring to this root.
+    <div className={fill ? "absolute inset-0" : "relative"}>
       <div
         ref={containerRef}
-        className={`${heightClass} w-full overflow-hidden rounded-lg border border-slate-200`}
+        className={`${fill ? "h-full" : heightClass} w-full overflow-hidden rounded-lg border border-slate-200`}
       />
       <div className="absolute left-2 top-2 z-10 flex flex-col items-start gap-1">
         <button
@@ -725,7 +731,10 @@ export function DisplayMap({
           </div>
         )}
       </div>
-      <SearchControl onPick={flyToPick} />
+      {/* The search box is an in-flow block rendered after the map, so under `fill` (root is
+          absolute inset-0, map is h-full) it would overflow the stage. It is also the wrong tool
+          there: a filled map is a viewer for one known field, not a place finder. */}
+      {!fill && <SearchControl onPick={flyToPick} />}
       <BasemapControl current={basemap} onChange={changeBasemap} hillshade={hillshade} onToggleHillshade={toggleHillshade} />
       <CoordBar coord={coord} attribution={basemap.attribution} />
     </div>

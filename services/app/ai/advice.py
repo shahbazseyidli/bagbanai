@@ -201,6 +201,12 @@ _NOTIFY_TITLE = {
 
 async def _notify(conn, field_id: str, org_id: str, field_name: str,
                   result: AdviceResult, changed: bool, lang: str = "az") -> None:
+    # The "AI aqronom" category, in-app only. Unlike the rule engine's rows this notification has no
+    # second reader: the weekly digest quotes public.advice directly and explicitly excludes
+    # type='ai_advice', so gating on the digest channel here would suppress nothing but the bell.
+    from .. import notify_prefs
+    if not await notify_prefs.org_any(conn, org_id, "advice", ("inapp",)):
+        return
     top = max((r for r in result.risks), key=lambda r: {"aşağı": 1, "orta": 2, "yüksək": 3}.get(r.severity, 0),
               default=None)
     sev = {"aşağı": "info", "orta": "warning", "yüksək": "critical"}.get(top.severity if top else "", "info")

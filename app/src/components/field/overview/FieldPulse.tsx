@@ -16,11 +16,12 @@ import { ErrorNote, Spinner } from "@/components/ui";
 import { t } from "@/lib/i18n";
 import { useFormatArea } from "@/lib/units";
 import { wellnessHeadline, wellnessLabel, wellnessReason } from "@/lib/wellnessText";
+// Tone colours + sub-score cut-offs are shared with the public /demo copy of this card so the two
+// can never disagree about what "healthy" looks like.
+import { TONE, WELLNESS_ORDER as ORDER, subTone, type Tone } from "@/lib/wellnessTone";
 import SpeakButton from "@/components/SpeakButton";
 import MetadataNudge from "./MetadataNudge";
 import type { FieldDetail } from "@/lib/types";
-
-type Tone = "good" | "warn" | "bad";
 
 interface WellnessComponent {
   key: string;
@@ -48,19 +49,6 @@ interface Wellness {
   missing_labels?: string[];
   sensor?: string | null;
   computed_on?: string | null;
-}
-
-const TONE: Record<Tone, { ring: string; text: string; wash: string; edge: string; bar: string }> = {
-  good: { ring: "#15803D", text: "text-emerald-800", wash: "bg-emerald-50", edge: "border-emerald-200", bar: "bg-emerald-600" },
-  warn: { ring: "#B45309", text: "text-amber-800", wash: "bg-amber-50", edge: "border-amber-200", bar: "bg-amber-500" },
-  bad: { ring: "#B91C1C", text: "text-red-800", wash: "bg-red-50", edge: "border-red-200", bar: "bg-red-600" },
-};
-
-// Stable display order — matches the weighting order in services/app/ai/wellness.py.
-const ORDER = ["ndvi", "water", "pest", "gdd"];
-
-function subTone(score: number): Tone {
-  return score >= 70 ? "good" : score >= 45 ? "warn" : "bad";
 }
 
 const R = 44;

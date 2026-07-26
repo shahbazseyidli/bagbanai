@@ -14,10 +14,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from ..config import settings
 from ..db import connection
-from ..deps import get_current_user_id, require_member
+from ..deps import get_current_user_id, require_member, safe_uuid
 from .fields import _org_of_field
 
 router = APIRouter(prefix="/api/fields", tags=["indices"])
+# The field-list thumbnails are org-scoped, but the TiTiler URL vocabulary lives in this module,
+# so the endpoint stays here under a second prefix rather than duplicating _raster_style elsewhere.
+org_router = APIRouter(prefix="/api/orgs", tags=["indices"])
 
 # NDRE/CIre are S2-only red-edge indices (E0); they appear for the s2 family only (HLS lacks
 # the 705 nm band) and simply return empty for hls, handled by the existing sensor fallback.
@@ -59,6 +62,52 @@ def _raster_style(index: str) -> tuple[str, str]:
     if index == "CIre":
         return "rdylgn", "0,3"      # chlorophyll ratio (~0-4), not bounded like NDVI
     return "rdylgn", "-0.1,0.9"  # vegetation (NDVI/EVI/SAVI/MSAVI/TVI/NDRE)
+
+
+# A static PNG of ONE clipped index COG — the whole field as a single finished image, not a tile
+# pyramid. The pipeline's COGs are already clipped and masked to the boundary, so the preview IS
+# the field. Colours come from _raster_style so a 44px thumbnail is the same green as the map.
+# max_size is a CEILING, not a resize: a typical field's NDVI COG is ~30x25px and comes back at
+# native size (~1 KB), while a large HLS field is capped instead of rendering a 1024px sheet for a
+# thumbnail. Upscaling is the browser's job (image-rendering: pixelated).
+_THUMB_MAX_SIZE = 128
+
+
+def preview_url(storage_path: str, index: str = "NDVI", max_size: int = _THUMB_MAX_SIZE) -> str:
+    cmap, rescale = _raster_style(index)
+    return (f"{settings.titiler_public_base}/cog/preview.png?url={quote(storage_path, safe='')}"
+            f"&colormap_name={cmap}&rescale={rescale}&max_size={max_size}")
+
+
+# Fixed: the list thumbnail is the "is it green" glance, not an index picker.
+THUMB_INDEX = "NDVI"
+
+
+@org_router.get("/{org_id}/thumbs")
+async def org_thumbs(org_id: str, user_id: str = Depends(get_current_user_id)):
+    """Latest NDVI raster per field of ONE org — the read model behind the field-list thumbnails.
+
+    ONE query for the whole org (the /api/orgs/{id}/wellness rule): a request per field would turn
+    opening the list into N round-trips plus N COG lookups. A field with no raster yet simply has
+    no entry — the UI then renders nothing rather than a placeholder image that implies data.
+    Sentinel-2 (10m) wins over NASA HLS (30m) exactly as the public share card decides it."""
+    org_id = safe_uuid(org_id, "org_not_found")
+    async with connection(user_id) as conn:
+        await require_member(conn, user_id, org_id)
+        rows = await conn.fetch(
+            """select distinct on (r.field_id)
+                      r.field_id, r.storage_path, r.acquired_at, r.sensor
+               from public.index_rasters r
+               join public.fields f on f.id = r.field_id
+               join public.farms fm on fm.id = f.farm_id
+               where fm.org_id=$1::uuid and f.deleted_at is null and r.index_name=$2
+                 and r.storage_path is not null
+               order by r.field_id, (r.sensor = 'S2') desc, r.acquired_at desc""",
+            org_id, THUMB_INDEX)
+    return {"thumbs": [
+        {"field_id": str(r["field_id"]), "url": preview_url(r["storage_path"], THUMB_INDEX),
+         "date": r["acquired_at"].isoformat(), "sensor": _family_of(r["sensor"])}
+        for r in rows]}
 
 
 # A1 — per-scene contrast stretch. The fixed family rescale above keeps colours comparable

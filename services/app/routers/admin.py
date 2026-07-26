@@ -7,6 +7,7 @@ the only mutating/streaming ones and stay just as strictly gated."""
 import csv
 import io
 import json
+import uuid as _uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
@@ -363,7 +364,7 @@ async def billing(user_id: str = Depends(get_current_user_id)):
 _FIELDS_SQL = """
     select f.id, f.name, f.area_ha, fm.crop_type,
            f.org_id, o.name as org_name, u.email as owner_email,
-           f.data_status,
+           f.data_status, f.is_demo,
            st_asgeojson(f.geom) as geom,
            st_asgeojson(coalesce(f.centroid, st_centroid(f.geom))) as centroid,
            w.score as wellness_score, w.tone as wellness_tone
@@ -405,6 +406,7 @@ def _field_row(r) -> dict:
         "org_name": r["org_name"],
         "owner_email": r["owner_email"],
         "data_status": r["data_status"],
+        "is_demo": bool(r["is_demo"]),
         "centroid": _centroid_lonlat(r["centroid"]),
         "geom": json.loads(r["geom"]) if r["geom"] else None,
         "wellness_score": int(r["wellness_score"]) if r["wellness_score"] is not None else None,
@@ -492,6 +494,46 @@ async def get_field_admin(field_id: str, user_id: str = Depends(get_current_user
             for r in indices
         ],
     }
+
+
+class FieldPatch(BaseModel):
+    is_demo: bool
+
+
+def _demo_uid(value: str) -> str:
+    """Canonicalise a path uuid. Mirrors shares.py::_uid — a malformed id is a 404, not a Postgres
+    22P02 surfacing as a 500."""
+    try:
+        return str(_uuid.UUID(str(value)))
+    except (ValueError, AttributeError, TypeError):
+        raise HTTPException(status_code=404, detail="field_not_found")
+
+
+@router.patch("/fields/{field_id}")
+async def patch_field(field_id: str, body: FieldPatch,
+                      user_id: str = Depends(get_current_user_id)):
+    """Flag ONE field as the public /demo tour field (or clear the flag).
+
+    Migration 0050's partial unique index allows a single demo row, so promoting a new field has to
+    clear the old one FIRST — inside the same transaction, or a swap would be rejected halfway and
+    leave the platform with no demo at all."""
+    # A malformed id must 404, not reach Postgres and come back as a 22P02 → 500.
+    target = _demo_uid(field_id)
+    async with connection(user_id) as conn:
+        await require_platform_admin(conn, user_id)
+        async with conn.transaction():
+            if body.is_demo:
+                await conn.execute("update public.fields set is_demo = false where is_demo")
+            row = await conn.fetchrow(
+                "update public.fields set is_demo = $1 where id = $2::uuid and deleted_at is null "
+                "returning id, is_demo", body.is_demo, target)
+            # INSIDE the transaction on purpose. Raising here rolls the clear back; raising after
+            # the block would commit it — promoting a field that no longer exists (a stale id from
+            # a cached list, or one soft-deleted a second ago) would then answer 404 having already
+            # left the platform with NO demo field, and /demo would break for every visitor.
+            if not row:
+                raise HTTPException(status_code=404, detail="field_not_found")
+    return {"id": str(row["id"]), "is_demo": bool(row["is_demo"])}
 
 
 # ---------------------------------------------------------------------------

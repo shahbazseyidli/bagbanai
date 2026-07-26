@@ -53,7 +53,14 @@ function statusText(s: ShareLink): string {
   return t("app.field.shareButton.expiryNever");
 }
 
-export default function ShareButton({ fieldId }: { fieldId: string }) {
+export default function ShareButton({
+  fieldId,
+  /** Icon-only below `sm`. The field LIST needs this: at 375px the row is
+   *  checkbox + thumbnail + name + score + chevron + this button, and a spelled-out
+   *  "Sahəni paylaş" on every row leaves the name nothing to shrink into. The field PAGE has one
+   *  button and plenty of width, so it keeps the label. Default false — existing callers unchanged. */
+  compactOnMobile = false,
+}: { fieldId: string; compactOnMobile?: boolean }) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<ShareLink[]>([]);
   const [loading, setLoading] = useState(false);
@@ -136,9 +143,16 @@ export default function ShareButton({ fieldId }: { fieldId: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+        // The label is hidden, not dropped, when compact — the button keeps its accessible name.
+        aria-label={compactOnMobile ? t("app.field.shareButton.shareField") : undefined}
+        className={`inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 ${
+          compactOnMobile ? "w-11 justify-center px-0 sm:w-auto sm:px-3" : "px-3"
+        }`}
       >
-        <Share2 className="h-4 w-4" aria-hidden="true" /> {t("app.field.shareButton.shareField")}
+        <Share2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+        <span className={compactOnMobile ? "hidden sm:inline" : undefined}>
+          {t("app.field.shareButton.shareField")}
+        </span>
       </button>
     );
   }

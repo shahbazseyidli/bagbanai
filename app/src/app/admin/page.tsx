@@ -719,18 +719,38 @@ function FieldDetailModal({ fieldId, onClose }: { fieldId: string; onClose: () =
   );
 }
 
+// The demo flag is admin-only plumbing, so it is declared here rather than widened into the shared
+// AdminField contract that every other consumer of /api/admin/fields reads.
+type AdminFieldRow = AdminField & { is_demo?: boolean };
+
 function FieldsSection() {
-  const [fields, setFields] = useState<AdminField[] | null>(null);
+  const [fields, setFields] = useState<AdminFieldRow[] | null>(null);
   const [error, setError] = useState("");
   const [view, setView] = useState<"list" | "map">("list");
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [demoBusy, setDemoBusy] = useState<string | null>(null);
 
   useEffect(() => {
     api
-      .get<{ fields: AdminField[] }>("/api/admin/fields")
+      .get<{ fields: AdminFieldRow[] }>("/api/admin/fields")
       .then((r) => setFields(r.fields))
       .catch((e) => setError(azError(e)));
   }, []);
+
+  // Exactly one field can be the public /demo field, so promoting one clears every other row here
+  // too — the backend does the same inside one transaction.
+  async function toggleDemo(id: string, next: boolean) {
+    setDemoBusy(id);
+    try {
+      await api.patch(`/api/admin/fields/${id}`, { is_demo: next });
+      setFields((prev) =>
+        prev ? prev.map((f) => ({ ...f, is_demo: next && f.id === id })) : prev);
+    } catch (e) {
+      setError(azError(e));
+    } finally {
+      setDemoBusy(null);
+    }
+  }
 
   if (error) return <ErrorNote message={error} />;
   if (!fields) return <Spinner />;
@@ -795,6 +815,9 @@ function FieldsSection() {
                   <th className="py-2 pr-4">{t("app.admin.colCrop")}</th>
                   <th className="py-2 pr-4">{t("app.admin.colScore")}</th>
                   <th className="py-2 pr-4">{t("app.admin.colStatus")}</th>
+                  {/* Untranslated on purpose: "Demo" is the same word in all eight locales and this
+                      is an internal admin surface, so it needs no dictionary entry. */}
+                  <th className="py-2 pr-4">Demo</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -815,6 +838,24 @@ function FieldsSection() {
                       <ScoreChip score={f.wellness_score} tone={f.wellness_tone} />
                     </td>
                     <td className="py-2 pr-4 text-slate-500">{f.data_status || "—"}</td>
+                    <td className="py-2 pr-4">
+                      <button
+                        type="button"
+                        disabled={demoBusy === f.id}
+                        // The row itself opens the detail modal; the toggle must not do both.
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void toggleDemo(f.id, !f.is_demo);
+                        }}
+                        className={`rounded-md border px-2 py-0.5 text-xs font-semibold disabled:opacity-50 ${
+                          f.is_demo
+                            ? "border-emerald-200 bg-emerald-100 text-emerald-700"
+                            : "border-slate-300 text-slate-500 hover:bg-slate-100"
+                        }`}
+                      >
+                        {f.is_demo ? "/demo ✓" : "/demo"}
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

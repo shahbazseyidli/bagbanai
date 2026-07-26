@@ -20,10 +20,13 @@ import FieldListPanel from "@/components/shell/FieldListPanel";
 // Marketing / public surfaces. "/" is intentionally NOT here: signed-out visitors already get the
 // bare tree (the landing page), while for a signed-in user "/" is the app home ("Bu gün") — which
 // is the rail's own first destination, so the rail must survive navigating to it.
-const PUBLIC_PATHS = ["/login", "/signup", "/pricing", "/solutions", "/s", "/invite"];
+const PUBLIC_PATHS = ["/login", "/signup", "/pricing", "/solutions", "/s", "/invite", "/demo"];
 
+// Must list EVERY prefixed locale (middleware's PREFIXED). It used to be a hardcoded en|tr|de,
+// which predates ru/hu/it/pl and made /pl/pricing look like an app path — the rail wrapped a
+// marketing page whenever the visitor was signed in and PANEL_HOST was unset.
 function stripLocale(path: string): string {
-  const m = path.match(/^\/(en|tr|de)(\/.*)?$/);
+  const m = path.match(/^\/(en|ru|tr|de|hu|it|pl)(\/.*)?$/);
   return m ? m[2] || "/" : path;
 }
 

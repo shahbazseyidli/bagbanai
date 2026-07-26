@@ -14,11 +14,18 @@ so a notification lands in public.notifications at most once per real event, not
 That gating still matters: it protects the in-app feed and the Telegram push.
 
 Producers are pure readers of already-computed state (e.g. the weather job stores its alerts in the
-`spray_window` field_knowledge block) — the engine owns notification writing, the jobs don't."""
+`spray_window` field_knowledge block) — the engine owns notification writing, the jobs don't.
+
+PER-USER PREFERENCES: every candidate is mapped to one of the five categories in
+`services/app/notify_prefs.py`. The notification row is org-scoped, so it is written unless NOBODY
+in the org wants that category in-app or in the digest; the individual member's choice is applied
+where it can be applied per person — on read (the bell, the digest) and on the Telegram push."""
 from __future__ import annotations
 
 import json
 from datetime import datetime, timedelta, timezone
+
+from .. import notify_prefs
 
 # Azerbaijan is UTC+4 year-round (no DST) — quiet-hours are computed in field-local time.
 _AZ_TZ = timezone(timedelta(hours=4))
@@ -139,6 +146,10 @@ async def dispatch(conn, field_id: str, org_id: str, candidates: list[dict]) -> 
     now = datetime.now(timezone.utc)
     quiet = _in_quiet_hours(now)
     fired = 0
+    suppressed = 0
+    # Loaded once per run, not per candidate: the membership rarely changes mid-dispatch and a
+    # weather-heavy field can produce half a dozen candidates in one pass.
+    audience = await notify_prefs.org_audience(conn, org_id)
     for c in candidates:
         rt, sev = c["rule_type"], c.get("severity", "warning")
         crit = sev == "critical"
@@ -155,11 +166,22 @@ async def dispatch(conn, field_id: str, org_id: str, candidates: list[dict]) -> 
             escalated = _SEVERITY_RANK.get(sev, 1) > _SEVERITY_RANK.get(st["last_severity"] or "info", 0)
             if not escalated and now - st["last_fired_at"] < timedelta(hours=COOLDOWN_HOURS):
                 continue
-        await conn.execute(
-            """insert into public.notifications
-                 (field_id, org_id, source, type, severity, title, body, delivered_channels)
-               values ($1::uuid,$2::uuid,$3,$4,$5,$6,$7,array['inapp'])""",
-            field_id, org_id, c.get("source", "vegetation"), rt, sev, c["title"], c["body"])
+        cat = notify_prefs.category_for(c.get("source"), rt)
+        # The row is org-scoped (public.notifications has no per-user copy) AND the Wednesday digest
+        # reads this very table, so "in-app off" alone must NOT suppress the write — that would
+        # silently mute the digest column too. Skip only when nobody in the org wants this category
+        # on either surface; a member who muted just one of the two is filtered on read instead
+        # (routers/advice.list_notifications for the bell, ai/emails/weekly._alerts for the digest).
+        if notify_prefs.any_wants(audience, cat, ("inapp", "digest")):
+            await conn.execute(
+                """insert into public.notifications
+                     (field_id, org_id, source, type, severity, title, body, delivered_channels)
+                   values ($1::uuid,$2::uuid,$3,$4,$5,$6,$7,array['inapp'])""",
+                field_id, org_id, c.get("source", "vegetation"), rt, sev, c["title"], c["body"])
+        else:
+            suppressed += 1
+        # alert_state is written either way: the cooldown describes the EVENT, not its delivery. If
+        # it depended on who was listening, re-enabling a category would replay a week of history.
         await conn.execute(
             """insert into public.alert_state
                  (field_id, rule_type, dedup_key, last_severity, last_fired_at, active)
@@ -172,27 +194,41 @@ async def dispatch(conn, field_id: str, org_id: str, candidates: list[dict]) -> 
         # day, none of them going through send_template (no idempotency ledger, no opt-out gate,
         # no unsubscribe link). Alerts are now in-app + Telegram for immediacy; email is delivered
         # once a week by the Wednesday digest, which reads public.notifications. Do not re-add.
-        await _deliver_telegram(conn, org_id, c["title"], c["body"])
+        await _deliver_telegram(conn, org_id, cat, c["title"], c["body"])
         fired += 1
-    return {"candidates": len(candidates), "fired": fired, "quiet_hours": quiet}
+    # `fired` = alerts that survived quiet-hours and cooldown; `suppressed` = how many of those
+    # wrote no notification row because the whole org had muted the category. They overlap on
+    # purpose — the cron log needs both "the rule triggered" and "nobody was listening".
+    return {"candidates": len(candidates), "fired": fired, "suppressed": suppressed,
+            "quiet_hours": quiet}
 
 
-async def _deliver_telegram(conn, org_id: str, title: str, body: str) -> None:
-    """Best-effort push of a dispatched alert to org members' linked+opted-in Telegram chats (U4)."""
+async def _deliver_telegram(conn, org_id: str, category: str, title: str, body: str) -> None:
+    """Best-effort push of a dispatched alert to org members' linked+opted-in Telegram chats (U4).
+
+    Unlike the notification row, a Telegram message has exactly one recipient, so the per-user
+    opt-out applies cleanly here: the query carries each member's notify_prefs and telegram.send_alert
+    drops the ones who muted this category.
+    """
     from ..messaging import telegram
     if not telegram.configured():
         return
     try:
         rows = await conn.fetch(
-            """select c.id, c.chat_id from public.messaging_channels c
+            """select c.id, c.chat_id, u.notify_prefs from public.messaging_channels c
                join public.organization_members m on m.user_id = c.user_id
+               join public.users u on u.id = c.user_id
                where m.org_id=$1::uuid and c.channel='telegram'
                  and c.verified and c.opt_in and c.chat_id is not null""", org_id)
         for r in rows:
-            ok = await telegram.send(r["chat_id"], f"{title}\n{body}")
+            status = await telegram.send_alert(r["chat_id"], r["notify_prefs"], category,
+                                               f"{title}\n{body}")
+            # A muted send never happened — logging it would make message_log read like a delivery.
+            if status == "muted":
+                continue
             await conn.execute(
                 "insert into public.message_log (channel_id, text, status) values ($1,$2,$3)",
-                r["id"], title, "sent" if ok else "failed")
+                r["id"], title, status)
     except Exception:  # noqa: BLE001 — never let delivery break dispatch
         pass
 

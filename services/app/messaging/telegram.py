@@ -34,6 +34,20 @@ async def send(chat_id: str | int, text: str) -> bool:
         return False
 
 
+async def send_alert(chat_id: str | int, prefs: object, category: str, text: str) -> str:
+    """Push one categorized alert. Returns 'sent' | 'failed' | 'muted'.
+
+    The per-category opt-out (users.notify_prefs) is enforced HERE, on the Telegram path itself, so
+    any future caller inherits it instead of having to remember the check. `prefs` is the raw column
+    value the caller already holds — passing it in keeps this module free of a DB dependency, which
+    is what lets it stay a thin, token-gated transport.
+    """
+    from ..notify_prefs import allows
+    if not allows(prefs, category, "telegram"):
+        return "muted"
+    return "sent" if await send(chat_id, text) else "failed"
+
+
 async def set_webhook(url: str) -> dict:
     if not configured():
         return {"ok": False, "reason": "no_token"}

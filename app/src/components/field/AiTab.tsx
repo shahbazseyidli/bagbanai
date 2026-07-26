@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Sparkles, Send } from "lucide-react";
 import { api } from "@/lib/api";
-import { getLocale, t } from "@/lib/i18n";
+import { getLocale, t, tf } from "@/lib/i18n";
 import { Spinner } from "@/components/ui";
 import KnowledgePassport from "@/components/field/KnowledgePassport";
 import AdviceLangNote from "@/components/field/AdviceLangNote";
@@ -25,12 +25,29 @@ interface Advice {
   lang_mismatch?: boolean;
 }
 interface ChatMsg { role: string; content: string; created_at?: string }
+/** A ready-made question: a short label to draw, a full question to send. */
+interface Chip { id: string; label: string; ask: string }
 
 const SEV_CLASS: Record<string, string> = {
   yüksək: "bg-red-100 text-red-700",
   orta: "bg-amber-100 text-amber-700",
   aşağı: "bg-emerald-100 text-emerald-700",
 };
+
+const SEV_RANK: Record<string, number> = { yüksək: 3, orta: 2, aşağı: 1 };
+
+/** The most severe risk title from the advice already on screen, or null when there is nothing
+ * worth quoting. Suppressed on lang_mismatch: the title is then in the owner's language, and a chip
+ * that mixes two languages in one sentence reads broken. */
+function topRiskTitle(a: Advice | null): string | null {
+  if (!a || a.lang_mismatch) return null;
+  let best: Risk | null = null;
+  for (const r of a.risks ?? []) {
+    if (!r?.title?.trim()) continue;
+    if (!best || (SEV_RANK[r.severity] ?? 0) > (SEV_RANK[best.severity] ?? 0)) best = r;
+  }
+  return best ? best.title.trim().replace(/[.!?,;:]+$/, "") : null;
+}
 
 function NotConfigured() {
   return (
@@ -48,6 +65,7 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
   const [msgs, setMsgs] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [chatEnabled, setChatEnabled] = useState(true);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -55,14 +73,21 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
       try {
         const [a, c] = await Promise.all([
           api.get<{ advice: Advice | null; configured: boolean }>(`/api/fields/${fieldId}/advice`),
-          api.get<{ messages: ChatMsg[]; configured: boolean }>(`/api/fields/${fieldId}/chat`),
+          api.get<{ messages: ChatMsg[]; configured: boolean; chat_enabled?: boolean }>(`/api/fields/${fieldId}/chat`),
         ]);
         setAdvice(a?.advice ?? null);
         setConfigured(a?.configured ?? true);
         setMsgs(c?.messages ?? []);
+        // Absent on an API build that predates the field (mid-deploy) — treat as "can chat", which
+        // is exactly how the tab behaved before the chips existed.
+        setChatEnabled(c?.chat_enabled !== false);
         if (a?.advice) { markDone("advice"); track("advice_viewed"); } // D3.6 activation
       } catch {
-        /* ignore */
+        // Asked and got no answer — session expired, 500, offline. The `true` default above is for
+        // the mid-deploy case (an older API build has no chat_enabled), NOT for this one: leaving
+        // it true here would show a free-tier farmer five inviting chips whose reply is the upgrade
+        // sentence from ai/chat.py. Never invite a tap we cannot honour.
+        setChatEnabled(false);
       } finally {
         setLoading(false);
       }
@@ -84,10 +109,9 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
     }
   }, [fieldId]);
 
-  async function send() {
-    const text = input.trim();
+  async function sendText(raw: string) {
+    const text = raw.trim();
     if (!text || sending) return;
-    setInput("");
     setMsgs((m) => [...m, { role: "user", content: text }]);
     setSending(true);
     try {
@@ -99,6 +123,35 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
       setSending(false);
     }
   }
+
+  function send() {
+    const text = input.trim();
+    if (!text || sending) return;
+    setInput("");
+    void sendText(text);
+  }
+
+  // Cold-start affordance: ready-made questions the field context can actually answer. The adaptive
+  // first chip quotes the worst risk of the advice already in state, so the follow-up is guaranteed
+  // to be about something the model itself raised.
+  const riskTitle = topRiskTitle(advice);
+  const chips: Chip[] = [
+    ...(riskTitle
+      ? [{
+          id: "risk",
+          label: tf("app.field.aiTab.chipRiskLabel", {
+            risk: riskTitle.length > 24 ? `${riskTitle.slice(0, 24).trimEnd()}…` : riskTitle,
+          }),
+          ask: tf("app.field.aiTab.chipRiskAsk", { risk: riskTitle }),
+        }]
+      : []),
+    { id: "week", label: t("app.field.aiTab.chipWeekLabel"), ask: t("app.field.aiTab.chipWeekAsk") },
+    { id: "irrigate", label: t("app.field.aiTab.chipIrrigateLabel"), ask: t("app.field.aiTab.chipIrrigateAsk") },
+    { id: "compare", label: t("app.field.aiTab.chipCompareLabel"), ask: t("app.field.aiTab.chipCompareAsk") },
+    { id: "growth", label: t("app.field.aiTab.chipGrowthLabel"), ask: t("app.field.aiTab.chipGrowthAsk") },
+  ];
+  // Never invite a tap the org cannot spend: a tier-gated chat answers with the upgrade sentence.
+  const showChips = chatEnabled && !loading && msgs.length === 0 && !sending;
 
   if (loading) return <Spinner />;
   // The Knowledge Passport (soil/water/pests/phenology) shows even when the LLM isn't
@@ -193,7 +246,9 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
       <div className="card flex h-[32rem] flex-col">
         <h3 className="mb-3 font-semibold text-slate-800">{t("app.field.aiTab.chatHeading")}</h3>
         <div className="flex-1 space-y-3 overflow-y-auto pr-1">
-          {msgs.length === 0 && (
+          {/* The empty-state sentence lists example questions; with the chips on screen it would
+              sit directly above tappable versions of the same ones. */}
+          {msgs.length === 0 && !showChips && (
             <p className="text-sm text-slate-400">
               {t("app.field.aiTab.chatEmpty")}
             </p>
@@ -213,6 +268,33 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
           )}
           <div ref={chatEndRef} />
         </div>
+        {showChips && (
+          <div className="mt-3">
+            <p className="mb-1.5 text-xs text-slate-400">{t("app.field.aiTab.chipsPrompt")}</p>
+            {/* -mx-1/px-1 so the focus ring of the first and last chip is not clipped by the
+                scroll container. */}
+            <div
+              role="group"
+              aria-label={t("app.field.aiTab.chipsAria")}
+              className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
+            >
+              {chips.map((c) => (
+                {/* No `disabled` state: the row unmounts the moment a chip is tapped, because
+                    sendText pushes the optimistic user bubble in the same update that flips
+                    `sending` — and showChips requires msgs to be empty. A disabled style here
+                    could never render. */}
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => void sendText(c.ask)}
+                  className="inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-full border-[1.5px] border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition-colors hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-700"
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="mt-3 flex gap-2">
           <input
             className="input flex-1"
