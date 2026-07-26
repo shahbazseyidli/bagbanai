@@ -28,12 +28,9 @@ function fmt(v: number | null | undefined): string {
 
 export default function SatelliteStage({
   field,
-  stageW,
   onOpenSatellite,
 }: {
   field: FieldDetail;
-  /** Measured stage width. Only used to nudge MapLibre when the stage resizes (see below). */
-  stageW: number;
   onOpenSatellite: () => void;
 }) {
   const [index, setIndex] = useState("NDVI");
@@ -41,6 +38,10 @@ export default function SatelliteStage({
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [sceneIdx, setSceneIdx] = useState(0);
+  // What the loaded scenes actually MEASURE. `index` is what the farmer just clicked; until the
+  // response lands the two differ, and labelling last index's numbers with the new index's name
+  // (and colour ramp) is simply wrong — NDMI's water ramp over NDVI values inverts the meaning.
+  const [shownIndex, setShownIndex] = useState<StageIndex>("NDVI");
   const dataSaver = useDataSaver();
   // On a metered connection the raster is not fetched until the farmer asks for it (D4.5).
   const [showRaster, setShowRaster] = useState(false);
@@ -55,6 +56,7 @@ export default function SatelliteStage({
         if (!active) return;
         setData(r ?? null);
         setSceneIdx(0);
+        setShownIndex(index);
       })
       .catch(() => {
         if (active) setFailed(true);
@@ -67,17 +69,9 @@ export default function SatelliteStage({
     };
   }, [field.id, index]);
 
-  // The stage can change width WITHOUT a window resize — collapsing the field list does exactly
-  // that. MapLibre v4's trackResize only listens to window.resize, so it would keep a stale canvas.
-  // Nudge it on the next frame instead of adding a resize observer to the shared map component.
-  useEffect(() => {
-    const id = requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
-    return () => cancelAnimationFrame(id);
-  }, [stageW]);
-
   const scenes = useMemo(() => data?.scenes ?? [], [data]);
   const active: Scene | null = scenes[sceneIdx] ?? scenes[0] ?? null;
-  const legend = legendFor(index);
+  const legend = legendFor(shownIndex);
   const rasterVisible = !dataSaver || showRaster;
   const scrollHintId = `stage-scroll-hint-${field.id}`;
 
@@ -86,9 +80,7 @@ export default function SatelliteStage({
       {/* MAP — grows, never scrolls. Never sticky: a sticky ancestor leaves the MapLibre canvas
           blank until something forces a resize (see FieldMapSheet's history). */}
       <div className="relative min-h-0 flex-1 overflow-hidden rounded-xl">
-        {loading ? (
-          <div className="h-full w-full animate-pulse rounded-xl bg-paper-2" aria-hidden="true" />
-        ) : failed || scenes.length === 0 ? (
+        {failed || (!loading && scenes.length === 0) ? (
           // pt-14 keeps the message clear of the chip pill, which floats at top-3 in every state so
           // the farmer can still switch to an index that does have scenes.
           <div className="flex h-full items-center justify-center px-6 pt-14">
@@ -96,7 +88,7 @@ export default function SatelliteStage({
               {failed ? t("app.field.glance.failed") : t("app.field.glance.preparing")}
             </Placeholder>
           </div>
-        ) : rasterVisible ? (
+        ) : rasterVisible && scenes.length > 0 ? (
           <DisplayMap polygon={field.geom} rasterUrl={active?.tile_url ?? null} fill />
         ) : (
           <button
@@ -106,6 +98,13 @@ export default function SatelliteStage({
             <ImageOff className="h-5 w-5" aria-hidden="true" />
             {t("app.field.glance.loadRaster")}
           </button>
+        )}
+
+        {loading && (
+          <div
+            className="absolute inset-0 z-10 animate-pulse rounded-xl bg-paper-2/85"
+            aria-hidden="true"
+          />
         )}
 
         {/* Index chips OVER the map, top-CENTRE: DisplayMap already owns left-2 top-2 (the measure
@@ -149,7 +148,7 @@ export default function SatelliteStage({
             </span>
           )}
           <span className="text-[11.5px] tabular-nums text-ink-soft">
-            {indexLabel(index)} {fmt(active?.value)}
+            {indexLabel(shownIndex)} {fmt(active?.value)}
           </span>
           <button
             onClick={onOpenSatellite}

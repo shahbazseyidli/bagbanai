@@ -313,7 +313,7 @@ async def _trend(conn, ids: list) -> dict[str, dict]:
     return out
 
 
-async def _alerts(conn, ids: list, prefs: Any = None) -> list[dict]:
+async def _alerts(conn, ids: list, prefs: Any) -> list[dict]:  # prefs is REQUIRED — see below
     """This week's rule-engine notifications, one row per (field, rule type).
 
     The engine's cooldown is 18h, so a week of bad weather writes the same frost alert up to nine

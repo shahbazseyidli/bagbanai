@@ -453,7 +453,12 @@ async def set_notify_prefs(body: dict, user_id: str = Depends(get_current_user_i
     """Store the matrix. The body may be full or sparse; only the switched-OFF cells are persisted,
     so `PUT {"prefs": {}}` IS "reset to recommended". Returns the same shape as GET so the client
     reconciles from one response instead of re-fetching."""
-    raw = body.get("prefs") if isinstance(body, dict) else None
+    # An ABSENT "prefs" key is a malformed request, not a reset. parse(None) normalises to
+    # all-channels-on, which compacts to {} — so a typo'd body ("pref", or {}) would have wiped
+    # every opt-out and answered 200. Resetting stays explicit: {"prefs": {}}.
+    if not isinstance(body, dict) or "prefs" not in body:
+        raise HTTPException(status_code=400, detail="invalid_notify_prefs")
+    raw = body.get("prefs")
     try:
         prefs = notify_prefs.parse(raw)
     except ValueError:

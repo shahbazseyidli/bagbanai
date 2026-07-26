@@ -154,10 +154,31 @@ async def list_notifications(user_id: str = Depends(get_current_user_id)):
 
 @router.post("/notifications/read")
 async def mark_read(user_id: str = Depends(get_current_user_id)):
+    """Mark as read only what the bell actually SHOWED.
+
+    This used to stamp every unread row in every org the user belongs to. With the notification
+    matrix that quietly destroys muted categories: a farmer mutes weather, a week of frost alerts is
+    written (correctly — colleagues still want them) but hidden from this user's bell, they open the
+    bell for something unrelated, NotificationBell fires this endpoint, and the hidden rows are
+    stamped read. Re-enabling weather then returns a backlog that is already grey and badge-less.
+    The switch says "where alerts land", not "delete alerts".
+
+    So the visible set is re-derived with the same window and the same filter as
+    list_notifications, and only those ids are updated.
+    """
     async with connection(user_id) as conn:
-        await conn.execute(
-            """update public.notifications n set read_at = now()
-               from public.organization_members m
-               where m.org_id = n.org_id and m.user_id = $1::uuid and n.read_at is null""",
-            user_id)
+        prefs = await notify_prefs.load(conn, user_id)
+        rows = await conn.fetch(
+            """select n.id, n.source, n.type
+               from public.notifications n
+               join public.organization_members m
+                 on m.org_id = n.org_id and m.user_id = $1::uuid
+               where n.read_at is null
+               order by n.created_at desc limit 60""", user_id)
+        ids = [r["id"] for r in rows
+               if notify_prefs.allows_notification(prefs, r["source"], r["type"], "inapp")]
+        if ids:
+            await conn.execute(
+                "update public.notifications set read_at = now() "
+                "where id = any($1::uuid[]) and read_at is null", ids)
     return {"ok": True}

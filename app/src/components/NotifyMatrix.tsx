@@ -175,13 +175,17 @@ export default function NotifyMatrix() {
                         type="button"
                         role="switch"
                         aria-checked={on}
-                        aria-disabled={dormant || undefined}
-                        disabled={dormant}
+                        // Dormant, NOT disabled. The note under this column promises that a choice
+                        // made now takes effect the moment the bot is switched on — and the PUT
+                        // does store it, and send_alert does honour it. Disabling the cells would
+                        // make that promise a lie and leave a third of the matrix untouchable for
+                        // as long as TELEGRAM_BOT_TOKEN is empty, which is today. The dimming
+                        // carries the "not yet live" signal on its own.
                         aria-label={tf("notifyMatrix.cellAria", { cat: catName, ch: columnLabel(ch) })}
                         onClick={() => toggle(cat, ch)}
                         className={`grid min-h-11 min-w-11 place-items-center rounded-lg border-[1.5px] transition-colors ${
                           on ? "border-emerald-600 bg-emerald-600" : "border-slate-300 bg-white"
-                        } ${muted ? "opacity-60" : ""} ${dormant ? "cursor-not-allowed" : ""}`}
+                        } ${muted ? "opacity-60" : ""}`}
                       >
                         {on && <Check className="h-4 w-4 text-white" aria-hidden="true" />}
                       </button>

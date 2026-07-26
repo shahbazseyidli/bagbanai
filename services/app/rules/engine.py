@@ -166,7 +166,11 @@ async def dispatch(conn, field_id: str, org_id: str, candidates: list[dict]) -> 
             escalated = _SEVERITY_RANK.get(sev, 1) > _SEVERITY_RANK.get(st["last_severity"] or "info", 0)
             if not escalated and now - st["last_fired_at"] < timedelta(hours=COOLDOWN_HOURS):
                 continue
-        cat = notify_prefs.category_for(c.get("source"), rt)
+        # Resolved ONCE. Gating on c.get("source") while writing c.get("source", "vegetation") let
+        # a candidate with no source be muted as "system" but stored as "vegetation" — the read
+        # filter and the digest would then disagree with the gate about the same alert.
+        src = c.get("source") or "vegetation"
+        cat = notify_prefs.category_for(src, rt)
         # The row is org-scoped (public.notifications has no per-user copy) AND the Wednesday digest
         # reads this very table, so "in-app off" alone must NOT suppress the write — that would
         # silently mute the digest column too. Skip only when nobody in the org wants this category
@@ -177,7 +181,7 @@ async def dispatch(conn, field_id: str, org_id: str, candidates: list[dict]) -> 
                 """insert into public.notifications
                      (field_id, org_id, source, type, severity, title, body, delivered_channels)
                    values ($1::uuid,$2::uuid,$3,$4,$5,$6,$7,array['inapp'])""",
-                field_id, org_id, c.get("source", "vegetation"), rt, sev, c["title"], c["body"])
+                field_id, org_id, src, rt, sev, c["title"], c["body"])
         else:
             suppressed += 1
         # alert_state is written either way: the cooldown describes the EVENT, not its delivery. If

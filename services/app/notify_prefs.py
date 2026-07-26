@@ -134,10 +134,13 @@ async def load(conn, user_id: str) -> dict[str, dict[str, bool]]:
 async def org_audience(conn, org_id: str) -> list[dict]:
     """Every member of an org with their matrix, in one query — `public.notifications` rows are
     org-scoped, so deciding whether to write one is a question about the whole membership."""
+    # status='active' matches is_org_member (0007_rls.sql). Without it an invitee who never
+    # accepted, or a removed colleague, still counts as "someone wants this category" — any_wants
+    # would never return False and the suppression this query pays for would never fire.
     rows = await conn.fetch(
         """select u.id, u.notify_prefs from public.users u
            join public.organization_members m on m.user_id = u.id
-           where m.org_id=$1::uuid""", org_id)
+           where m.org_id=$1::uuid and m.status = 'active'""", org_id)
     return [{"user_id": str(r["id"]), "prefs": normalize(r["notify_prefs"])} for r in rows]
 
 
