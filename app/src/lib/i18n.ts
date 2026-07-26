@@ -2010,6 +2010,9 @@ export const az = {
   "app.fieldsList.emptyBody": "Peyk monitorinqi, hava proqnozu və AI aqronom məsləhəti üçün ilk sahənizi xəritədə çəkin — bir neçə dəqiqə çəkir.",
   "app.fieldsList.emptyTitle": "Sahələrinizi əlavə edin",
   "app.fieldsList.heading": "Sahələr",
+  // Plural forms picked by tp() via Intl.PluralRules. Azerbaijani keeps the singular after any
+  // numeral, so `other` alone is the complete set here; ru/pl carry three forms in their own files.
+  "app.plural.fields.other": "sahə",
   "app.fieldsList.selectFieldAria": " seç",
   "app.fieldsList.srScoreLabel": "Sağlamlıq balı: ",
   "app.fieldsOverviewMap.bandBad": "45-dən aşağı (risk)",
@@ -2814,8 +2817,7 @@ export const LOCALE_NAMES: Record<Locale, string> = {
 };
 
 // Registered lazily by LocaleProvider so this module has no import cycle with the big dicts.
-const DICTS: Partial<Record<Locale, Dict>> = { az   "app.plural.fields.other": "sahə",
-};
+const DICTS: Partial<Record<Locale, Dict>> = { az };
 export function registerDict(locale: Locale, dict: Dict): void {
   DICTS[locale] = dict;
 }
