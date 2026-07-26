@@ -2543,6 +2543,7 @@ export const tr: Dict = {
   "app.err.fieldNotFound": "Tarla bulunamadı.",
   "app.err.photoNotInPlan": "Foto teşhis Paket 3'te.",
   "app.err.photoQuotaExceeded": "Bu ay foto teşhis limiti doldu.",
+  "app.err.adviceQuotaExceeded": "Bu ayki yapay zekâ analiz hakkınız doldu. Paketi yükseltin ya da gelecek ayı bekleyin.",
   "app.err.aiNotConfigured": "AI şu anda kullanılamıyor.",
   "app.err.sessionExpired": "Oturum sona erdi — yeniden giriş yapın.",
   "app.err.forbidden": "Bu işlem için izniniz yok.",

@@ -9,7 +9,7 @@
 // again — the regenerate endpoint already takes the caller's locale.
 import { useState } from "react";
 import { Languages, RefreshCw } from "lucide-react";
-import { api } from "@/lib/api";
+import { api, azError } from "@/lib/api";
 import { t } from "@/lib/i18n";
 
 export default function AdviceLangNote({
@@ -21,16 +21,18 @@ export default function AdviceLangNote({
   onDone: () => void;
 }) {
   const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
+  // The real reason, not a generic "failed" — the common one is the monthly AI quota, and a farmer
+  // who is told "try again shortly" for a limit that resets next month will just keep clicking.
+  const [error, setError] = useState("");
 
   async function regenerate() {
     setBusy(true);
-    setFailed(false);
+    setError("");
     try {
       await api.post(`/api/fields/${fieldId}/advice/generate`);
       onDone();
-    } catch {
-      setFailed(true);
+    } catch (err) {
+      setError(azError(err) || t("app.advice.regenFailed"));
     } finally {
       setBusy(false);
     }
@@ -39,7 +41,7 @@ export default function AdviceLangNote({
   return (
     <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-xl border border-dashed border-line bg-black/[.02] px-3 py-2 text-[12.5px] text-ink-soft">
       <Languages className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-      <span>{failed ? t("app.advice.regenFailed") : t("app.advice.otherLang")}</span>
+      <span className={error ? "text-amber-800" : undefined}>{error || t("app.advice.otherLang")}</span>
       <button
         onClick={() => void regenerate()}
         disabled={busy}

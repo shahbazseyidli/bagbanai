@@ -2683,6 +2683,7 @@ export const az = {
   "app.err.otpExpired": "Kodun vaxtı bitib — yenidən göndərin.",
   "app.err.photoNotInPlan": "Foto diaqnoz Paket 3-dədir.",
   "app.err.photoQuotaExceeded": "Bu ay foto diaqnoz limiti doldu.",
+  "app.err.adviceQuotaExceeded": "Bu ay üçün AI analiz limitiniz doldu. Paketi yüksəldin və ya növbəti ayı gözləyin.",
   "app.err.selfIntersection": "Sərhəd özü ilə kəsişir — yenidən çəkin.",
   "app.err.serverError": "Server xətası — bir azdan yenidən cəhd edin.",
   "app.err.sessionExpired": "Sessiya bitib — yenidən daxil olun.",

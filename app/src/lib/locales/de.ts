@@ -2543,6 +2543,7 @@ export const de: Dict = {
   "app.err.fieldNotFound": "Feld nicht gefunden.",
   "app.err.photoNotInPlan": "Fotodiagnose ist in Paket 3 enthalten.",
   "app.err.photoQuotaExceeded": "Fotodiagnose-Limit für diesen Monat erreicht.",
+  "app.err.adviceQuotaExceeded": "Ihre KI-Analysen für diesen Monat sind aufgebraucht. Tarif wechseln oder nächsten Monat abwarten.",
   "app.err.aiNotConfigured": "AI ist derzeit nicht verfügbar.",
   "app.err.sessionExpired": "Sitzung abgelaufen — melden Sie sich erneut an.",
   "app.err.forbidden": "Sie haben keine Berechtigung für diese Aktion.",

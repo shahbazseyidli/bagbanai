@@ -2543,6 +2543,7 @@ export const it: Dict = {
   "app.err.fieldNotFound": "Campo non trovato.",
   "app.err.photoNotInPlan": "La diagnosi da foto è nel Pacchetto 3.",
   "app.err.photoQuotaExceeded": "Limite di diagnosi da foto per questo mese raggiunto.",
+  "app.err.adviceQuotaExceeded": "Hai esaurito le analisi IA di questo mese. Cambia piano o attendi il mese prossimo.",
   "app.err.aiNotConfigured": "L'AI non è al momento disponibile.",
   "app.err.sessionExpired": "Sessione scaduta — accedi di nuovo.",
   "app.err.forbidden": "Non hai il permesso per questa operazione.",

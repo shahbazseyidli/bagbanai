@@ -2592,6 +2592,7 @@ export const ru: Dict = {
   "app.err.otpExpired": "Срок действия кода истёк — запросите новый.",
   "app.err.photoNotInPlan": "Фотодиагностика входит в Пакет 3.",
   "app.err.photoQuotaExceeded": "Лимит фотодиагностики на этот месяц исчерпан.",
+  "app.err.adviceQuotaExceeded": "Лимит ИИ-анализов на этот месяц исчерпан. Смените тариф или дождитесь следующего месяца.",
   "app.err.selfIntersection": "Граница пересекает саму себя — начертите заново.",
   "app.err.serverError": "Ошибка сервера — попробуйте чуть позже.",
   "app.err.sessionExpired": "Сессия истекла — войдите снова.",

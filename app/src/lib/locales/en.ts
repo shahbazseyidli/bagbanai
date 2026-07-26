@@ -2566,6 +2566,7 @@ export const en: Dict = {
   "app.err.fieldNotFound": "Field not found.",
   "app.err.photoNotInPlan": "Photo diagnosis is in Package 3.",
   "app.err.photoQuotaExceeded": "This month's photo diagnosis limit is reached.",
+  "app.err.adviceQuotaExceeded": "You have used this month's AI analyses. Upgrade your plan or wait for next month.",
   "app.err.aiNotConfigured": "AI is currently unavailable.",
   "app.err.sessionExpired": "Your session has expired — sign in again.",
   "app.err.forbidden": "You don't have permission for this action.",

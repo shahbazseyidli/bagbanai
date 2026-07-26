@@ -69,6 +69,11 @@ async def generate_advice(field_id: str, request: Request,
         result = await advice_svc.generate_and_store(conn, field_id, force=True, lang=locale)
     if result is None:
         raise HTTPException(status_code=503, detail="ai_unavailable")
+    # The quota branch used to come back as a 200 carrying {"quota_exceeded": true}, so every
+    # caller read it as success: the button stopped spinning, nothing changed on screen, and the
+    # farmer had no idea the monthly limit was the reason. It is a refusal — say so with a status.
+    if result.get("quota_exceeded"):
+        raise HTTPException(status_code=429, detail="advice_quota_exceeded")
     return result
 
 

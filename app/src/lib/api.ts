@@ -131,6 +131,7 @@ const ERR_KEYS: Record<string, I18nKey> = {
   field_not_found: "app.err.fieldNotFound",
   photo_not_in_plan: "app.err.photoNotInPlan",
   photo_quota_exceeded: "app.err.photoQuotaExceeded",
+  advice_quota_exceeded: "app.err.adviceQuotaExceeded",
   ai_not_configured: "app.err.aiNotConfigured",
   unauthorized: "app.err.sessionExpired",
 };

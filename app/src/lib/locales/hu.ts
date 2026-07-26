@@ -2543,6 +2543,7 @@ export const hu: Dict = {
   "app.err.fieldNotFound": "A mező nem található.",
   "app.err.photoNotInPlan": "A fotódiagnózis a 3. csomagban érhető el.",
   "app.err.photoQuotaExceeded": "Ebben a hónapban elérte a fotódiagnózis limitet.",
+  "app.err.adviceQuotaExceeded": "Elfogytak a havi MI-elemzései. Váltson csomagot, vagy várja meg a következő hónapot.",
   "app.err.aiNotConfigured": "Az AI jelenleg nem elérhető.",
   "app.err.sessionExpired": "A munkamenet lejárt — jelentkezzen be újra.",
   "app.err.forbidden": "Nincs jogosultsága ehhez a művelethez.",
