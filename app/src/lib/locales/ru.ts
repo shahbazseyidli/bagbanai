@@ -1356,6 +1356,8 @@ export const ru: Dict = {
   "app.field.photoDiagnose.gatedSubtitle": "Перейдите на Пакет 3, чтобы анализировать фото болезней и вредителей с помощью AI (30 диагнозов в месяц).",
   "app.field.photoDiagnose.gatedTitle": "AI-фотодиагностика доступна в Пакете 3",
   "app.field.photoDiagnose.heading": "AI-фотодиагностика",
+  "app.photoInput.take": "Сделать фото",
+  "app.photoInput.choose": "Выбрать из галереи",
   "app.field.photoDiagnose.intro": "Загрузите фото больного листа или растения — AI определит вероятную проблему. Результат носит рекомендательный характер; за точным препаратом обратитесь к агроному.",
   "app.field.photoDiagnose.packageBadge": "Пакет 3",
   "app.field.photoDiagnose.previewAlt": "выбранное",

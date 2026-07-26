@@ -1401,6 +1401,8 @@ export const hu: Dict = {
   "app.field.harvestTab.moistureLabel": "Nedvesség (%)",
   "app.field.photoDiagnose.diagnoseFailed": "A diagnózis nem sikerült.",
   "app.field.photoDiagnose.heading": "AI fotódiagnózis",
+  "app.photoInput.take": "Fénykép készítése",
+  "app.photoInput.choose": "Választás a galériából",
   "app.field.weatherHistoryTab.daysParenClose": " nap)",
   "app.field.info.choiceChips.enterPlaceholder": "Adja meg",
   "app.field.fieldMapSheet.photoDiagnosisAria": "Diagnózis fotó alapján",

@@ -71,6 +71,15 @@ export default function SatelliteStage({
 
   const scenes = useMemo(() => data?.scenes ?? [], [data]);
   const active: Scene | null = scenes[sceneIdx] ?? scenes[0] ?? null;
+  // Ported from SatelliteGlance: scenes are newest-first, so "four weeks ago" is simply four
+  // entries further down. A farmer promoted from a phone to a laptop was losing the trend read —
+  // the wide layout showed strictly LESS than the stacked one it replaces.
+  const olderIdx = Math.min(scenes.length - 1, sceneIdx + 4);
+  const older = scenes[olderIdx];
+  const delta =
+    active?.value != null && older?.value != null && olderIdx !== sceneIdx
+      ? active.value - older.value
+      : null;
   const legend = legendFor(shownIndex);
   const rasterVisible = !dataSaver || showRaster;
   const scrollHintId = `stage-scroll-hint-${field.id}`;
@@ -150,6 +159,16 @@ export default function SatelliteStage({
           <span className="text-[11.5px] tabular-nums text-ink-soft">
             {indexLabel(shownIndex)} {fmt(active?.value)}
           </span>
+          {delta != null && (
+            <span
+              className={`text-[11.5px] font-semibold tabular-nums ${
+                delta >= 0 ? "text-emerald-700" : "text-amber-700"
+              }`}
+            >
+              {delta >= 0 ? "+" : ""}
+              {delta.toFixed(2)} · {t("app.field.glance.fourWeeks")}
+            </span>
+          )}
           <button
             onClick={onOpenSatellite}
             className="ml-auto inline-flex min-h-9 items-center gap-1 text-[12.5px] font-semibold text-grass hover:text-grass-deep"
@@ -188,7 +207,7 @@ export default function SatelliteStage({
         )}
 
         {/* Fixed ramp — the same value means the same colour on every date. */}
-        <div className="mt-1 h-[2px] rounded" style={{ background: legend.grad }} aria-hidden="true" />
+        <div className="mt-1 h-2 rounded" style={{ background: legend.grad }} aria-hidden="true" />
         <div className="mt-1 flex items-baseline justify-between text-[10.5px] text-ink-soft">
           <span>{legend.low}</span>
           <span>{legend.mid}</span>

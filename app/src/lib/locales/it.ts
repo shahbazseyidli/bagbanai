@@ -1401,6 +1401,8 @@ export const it: Dict = {
   "app.field.harvestTab.moistureLabel": "Umidità (%)",
   "app.field.photoDiagnose.diagnoseFailed": "Diagnosi non riuscita.",
   "app.field.photoDiagnose.heading": "Diagnosi foto AI",
+  "app.photoInput.take": "Scatta una foto",
+  "app.photoInput.choose": "Scegli dalla galleria",
   "app.field.weatherHistoryTab.daysParenClose": " giorni)",
   "app.field.info.choiceChips.enterPlaceholder": "Inserisci",
   "app.field.fieldMapSheet.photoDiagnosisAria": "Diagnosi tramite foto",

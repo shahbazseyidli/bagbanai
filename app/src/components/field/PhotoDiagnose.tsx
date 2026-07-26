@@ -8,6 +8,7 @@ import { Camera, Sparkles, AlertTriangle } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import UpgradeCta from "@/components/UpgradeCta";
 import { t } from "@/lib/i18n";
+import PhotoInput from "@/components/field/PhotoInput";
 
 interface Diag {
   problem_type: string;
@@ -69,12 +70,7 @@ export default function PhotoDiagnose({ fieldId }: { fieldId: string }) {
       </p>
 
       <div className="flex flex-wrap items-center gap-3">
-        <input
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          onChange={(e) => pick(e.target.files?.[0] ?? null)}
-          className="input max-w-xs"
-        />
+        <PhotoInput onPick={pick} disabled={busy} fileName={file?.name ?? null} />
         <button
           type="button"
           onClick={run}

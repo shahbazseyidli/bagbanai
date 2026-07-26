@@ -1431,6 +1431,8 @@ export const az = {
   "app.field.photoDiagnose.gatedSubtitle": "Xəstəlik/zərərverici şəkillərini AI ilə analiz etmək üçün Paket 3-ə keçin (aylıq 30 diaqnoz).",
   "app.field.photoDiagnose.gatedTitle": "AI foto diaqnoz Paket 3-də açıqdır",
   "app.field.photoDiagnose.heading": "AI foto diaqnoz",
+  "app.photoInput.take": "Şəkil çək",
+  "app.photoInput.choose": "Qalereyadan seç",
   "app.field.photoDiagnose.intro": "Xəstə yarpaq/bitki şəklini yükləyin — AI ehtimal olunan problemi təyin etsin. Nəticə məsləhət xarakterlidir; dəqiq preparat üçün aqronomla məsləhətləşin.",
   "app.field.photoDiagnose.packageBadge": "Paket 3",
   "app.field.photoDiagnose.previewAlt": "seçilmiş",

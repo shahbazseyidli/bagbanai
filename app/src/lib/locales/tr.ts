@@ -1401,6 +1401,8 @@ export const tr: Dict = {
   "app.field.harvestTab.moistureLabel": "Nem (%)",
   "app.field.photoDiagnose.diagnoseFailed": "Teşhis alınamadı.",
   "app.field.photoDiagnose.heading": "AI foto teşhis",
+  "app.photoInput.take": "Fotoğraf çek",
+  "app.photoInput.choose": "Galeriden seç",
   "app.field.weatherHistoryTab.daysParenClose": " gün)",
   "app.field.info.choiceChips.enterPlaceholder": "Girin",
   "app.field.fieldMapSheet.photoDiagnosisAria": "Fotoğrafla teşhis",

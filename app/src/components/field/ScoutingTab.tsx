@@ -5,6 +5,7 @@ import { MapPin, Plus } from "lucide-react";
 import { api, apiAsset } from "@/lib/api";
 import { t, type I18nKey } from "@/lib/i18n";
 import { ErrorNote, Field as FormField, Placeholder } from "@/components/ui";
+import PhotoInput from "@/components/field/PhotoInput";
 import { queueScouting, flushQueue } from "@/lib/offlineQueue";
 import type { Scouting } from "@/lib/types";
 
@@ -137,7 +138,7 @@ export default function ScoutingTab({ fieldId }: { fieldId: string }) {
         </FormField>
         <div className="grid gap-3 sm:grid-cols-2">
           <FormField label={t("scout.photo")}>
-            <input className="input" type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+            <PhotoInput onPick={setFile} fileName={file?.name ?? null} />
           </FormField>
           <div>
             <label className="label">&nbsp;</label>

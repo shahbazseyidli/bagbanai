@@ -1424,6 +1424,8 @@ export const en: Dict = {
   "app.field.harvestTab.moistureLabel": "Moisture (%)",
   "app.field.photoDiagnose.diagnoseFailed": "Diagnosis failed.",
   "app.field.photoDiagnose.heading": "AI photo diagnosis",
+  "app.photoInput.take": "Take a photo",
+  "app.photoInput.choose": "Choose from gallery",
   "app.field.weatherHistoryTab.daysParenClose": " days)",
   "app.field.info.choiceChips.enterPlaceholder": "Enter",
   "app.field.fieldMapSheet.photoDiagnosisAria": "Diagnose with photo",
