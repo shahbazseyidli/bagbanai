@@ -150,8 +150,9 @@ export default function BulkActions({ orgId, fieldIds, onDone }: BulkActionsProp
     }
   }
 
+  // The mobile offset clears the bottom nav, which now carries the safe-area inset too.
   return (
-    <div className="sticky bottom-20 z-30 md:bottom-4">
+    <div className="sticky bottom-[calc(env(safe-area-inset-bottom)_+_5rem)] z-30 md:bottom-4">
       <div className="rounded-xl border-[1.5px] border-emerald-300 bg-white p-3 shadow-lg">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-sm font-semibold text-slate-800">{count}{t("app.bulkActions.fieldsSelectedSuffix")}</p>

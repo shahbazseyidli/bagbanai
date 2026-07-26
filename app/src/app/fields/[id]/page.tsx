@@ -145,8 +145,10 @@ function FieldDetailInner() {
 
   // Field detail is presented two ways from the SAME state/handlers: the classic stacked layout,
   // and (behind ?ui=v2) the D2.3 map-first sheet. Build each piece once, then compose per branch.
+  // The bottom offset carries the safe-area inset so the "Geri qaytar" button never lands in the
+  // home-indicator / gesture strip, where the swipe would eat the tap.
   const undoBar = undoDeleted ? (
-    <div className="fixed inset-x-0 bottom-4 z-50 mx-auto flex max-w-md items-center justify-between gap-3 rounded-xl bg-ink px-4 py-3 text-white shadow-lg">
+    <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)_+_1rem)] z-50 mx-auto flex max-w-md items-center justify-between gap-3 rounded-xl bg-ink px-4 py-3 text-white shadow-lg">
       <span className="text-sm">“{field.name}” {t("app.fieldDetail.fieldDeleted")}</span>
       <button
         onClick={onUndoDelete}

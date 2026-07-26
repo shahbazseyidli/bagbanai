@@ -52,8 +52,10 @@ export default function OfflineIndicator() {
       ? "bg-emerald-600 text-white ring-emerald-500"
       : "bg-amber-50 text-amber-900 ring-amber-200";
 
+  // The 3.5/4rem offsets clear the sticky top Nav, which now also carries the top safe-area inset —
+  // so this has to carry it too or the pill would overlap the bar on edge-to-edge devices.
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-14 z-40 flex justify-center px-4 md:top-16">
+    <div className="pointer-events-none fixed inset-x-0 top-[calc(env(safe-area-inset-top)_+_3.5rem)] z-40 flex justify-center px-4 md:top-[calc(env(safe-area-inset-top)_+_4rem)]">
       <div className={`pointer-events-auto flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-bold shadow-md ring-1 ${cls}`} role="status">
         {!online ? (
           <>

@@ -47,8 +47,12 @@ export default function Nav() {
   // "Panelə keç" only belongs on the marketing apex — never on the app host itself.
   const showToApp = !!user && !!PANEL_HOST && !appHost;
 
+  // pt-[env(safe-area-inset-top)]: under viewport-fit=cover the layout extends under the status bar
+  // wherever the platform reports a top inset (Android 15 edge-to-edge; 0 on iOS standalone with the
+  // default status-bar style), and the bar's own background then fills it instead of the content
+  // sliding underneath. OfflineIndicator offsets itself by the same inset to stay clear of this bar.
   return (
-    <header className="sticky top-0 z-30 border-b border-emerald-100 bg-white/90 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-emerald-100 bg-white/90 pt-[env(safe-area-inset-top)] backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
         <a href={HOME_HREF} className="flex shrink-0 items-center gap-2 text-emerald-700">
           <Leaf className="h-6 w-6 shrink-0" />

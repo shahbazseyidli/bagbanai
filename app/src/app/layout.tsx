@@ -55,6 +55,12 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export const viewport: Viewport = {
   themeColor: "#059669",
+  // Without viewport-fit=cover every env(safe-area-inset-*) resolves to 0, so the bottom nav's
+  // pb-[env(safe-area-inset-bottom)] was a no-op and its rows sat under the iPhone home indicator /
+  // Android gesture bar. Opting in makes those insets real — every viewport-anchored element below
+  // (top Nav, OfflineIndicator, BottomNav, the camera FAB, BulkActions, the undo bar) now pads
+  // itself by the inset, which stays a no-op on devices that report 0.
+  viewportFit: "cover",
 };
 
 export default async function RootLayout({
@@ -76,7 +82,9 @@ export default async function RootLayout({
             <PwaRegister />
             <OfflineIndicator />
             <Nav />
-            <main className="mx-auto max-w-6xl px-4 py-6 pb-24 md:pb-6">
+            {/* pb clears the fixed BottomNav; the nav itself grew by the safe-area inset, so the
+                scroll padding has to grow with it or the last card hides behind the nav. */}
+            <main className="mx-auto max-w-6xl px-4 py-6 pb-[calc(env(safe-area-inset-bottom)_+_6rem)] md:pb-6">
               <AppShell>{children}</AppShell>
             </main>
             <BottomNav />

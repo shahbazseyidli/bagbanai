@@ -43,13 +43,15 @@ export default function FieldMapSheet({
       <div>{tabNav}</div>
       <div>{children}</div>
 
-      {/* Camera FAB (D2.6) — jumps to photo diagnosis. Mobile only; sits above the bottom nav. */}
+      {/* Camera FAB (D2.6) — jumps to photo diagnosis. Mobile only; sits above the bottom nav.
+          The 5rem offset clears that nav, which grew by the safe-area inset under viewport-fit=
+          cover — so this offset grows with it, or the FAB lands on top of the nav row. */}
       {onCamera && (
         <button
           type="button"
           onClick={() => onCamera()}
           aria-label={t("app.field.fieldMapSheet.photoDiagnosisAria")}
-          className="fixed bottom-20 right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg md:hidden"
+          className="fixed bottom-[calc(env(safe-area-inset-bottom)_+_5rem)] right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg md:hidden"
         >
           <Camera className="h-6 w-6" aria-hidden="true" />
         </button>
