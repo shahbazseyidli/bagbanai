@@ -1,16 +1,16 @@
 "use client";
 
-// Field detail — MAP ON TOP, DETAIL CONTENT BELOW (stacked, full width) on BOTH mobile and desktop.
-// This used to be a full-bleed map with a draggable bottom sheet (mobile) / fixed right sidebar
-// (desktop). The narrow ~440px column made the tab labels + controls cramped and hard to read, so
-// the detail content now flows in a normal, full-width column UNDERNEATH the map — the 3 intent
-// groups, the secondary tab row, and every tab's content get the whole page width.
+// Field detail page frame — header, then the section nav, then the section's content, full width.
 //
-// The map is a plain container in normal document flow at a comfortable height (~50vh). It is NOT
-// position:sticky on purpose: a WebGL (MapLibre) map inside a sticky element renders blank until a
-// resize, so we keep it in normal flow where DisplayMap paints on first mount.
+// This file is a shell now, and its name is historical. It began as a full-bleed map with a
+// draggable bottom sheet (mobile) / fixed right sidebar (desktop); the narrow ~440px column made
+// the labels and controls cramped, so the content moved into a normal full-width column. Then E14
+// removed the hero map from the top of it as well — the status section carries a right-sized map
+// inside SatelliteGlance, so the page opens on the verdict rather than on scenery. Nothing here
+// renders a map any more, and nothing here reads the field.
 //
-// Ships behind ?ui=v2 (now the default UI). A camera FAB (D2.6) jumps to photo diagnosis.
+// What is left, and the only reason the component still exists: it owns the page's vertical rhythm
+// and the camera FAB (D2.6) that jumps to photo diagnosis.
 import { Camera } from "lucide-react";
 import { t } from "@/lib/i18n";
 import type { FieldDetail } from "@/lib/types";
@@ -34,12 +34,8 @@ export default function FieldMapSheet({
       {/* Field title / score / edit — above the map so the farmer knows the field first. */}
       {header}
 
-      {/* E14 — the full-bleed hero map was removed on purpose: the status section now carries a
-          right-sized map inside SatelliteGlance, so the page opens on the verdict instead of on
-          scenery. This wrapper stays because it owns the camera FAB and the page layout. */}
-
-      {/* Detail content — full width, below the map. The tab bar (3 intent groups + secondary row)
-          and every tab's content get the whole page width. */}
+      {/* The section nav (3 intent groups + the secondary row) and the section content, each given
+          the whole page width — the reason the old sheet layout was abandoned. */}
       <div>{tabNav}</div>
       <div>{children}</div>
 
