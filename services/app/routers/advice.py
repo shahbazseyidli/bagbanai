@@ -10,8 +10,16 @@ _LOCALES = {"az", "en", "tr", "de", "hu", "it", "pl", "ru"}
 
 
 def _resolve_locale(request: Request, body_locale: Optional[str]) -> str:
-    """Prefer an explicit body locale, else the bagban_locale cookie, else az."""
-    for cand in (body_locale, request.cookies.get("bagban_locale")):
+    """The language to write prose in: explicit body value, then the X-Locale header the web client
+    sends on every request, then the cookie, then az.
+
+    The header outranks the cookie because the cookie is genuinely ambiguous here: the app host and
+    the marketing apex are different hosts, so a browser can hold both a host-only bagban_locale and
+    the .agradex.com one. Next reads the first, Starlette's cookie dict keeps the last — so the
+    interface could render in one language while the AI wrote in another. X-Locale is set from the
+    same value t() renders with, so there is nothing left to infer."""
+    header_locale = (request.headers.get("x-locale") or "").strip().lower()
+    for cand in (body_locale, header_locale, request.cookies.get("bagban_locale")):
         if cand and cand in _LOCALES:
             return cand
     return "az"

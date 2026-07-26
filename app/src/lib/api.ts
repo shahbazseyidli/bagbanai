@@ -3,9 +3,22 @@
 // credentials: "include". Non-2xx responses throw an ApiError carrying the
 // backend's JSON `detail`.
 
-import { t, type I18nKey } from "@/lib/i18n";
+import { getLocale, t, type I18nKey } from "@/lib/i18n";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "";
+
+/**
+ * Every request states the language the UI is currently rendering in.
+ *
+ * The backend used to infer this from the bagban_locale cookie, which is not reliable: the app and
+ * the marketing apex are different hosts, so a browser can hold BOTH a host-only cookie and the
+ * .agradex.com one under the same name. Next reads the first, Starlette's dict-building reads the
+ * last, and the two can disagree — which surfaces as an interface in one language and AI prose in
+ * another. The header removes the guess: it is whatever t() is about to render with.
+ */
+function headers(extra?: Record<string, string>): Record<string, string> {
+  return { Accept: "application/json", "X-Locale": getLocale(), ...extra };
+}
 
 export class ApiError extends Error {
   status: number;
@@ -54,7 +67,7 @@ export const api = {
     const res = await fetch(url(path), {
       method: "GET",
       credentials: "include",
-      headers: { Accept: "application/json" },
+      headers: headers(),
       cache: "no-store",
     });
     return handle<T>(res);
@@ -64,7 +77,7 @@ export const api = {
     const res = await fetch(url(path), {
       method: "POST",
       credentials: "include",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      headers: headers({ "Content-Type": "application/json" }),
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     return handle<T>(res);
@@ -74,7 +87,7 @@ export const api = {
     const res = await fetch(url(path), {
       method: "PUT",
       credentials: "include",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      headers: headers({ "Content-Type": "application/json" }),
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     return handle<T>(res);
@@ -84,7 +97,7 @@ export const api = {
     const res = await fetch(url(path), {
       method: "PATCH",
       credentials: "include",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      headers: headers({ "Content-Type": "application/json" }),
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     return handle<T>(res);
@@ -94,7 +107,7 @@ export const api = {
     const res = await fetch(url(path), {
       method: "DELETE",
       credentials: "include",
-      headers: { Accept: "application/json" },
+      headers: headers(),
     });
     return handle<T>(res);
   },
@@ -105,6 +118,7 @@ export const api = {
     const res = await fetch(url(path), {
       method: "POST",
       credentials: "include",
+      headers: headers(),
       body: form,
     });
     return handle<T>(res);
