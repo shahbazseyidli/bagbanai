@@ -11,10 +11,10 @@ import {
 } from "@/lib/fieldSections";
 import { ErrorNote, Spinner } from "@/components/ui";
 import FieldPulse from "@/components/field/overview/FieldPulse";
-import SatelliteGlance from "@/components/field/overview/SatelliteGlance";
 import SignalsActions from "@/components/field/overview/SignalsActions";
 import SatelliteTab from "@/components/field/SatelliteTab";
 import FieldMapSheet from "@/components/field/FieldMapSheet";
+import FieldMapCard from "@/components/field/FieldMapCard";
 import { useUiV2 } from "@/lib/uiFlag";
 import AiTab from "@/components/field/AiTab";
 import MetadataTab from "@/components/field/MetadataTab";
@@ -24,6 +24,7 @@ import FertilizerTab from "@/components/field/FertilizerTab";
 import PhotosTab from "@/components/field/PhotosTab";
 import PeerSuggest from "@/components/field/PeerSuggest";
 import ScoutingTab from "@/components/field/ScoutingTab";
+import { useScoutMap } from "@/components/field/scouting/useScoutMap";
 import TasksTab from "@/components/field/TasksTab";
 import OperationsTab from "@/components/field/OperationsTab";
 import YieldsTab from "@/components/field/YieldsTab";
@@ -51,6 +52,13 @@ import type { FieldDetail } from "@/lib/types";
 // handle. The rail steps up again as soon as there is room (see FieldWorkbench).
 const WORKBENCH_MIN = 760;
 
+// Sections that build their own MapLibre map, and therefore must NOT also get the persistent card
+// stacked above them: "satellite" (SatelliteTab) and "zones" (ZonesTab). Verified by grep — those
+// are the only two of the sixteen. Hand-maintained, and it lives here rather than in
+// fieldSections.ts because that file is the section taxonomy, not a rendering detail; a future
+// section that embeds a map has to be added here or it will sit under a second map.
+const SECTION_OWNS_MAP = new Set<SectionKey>(["satellite", "zones"]);
+
 export default function FieldDetailPage() {
   // useSearchParams (tab state) requires a Suspense boundary under the app router.
   return (
@@ -76,7 +84,35 @@ function FieldDetailInner() {
   function setTab(key: SectionKey) {
     const sp = new URLSearchParams(searchParams.toString());
     sp.set("tab", key);
+    // A section change always leaves fullscreen: the param must never survive one, or tapping
+    // "Peyk görüntüsü" from inside the overlay would land on the satellite section still covered.
+    sp.delete("map");
     router.push(`${pathname}?${sp.toString()}`, { scroll: false });
+  }
+
+  // 6.6 — the map card's fullscreen state is in the URL, alongside ?tab=, for the reason D0.3 put
+  // the tab there: the Android back gesture and the browser back button then close it for free,
+  // with no popstate listener and no history.pushState monkey-patching under the App Router.
+  const fullscreen = searchParams.get("map") === "full";
+  // Whether the entry currently on the stack is OURS. A reloaded or shared ?map=full URL has none,
+  // and router.back() there would throw the farmer out of the field entirely.
+  const pushedFullRef = useRef(false);
+  function openFullscreen() {
+    const sp = new URLSearchParams(searchParams.toString());
+    sp.set("map", "full");
+    pushedFullRef.current = true;
+    router.push(`${pathname}?${sp.toString()}`, { scroll: false });
+  }
+  function closeFullscreen() {
+    if (pushedFullRef.current) {
+      pushedFullRef.current = false;
+      router.back();
+      return;
+    }
+    const sp = new URLSearchParams(searchParams.toString());
+    sp.delete("map");
+    const qs = sp.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   }
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
@@ -84,8 +120,26 @@ function FieldDetailInner() {
   const [confirmDel, setConfirmDel] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [undoDeleted, setUndoDeleted] = useState(false);
-  // Feature D — the status section lays itself out from its MEASURED width, not a breakpoint.
+  // Feature D — the status section lays itself out from its MEASURED width, not a breakpoint. The
+  // ref now sits on the page frame rather than inside the status branch: the same measurement has
+  // to exist on EVERY section, because it decides the persistent map card too.
   const [stageRef, stageW] = useStageWidth();
+  // One map decision, from one number. Wide → FieldWorkbench owns the map and the card is not
+  // rendered on the ordinary sections (a "persistent" element that vanishes on one section is
+  // worse than not having it, and the desktop answer to "what am I looking at" is the workbench
+  // plus the field list panel). Narrow → the card, except on the sections that build their own map.
+  // stageW === null is the single unmeasured frame: build neither, exactly as before.
+  const wide = stageW !== null && stageW >= WORKBENCH_MIN;
+  // 6.5 — "scouting" is the one exception to the wide rule. Its notes ARE map data: pins with no
+  // map is a feature with its output removed, and the workbench only renders on the status
+  // section, so a wide stage would otherwise leave this section mapless. Everywhere else the wide
+  // answer is still "the workbench owns the map".
+  const showCard =
+    v2 && stageW !== null && !SECTION_OWNS_MAP.has(tab) && (!wide || tab === "scouting");
+  // The scouting section's pins have to reach a card mounted ABOVE the section, so the state that
+  // joins them lives here, in their only common ancestor. Called unconditionally and before every
+  // early return below — hook order has to be identical on every render.
+  const scout = useScoutMap(showCard);
 
   function openEdit() {
     if (field) setEditName(field.name);
@@ -303,13 +357,12 @@ function FieldDetailInner() {
         {t(sectionOf(tab).labelKey)}
       </h2>
       {tab === "status" && (
-        // The ResizeObserver target: always rendered, always the full stage width, in every branch.
-        <div ref={stageRef}>
+        <div>
           {stageW === null ? (
             // One frame. Rendering the stacked branch here would construct a MapLibre map on a wide
             // screen and tear it down again the moment the measurement lands.
             <div className="h-[460px] animate-pulse rounded-xl bg-paper-2" aria-hidden="true" />
-          ) : stageW >= WORKBENCH_MIN ? (
+          ) : wide ? (
             <div className="space-y-4">
               <RainNowcast fieldId={field.id} />
               <FieldWorkbench
@@ -320,10 +373,11 @@ function FieldDetailInner() {
               />
             </div>
           ) : (
+            // The satellite block is gone from here: FieldMapCard renders it above the nav, for
+            // every section, and two /scenes read models would drift apart within one tap.
             <div className="space-y-4">
               <RainNowcast fieldId={field.id} />
               <FieldPulse field={field} />
-              <SatelliteGlance field={field} onOpenSatellite={() => setTab("satellite")} />
               <SignalsActions fieldId={field.id} onOpenAnalysis={() => setTab("analysis")} />
               <ShareButton fieldId={field.id} />
             </div>
@@ -359,7 +413,7 @@ function FieldDetailInner() {
       )}
       {tab === "documents" && <DocumentsTab fieldId={field.id} />}
       {tab === "metadata" && <MetadataTab fieldId={field.id} />}
-      {tab === "scouting" && <ScoutingTab fieldId={field.id} />}
+      {tab === "scouting" && <ScoutingTab fieldId={field.id} map={scout} />}
       {tab === "tasks" && <TasksTab fieldId={field.id} orgId={field.org_id} />}
       {tab === "operations" && <OperationsTab fieldId={field.id} />}
       {tab === "yields" && <YieldsTab fieldId={field.id} />}
@@ -372,13 +426,14 @@ function FieldDetailInner() {
       <>
         {undoBar}
         <FieldMapSheet
-          field={field}
+          stageRef={stageRef}
           onCamera={() => {
             // Camera FAB: open the AI (photo-diagnose) tab, then scroll straight to the
             // photo-diagnose card (D5.4+ guided capture). Content is in normal flow now, so a plain
             // scrollIntoView reaches it.
             const sp = new URLSearchParams(searchParams.toString());
             sp.set("tab", "analysis");
+            sp.delete("map"); // same rule as setTab: a section change always leaves fullscreen
             router.push(`${pathname}?${sp.toString()}`, { scroll: false });
             setTimeout(
               () => document.getElementById("photo-diagnose")?.scrollIntoView({ behavior: "smooth", block: "start" }),
@@ -391,6 +446,18 @@ function FieldDetailInner() {
               {editing && <div className="mt-3">{editPanel}</div>}
             </>
           }
+          mapCard={
+            showCard ? (
+              <FieldMapCard
+                field={field}
+                onOpenSatellite={() => setTab("satellite")}
+                fullscreen={fullscreen}
+                onOpenFullscreen={openFullscreen}
+                onCloseFullscreen={closeFullscreen}
+                {...scout.card}
+              />
+            ) : undefined
+          }
           tabNav={tabNav}
         >
           {tabContent}
@@ -399,8 +466,10 @@ function FieldDetailInner() {
     );
   }
 
+  // ?ui=v1 — the classic stacked layout. No map card here (it is a v2 frame slot), but the stage
+  // still has to be measured: the status section's workbench/stacked choice reads the same number.
   return (
-    <div className="space-y-6">
+    <div ref={stageRef} className="space-y-6">
       {undoBar}
       {titleRow}
       {editing && editPanel}

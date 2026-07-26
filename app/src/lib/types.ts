@@ -165,16 +165,38 @@ export interface IndexBenchmark {
   series: IndexBenchmarkPoint[];
 }
 
+// Matches GET /api/scouting exactly (6.5). It did not before: the endpoint returned a `geom`
+// GeoJSON object while this declared lat/lon numbers, so the coordinate line in ScoutingTab was
+// gated on a condition that could never be true, and `created_at` named a column the row does not
+// have (it is `observed_at`).
 export interface Scouting {
   id: string;
   field_id: string;
   category: string;
+  /** 1..5. Legacy low|medium|high rows are mapped to 2|3|5 by the API. */
   severity?: number | null;
   note?: string | null;
   lon?: number | null;
   lat?: number | null;
   photos?: string[] | null;
-  created_at?: string;
+  /** Pin colour NAME (see scouting/pins.ts for the hex). Always one of PIN_COLORS. */
+  color?: string | null;
+  /** open | resolved. */
+  status?: string | null;
+  created_by?: string | null;
+  observed_at?: string;
+  resolved_at?: string | null;
+}
+
+/** One pin on the field map. The hex is already resolved — FieldMapCard/DisplayMap never map a
+ *  colour name to a colour. */
+export interface MapPin {
+  id: string;
+  lng: number;
+  lat: number;
+  color: string;
+  /** Faded rendering (a resolved note). Still tappable. */
+  dim?: boolean;
 }
 
 export interface Task {

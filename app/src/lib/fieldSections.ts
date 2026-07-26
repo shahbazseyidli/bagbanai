@@ -101,5 +101,9 @@ export function resolveSection(raw: string | null | undefined): SectionKey {
 export function sectionHref(pathname: string, search: string, key: SectionKey): string {
   const sp = new URLSearchParams(search);
   sp.set("tab", key);
+  // Same rule setTab and the camera FAB already apply: fullscreen never survives a section change.
+  // Without this the xl left menu copied a stale ?map=full onto the next section and opened the
+  // overlay unasked.
+  sp.delete("map");
   return `${pathname}?${sp.toString()}`;
 }

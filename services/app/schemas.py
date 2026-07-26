@@ -166,11 +166,32 @@ class SubsidySaveIn(SubsidyCalcIn):
 class ScoutingIn(BaseModel):
     field_id: str
     category: str                       # pest|disease|weed|nutrient|water|damage|other
-    severity: Optional[str] = None      # low|medium|high
+    # 1..5, matching the <input type="number" min=1 max=5> the UI has always rendered. This was
+    # Optional[str] against a client sending Number(severity): Pydantic 2.10 does not coerce int →
+    # str in lax mode, so EVERY note carrying a severity was rejected with a 422 — and the offline
+    # outbox replayed the same rejected body forever. The COLUMN stays text (see routers/scouting).
+    severity: Optional[int] = Field(None, ge=1, le=5)
     note: Optional[str] = None
     lon: Optional[float] = None
     lat: Optional[float] = None
     photos: list[str] = []              # storage paths (from /api/uploads)
+    color: Optional[str] = None         # pin colour name; validated against PIN_COLORS in the router
+
+
+class ScoutingUpdateIn(BaseModel):
+    """Partial edit of one observation (6.5).
+
+    Every field is optional AND nullable, and the router reads `model_fields_set` rather than the
+    values: that is the only way "absent" and "explicitly set to null" stay distinguishable, so a
+    farmer can clear a note's coordinates without also clearing its text.
+    """
+    category: Optional[str] = None
+    severity: Optional[int] = Field(None, ge=1, le=5)
+    note: Optional[str] = None
+    lon: Optional[float] = None
+    lat: Optional[float] = None
+    color: Optional[str] = None
+    status: Optional[str] = None        # open|resolved — resolved_at is stamped by the router
 
 
 class TaskIn(BaseModel):
