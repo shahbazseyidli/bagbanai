@@ -1605,6 +1605,16 @@ export const az = {
   "app.field.signals.actions": "Görülməli tədbirlər",
   "app.field.signals.openAnalysis": "Tam sahə analizi",
   "app.field.signals.empty": "Analiz hazırlanır — ilk peyk görüntüsü gələndən sonra siqnallar burada görünəcək.",
+  // Risk severity. The model returns these three words in Azerbaijani as fixed CODES (they are also
+  // the DB values); only the chip label is translated, so the code path stays stable.
+  "app.advice.sev.high": "Yüksək",
+  "app.advice.sev.medium": "Orta",
+  "app.advice.sev.low": "Aşağı",
+  // Shown when the stored analysis was written in another language than the one being read.
+  "app.advice.otherLang": "Bu təhlil başqa dildə yazılıb.",
+  "app.advice.regenerate": "Öz dilimdə yenidən yarat",
+  "app.advice.regenerating": "Yenidən yaradılır…",
+  "app.advice.regenFailed": "Alınmadı — bir azdan yenidən cəhd edin.",
   "app.field.glance.cloud": "bulud",
   "app.field.glance.openFull": "Ətraflı təhlil",
   "app.field.glance.failed": "Peyk görüntüsü yüklənmədi. Bir azdan yenidən yoxlayın.",

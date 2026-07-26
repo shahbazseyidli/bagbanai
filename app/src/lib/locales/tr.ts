@@ -2719,4 +2719,11 @@ export const tr: Dict = {
   "app.clarify.opt.stress": "Bitkilerde bir sorun var",
   "app.clarify.opt.young": "Bahçenin bir kısmı genç yenileme dikimi",
   "app.clarify.opt.unknown": "Bilmiyorum",
+  "app.advice.sev.high": "Yüksek",
+  "app.advice.sev.medium": "Orta",
+  "app.advice.sev.low": "Düşük",
+  "app.advice.otherLang": "Bu analiz başka bir dilde yazılmış.",
+  "app.advice.regenerate": "Kendi dilimde yeniden oluştur",
+  "app.advice.regenerating": "Yeniden oluşturuluyor…",
+  "app.advice.regenFailed": "Olmadı — birazdan tekrar deneyin.",
 };

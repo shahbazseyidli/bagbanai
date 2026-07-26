@@ -16,13 +16,24 @@ router = APIRouter(prefix="/api/internal", tags=["internal"], dependencies=[Depe
 @router.post("/advice/run")
 async def run_advice(field_id: str):
     """Regenerate AI advice for a field (called by the geo pipeline after new scenes,
-    or by n8n). Notifies the farmer on material change. No-op if AI isn't configured."""
+    or by n8n). Notifies the farmer on material change. No-op if AI isn't configured.
+
+    There is no HTTP caller to take a language from, so the prose is written in the language of
+    the org owner — the person the notification and the weekly digest go to. This used to pass
+    nothing at all, which meant every automatically generated advice was Azerbaijani no matter
+    who owned the field."""
     from ..ai import advice as advice_svc
     from ..ai import llm
     if not llm.is_configured():
         return {"ok": False, "reason": "ai_not_configured"}
     async with connection(None) as conn:
-        result = await advice_svc.generate_and_store(conn, field_id)
+        lang = await conn.fetchval(
+            """select u.locale from public.fields f
+                 join public.organizations o on o.id = f.org_id
+                 join public.users u on u.id = o.owner_id
+               where f.id = $1::uuid""", field_id)
+        result = await advice_svc.generate_and_store(
+            conn, field_id, lang=lang if lang in advice_svc.LANG_NAMES else "az")
     return {"ok": result is not None}
 
 

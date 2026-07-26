@@ -356,6 +356,25 @@ async def set_area_unit(body: dict, user_id: str = Depends(get_current_user_id))
             "effective": _effective_area_unit(unit, row["country"], row["locale"])}
 
 
+# The interface language, persisted on the user. The switcher already sets a cookie, which is
+# enough for anything rendered in a request — but NOT for work that runs without one: the weekly
+# digest email and the advice the geo pipeline generates after each new scene both read
+# users.locale. Before this the column only ever held whatever was picked at signup, so a farmer
+# who switched to Russian kept getting Azerbaijani analysis and Azerbaijani mail forever.
+SUPPORTED_LOCALES = ("az", "en", "ru", "tr", "de", "hu", "it", "pl")
+
+
+@router.post("/locale")
+async def set_locale(body: dict, user_id: str = Depends(get_current_user_id)):
+    raw = body.get("locale") if isinstance(body, dict) else None
+    locale = raw.strip().lower() if isinstance(raw, str) else ""
+    if locale not in SUPPORTED_LOCALES:
+        raise HTTPException(status_code=400, detail="invalid_locale")
+    async with connection(user_id) as conn:
+        await conn.execute("update public.users set locale=$2 where id=$1::uuid", user_id, locale)
+    return {"locale": locale}
+
+
 @router.get("/name-public")
 async def get_name_public(user_id: str = Depends(get_current_user_id)):
     """Whether this (farmer) user's real name is shown to other users (New-B). Also returns the role

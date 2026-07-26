@@ -9,6 +9,26 @@ import { tf } from "@/lib/i18n";
 
 type Params = Record<string, unknown> | null | undefined;
 
+// ── AI advice ──────────────────────────────────────────────────────────────────────────────────
+
+// The model returns risk severity as one of three fixed Azerbaijani words. They are CODES — they
+// are what lands in public.advice and what the notification severity is derived from — so they are
+// never translated at the source, only at the chip.
+const SEVERITY_KEY: Record<string, string> = {
+  "yüksək": "app.advice.sev.high",
+  "orta": "app.advice.sev.medium",
+  "aşağı": "app.advice.sev.low",
+};
+
+/** Localized severity chip label. An unrecognised value is shown verbatim rather than dropped, so
+ *  a severity the frontend has not met yet can never make a risk invisible. */
+export function severityLabel(code: string): string {
+  const key = SEVERITY_KEY[(code || "").trim().toLowerCase()];
+  if (!key) return code;
+  const s = tf(key);
+  return s === key ? code : s;
+}
+
 // ── Field Wellness ─────────────────────────────────────────────────────────────────────────────
 
 /**

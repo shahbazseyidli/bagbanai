@@ -6,11 +6,13 @@
 // It is a summary, not a second copy of AiTab: the risks are capped at three, the actions at four,
 // there is no chat, and the "Tam sahə analizi" button hands off to the real section. Reads the same
 // GET /api/fields/{id}/advice, so no new endpoint and no extra load.
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { api } from "@/lib/api";
 import { Placeholder, Spinner } from "@/components/ui";
 import { t } from "@/lib/i18n";
+import { severityLabel } from "@/lib/wellnessText";
+import AdviceLangNote from "@/components/field/AdviceLangNote";
 
 interface Risk { title: string; severity: string; detail: string }
 interface Rec { title: string; detail: string }
@@ -21,13 +23,16 @@ interface Advice {
   next_steps: string[];
   disclaimer: string;
   generated_at: string;
+  /** Language the prose was written in, and whether it differs from the reader's. */
+  lang?: string;
+  lang_mismatch?: boolean;
 }
 
 const MAX_RISKS = 3;
 const MAX_ACTIONS = 4;
 
-// The backend emits Azerbaijani severity words; anything unexpected falls back to neutral rather
-// than dropping the chip, so a new severity value can never hide a risk.
+// The backend emits Azerbaijani severity words as codes; anything unexpected falls back to neutral
+// rather than dropping the chip, so a new severity value can never hide a risk.
 const SEV: Record<string, string> = {
   "yüksək": "bg-red-100 text-red-700",
   "orta": "bg-amber-100 text-amber-800",
@@ -44,23 +49,20 @@ export default function SignalsActions({
   const [advice, setAdvice] = useState<Advice | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let active = true;
-    api
-      .get<{ advice: Advice | null }>(`/api/fields/${fieldId}/advice`)
-      .then((r) => {
-        if (active) setAdvice(r?.advice ?? null);
-      })
-      .catch(() => {
-        /* the section is a summary — a failure here must not break the status page */
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
+  const load = useCallback(async () => {
+    try {
+      const r = await api.get<{ advice: Advice | null }>(`/api/fields/${fieldId}/advice`);
+      setAdvice(r?.advice ?? null);
+    } catch {
+      /* the section is a summary — a failure here must not break the status page */
+    } finally {
+      setLoading(false);
+    }
   }, [fieldId]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   // Actions come from next_steps when the model produced them, otherwise from the recommendation
   // titles — never show an empty "what to do" list next to a list of risks.
@@ -93,6 +95,8 @@ export default function SignalsActions({
         <Placeholder>{t("app.field.signals.empty")}</Placeholder>
       ) : (
         <>
+          {advice.lang_mismatch && <AdviceLangNote fieldId={fieldId} onDone={() => void load()} />}
+
           {advice.summary && (
             <p className="mb-3 text-[13.5px] leading-relaxed text-ink-soft">{advice.summary}</p>
           )}
@@ -110,7 +114,7 @@ export default function SignalsActions({
                         SEV[r.severity] ?? "bg-slate-100 text-slate-600"
                       }`}
                     >
-                      {r.severity}
+                      {severityLabel(r.severity)}
                     </span>
                     <span className="min-w-0">
                       <b className="block text-[13.5px] font-bold text-ink">{r.title}</b>

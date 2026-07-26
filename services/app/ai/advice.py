@@ -1,5 +1,6 @@
-"""AI agronomic advice: NASA indices + crop data + completed work → summary,
-risks, recommendations, next steps (Azerbaijani). Stored in public.advice; when
+"""AI agronomic advice: satellite indices + crop data + completed work → summary,
+risks, recommendations, next steps, written in the reader's language (`lang`, stored on
+the row so the read path can tell). Stored in public.advice; when
 the advice materially changes vs the previous one, notify the farmer **in-app only**.
 Email is not sent per advice change (that fired every 2-3 days per field); the weekly
 Wednesday digest reads the same change signal and reports it once."""
@@ -159,10 +160,10 @@ async def generate_and_store(conn, field_id: str, force: bool = False,
     await conn.execute(
         """insert into public.advice
              (field_id, org_id, model_provider, model_name, input_snapshot,
-              summary, findings, disclaimer)
-           values ($1::uuid,$2::uuid,$3,$4,$5::jsonb,$6,$7::jsonb,$8)""",
+              summary, findings, disclaimer, lang)
+           values ($1::uuid,$2::uuid,$3,$4,$5::jsonb,$6,$7::jsonb,$8,$9)""",
         field_id, org_id, provider, model, json.dumps(ctx),
-        result.summary, json.dumps(findings), disclaimer)
+        result.summary, json.dumps(findings), disclaimer, lang)
 
     # Record token usage / cost, attributed to the org owner (best-effort).
     try:
@@ -178,18 +179,33 @@ async def generate_and_store(conn, field_id: str, force: bool = False,
     changed = prev_sig is not None and prev_sig != new_sig
     is_first = prev_sig is None
     if changed or is_first:
-        await _notify(conn, field_id, org_id, field_name, result, changed)
+        await _notify(conn, field_id, org_id, field_name, result, changed, lang)
 
     return {"summary": result.summary, "findings": findings, "disclaimer": disclaimer,
-            "model_provider": provider, "model_name": model}
+            "model_provider": provider, "model_name": model, "lang": lang}
+
+
+# Notification titles follow the advice language — the body IS the advice summary, so a title in a
+# different language than the sentence under it would read as a bug.
+_NOTIFY_TITLE = {
+    "az": ("“%s”: yeni AI məsləhəti", "“%s”: ilk AI təhlili hazırdır"),
+    "en": ("“%s”: new AI advice", "“%s”: first AI analysis is ready"),
+    "ru": ("«%s»: новая рекомендация ИИ", "«%s»: первый анализ ИИ готов"),
+    "tr": ("“%s”: yeni yapay zekâ tavsiyesi", "“%s”: ilk yapay zekâ analizi hazır"),
+    "de": ("„%s“: neue KI-Empfehlung", "„%s“: erste KI-Analyse ist fertig"),
+    "hu": ("„%s”: új MI-tanács", "„%s”: elkészült az első MI-elemzés"),
+    "it": ("“%s”: nuovo consiglio IA", "“%s”: la prima analisi IA è pronta"),
+    "pl": ("„%s”: nowa porada AI", "„%s”: pierwsza analiza AI jest gotowa"),
+}
 
 
 async def _notify(conn, field_id: str, org_id: str, field_name: str,
-                  result: AdviceResult, changed: bool) -> None:
+                  result: AdviceResult, changed: bool, lang: str = "az") -> None:
     top = max((r for r in result.risks), key=lambda r: {"aşağı": 1, "orta": 2, "yüksək": 3}.get(r.severity, 0),
               default=None)
     sev = {"aşağı": "info", "orta": "warning", "yüksək": "critical"}.get(top.severity if top else "", "info")
-    title = ("“%s”: yeni AI məsləhəti" % field_name) if changed else ("“%s”: ilk AI təhlili hazırdır" % field_name)
+    changed_tmpl, first_tmpl = _NOTIFY_TITLE.get(lang, _NOTIFY_TITLE["az"])
+    title = (changed_tmpl if changed else first_tmpl) % field_name
     body = result.summary
     await conn.execute(
         """insert into public.notifications

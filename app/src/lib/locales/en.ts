@@ -2717,4 +2717,11 @@ export const en: Dict = {
   "app.clarify.opt.stress": "There is a problem with the plants",
   "app.clarify.opt.young": "Part of the orchard is young replanting",
   "app.clarify.opt.unknown": "I don't know",
+  "app.advice.sev.high": "High",
+  "app.advice.sev.medium": "Medium",
+  "app.advice.sev.low": "Low",
+  "app.advice.otherLang": "This analysis was written in another language.",
+  "app.advice.regenerate": "Regenerate in my language",
+  "app.advice.regenerating": "Regenerating…",
+  "app.advice.regenFailed": "That didn't work — try again shortly.",
 };

@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Sparkles, Send } from "lucide-react";
 import { api } from "@/lib/api";
 import { getLocale, t } from "@/lib/i18n";
 import { Spinner } from "@/components/ui";
 import KnowledgePassport from "@/components/field/KnowledgePassport";
+import AdviceLangNote from "@/components/field/AdviceLangNote";
 import SpeakButton from "@/components/SpeakButton";
+import { severityLabel } from "@/lib/wellnessText";
 import { track, markDone } from "@/lib/track";
 
 interface Risk { title: string; severity: string; detail: string }
@@ -18,6 +20,9 @@ interface Advice {
   next_steps: string[];
   disclaimer: string;
   generated_at: string;
+  /** Language the prose was written in, and whether it differs from the reader's. */
+  lang?: string;
+  lang_mismatch?: boolean;
 }
 interface ChatMsg { role: string; content: string; created_at?: string }
 
@@ -67,6 +72,17 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [msgs]);
+
+  // Re-read just the advice after it has been regenerated in another language; the chat history is
+  // untouched by that, so there is no reason to refetch it.
+  const reloadAdvice = useCallback(async () => {
+    try {
+      const a = await api.get<{ advice: Advice | null }>(`/api/fields/${fieldId}/advice`);
+      setAdvice(a?.advice ?? null);
+    } catch {
+      /* keep what is on screen */
+    }
+  }, [fieldId]);
 
   async function send() {
     const text = input.trim();
@@ -123,6 +139,7 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
           </p>
         ) : (
           <div className="space-y-4 text-sm">
+            {advice.lang_mismatch && <AdviceLangNote fieldId={fieldId} onDone={() => void reloadAdvice()} />}
             <p className="text-slate-700">{advice.summary}</p>
 
             {advice.risks?.length > 0 && (
@@ -132,7 +149,7 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
                   {advice.risks.map((r, i) => (
                     <li key={i} className="flex gap-2">
                       <span className={`h-fit rounded px-1.5 py-0.5 text-[11px] ${SEV_CLASS[r.severity] ?? "bg-slate-100 text-slate-600"}`}>
-                        {r.severity}
+                        {severityLabel(r.severity)}
                       </span>
                       <span className="text-slate-700"><b>{r.title}.</b> {r.detail}</span>
                     </li>

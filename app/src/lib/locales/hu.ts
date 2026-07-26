@@ -2719,4 +2719,11 @@ export const hu: Dict = {
   "app.clarify.opt.stress": "Baj van a növényekkel",
   "app.clarify.opt.young": "Az ültetvény egy része fiatal pótültetés",
   "app.clarify.opt.unknown": "Nem tudom",
+  "app.advice.sev.high": "Magas",
+  "app.advice.sev.medium": "Közepes",
+  "app.advice.sev.low": "Alacsony",
+  "app.advice.otherLang": "Ez az elemzés más nyelven készült.",
+  "app.advice.regenerate": "Újragenerálás a saját nyelvemen",
+  "app.advice.regenerating": "Újragenerálás…",
+  "app.advice.regenFailed": "Nem sikerült — próbálja meg kicsit később.",
 };

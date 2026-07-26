@@ -2719,4 +2719,11 @@ export const de: Dict = {
   "app.clarify.opt.stress": "Die Pflanzen haben ein Problem",
   "app.clarify.opt.young": "Ein Teil der Anlage ist junge Nachpflanzung",
   "app.clarify.opt.unknown": "Ich weiß es nicht",
+  "app.advice.sev.high": "Hoch",
+  "app.advice.sev.medium": "Mittel",
+  "app.advice.sev.low": "Niedrig",
+  "app.advice.otherLang": "Diese Analyse wurde in einer anderen Sprache verfasst.",
+  "app.advice.regenerate": "In meiner Sprache neu erstellen",
+  "app.advice.regenerating": "Wird neu erstellt…",
+  "app.advice.regenFailed": "Hat nicht geklappt — versuchen Sie es gleich noch einmal.",
 };

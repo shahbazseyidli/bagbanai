@@ -27,6 +27,19 @@ export default function LanguageSwitcher({ className = "" }: { className?: strin
       const dom = SHARED_COOKIE_DOMAIN ? `; domain=${SHARED_COOKIE_DOMAIN}` : "";
       document.cookie = `bagban_locale=${l}; path=/${dom}; max-age=31536000; samesite=lax`;
     } catch { /* private mode */ }
+    // Persist it on the account too. The cookie only reaches code that runs inside a request;
+    // the weekly digest and the advice generated after each satellite scene have no request to
+    // read it from and go by users.locale. `keepalive` so the navigation below cannot cancel it;
+    // a 401 (signed out) is the normal case on marketing and is ignored.
+    try {
+      void fetch("/api/auth/locale", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ locale: l }),
+        credentials: "include",
+        keepalive: true,
+      }).catch(() => {});
+    } catch { /* offline */ }
     window.location.href = l === "az" ? base : `/${l}${base === "/" ? "" : base}`;
   }
 

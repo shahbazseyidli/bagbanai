@@ -32,19 +32,28 @@ class ChatIn(BaseModel):
 
 
 @router.get("/fields/{field_id}/advice")
-async def get_advice(field_id: str, user_id: str = Depends(get_current_user_id)):
+async def get_advice(field_id: str, request: Request,
+                     user_id: str = Depends(get_current_user_id)):
+    """Newest advice for the field, plus the language it was written in.
+
+    The newest row wins even when it is in another language — a fresh analysis the reader can
+    have translated beats a stale one they can read. `lang_mismatch` tells the UI to offer a
+    one-tap regeneration in the reader's language instead of silently showing foreign prose."""
+    locale = _resolve_locale(request, None)
     async with connection(user_id) as conn:
         org_id = await _org_of_field(conn, field_id)
         await require_member(conn, user_id, org_id)
         row = await conn.fetchrow(
-            """select summary, findings, disclaimer, model_name, generated_at
+            """select summary, findings, disclaimer, model_name, generated_at, lang
                from public.advice where field_id=$1::uuid
                order by generated_at desc limit 1""", field_id)
     if not row:
         return {"advice": None, "configured": llm.is_configured()}
     f = row["findings"] if isinstance(row["findings"], dict) else json.loads(row["findings"] or "{}")
+    lang = row["lang"] or "az"
     return {"advice": {"summary": row["summary"], **f, "disclaimer": row["disclaimer"],
-                       "model": row["model_name"], "generated_at": row["generated_at"].isoformat()},
+                       "model": row["model_name"], "generated_at": row["generated_at"].isoformat(),
+                       "lang": lang, "lang_mismatch": lang != locale},
             "configured": llm.is_configured()}
 
 

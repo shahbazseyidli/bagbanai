@@ -2695,4 +2695,11 @@ export const ru: Dict = {
   "app.clarify.opt.stress": "С растениями есть проблема",
   "app.clarify.opt.young": "Часть сада — молодая подсадка",
   "app.clarify.opt.unknown": "Не знаю",
+  "app.advice.sev.high": "Высокий",
+  "app.advice.sev.medium": "Средний",
+  "app.advice.sev.low": "Низкий",
+  "app.advice.otherLang": "Этот анализ написан на другом языке.",
+  "app.advice.regenerate": "Создать заново на моём языке",
+  "app.advice.regenerating": "Создаётся заново…",
+  "app.advice.regenFailed": "Не получилось — попробуйте чуть позже.",
 };
