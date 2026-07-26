@@ -278,11 +278,11 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
               aria-label={t("app.field.aiTab.chipsAria")}
               className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
             >
+              {/* No `disabled` on the chips: the row unmounts the moment one is tapped, because
+                  sendText pushes the optimistic user bubble in the same update that flips
+                  `sending` — and showChips requires msgs to be empty. A disabled style could
+                  never render. */}
               {chips.map((c) => (
-                {/* No `disabled` state: the row unmounts the moment a chip is tapped, because
-                    sendText pushes the optimistic user bubble in the same update that flips
-                    `sending` — and showChips requires msgs to be empty. A disabled style here
-                    could never render. */}
                 <button
                   key={c.id}
                   type="button"
