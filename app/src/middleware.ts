@@ -71,6 +71,7 @@ export function middleware(req: NextRequest) {
       // page instead of the field.
       if (path === "/pricing" || path === "/solutions" || path.startsWith("/solutions/") ||
           path === "/how-it-works" || path === "/finduq" || path === "/guide" || path.startsWith("/guide/") ||
+          path === "/privacy" || path === "/terms" ||
           path === "/whats-new" || path === "/yenilikler" || path === "/status" || path === "/demo" ||
           path.startsWith("/s/")) {
         return NextResponse.redirect(new URL(`https://${apexHost}${prefix}${path}${search}`));

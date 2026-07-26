@@ -20,15 +20,22 @@ WHY NO OTHER FIELD CAN EVER BE READ:
     the wellness component `detail` blobs are rebuilt from exactly the six keys the frontend reads,
     so a future key added to a component's `extra` cannot silently ship to the public internet.
 
-WHAT IS DELIBERATELY ABSENT: org_id, farm_id, field_id, farm name, owner name/email, created_by,
-the metadata notes / target yield / prior yields / pest and fertilizer history, every ledger, cost,
-yield, task and scouting row, knowledge-passport blocks and share tokens. No id of any kind appears
-in the JSON.
+WHAT IS DELIBERATELY ABSENT: org_id, farm_id, field_id, the field's OWN name, farm name, owner
+name/email, created_by, the metadata notes / target yield / prior yields / pest and fertilizer
+history, every ledger, cost, yield, task and scouting row, knowledge-passport blocks and share
+tokens. No id of any kind appears in the JSON. The field name is absent because the demo row belongs
+to a real farmer and carries their own possessive phrasing; FIELD_NAME_CODE replaces it, which also
+puts the label in the reader's language instead of in Azerbaijani.
 
-COST: five indexed SELECTs and ZERO writes. Wellness is READ from public.field_wellness rather than
+The one thing stated ON PURPOSE is the PACKAGE NAME. It is a word from the published price list, not
+an identifier, and the tour is dishonest without it: the demo field runs on whatever tier its org
+has, so parts of what a visitor sees are not in the package they would land on after signing up.
+
+COST: six indexed SELECTs and ZERO writes. Wellness is READ from public.field_wellness rather than
 computed for the same reason GET /api/orgs/{id}/wellness never computes — one compute_wellness runs
 ~8 queries and would be a DoS lever on a route with no auth in front of it. Advice is read from
-public.advice; the demo never calls the LLM.
+public.advice; the demo never calls the LLM. The sixth is tiers.org_tier — one primary-key lookup on
+public.org_subscriptions, no writes.
 """
 import json
 from typing import Any, Optional
@@ -36,11 +43,29 @@ from urllib.parse import quote
 
 from fastapi import APIRouter, HTTPException, Request
 
+from .. import tiers
 from ..ai import wellness as wellness_mod
 from ..config import settings
 from ..db import connection
 
 router = APIRouter(prefix="/api", tags=["demo"])
+
+# The demo row keeps its real name in the database — it is a real farmer's field and renaming it
+# would edit their data. The public payload carries this CODE instead, so no possessive personal
+# name reaches an anonymous visitor and the label arrives in the reader's language rather than in
+# Azerbaijani. Rendered by the frontend as mkt.demo.fieldName.
+FIELD_NAME_CODE = "demo.field"
+
+# What a visitor actually gets after signing up: routers/orgs.py opens every brand-new org on a
+# one-month Pro trial that lapses to free. The demo field sits on whatever package its own org has,
+# so the payload states all three rather than letting the tour imply the tour is what you get.
+SIGNUP_TIER = tiers.TRIAL_TIER
+LAPSED_TIER = tiers.DEFAULT_TIER
+
+# Blocks this payload puts on screen that a tiers.TIERS flag governs inside the app, keyed by the
+# wellness component they arrive as. Resolved against TIERS at request time instead of hard-coded,
+# so moving pest_risk down to Pro removes the badge without touching this file.
+_GATED_BLOCKS = {"pest": "pest_risk"}
 
 # Fixed on purpose — the tour narrates crop cover, and there is no parameter that could pivot the
 # public payload to another index.
@@ -108,7 +133,7 @@ async def public_demo(request: Request):
 
     async with connection(None) as conn:
         row = await conn.fetchrow(
-            """select f.id, f.name, f.area_ha,
+            """select f.id, f.org_id, f.area_ha,
                       st_asgeojson(f.geom) as geom,
                       st_asgeojson(coalesce(f.centroid, st_centroid(f.geom))) as centroid,
                       m.crop_type, m.region
@@ -126,6 +151,11 @@ async def public_demo(request: Request):
                from public.field_wellness
                where field_id=$1::uuid and score is not null
                order by computed_on desc limit 1""", field_id)
+
+        # Which package the demo field itself runs on. Read, never assumed: the tour shows whatever
+        # that org is entitled to, and the page has to be able to say so. Safe on an unauthenticated
+        # route — public.org_subscriptions has no RLS, and org_tier only reads.
+        demo_tier = await tiers.org_tier(conn, str(row["org_id"]))
 
         # Prefer Sentinel-2 (10m) over NASA HLS (30m) — the same rule shares.py applies, for the
         # same reason: this is a main view and must show the finer scene when one exists.
@@ -177,6 +207,21 @@ async def public_demo(request: Request):
             "computed_on": _iso(wrow["computed_on"]),
         }
 
+    # Blocks the demo field is entitled to that neither the trial nor the package it lapses into
+    # would give the visitor. Both sides are asked of TIERS, so a repricing moves the badge on its
+    # own.
+    gated = sorted(
+        key for key, feature in _GATED_BLOCKS.items()
+        if tiers.allows(demo_tier, feature)
+        and not tiers.allows(SIGNUP_TIER, feature)
+        and not tiers.allows(LAPSED_TIER, feature))
+    # Only name what is actually on screen: a component the honesty rule dropped this morning is in
+    # `missing`, not in the card, and badging it would be noise.
+    if wellness is not None:
+        gated = [k for k in gated if k in wellness["components"]]
+    else:
+        gated = []
+
     timeline = []
     for r in scene_rows:
         tile_url = None
@@ -221,7 +266,7 @@ async def public_demo(request: Request):
     # EXPLICIT whitelist — do not replace with dict(row). No id of any kind belongs here.
     return {
         "field": {
-            "name": row["name"],
+            "name_code": FIELD_NAME_CODE,
             "area_ha": _f(row["area_ha"]),
             "crop_type": row["crop_type"],
             "region": row["region"],
@@ -229,6 +274,18 @@ async def public_demo(request: Request):
             "centroid": json.loads(row["centroid"]) if row["centroid"] else None,
         },
         "wellness": wellness,
+        # Codes and numbers only — every sentence about packages is composed by the frontend, and
+        # the tier strings here are the same free|pro|business codes tiers.py already uses.
+        "plan": {
+            "demo_tier": demo_tier,
+            "signup_tier": SIGNUP_TIER,
+            "lapsed_tier": LAPSED_TIER,
+            "gated": gated,
+            "advice_per_month": {"signup": tiers.limit(SIGNUP_TIER, "advice_per_month"),
+                                 "lapsed": tiers.limit(LAPSED_TIER, "advice_per_month")},
+            "max_fields": {"signup": tiers.limit(SIGNUP_TIER, "max_fields"),
+                           "lapsed": tiers.limit(LAPSED_TIER, "max_fields")},
+        },
         "timeline": timeline,
         "advice": advice,
         # An object rather than a bare list so a later addition (alerts, a spray window) does not

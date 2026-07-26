@@ -10,8 +10,9 @@
 // row, the score-dot field cards, and a "Request a free call" SupportCard pinned to the bottom.
 //
 // Cheap by construction:
-//   * TWO requests per org — /api/fields/geo (name + area + data_status in one call) and
-//     /api/orgs/{id}/wellness (the STORED 0-100 score per field, never computed on read);
+//   * THREE requests per org — /api/fields/geo (name + area + data_status in one call),
+//     /api/orgs/{id}/wellness (the STORED 0-100 score per field, never computed on read) and
+//     /api/orgs/{id}/thumbs (the latest NDVI preview per field, one finished PNG each);
 //   * the component stays mounted while the farmer moves between "/", "/fields" and
 //     "/fields/{id}", so navigation does not refetch (a 60s staleness check catches a field that
 //     was added or deleted meanwhile);
@@ -36,7 +37,7 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { t } from "@/lib/i18n";
+import { t, tf } from "@/lib/i18n";
 import { formatArea, useAreaUnit, type AreaUnit } from "@/lib/units";
 import { wellnessHeadline } from "@/lib/wellnessText";
 import { SupportCard } from "@/components/ui/SupportCard";
@@ -86,6 +87,16 @@ interface ScoreRow {
   headline_code?: string | null;
   headline_params?: Record<string, unknown> | null;
   stale?: boolean;
+}
+
+// Subset of GET /api/orgs/{id}/thumbs — the latest NDVI raster per field, already rendered by
+// TiTiler as one finished PNG. The COGs are clipped and masked to the boundary, so the picture IS
+// the field outline: that is what makes a row recognisable before its name is read.
+interface Thumb {
+  field_id: string;
+  url: string;
+  date: string;
+  sensor: string;
 }
 
 // mockup .scoredot fills with var(--green)/var(--amber)/var(--red). White text on those exact
@@ -145,6 +156,35 @@ function areaLabel(area: number | null, unit: AreaUnit): string {
   return formatArea(area, unit);
 }
 
+// 34px so it matches the score square exactly and the row keeps its height. Twin of FieldThumb in
+// app/src/app/fields/page.tsx — same rules, panel tokens; the shared component belongs in
+// components/field/FieldThumb.tsx once one change owns both files.
+function RowThumb({ thumb, loading }: { thumb?: Thumb; loading: boolean }) {
+  const [broken, setBroken] = useState(false);
+  // Still fetching: a neutral square holds the place so the row does not reflow when it arrives.
+  if (loading)
+    return <div className="h-[34px] w-[34px] shrink-0 rounded-[9px] bg-paper-2" aria-hidden="true" />;
+  // No raster yet (or TiTiler could not render it) → NOTHING. A grey placeholder would be a picture
+  // of data this field does not have.
+  if (!thumb?.url || broken) return null;
+  return (
+    <img
+      src={thumb.url}
+      // Decorative: the field name sits right beside it, and a screen reader cannot read a ramp.
+      alt=""
+      aria-hidden="true"
+      loading="lazy"
+      decoding="async"
+      title={tf("app.fieldsList.thumbTitle", { date: thumb.date?.slice(0, 10) ?? "" })}
+      onError={() => setBroken(true)}
+      // No Tailwind utility for image-rendering; these PNGs are ~30x25px on purpose and must stay
+      // crisp squares when the browser upscales them.
+      style={{ imageRendering: "pixelated" }}
+      className="h-[34px] w-[34px] shrink-0 rounded-[9px] border border-line bg-paper-2 object-contain"
+    />
+  );
+}
+
 function StatusLine({ row, score }: { row: Row; score?: ScoreRow }) {
   if (score) {
     const tone = toneOf(score);
@@ -199,6 +239,10 @@ export default function FieldListPanel() {
   const [orgName, setOrgName] = useState("");
   const [orgRole, setOrgRole] = useState<Role | null>(null);
   const [scores, setScores] = useState<Record<string, ScoreRow>>({});
+  // null = still loading (rows show a neutral square), {} or a partial map = we know there is no
+  // picture for that field and it must render nothing at all. The two states look different on
+  // purpose — the same two-state contract the /fields list uses.
+  const [thumbs, setThumbs] = useState<Record<string, Thumb> | null>(null);
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<SortKey>("score");
   // Collapse to a thin strip so the map can take the width. Starts expanded (the SSR default) and
@@ -298,17 +342,26 @@ export default function FieldListPanel() {
         setRows(list);
 
         if (list.length > 0) {
-          try {
-            const w = await api.get<{ fields: ScoreRow[] }>(`/api/orgs/${org.id}/wellness`);
-            if (!alive.current) return;
-            const map: Record<string, ScoreRow> = {};
-            for (const s of w?.fields ?? []) {
-              if (s && s.field_id && typeof s.score === "number") map[s.field_id] = s;
-            }
-            setScores(map);
-          } catch {
-            /* scores are a garnish — cards render with a neutral dot */
+          // Both reads are org-wide and both are garnish, so they go out together rather than in
+          // series. Each catches on its own: a wellness outage must not also cost the pictures.
+          const [w, th] = await Promise.all([
+            api.get<{ fields: ScoreRow[] }>(`/api/orgs/${org.id}/wellness`).catch(() => null),
+            api.get<{ thumbs: Thumb[] }>(`/api/orgs/${org.id}/thumbs`).catch(() => null),
+          ]);
+          if (!alive.current) return;
+          // Scores are a garnish — a card without one renders with a neutral dot.
+          const map: Record<string, ScoreRow> = {};
+          for (const s of w?.fields ?? []) {
+            if (s && s.field_id && typeof s.score === "number") map[s.field_id] = s;
           }
+          setScores(map);
+          // {} even when the request failed: leaving this at null would keep grey squares in every
+          // row forever, because null means "still loading".
+          const tmap: Record<string, Thumb> = {};
+          for (const item of th?.thumbs ?? []) {
+            if (item && item.field_id && item.url) tmap[item.field_id] = item;
+          }
+          setThumbs(tmap);
         }
       } catch {
         if (!alive.current) return;
@@ -461,6 +514,7 @@ export default function FieldListPanel() {
         <div className="min-h-0 flex-1 overflow-y-auto">
           <div className="mx-[18px] mb-1 mt-2 rounded-[14px] border-[1.5px] border-grass bg-mint-soft p-3">
             <div className="flex items-center gap-2">
+              <RowThumb thumb={thumbs?.[focused.id]} loading={thumbs === null} />
               <span
                 className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[9px] text-[12.5px] font-bold tabular-nums text-white"
                 style={{ background: focusedScore ? DOT[toneOf(focusedScore)] : DOT_NONE }}
@@ -575,6 +629,7 @@ export default function FieldListPanel() {
                 }`}
               >
                 <div className="flex items-center gap-2">
+                  <RowThumb thumb={thumbs?.[r.id]} loading={thumbs === null} />
                   <span
                     className="grid h-[34px] w-[34px] shrink-0 place-items-center rounded-[9px] text-[12.5px] font-bold tabular-nums text-white"
                     style={{ background: s ? DOT[toneOf(s)] : DOT_NONE }}

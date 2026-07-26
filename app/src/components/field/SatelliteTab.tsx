@@ -7,7 +7,7 @@
 // no data yet it shows a focused "still preparing / see the other tab" note instead of silently
 // falling back to the other sensor (that fallback is suppressed here on purpose).
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
@@ -113,6 +113,17 @@ function fmtDelta(d: number): string {
 function sceneOptionLabel(s: Scene): string {
   return `${s.date}${s.value != null ? ` · ${s.value.toFixed(2)}` : ""}`
     + `${s.cloud_pct != null ? ` (☁${s.cloud_pct.toFixed(0)}%)` : ""}`;
+}
+
+// The mode buttons carry title= tooltips, but the device a field is walked with has no hover.
+// This is the version a farmer actually reads, and it answers "why would I tap this", not
+// "what does this do".
+function ModeHint({ icon, text }: { icon: ReactNode; text: string }) {
+  return (
+    <p className="flex items-start gap-1.5 text-[11px] leading-snug text-slate-500">
+      {icon}<span>{text}</span>
+    </p>
+  );
 }
 
 // Legend must describe the range ACTUALLY on the map: `range` is the rescale in use (fixed or
@@ -576,6 +587,24 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
             </div>
           </div>
 
+          {/* The buttons live in a wrapping justify-between row, so a line cannot sit under an
+              individual chip without wrecking that row; each line repeats its control's icon
+              instead, so the eye still binds line → button. Guards mirror the buttons' own render
+              guards exactly — a hint can never appear without the control it explains. Once
+              compare is engaged, compareHint below takes over and says how to USE it; never both. */}
+          {(contrastAvailable || (visibleScenes.length >= 2 && !compare)) && (
+            <div className="mb-3 space-y-1">
+              {contrastAvailable && (
+                <ModeHint icon={<Contrast className="mt-0.5 h-3 w-3 shrink-0" />}
+                  text={t("app.field.satelliteTab.contrastWhy")} />
+              )}
+              {visibleScenes.length >= 2 && !compare && (
+                <ModeHint icon={<GitCompareArrows className="mt-0.5 h-3 w-3 shrink-0" />}
+                  text={t("app.field.satelliteTab.compareWhy")} />
+              )}
+            </div>
+          )}
+
           {compare && sceneA && sceneB ? (
             <>
               <div className="mb-2 grid grid-cols-2 gap-2 text-xs">
@@ -625,6 +654,9 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
                     <input type="range" min={10} max={100} step={5} value={maxCloud}
                       onChange={(e) => setMaxCloud(Number(e.target.value))} className="w-full accent-emerald-600" />
                   </div>
+                  {/* No icon: the Cloud icon already opens the row above and this line sits directly
+                      under it, so repeating it would be noise rather than a binding. */}
+                  <p className="mt-1 text-[11px] leading-snug text-slate-500">{t("app.field.satelliteTab.cloudWhy")}</p>
                   <p className="mt-2 text-xs text-slate-500">{t("app.field.satelliteTab.selectSceneDate")}</p>
                   {visibleScenes.length === 0 ? (
                     <p className="mt-1 text-xs text-amber-600">{t("app.field.satelliteTab.noCleanScene")}</p>

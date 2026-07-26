@@ -1,4 +1,4 @@
-"""THE per-user notification matrix: 5 alert categories × 3 delivery channels (users.notify_prefs).
+"""THE per-user notification matrix: 5 alert categories × 4 delivery channels (users.notify_prefs).
 
 This module is the single place where a written notification's (source, type) becomes a CATEGORY
 the farmer recognises. Every producer that writes a notification and every reader that delivers one
@@ -9,6 +9,12 @@ arrives, which is the one failure this feature cannot have.
 MODEL — opt-out. NULL, {}, a missing category and a missing channel all mean ON, so a user who never
 opens the settings screen behaves exactly as before and the column only stores what was switched
 OFF. `compact()` therefore writes `{}` for the recommended state, and `PUT {"prefs": {}}` IS reset.
+
+A consequence worth stating plainly: "push" arrived after the column already had rows, so it is ON
+for every category for every existing user. That is correct rather than presumptuous — a push can
+only reach a device that deliberately subscribed from the settings screen, so the device
+subscription IS the consent, and these switches only decide which categories that consented device
+is allowed to interrupt someone with.
 
 REGISTRY — a producer whose source is not listed lands in DEFAULT_CATEGORY ("system"), a category
 that is ON, so a new alert type is never silently swallowed. It will, however, be mis-labelled in
@@ -25,7 +31,10 @@ from typing import Any
 
 # Fixed order — the settings screen renders the rows in exactly this sequence.
 CATEGORIES = ("vegetation", "weather", "pest", "advice", "system")
-CHANNELS = ("inapp", "digest", "telegram")
+# "push" sits second, right after inapp: it is the other IMMEDIATE channel, and the settings grid
+# reads left-to-right from "right now" to "later". digest/telegram keep their existing positions so
+# no already-stored cell changes meaning.
+CHANNELS = ("inapp", "push", "digest", "telegram")
 
 # An unregistered producer lands in a category that is ON, so nothing is lost by not knowing it.
 DEFAULT_CATEGORY = "system"

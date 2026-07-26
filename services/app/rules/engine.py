@@ -1,8 +1,8 @@
 """Rule engine + dispatcher (T1).
 
-DELIVERY CHANNELS: alerts are delivered **in-app (public.notifications) + Telegram only**. Email is
-NOT an alert channel — everything the farmer needs by email arrives once a week in the Wednesday
-07:00 (Azerbaijan) digest, which reads the same notifications this engine writes.
+DELIVERY CHANNELS: alerts are delivered **in-app (public.notifications) + Telegram + Web Push**.
+Email is NOT an alert channel — everything the farmer needs by email arrives once a week in the
+Wednesday 07:00 (Azerbaijan) digest, which reads the same notifications this engine writes.
 
 `run_rules(conn, field_id)` gathers candidate alerts from every registered producer and dispatches
 each through anti-spam gating:
@@ -11,7 +11,9 @@ each through anti-spam gating:
   - cooldown: the same (field, rule_type) won't re-fire within COOLDOWN_HOURS unless the severity
     escalates;
 so a notification lands in public.notifications at most once per real event, not once per cron run.
-That gating still matters: it protects the in-app feed and the Telegram push.
+That gating still matters: it protects the in-app feed, the Telegram message and the phone push —
+and the push is the one that would hurt most, since it lights up a screen rather than waiting to be
+opened.
 
 Producers are pure readers of already-computed state (e.g. the weather job stores its alerts in the
 `spray_window` field_knowledge block) — the engine owns notification writing, the jobs don't.
@@ -19,7 +21,8 @@ Producers are pure readers of already-computed state (e.g. the weather job store
 PER-USER PREFERENCES: every candidate is mapped to one of the five categories in
 `services/app/notify_prefs.py`. The notification row is org-scoped, so it is written unless NOBODY
 in the org wants that category in-app or in the digest; the individual member's choice is applied
-where it can be applied per person — on read (the bell, the digest) and on the Telegram push."""
+where it can be applied per person — on read (the bell, the digest) and on the per-recipient sends
+(Telegram, Web Push)."""
 from __future__ import annotations
 
 import json
@@ -176,6 +179,13 @@ async def dispatch(conn, field_id: str, org_id: str, candidates: list[dict]) -> 
         # silently mute the digest column too. Skip only when nobody in the org wants this category
         # on either surface; a member who muted just one of the two is filtered on read instead
         # (routers/advice.list_notifications for the bell, ai/emails/weekly._alerts for the digest).
+        #
+        # "push" is deliberately NOT in this tuple, and neither is "telegram". This gate decides
+        # whether a ROW gets written, and the row is read by exactly two surfaces: the bell and the
+        # digest. Adding push here would mean someone who wants alerts ONLY on their phone also gets
+        # an entry in a feed they muted — the gate would keep writing rows for a reader who asked
+        # for none. The per-device channels do not read the row at all, so they fire on their own
+        # below and answer only to their own column.
         if notify_prefs.any_wants(audience, cat, ("inapp", "digest")):
             await conn.execute(
                 """insert into public.notifications
@@ -196,9 +206,15 @@ async def dispatch(conn, field_id: str, org_id: str, candidates: list[dict]) -> 
         # NO EMAIL HERE — on purpose. This used to call _deliver_email(), which sent one message
         # per fired alert per field: a farmer with 3 fields in bad weather got a dozen emails a
         # day, none of them going through send_template (no idempotency ledger, no opt-out gate,
-        # no unsubscribe link). Alerts are now in-app + Telegram for immediacy; email is delivered
-        # once a week by the Wednesday digest, which reads public.notifications. Do not re-add.
+        # no unsubscribe link). Alerts are now in-app + Telegram + phone push for immediacy; email
+        # is delivered once a week by the Wednesday digest, which reads public.notifications. Do
+        # not re-add — and note that push arriving does NOT weaken this: a push is dismissible and
+        # costs the farmer nothing, whereas each of those emails was a permanent thing to delete.
         await _deliver_telegram(conn, org_id, cat, c["title"], c["body"])
+        # Quiet hours and the cooldown were both applied above, so the phone push inherits them for
+        # free — which is the whole point of putting it here rather than in the producers. A 3 a.m.
+        # frost ping is exactly the failure a new channel would otherwise reintroduce.
+        await _deliver_push(conn, org_id, cat, c["title"], c["body"], field_id)
         fired += 1
     # `fired` = alerts that survived quiet-hours and cooldown; `suppressed` = how many of those
     # wrote no notification row because the whole org had muted the category. They overlap on
@@ -233,6 +249,24 @@ async def _deliver_telegram(conn, org_id: str, category: str, title: str, body: 
             await conn.execute(
                 "insert into public.message_log (channel_id, text, status) values ($1,$2,$3)",
                 r["id"], title, status)
+    except Exception:  # noqa: BLE001 — never let delivery break dispatch
+        pass
+
+
+async def _deliver_push(conn, org_id: str, category: str, title: str, body: str,
+                        field_id: str) -> None:
+    """Best-effort Web Push of a dispatched alert to org members' subscribed devices (H-push).
+
+    The same per-user opt-out story as Telegram: one push has one recipient, so the category switch
+    applies cleanly, and deliver_org enforces it on the push path itself. The tap target is the
+    field the alert is about — a banner that opens a notification list would make the farmer search
+    for the thing they were just told about.
+    """
+    from ..routers.push import configured, deliver_org  # lazy, like the telegram import above
+    if not configured():
+        return
+    try:
+        await deliver_org(conn, org_id, category, title, body, url=f"/fields/{field_id}")
     except Exception:  # noqa: BLE001 — never let delivery break dispatch
         pass
 

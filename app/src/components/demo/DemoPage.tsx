@@ -13,10 +13,11 @@ import { ArrowRight, Compass, Eye, Leaf, MapPin, Ruler } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Spinner } from "@/components/ui";
-import { t } from "@/lib/i18n";
+import { t, type I18nKey } from "@/lib/i18n";
 import { cropLabelOf } from "@/lib/insights";
 import { useFormatArea } from "@/lib/units";
 import type { Polygon } from "@/lib/types";
+import DemoPlanNote, { type DemoPlan } from "./DemoPlanNote";
 import DemoPulse, { type DemoWellness } from "./DemoPulse";
 import DemoSatellite, { type DemoScene } from "./DemoSatellite";
 import DemoSignals, { type DemoAdvice } from "./DemoSignals";
@@ -25,7 +26,9 @@ import DemoTour, { tourAnchor, type TourStep } from "./DemoTour";
 
 interface DemoPayload {
   field: {
-    name: string;
+    // A CODE, never the row's own name: the demo field belongs to a real farmer and their phrasing
+    // has no business reaching an anonymous visitor (routers/demo.py).
+    name_code: string;
     area_ha: number | null;
     crop_type: string | null;
     region: string | null;
@@ -33,6 +36,8 @@ interface DemoPayload {
     centroid: { type: string; coordinates: [number, number] } | null;
   };
   wellness: DemoWellness | null;
+  // Which package this demo field runs on, and what a visitor actually gets after signing up.
+  plan: DemoPlan | null;
   timeline: DemoScene[] | null;
   advice: DemoAdvice | null;
   // An object rather than a bare list on purpose (see routers/demo.py): a later addition — alerts,
@@ -43,6 +48,10 @@ interface DemoPayload {
 // Skipping is a decision too: the tour must not reopen on every visit. The flag only governs the
 // AUTO-open — "show the tour again" replays it without clearing anything.
 const SEEN_KEY = "bagban_demo_tour";
+
+// The backend sends a code, never the row's own name (routers/demo.py). A map rather than string
+// concatenation so an unknown code is a fallback, not a raw key printed on a marketing page.
+const FIELD_NAME_KEY: Record<string, I18nKey | undefined> = { "demo.field": "mkt.demo.fieldName" };
 
 const STEPS: TourStep[] = [
   { anchor: "map", titleKey: "mkt.demo.tour.s1.title", bodyKey: "mkt.demo.tour.s1.body" },
@@ -158,7 +167,7 @@ export default function DemoPage() {
         <div className="flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-mint-soft px-3 py-1 text-[13px] font-semibold text-grass-deep">
             <Leaf className="h-3.5 w-3.5" aria-hidden="true" />
-            {field.name}
+            {t(FIELD_NAME_KEY[field.name_code] ?? "mkt.demo.fieldName")}
           </span>
           {field.area_ha != null && (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-panel-2 px-3 py-1 text-[13px] font-medium text-ink-soft">
@@ -202,15 +211,23 @@ export default function DemoPage() {
 
       {data.wellness && (
         <div {...tourAnchor("pulse")}>
-          <DemoPulse wellness={data.wellness} />
+          <DemoPulse
+            wellness={data.wellness}
+            gated={data.plan?.gated ?? []}
+            demoTier={data.plan?.demo_tier ?? null}
+          />
         </div>
       )}
 
       <div {...tourAnchor("signals")}>
-        <DemoSignals advice={data.advice} />
+        <DemoSignals advice={data.advice} demoTier={data.plan?.demo_tier ?? null} />
       </div>
 
       {weather.length > 0 && <DemoWeather days={weather} />}
+
+      {/* Right before the CTA on purpose: the visitor reads what the packages are immediately
+          before being asked to sign up, not buried above the tour. */}
+      <DemoPlanNote plan={data.plan ?? null} />
 
       <section
         {...tourAnchor("cta")}

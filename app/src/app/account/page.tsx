@@ -12,6 +12,9 @@ import EmailLifecycleToggle from "@/components/EmailLifecycleToggle";
 import AreaUnitSetting from "@/components/AreaUnitSetting";
 import NamePublicToggle from "@/components/NamePublicToggle";
 import NotifyMatrix from "@/components/NotifyMatrix";
+import ProfileForm from "@/components/account/ProfileForm";
+import ChangePassword from "@/components/account/ChangePassword";
+import CloseAccount from "@/components/account/CloseAccount";
 import { t } from "@/lib/i18n";
 
 // Role code → localized label. Resolved at render time (not module load) so the active locale applies.
@@ -49,9 +52,11 @@ export default function AccountPage() {
       <h1 className="text-2xl font-bold text-slate-900">{t("app.account.title")}</h1>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Card Icon={Mail} title={t("app.account.emailTitle")} value={user?.email} />
-        <Card Icon={Lock} title={t("app.account.passwordTitle")} value={t("app.account.passwordValue")} action={<span className="text-xs font-semibold text-emerald-700">{t("app.account.change")}</span>} />
+        {/* Was a decorative <span>: the card advertised "Dəyiş" and did nothing. Now it jumps to the
+            form below, which is why ChangePassword/ProfileForm carry #password / #profile. */}
+        <Card Icon={Lock} title={t("app.account.passwordTitle")} value={t("app.account.passwordValue")} action={<a href="#password" className="text-xs font-semibold text-emerald-700">{t("app.account.change")}</a>} />
         <Card Icon={Globe} title={t("app.account.languageTitle")} action={<LanguageSwitcher />} />
-        <Card Icon={MapPin} title={t("app.account.countryRegionTitle")} value={[user?.country, user?.region].filter(Boolean).join(" · ") || t("app.account.notSet")} />
+        <Card Icon={MapPin} title={t("app.account.countryRegionTitle")} value={[user?.country, user?.region].filter(Boolean).join(" · ") || t("app.account.notSet")} action={<a href="#profile" className="text-xs font-semibold text-emerald-700">{t("app.account.change")}</a>} />
         <Card Icon={Download} title={t("app.account.downloadTitle")} value={t("app.account.downloadValue")} action={<span className="text-xs font-semibold text-emerald-700">{t("app.account.downloadCta")}</span>} />
         <Card Icon={UserCog} title={t("app.account.roleTitle")} value={roleLabel(user?.role)} />
         {isProvider && (
@@ -70,6 +75,8 @@ export default function AccountPage() {
         {/* Directly under the master email switch: its digest column refers to that switch. */}
         {user && <NotifyMatrix />}
         {user && <NamePublicToggle />}
+        {user && <ProfileForm />}
+        {user && <ChangePassword />}
       </div>
 
       {user && (
@@ -78,6 +85,9 @@ export default function AccountPage() {
           <span className="text-base font-medium text-slate-900">{t("app.account.logout")} ({user.email})</span>
         </button>
       )}
+
+      {/* Last, below the logout row: closing the account is the final exit, not a setting. */}
+      {user && <CloseAccount />}
     </div>
   );
 }

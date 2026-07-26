@@ -12,6 +12,7 @@ import { Sparkles } from "lucide-react";
 import { Placeholder } from "@/components/ui";
 import { getLocale, t, tf, LOCALE_NAMES, type Locale } from "@/lib/i18n";
 import { severityLabel } from "@/lib/wellnessText";
+import { pkgFull } from "./DemoPlanNote";
 
 interface Risk {
   title: string;
@@ -44,7 +45,14 @@ const SEV: Record<string, string> = {
   "aşağı": "bg-emerald-100 text-emerald-800",
 };
 
-export default function DemoSignals({ advice }: { advice: DemoAdvice | null }) {
+export default function DemoSignals({
+  advice,
+  demoTier,
+}: {
+  advice: DemoAdvice | null;
+  /** Package the demo field runs on — named under the prose, never used to filter it (see below). */
+  demoTier?: string | null;
+}) {
   if (!advice) {
     return (
       <section className="card">
@@ -63,6 +71,7 @@ export default function DemoSignals({ advice }: { advice: DemoAdvice | null }) {
   const risks = (advice.risks ?? []).slice(0, MAX_RISKS);
   const lang = advice.lang || "az";
   const langName = LOCALE_NAMES[lang as Locale] ?? lang;
+  const pkg = pkgFull(demoTier);
 
   return (
     <section className="card">
@@ -131,6 +140,15 @@ export default function DemoSignals({ advice }: { advice: DemoAdvice | null }) {
       )}
 
       <p className="mt-3 text-[12px] leading-snug text-ink-soft">{t("mkt.demo.signalsCaption")}</p>
+
+      {/* A fertilizer dose or a district comparison can sit INSIDE this stored LLM prose, and those
+          are Business-only inside the app. The page cannot parse the text to strip them, so it says
+          which package the text was written for instead of quietly implying it is free. */}
+      {pkg && (
+        <p className="mt-1.5 text-[12px] leading-snug text-ink-soft">
+          {tf("mkt.demo.plan.adviceNote", { pkg })}
+        </p>
+      )}
     </section>
   );
 }

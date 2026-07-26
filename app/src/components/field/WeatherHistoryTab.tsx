@@ -18,7 +18,7 @@ import {
 } from "recharts";
 import { CloudRain, Download, RefreshCw, Snowflake, Trash2 } from "lucide-react";
 import { api, azError } from "@/lib/api";
-import { t, tf } from "@/lib/i18n";
+import { t, tf, tp } from "@/lib/i18n";
 import { frostSentence } from "@/lib/wellnessText";
 import { ErrorNote, Field as FormField, Placeholder, Spinner } from "@/components/ui";
 
@@ -284,7 +284,9 @@ export default function WeatherHistoryTab({ fieldId }: { fieldId: string }) {
               <Stat
                 label={t("app.field.weatherHistoryTab.frostFreeDays")}
                 value={
-                  frost.frost_free_days?.p50 != null ? `${frost.frost_free_days.p50} ${t("app.field.weatherHistoryTab.dayUnit")}` : "—"
+                  frost.frost_free_days?.p50 != null
+                    ? `${frost.frost_free_days.p50} ${tp("app.plural.days", frost.frost_free_days.p50)}`
+                    : "—"
                 }
                 sub={
                   frost.frost_free_days?.min != null && frost.frost_free_days?.max != null
@@ -370,7 +372,11 @@ export default function WeatherHistoryTab({ fieldId }: { fieldId: string }) {
         {rain.length > 0 && (
           <div>
             <p className="mb-2 text-xs text-slate-500">
-              {t("app.field.weatherHistoryTab.recentEntriesPrefix")}{rainTotal}{t("app.field.weatherHistoryTab.mmParenOpen")}{rain.length}{t("app.field.weatherHistoryTab.daysParenClose")}
+              {tf("app.field.weatherHistoryTab.recentEntriesSummary", {
+                mm: rainTotal,
+                days: rain.length,
+                dayUnit: tp("app.plural.days", rain.length),
+              })}
             </p>
             <ul className="space-y-2">
               {rain.slice(0, 8).map((r) => (

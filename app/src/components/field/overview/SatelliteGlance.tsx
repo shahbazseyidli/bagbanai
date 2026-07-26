@@ -14,7 +14,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, CloudSun, ImageOff } from "lucide-react";
 import { api } from "@/lib/api";
 import { Placeholder, Spinner } from "@/components/ui";
-import { t } from "@/lib/i18n";
+import { t, tf } from "@/lib/i18n";
 import { indexLabel, legendFor } from "@/lib/indexStatus";
 import { DisplayMap } from "@/components/FieldMap";
 import { useDataSaver } from "@/lib/dataSaver";
@@ -29,6 +29,106 @@ type ScenesResponse = Omit<RasterScenes, "scenes"> & { scenes: Scene[] };
 
 function fmt(v: number | null | undefined): string {
   return v == null ? "—" : v.toFixed(2);
+}
+
+// TiTiler serves the same COG either as a tile pyramid or as one finished PNG, so the chip picture
+// is a pure string transform of the tile template the map is already using — same COG, same
+// colormap, same rescale, therefore the same colours by construction. Derived rather than fetched
+// because the alternative is a second server read model for a ~1 KB image we already hold a URL
+// for. max_size mirrors indices.py::_THUMB_MAX_SIZE; a field COG is ~30x25px, so it is a ceiling,
+// not a resize. An unrecognised URL shape yields null → no picture, never a guessed URL.
+const CHIP_MAX_SIZE = 128;
+
+function scenePreview(tileUrl: string | null | undefined): string | null {
+  if (!tileUrl) return null;
+  const cut = tileUrl.indexOf("/cog/");
+  const q = tileUrl.indexOf("?");
+  if (cut < 0 || q < 0 || q < cut) return null;
+  return `${tileUrl.slice(0, cut)}/cog/preview.png${tileUrl.slice(q)}&max_size=${CHIP_MAX_SIZE}`;
+}
+
+function SceneThumb({ url, date }: { url: string | null; date: string }) {
+  // Own broken state per chip, so one unrenderable scene does not blank the whole strip.
+  const [broken, setBroken] = useState(false);
+  if (!url || broken) return null;
+  return (
+    <img
+      src={url}
+      // Decorative: the date and the value are printed right above and below it.
+      alt=""
+      aria-hidden="true"
+      loading="lazy"
+      decoding="async"
+      title={tf("app.fieldsList.thumbTitle", { date: date?.slice(0, 10) ?? "" })}
+      onError={() => setBroken(true)}
+      // These PNGs are a few dozen pixels wide on purpose; keep them crisp when upscaled.
+      style={{ imageRendering: "pixelated" }}
+      className="mt-1 h-10 w-full rounded-[6px] border border-line bg-paper-2 object-contain"
+    />
+  );
+}
+
+// The numeric domain of the ramp is not in legendFor() — it is the `rescale` string TiTiler
+// coloured the pixels with, which the scenes response already carries. Parsing it keeps one copy
+// of _raster_style in the system; hard-coding a second one here would let the tick and the pixels
+// disagree the day a family range changes.
+function parseRange(rescale: string | null | undefined): [number, number] | null {
+  if (!rescale) return null;
+  const p = rescale.split(",");
+  if (p.length !== 2) return null;
+  const lo = Number(p[0]);
+  const hi = Number(p[1]);
+  if (!Number.isFinite(lo) || !Number.isFinite(hi) || hi <= lo) return null;
+  return [lo, hi];
+}
+
+function pos(v: number, lo: number, hi: number): number {
+  return Math.max(0, Math.min(100, ((v - lo) / (hi - lo)) * 100));
+}
+
+// The ramp with the reading marked on it — this is what turns a printed number into a judgement.
+// aria-hidden on the wrapper is the whole accessibility contract: the value is already announced
+// two lines above, and a screen reader cannot read a colour ramp. No role, no aria-valuenow.
+function ValueBar({
+  grad,
+  pct,
+  ghostPct,
+  title,
+  ghostTitle,
+}: {
+  grad: string;
+  pct: number | null;
+  ghostPct: number | null;
+  title?: string;
+  ghostTitle?: string;
+}) {
+  return (
+    <div
+      className="relative mt-2.5 h-2 rounded"
+      style={{ background: grad }}
+      aria-hidden="true"
+      title={title}
+    >
+      {/* Where the value stood four weeks ago, so the movement the delta states in numbers is also
+          visible in space. */}
+      {ghostPct != null && (
+        <span
+          className="absolute top-1/2 h-3 w-[2px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/70 ring-1 ring-black/25"
+          style={{ left: `${ghostPct}%` }}
+          title={ghostTitle}
+        />
+      )}
+      {/* White with a dark ring is the only treatment legible on every stop of both ramps — the
+          hard cases are #fee08b in the middle of the vegetation ramp and #f7f7f7 in the water one.
+          Deliberately not animated: a transition on `left` would need motion-reduce handling. */}
+      {pct != null && (
+        <span
+          className="absolute top-1/2 h-4 w-[3px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-[0_0_0_1.5px_rgba(15,23,42,0.6)]"
+          style={{ left: `${pct}%` }}
+        />
+      )}
+    </div>
+  );
 }
 
 export default function SatelliteGlance({
@@ -81,6 +181,24 @@ export default function SatelliteGlance({
 
   const legend = legendFor(index);
   const rasterVisible = !dataSaver || showRaster;
+
+  // The card paints `tile_url` (the fixed family rescale), never `tile_url_auto`, so the tick and
+  // the pixel colours always share one domain. Without a usable range the ramp still renders — as
+  // a plain legend, with no tick: a mark on an invented scale would be a lie.
+  const range = parseRange(data?.rescale);
+  const activeValue = active?.value ?? null;
+  const olderValue = older?.value ?? null;
+  const pct = range && activeValue != null ? pos(activeValue, range[0], range[1]) : null;
+  const ghostPct =
+    range && delta != null && olderValue != null ? pos(olderValue, range[0], range[1]) : null;
+  // Mouse-only hints; nothing here is announced (the bar is aria-hidden).
+  const barTitle = range
+    ? tf("app.field.glance.scaleRange", { lo: range[0].toFixed(2), hi: range[1].toFixed(2) })
+    : undefined;
+  const ghostTitle =
+    ghostPct != null && olderValue != null
+      ? tf("app.field.glance.previousMark", { value: olderValue.toFixed(2) })
+      : undefined;
 
   return (
     <section className="card">
@@ -139,14 +257,10 @@ export default function SatelliteGlance({
               </button>
             )}
 
-            {/* Fixed ramp — the same value means the same colour on every date. */}
-            <div className="mt-2.5 h-2 rounded" style={{ background: legend.grad }} aria-hidden="true" />
-            <div className="mt-1 flex justify-between text-[10.5px] text-ink-soft">
-              <span>{legend.low}</span>
-              <span>{legend.mid}</span>
-              <span>{legend.high}</span>
-            </div>
-            <p className="mt-2 text-[10.5px] text-ink-soft">{t("app.field.glance.attribution")}</p>
+            {/* The ramp used to sit here, under the map. It now carries the reading, so it lives
+                beside the number instead — one gradient per card, not the same picture twice. The
+                attribution stays: it is a licence obligation, not a caption for the ramp. */}
+            <p className="mt-2.5 text-[10.5px] text-ink-soft">{t("app.field.glance.attribution")}</p>
           </div>
 
           <div>
@@ -165,32 +279,71 @@ export default function SatelliteGlance({
                 </span>
               )}
             </div>
-            <p className="mt-0.5 text-[12px] text-ink-soft">{indexLabel(index)}</p>
+            {/* Fixed ramp — the same value means the same colour on every date — now with the
+                field mean marked on it. */}
+            <ValueBar
+              grad={legend.grad}
+              pct={pct}
+              ghostPct={ghostPct}
+              title={barTitle}
+              ghostTitle={ghostTitle}
+            />
+            <div className="mt-1 flex justify-between text-[10.5px] text-ink-soft">
+              <span>{legend.low}</span>
+              <span>{legend.mid}</span>
+              <span>{legend.high}</span>
+            </div>
+            {/* Naming the number matters once it has a mark on a scale: the tick is where the FIELD
+                MEAN sits, not any one pixel. */}
+            <p className="mt-1.5 text-[12px] text-ink-soft">
+              {indexLabel(index)} · {t("app.field.glance.fieldAverage")}
+            </p>
 
             {/* Date strip — tapping a date repaints the map above. */}
             <p className="mb-1.5 mt-3 text-[10.5px] font-bold uppercase tracking-[0.11em] text-ink-soft">
               {t("app.field.glance.dates")}
             </p>
             <div className="flex gap-1.5 overflow-x-auto pb-1">
-              {scenes.slice(0, 8).map((s, i) => (
-                <button
-                  key={s.scene_id}
-                  onClick={() => setSceneIdx(i)}
-                  aria-pressed={i === sceneIdx}
-                  className={`min-w-[74px] shrink-0 rounded-[10px] border-[1.5px] px-2 py-1.5 text-center ${
-                    i === sceneIdx ? "border-grass bg-mint-soft" : "border-line bg-panel hover:border-mint"
-                  }`}
-                >
-                  <b className="block text-[11.5px] font-bold text-ink">{s.date.slice(5)}</b>
-                  <span className="block text-[10.5px] tabular-nums text-ink-soft">{fmt(s.value)}</span>
-                  {s.cloud_pct != null && (
-                    <span className="mt-0.5 flex items-center justify-center gap-0.5 text-[9.5px] text-ink-soft">
-                      <CloudSun className="h-2.5 w-2.5" aria-hidden="true" />
-                      {Math.round(s.cloud_pct)}%
-                    </span>
-                  )}
-                </button>
-              ))}
+              {scenes.slice(0, 8).map((s, i) => {
+                const sv = s.value ?? null;
+                const sp = range && sv != null ? pos(sv, range[0], range[1]) : null;
+                return (
+                  <button
+                    key={s.scene_id}
+                    onClick={() => setSceneIdx(i)}
+                    aria-pressed={i === sceneIdx}
+                    className={`min-w-[84px] shrink-0 rounded-[10px] border-[1.5px] px-2 py-1.5 text-center ${
+                      i === sceneIdx ? "border-grass bg-mint-soft" : "border-line bg-panel hover:border-mint"
+                    }`}
+                  >
+                    <b className="block text-[11.5px] font-bold text-ink">{s.date.slice(5)}</b>
+                    {/* Withheld together with the big raster: while the farmer has declined that
+                        one on a metered connection, painting eight small ones would be incoherent. */}
+                    {rasterVisible && <SceneThumb url={scenePreview(s.tile_url)} date={s.date} />}
+                    <span className="block text-[10.5px] tabular-nums text-ink-soft">{fmt(s.value)}</span>
+                    {/* Same ramp, same domain as the bar above, so the ticks drifting across the
+                        chips read as a small time series. */}
+                    {sp != null && (
+                      <div
+                        className="relative mt-1 h-[3px] rounded"
+                        style={{ background: legend.grad }}
+                        aria-hidden="true"
+                      >
+                        <span
+                          className="absolute top-1/2 h-[7px] w-[2px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-[0_0_0_1px_rgba(15,23,42,0.55)]"
+                          style={{ left: `${sp}%` }}
+                        />
+                      </div>
+                    )}
+                    {s.cloud_pct != null && (
+                      <span className="mt-0.5 flex items-center justify-center gap-0.5 text-[9.5px] text-ink-soft">
+                        <CloudSun className="h-2.5 w-2.5" aria-hidden="true" />
+                        {Math.round(s.cloud_pct)}%
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>

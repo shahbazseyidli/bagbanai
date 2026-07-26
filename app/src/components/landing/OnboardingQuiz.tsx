@@ -12,7 +12,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, MapPin, Sparkles } from "lucide-react";
-import { getLocale, t } from "@/lib/i18n";
+import { api } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
+import { getLocale, t, tf, tp } from "@/lib/i18n";
 import { AZ_RAYONS } from "@/lib/regions";
 import {
   EMPTY_ANSWERS,
@@ -20,6 +22,7 @@ import {
   QUIZ_COUNTRY_CODES,
   QUIZ_CROPS,
   QUIZ_NEEDS,
+  clearAnswers,
   countryName,
   loadAnswers,
   saveAnswers,
@@ -56,9 +59,12 @@ function Choice({
 
 export default function OnboardingQuiz() {
   const router = useRouter();
+  const { user } = useAuth();
   const [step, setStep] = useState(0); // 0..3 questions, 4 = result
   const [a, setA] = useState<QuizAnswers>(EMPTY_ANSWERS);
   const [hydrated, setHydrated] = useState(false);
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [applied, setApplied] = useState(0);
   const locale = useMemo(() => (hydrated ? getLocale() : "az"), [hydrated]);
   const headingRef = useRef<HTMLHeadingElement>(null);
 
@@ -78,6 +84,63 @@ export default function OnboardingQuiz() {
     }
     headingRef.current?.focus();
   }, [step]);
+
+  // A signed-in visitor who (re)takes the quiz gets the answers written to their account.
+  //
+  // The apex is marketing even when you are signed in (app/page.tsx: `if (!appHost) return
+  // <Landing/>`), so this is one logo click away from any logged-in farmer — and until now it wrote
+  // to localStorage and stopped. POST /api/auth/onboarding is also the only caller of
+  // _apply_onboarding_to_fields(): signup stores the blob in its INSERT and cannot apply it, because
+  // a brand-new account has no fields yet. The "seed crop/region onto existing fields" half of E13
+  // only ever runs from here.
+  //
+  // It lives on the LANDING and nowhere inside the app on purpose: localStorage is per-origin, the
+  // quiz saves on agradex.com, and loadAnswers() on app.agradex.com is always null. A "sweep on app
+  // start" caller would be dead code by construction — don't add one.
+  //
+  // Firing from an effect rather than from finish() is deliberate too: finish() runs the instant
+  // "Nəticəni gör" is pressed, while AuthProvider resolves `user` from cache/`/me` asynchronously,
+  // so reading `user` at that one instant would silently skip the save for anyone whose /me had not
+  // landed yet. The effect simply re-runs when auth resolves.
+  // Staleness is tracked with an attempt counter rather than the usual `let live = true` + cleanup:
+  // this effect sets saveState, which is one of its own dependencies, so React tears the effect down
+  // and re-runs it the moment we flip to "saving". A cleanup-based flag would therefore be false by
+  // the time the POST resolved, and the card would sit on "saving" forever. The counter only goes
+  // stale when a genuinely new attempt starts (a retry), which is the case we actually mean.
+  const attemptRef = useRef(0);
+  useEffect(() => {
+    if (step !== STEPS || !user || saveState !== "idle") return;
+    const attempt = ++attemptRef.current;
+    setSaveState("saving");
+    (async () => {
+      try {
+        const r = await api.post<{ fields_updated?: number }>("/api/auth/onboarding", { onboarding: a });
+        if (attemptRef.current !== attempt) return;
+        setApplied(r?.fields_updated ?? 0);
+        setSaveState("saved");
+        // It lives on the account now; don't let it replay into the next signup on this browser.
+        clearAnswers();
+      } catch {
+        if (attemptRef.current === attempt) setSaveState("error");
+      }
+    })();
+    // `a` is intentionally not a dependency: it is frozen by the time the result step renders, and
+    // listing it would re-POST on every keystroke of a restarted quiz.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, user, saveState]);
+
+  /** Re-arm the effect after a failure — one code path, never a second inline call. */
+  function retrySave() {
+    setSaveState("idle");
+  }
+
+  /** Back to question one. Resetting the save state matters: without it a retake would keep showing
+   *  the previous "saved" line and never POST the new answers. */
+  function restart() {
+    setSaveState("idle");
+    setApplied(0);
+    setStep(0);
+  }
 
   function update(patch: Partial<QuizAnswers>, advance = false) {
     setA((cur) => {
@@ -271,14 +334,54 @@ export default function OnboardingQuiz() {
               ))}
             </ul>
             <div className="mt-5 flex flex-wrap items-center gap-3">
-              <button type="button" className="lp-btn lp-btn-pri" onClick={() => router.push("/signup")}>
-                <Sparkles className="h-4 w-4" aria-hidden="true" /> {t("mkt.quiz.resultCta")}
-              </button>
-              <button type="button" className="quiz-link" onClick={() => setStep(0)}>
+              {user ? (
+                // A plain <a>, not next/link: both targets are in the middleware's APP_PREFIXES, so on
+                // the marketing apex they 307 to app.agradex.com. A full navigation follows that hop
+                // cleanly, while next/link would have to unwind a cross-origin redirect out of an RSC
+                // fetch — the same reason Nav.tsx reaches the app host with an anchor.
+                <a href={applied > 0 ? "/fields" : "/onboarding"} className="lp-btn lp-btn-pri">
+                  <Sparkles className="h-4 w-4" aria-hidden="true" />{" "}
+                  {t(applied > 0 ? "mkt.quiz.signedCtaFields" : "mkt.quiz.signedCtaField")}
+                </a>
+              ) : (
+                <button type="button" className="lp-btn lp-btn-pri" onClick={() => router.push("/signup")}>
+                  <Sparkles className="h-4 w-4" aria-hidden="true" /> {t("mkt.quiz.resultCta")}
+                </button>
+              )}
+              <button type="button" className="quiz-link" onClick={restart}>
                 {t("mkt.quiz.resultRestart")}
               </button>
             </div>
-            <p className="mt-3 text-[12.5px] text-slate-500">{t("mkt.quiz.resultNote")}</p>
+            {user ? (
+              <div className="mt-3 space-y-1 text-[12.5px] text-slate-500">
+                {saveState === "saving" && <p>{t("mkt.quiz.saving")}</p>}
+                {saveState === "saved" && (
+                  <>
+                    <p>{t("mkt.quiz.savedOk")}</p>
+                    {/* Only ever stated when something actually changed: 0 cannot tell "no fields yet"
+                        apart from "already filled in", and claiming either would be a guess. */}
+                    {applied > 0 && (
+                      <p>
+                        {tf("mkt.quiz.savedApplied", {
+                          count: applied,
+                          noun: tp("app.plural.fields", applied),
+                        })}
+                      </p>
+                    )}
+                  </>
+                )}
+                {saveState === "error" && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span>{t("mkt.quiz.saveError")}</span>
+                    <button type="button" className="quiz-link" onClick={retrySave}>
+                      {t("common.retry")}
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="mt-3 text-[12.5px] text-slate-500">{t("mkt.quiz.resultNote")}</p>
+            )}
           </div>
         )}
 
@@ -319,12 +422,15 @@ export default function OnboardingQuiz() {
         )}
       </div>
 
-      <p className="mt-3 text-center text-[12.5px] text-slate-500">
-        {t("mkt.quiz.footNote")}{" "}
-        <Link href="/signup" className="lp-link font-semibold underline-offset-2 hover:underline">
-          {t("mkt.quiz.footSkip")}
-        </Link>
-      </p>
+      {/* "Skip straight to registration" is nonsense for someone already signed in. */}
+      {!user && (
+        <p className="mt-3 text-center text-[12.5px] text-slate-500">
+          {t("mkt.quiz.footNote")}{" "}
+          <Link href="/signup" className="lp-link font-semibold underline-offset-2 hover:underline">
+            {t("mkt.quiz.footSkip")}
+          </Link>
+        </p>
+      )}
     </div>
   );
 }

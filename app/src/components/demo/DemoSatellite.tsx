@@ -7,8 +7,10 @@
 //
 // NDVI only, because that is what GET /api/public/demo's timeline contains; there is no parameter
 // an anonymous visitor could use to pivot the payload to another index.
-import { CloudSun } from "lucide-react";
+import { useEffect, useState } from "react";
+import { CloudSun, ImageOff } from "lucide-react";
 import dynamic from "next/dynamic";
+import { useDataSaver } from "@/lib/dataSaver";
 import { t } from "@/lib/i18n";
 import { indexLabel, legendFor } from "@/lib/indexStatus";
 import type { Polygon } from "@/lib/types";
@@ -45,6 +47,18 @@ export default function DemoSatellite({
   const active: DemoScene | null = timeline[activeIdx] ?? timeline[0] ?? null;
   const legend = legendFor("NDVI");
 
+  // Data saver, one notch stricter than SatelliteGlance's. There DisplayMap is a static import that
+  // has already been paid for, so it can render optimistically and let the effect take it away.
+  // Here it is a dynamic() chunk: rendering it for one frame would fetch MapLibre over exactly the
+  // metered connection this is meant to spare. useDataSaver() only answers after mount (a lazy
+  // useState initialiser reading localStorage would hydrate differently from the server), so hold
+  // the decision until `decided` and show the loader skeleton in the meantime.
+  const dataSaver = useDataSaver();
+  const [decided, setDecided] = useState(false);
+  const [showRaster, setShowRaster] = useState(false);
+  useEffect(() => setDecided(true), []);
+  const rasterVisible = showRaster || (decided && !dataSaver);
+
   return (
     <section className="card">
       <div className="mb-3 flex items-baseline gap-2">
@@ -59,7 +73,24 @@ export default function DemoSatellite({
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
         <div {...tourAnchor("map")}>
-          <DisplayMap polygon={polygon} rasterUrl={active?.tile_url ?? null} heightClass="h-72" />
+          {!decided ? (
+            // Identical to the dynamic() loader below it, so the extra frame is invisible.
+            <div className="h-72 w-full animate-pulse rounded-xl bg-paper-2" aria-hidden="true" />
+          ) : rasterVisible ? (
+            <DisplayMap polygon={polygon} rasterUrl={active?.tile_url ?? null} heightClass="h-72" />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowRaster(true)}
+              className="flex h-72 w-full flex-col items-center justify-center gap-2 rounded-xl border-[1.5px] border-dashed border-line bg-paper-2 px-4 text-center text-[13px] font-semibold text-ink-soft hover:border-grass hover:text-grass-deep"
+            >
+              <ImageOff className="h-5 w-5" aria-hidden="true" />
+              {t("app.field.glance.loadRaster")}
+              <span className="max-w-[36ch] text-[11.5px] font-normal leading-snug text-ink-soft">
+                {t("mkt.demo.saverHint")}
+              </span>
+            </button>
+          )}
 
           {/* Fixed ramp — the same value means the same colour on every date. */}
           <div className="mt-2.5 h-2 rounded" style={{ background: legend.grad }} aria-hidden="true" />

@@ -1,6 +1,6 @@
 "use client";
 
-// The per-user notification matrix: 5 alert categories × 3 delivery channels.
+// The per-user notification matrix: 5 alert categories × 4 delivery channels.
 //
 // Why a grid and not five toggles: "turn off notifications" is the wrong question. A farmer who is
 // tired of frost pings at 3 a.m. still wants the pest window, and someone who reads everything in
@@ -16,6 +16,7 @@ import { Bell, Check } from "lucide-react";
 import { api } from "@/lib/api";
 import { t, tf } from "@/lib/i18n";
 import { EMAIL_LIFECYCLE_EVENT } from "@/components/EmailLifecycleToggle";
+import PushSetting from "@/components/PushSetting";
 
 type Matrix = Record<string, Record<string, boolean>>;
 
@@ -29,12 +30,13 @@ type NotifyPrefsResponse = {
 
 // Fallbacks for the (impossible, but cheap to survive) case of a response missing its shape.
 const FALLBACK_CATEGORIES = ["vegetation", "weather", "pest", "advice", "system"];
-const FALLBACK_CHANNELS = ["inapp", "digest", "telegram"];
+const FALLBACK_CHANNELS = ["inapp", "push", "digest", "telegram"];
 
-// Column label + the long hint under the matrix. `t()` only takes a literal I18nKey, so the three
+// Column label + the long hint under the matrix. `t()` only takes a literal I18nKey, so the four
 // channels are spelled out here rather than built from the server's channel id.
 function columnLabel(ch: string): string {
   if (ch === "inapp") return t("notifyMatrix.colInapp");
+  if (ch === "push") return t("notifyMatrix.colPush");
   if (ch === "digest") return t("notifyMatrix.colDigest");
   if (ch === "telegram") return t("notifyMatrix.colTelegram");
   return ch;
@@ -42,6 +44,7 @@ function columnLabel(ch: string): string {
 
 function columnHint(ch: string): string {
   if (ch === "inapp") return t("notifyMatrix.colInappHint");
+  if (ch === "push") return t("notifyMatrix.colPushHint");
   if (ch === "digest") return t("notifyMatrix.colDigestHint");
   if (ch === "telegram") return t("notifyMatrix.colTelegramHint");
   return "";
@@ -50,6 +53,11 @@ function columnHint(ch: string): string {
 export default function NotifyMatrix() {
   const [state, setState] = useState<NotifyPrefsResponse | null>(null);
   const [error, setError] = useState(false);
+  // Reported by the PushSetting card below — the notify-prefs payload cannot say whether the server
+  // holds VAPID keys or whether THIS device is subscribed, and both change what the push column
+  // actually promises. `null` means "not known yet": do not dim on unknown, or the column flickers
+  // grey on every load.
+  const [push, setPush] = useState<{ configured: boolean; active: boolean } | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -94,6 +102,9 @@ export default function NotifyMatrix() {
   const digestEnabled = state?.digest_enabled !== false;
   const tgConfigured = state?.telegram?.configured === true;
   const tgLinked = state?.telegram?.linked === true;
+  // Two different reasons this column decides nothing right now: the server has no VAPID keys, or
+  // it has them and this device never subscribed. Both dim it; the note underneath says which.
+  const pushMuted = push?.configured === false || push?.active === false;
 
   const isOn = (cat: string, ch: string) => prefs?.[cat]?.[ch] !== false;
 
@@ -134,7 +145,9 @@ export default function NotifyMatrix() {
         </div>
       </div>
 
-      {/* Column headers. The three cells are 44px each, so the category text keeps ~180px at 375px. */}
+      {/* Column headers. Four cells at 44px plus three 4px gaps = 188px, leaving the category label
+          ~155px at 375px — enough that only the two longest names wrap to a second line. 44px is the
+          tap-target floor from D1: add a fifth channel and the layout needs rethinking, not shrinking. */}
       <div className="mt-3 grid grid-cols-[1fr_auto] items-end gap-2">
         <span />
         <div className="flex gap-1">
@@ -142,7 +155,9 @@ export default function NotifyMatrix() {
             <span
               key={ch}
               className={`w-11 text-center text-[10px] leading-tight ${
-                (ch === "digest" && !digestEnabled) || (ch === "telegram" && !tgConfigured)
+                (ch === "digest" && !digestEnabled)
+                || (ch === "telegram" && !tgConfigured)
+                || (ch === "push" && pushMuted)
                   ? "text-slate-400"
                   : "text-slate-500"
               }`}
@@ -167,7 +182,8 @@ export default function NotifyMatrix() {
                 <div className="flex gap-1">
                   {channels.map((ch) => {
                     const on = isOn(cat, ch);
-                    const dormant = ch === "telegram" && !tgConfigured;
+                    const dormant = (ch === "telegram" && !tgConfigured)
+                      || (ch === "push" && pushMuted);
                     const muted = dormant || (ch === "digest" && !digestEnabled);
                     return (
                       <button
@@ -175,12 +191,13 @@ export default function NotifyMatrix() {
                         type="button"
                         role="switch"
                         aria-checked={on}
-                        // Dormant, NOT disabled. The note under this column promises that a choice
-                        // made now takes effect the moment the bot is switched on — and the PUT
-                        // does store it, and send_alert does honour it. Disabling the cells would
-                        // make that promise a lie and leave a third of the matrix untouchable for
-                        // as long as TELEGRAM_BOT_TOKEN is empty, which is today. The dimming
-                        // carries the "not yet live" signal on its own.
+                        // Dormant, NOT disabled — for Telegram and for push alike. The note under
+                        // each column promises that a choice made now takes effect the moment the
+                        // channel is switched on, and both promises are kept: the PUT stores the
+                        // cell, and telegram.send_alert / routers.push.deliver_org honour it.
+                        // Disabling the cells would make that a lie and leave half the matrix
+                        // untouchable for as long as TELEGRAM_BOT_TOKEN and VAPID_PUBLIC_KEY are
+                        // empty, which is today. The dimming carries "not yet live" on its own.
                         aria-label={tf("notifyMatrix.cellAria", { cat: catName, ch: columnLabel(ch) })}
                         onClick={() => toggle(cat, ch)}
                         className={`grid min-h-11 min-w-11 place-items-center rounded-lg border-[1.5px] transition-colors ${
@@ -221,7 +238,20 @@ export default function NotifyMatrix() {
       {tgConfigured && !tgLinked && (
         <p className="mt-2 text-xs text-slate-500">{t("notifyMatrix.telegramNotLinked")}</p>
       )}
+      {push?.configured === false && (
+        <p className="mt-2 text-xs text-slate-500">{t("notifyMatrix.pushUnavailable")}</p>
+      )}
+      {push?.configured === true && push.active === false && (
+        <p className="mt-2 text-xs text-slate-500">{t("notifyMatrix.pushNotOnDevice")}</p>
+      )}
       {error && <p className="mt-2 text-xs text-red-600">{t("notifyMatrix.saveError")}</p>}
+
+      {/* The switch that turns a device on sits INSIDE this card, directly under the column that
+          promises it. Telegram gets its own card elsewhere because linking a chat is a separate
+          errand; granting push permission is not — it is the other half of this grid, and splitting
+          the two would leave a farmer tapping a dimmed "Telefon" column with nothing nearby saying
+          what to do about it. */}
+      <PushSetting onChange={setPush} />
 
       <div className="mt-3 flex items-center justify-between gap-3 border-t border-slate-100 pt-3">
         <p className="text-xs text-slate-500">{t("notifyMatrix.resetHint")}</p>

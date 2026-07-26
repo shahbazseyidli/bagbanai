@@ -8,7 +8,7 @@ import { Share2, Copy, Check, Trash2, Eye, Plus, Loader2 } from "lucide-react";
 import { api, azError } from "@/lib/api";
 import { ErrorNote, Placeholder, Spinner } from "@/components/ui";
 import { publicUrl } from "@/lib/host";
-import { t } from "@/lib/i18n";
+import { t, tp } from "@/lib/i18n";
 
 interface ShareLink {
   id: string;
@@ -252,7 +252,7 @@ export default function ShareButton({
                     {statusText(s)}
                   </span>
                   <span className="inline-flex items-center gap-1 text-slate-500">
-                    <Eye className="h-3.5 w-3.5" aria-hidden="true" /> {s.view_count} {t("app.field.shareButton.views")}
+                    <Eye className="h-3.5 w-3.5" aria-hidden="true" /> {s.view_count} {tp("app.plural.views", s.view_count)}
                   </span>
                   {s.include_ndvi && <span className="text-slate-400">{t("app.field.shareButton.ndviLayerBadge")}</span>}
                 </div>

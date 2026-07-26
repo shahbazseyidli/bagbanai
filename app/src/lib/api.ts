@@ -147,6 +147,15 @@ const ERR_KEYS: Record<string, I18nKey> = {
   photo_quota_exceeded: "app.err.photoQuotaExceeded",
   advice_quota_exceeded: "app.err.adviceQuotaExceeded",
   ai_not_configured: "app.err.aiNotConfigured",
+  // Account self-service (POST /auth/change-password, PATCH /auth/profile, POST /auth/account/delete).
+  wrong_password: "app.err.wrongPassword",
+  password_too_short: "app.err.passwordTooShort",
+  password_unchanged: "app.err.passwordUnchanged",
+  invalid_password: "app.err.invalidPassword",
+  confirm_email_mismatch: "app.err.confirmEmailMismatch",
+  confirm_email_required: "app.err.confirmEmailRequired",
+  transfer_ownership_first: "app.err.transferOwnershipFirst",
+  invalid_profile: "app.err.invalidProfile",
   unauthorized: "app.err.sessionExpired",
 };
 

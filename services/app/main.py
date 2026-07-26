@@ -9,8 +9,8 @@ from .db import close_pool, init_pool
 from .routers import (admin, advice, analytics, auth, backfill, bulk, chat, demo, documents,
                       email_prefs, equipment, events, farms, fertilizer, fields, geo, harvest_order,
                       health, indices, internal, inventory, knowledge, ledger, messaging, mgmt,
-                      nowcast, orgs, photos, places, providers, reports, sales, scouting, seasons,
-                      shares, uploads, weather_history, zones)
+                      nowcast, orgs, photos, places, providers, push, reports, sales, scouting,
+                      seasons, shares, uploads, weather_history, zones)
 
 
 @asynccontextmanager
@@ -70,6 +70,7 @@ def create_app() -> FastAPI:
     app.include_router(nowcast.router)
     app.include_router(harvest_order.router)
     app.include_router(email_prefs.router)
+    app.include_router(push.router)
     return app
 
 

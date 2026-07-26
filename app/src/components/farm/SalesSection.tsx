@@ -8,7 +8,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, Receipt, Trash2, Users, X, Pencil } from "lucide-react";
 import { api, azError } from "@/lib/api";
-import { t, type I18nKey } from "@/lib/i18n";
+import { t, tp, type I18nKey } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { ErrorNote, Field as FormField, Spinner } from "@/components/ui";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -439,7 +439,7 @@ function SalesInner() {
               <div className="card">
                 <div className="text-xs text-slate-500">{t("app.sales.totalRevenue")}</div>
                 <div className="mt-1 text-2xl font-bold text-emerald-700">{money(summary.totals.revenue)}</div>
-                <div className="mt-1 text-xs text-slate-500">{summary.totals.count} {t("app.sales.salesRecordsSuffix")}</div>
+                <div className="mt-1 text-xs text-slate-500">{summary.totals.count} {tp("app.plural.saleRecords", summary.totals.count)}</div>
               </div>
               <div className="card">
                 <div className="text-xs text-slate-500">{t("app.sales.soldQuantity")}</div>
@@ -451,7 +451,7 @@ function SalesInner() {
               <div className={`card ${summary.outstanding.amount > 0 ? "border-amber-300 bg-amber-50/40" : ""}`}>
                 <div className="text-xs text-slate-500">{t("app.sales.outstandingPayment")}</div>
                 <div className="mt-1 text-2xl font-bold text-amber-700">{money(summary.outstanding.amount)}</div>
-                <div className="mt-1 text-xs text-slate-500">{summary.outstanding.count} {t("app.sales.recordsSuffix")}</div>
+                <div className="mt-1 text-xs text-slate-500">{summary.outstanding.count} {tp("app.plural.records", summary.outstanding.count)}</div>
               </div>
             </div>
           )}
