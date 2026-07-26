@@ -41,7 +41,7 @@ export default function SatelliteStage({
   // What the loaded scenes actually MEASURE. `index` is what the farmer just clicked; until the
   // response lands the two differ, and labelling last index's numbers with the new index's name
   // (and colour ramp) is simply wrong — NDMI's water ramp over NDVI values inverts the meaning.
-  const [shownIndex, setShownIndex] = useState<StageIndex>("NDVI");
+  const [shownIndex, setShownIndex] = useState("NDVI");
   const dataSaver = useDataSaver();
   // On a metered connection the raster is not fetched until the farmer asks for it (D4.5).
   const [showRaster, setShowRaster] = useState(false);
