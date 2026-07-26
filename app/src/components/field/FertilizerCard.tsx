@@ -8,6 +8,7 @@ import { Sprout } from "lucide-react";
 import { api } from "@/lib/api";
 import UpgradeCta from "@/components/UpgradeCta";
 import { t } from "@/lib/i18n";
+import { useFormatArea } from "@/lib/units";
 
 interface Split { stage: string; share_pct: number; n_kg: number; p_kg: number; k_kg: number }
 interface Plan {
@@ -26,6 +27,9 @@ interface Plan {
 export default function FertilizerCard({ fieldId }: { fieldId: string }) {
   const [plan, setPlan] = useState<Plan | null>(null);
   const [loading, setLoading] = useState(true);
+  // The field's own size follows the farmer's unit; the t/ha and kg/ha RATES stay per hectare —
+  // they are agronomic rates, not areas, and every norm behind them is published per hectare.
+  const fmtArea = useFormatArea();
 
   useEffect(() => {
     let active = true;
@@ -76,7 +80,7 @@ export default function FertilizerCard({ fieldId }: { fieldId: string }) {
         <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">{t("app.field.fertilizerCard.tierBadge")}</span>
       </div>
       <p className="text-xs text-slate-500">
-        {t("app.field.fertilizerCard.targetLabel")} {plan.target_yield} t/ha · {plan.area_ha} ha · {plan.crop_type}
+        {t("app.field.fertilizerCard.targetLabel")} {plan.target_yield} t/ha · {fmtArea(plan.area_ha)} · {plan.crop_type}
       </p>
 
       <div className="mt-3 grid grid-cols-3 gap-2 text-center">

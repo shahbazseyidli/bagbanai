@@ -8,6 +8,7 @@ import { api, azError } from "@/lib/api";
 import { ErrorNote, Field as FormField, Placeholder, Spinner } from "@/components/ui";
 import ChoiceChips from "@/components/field/ChoiceChips";
 import { t } from "@/lib/i18n";
+import { useFormatArea } from "@/lib/units";
 
 type SeasonStatus = "preparation" | "planted" | "vegetation" | "harvest" | "fallow" | "closed";
 
@@ -99,6 +100,7 @@ function fmtDate(v: string | null): string {
 }
 
 export default function SeasonTab({ fieldId }: { fieldId: string }) {
+  const fmtArea = useFormatArea();
   const [items, setItems] = useState<Season[] | null>(null);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState("");
@@ -363,7 +365,7 @@ export default function SeasonTab({ fieldId }: { fieldId: string }) {
                         </span>
                       )}
                       {s.area_ha != null && (
-                        <span className="text-xs text-slate-500">{s.area_ha.toFixed(2)} ha</span>
+                        <span className="text-xs text-slate-500">{fmtArea(s.area_ha)}</span>
                       )}
                     </div>
                   </div>

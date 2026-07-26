@@ -9,6 +9,7 @@
 import Link from "next/link";
 import { Droplets, Loader2, MapPin } from "lucide-react";
 import { t } from "@/lib/i18n";
+import { formatArea, useAreaUnit } from "@/lib/units";
 import { ScorePill, toneWord, type FieldScore } from "./ScoreBadge";
 import type { FieldToday } from "@/lib/today";
 import type { Field } from "@/lib/types";
@@ -22,12 +23,13 @@ function FieldGridCard({
   ft?: FieldToday;
   score?: FieldScore;
 }) {
+  const areaUnit = useAreaUnit();
   const preparing = ft != null && (ft.status === "queued" || ft.status === "processing");
   const v = ft?.verdict ?? null;
   // Meta line: area + one status word, each of which is either known or omitted.
   const statusWord = preparing ? t("app.home.fieldGrid.preparing") : v ? toneWord(v.tone) : null;
   const meta = [
-    field.area_ha != null ? `${field.area_ha.toFixed(2)} ha` : null,
+    field.area_ha != null ? formatArea(field.area_ha, areaUnit) : null,
     statusWord,
   ].filter(Boolean).join(" · ");
 

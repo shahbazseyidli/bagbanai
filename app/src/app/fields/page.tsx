@@ -10,6 +10,7 @@ import Link from "next/link";
 import { ChevronLeft, MapPin, Plus } from "lucide-react";
 import { api, azError } from "@/lib/api";
 import { t } from "@/lib/i18n";
+import { useFormatArea } from "@/lib/units";
 import { wellnessHeadline } from "@/lib/wellnessText";
 import { useAuth } from "@/lib/auth";
 import { ErrorNote } from "@/components/ui";
@@ -80,6 +81,8 @@ export default function FieldsListPage() {
   const [selected, setSelected] = useState<string[]>([]);
   // A3 — field_id → latest stored wellness score (may stay empty; the chips are optional garnish).
   const [scores, setScores] = useState<Record<string, FieldScore>>({});
+  // P1.2 — every area on this screen is rendered in the farmer's own unit (ha / dönüm / sot).
+  const fmtArea = useFormatArea();
   // Map hero — the org's field geometries (name + area + data_status + geom in one call). Best-effort:
   // if it fails the list still stands on its own.
 
@@ -135,7 +138,7 @@ export default function FieldsListPage() {
           <h1 className="font-display text-2xl font-bold text-teal">{t("app.fieldsList.heading")}</h1>
           {fields.length > 0 && (
             <p className="mt-0.5 text-sm text-ink-soft">
-              {fields.length}{t("app.fieldsList.fieldsCountSep")}{totalHa.toFixed(2)} ha
+              {fields.length}{t("app.fieldsList.fieldsCountSep")}{fmtArea(totalHa)}
             </p>
           )}
         </div>
@@ -182,7 +185,7 @@ export default function FieldsListPage() {
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-base font-bold text-ink">{f.name}</p>
                         <p className="text-sm text-ink-soft">
-                          {f.area_ha != null ? `${f.area_ha.toFixed(2)} ha` : "—"}
+                          {fmtArea(f.area_ha)}
                         </p>
                       </div>
                       {s && <ScoreChip s={s} />}

@@ -19,6 +19,7 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { api } from "@/lib/api";
 import { t } from "@/lib/i18n";
+import { formatArea, useAreaUnit, type AreaUnit } from "@/lib/units";
 import { wellnessHeadline } from "@/lib/wellnessText";
 import StatusChip from "@/components/StatusChip";
 import { cropLabelOf } from "@/lib/insights";
@@ -109,10 +110,11 @@ function toneOf(raw: unknown, score: number): Tone {
   return score >= 70 ? "good" : score >= 45 ? "warn" : "bad";
 }
 
-function areaLabel(areaHa?: number | null): string | null {
+// Not a component, so the unit is passed in rather than read from a hook (P1.2).
+function areaLabel(areaHa: number | null | undefined, unit: AreaUnit): string | null {
   const n = typeof areaHa === "number" ? areaHa : Number(areaHa);
   if (!Number.isFinite(n) || n <= 0) return null;
-  return `${n.toFixed(2)} ha`;
+  return formatArea(n, unit);
 }
 
 // "Xudat, Quba-Xaçmaz" — but never "Xaçmaz, Quba-Xaçmaz".
@@ -136,6 +138,7 @@ export default function FieldHeader({
   const router = useRouter();
   const [score, setScore] = useState<Score | null>(null);
   const [meta, setMeta] = useState<FieldMetadata | null>(null);
+  const areaUnit = useAreaUnit();
 
   // Caller-supplied crop/location win; we only pay for the metadata read when something is missing.
   const needMeta = !cropType || !location;
@@ -199,7 +202,7 @@ export default function FieldHeader({
 
   const crop = (cropType || meta?.crop_type || "").trim();
   const loc = (location || "").trim() || locationLabel(meta?.region, meta?.economic_region);
-  const bits = [areaLabel(areaHa), crop ? cropLabelOf(crop) : null, loc].filter(
+  const bits = [areaLabel(areaHa, areaUnit), crop ? cropLabelOf(crop) : null, loc].filter(
     (x): x is string => Boolean(x),
   );
 

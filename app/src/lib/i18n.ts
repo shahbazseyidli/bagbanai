@@ -226,7 +226,7 @@ export const az = {
   "yield.crop": "Bitki",
   "yield.value": "Məhsuldarlıq",
   "yield.unit": "Vahid",
-  "yield.area": "Sahə (ha)",
+  "yield.area": "Sahə",
   "yield.notes": "Qeydlər",
   "yield.empty": "Hələ məhsuldarlıq qeydi yoxdur.",
   "yield.chartTitle": "İllər üzrə məhsuldarlıq",
@@ -372,6 +372,22 @@ export const az = {
   // data-saver toggle (D4.5)
   "dataSaver.title": "Data qənaəti",
   "dataSaver.body": "Peyk təbəqəsini avtomatik yükləmə (3G-də sərfəli)",
+
+  // local area units (P1.2) — display only; areas are always stored in hectares.
+  // Short suffix shown next to a number ("1.36 ha", "13.6 dönüm", "136 sot").
+  "unit.ha": "ha",
+  "unit.donum": "dönüm",
+  "unit.sotka": "sot",
+  "unit.ha.name": "Hektar",
+  "unit.donum.name": "Dönüm",
+  "unit.sotka.name": "Sot",
+  "unit.ha.hint": "10 000 m² — rəsmi ölçü vahidi (EKTİS)",
+  "unit.donum.hint": "1 000 m² (dekar) — Türkiyə torpaq reyestrinin vahidi",
+  "unit.sotka.hint": "100 m² (ar) — 1 hektardan kiçik sahələr üçün",
+  "areaUnit.title": "Sahə ölçü vahidi",
+  "areaUnit.body": "Sahələrin ölçüsü hansı vahidlə göstərilsin. Yalnız göstəriş dəyişir — hesablamalar eyni qalır.",
+  "areaUnit.auto": "Avtomatik (ölkəmə görə)",
+  "areaUnit.autoHint": "Türkiyə üçün dönüm, digər ölkələr üçün hektar.",
 
   // offline indicator (D5.3)
   "offline.pill": "Oflayn",
@@ -1180,7 +1196,7 @@ export const az = {
   "app.field.fieldOnboarding.detectTap": "✨ Toxun və tap",
   "app.field.fieldOnboarding.detectTapActive": "✓ Toxun və tap (aktiv)",
   "app.field.fieldOnboarding.fieldTooSmall": "Sahə çox kiçikdir (minimum ~0.05 ha). Sərhədi yenidən çəkin.",
-  "app.field.fieldOnboarding.fieldTooSmallPost": " ha). Peyk analizi üçün minimum ~0.05 ha lazımdır — sərhədi yenidən çəkin.",
+  "app.field.fieldOnboarding.fieldTooSmallPost": "). Peyk analizi üçün minimum ~0.05 ha lazımdır — sərhədi yenidən çəkin.",
   "app.field.fieldOnboarding.fieldTooSmallPre": "Sahə çox kiçikdir (",
   "app.field.fieldOnboarding.fileNoPolygon": "Faylda poliqon tapılmadı (GeoJSON / KML / Shapefile gözlənilir).",
   "app.field.fieldOnboarding.fileReadError": "Fayl oxunmadı.",
@@ -1384,9 +1400,9 @@ export const az = {
   "app.field.satelliteTab.s2PreparingPost": "” hazır olanda bu səhifə avtomatik yenilənəcək.",
   "app.field.satelliteTab.s2PreparingPre": "Peyk görüntüsü bu sahə üçün hələ hazırlanır — “",
   "app.field.satelliteTab.selectSceneDate": "Peyk tarixi seçin:",
-  "app.field.satelliteTab.smallFieldPost": " ha). Piksel-səviyyəli analiz üçün nəticələr yalnız bir neçə peyk pikselinə əsaslanır və təxminidir.",
+  "app.field.satelliteTab.smallFieldPost": "). Piksel-səviyyəli analiz üçün nəticələr yalnız bir neçə peyk pikselinə əsaslanır və təxminidir.",
   "app.field.satelliteTab.smallFieldPre": "Sahə çox kiçikdir (",
-  "app.field.satelliteTab.smallHlsPost": " ha) peyk pikselləri üçün kiçikdir — sahəyə cəmi bir neçə piksel düşür, nəticələr təxminidir.",
+  "app.field.satelliteTab.smallHlsPost": ") peyk pikselləri üçün kiçikdir — sahəyə cəmi bir neçə piksel düşür, nəticələr təxminidir.",
   "app.field.satelliteTab.smallHlsPre": "Bu sahə (",
   "app.field.satelliteTab.vsPrevDate": "əvvəlki tarixə görə",
   "app.field.scoutingTab.offlineQueued": "Oflayn: qeyd növbəyə alındı.",
@@ -1583,7 +1599,7 @@ export const az = {
   "app.field.yieldsTab.revenuePlaceholder": "Satışdan ümumi gəlir",
   "app.field.zonesTab.baseDoseLabel": "Baza norması (kq/ha)",
   "app.field.zonesTab.baseDosePlaceholder": "Gübrə planından",
-  "app.field.zonesTab.colArea": "Sahə (ha)",
+  "app.field.zonesTab.colArea": "Sahə",
   "app.field.zonesTab.colDose": "Norma (kq/ha)",
   "app.field.zonesTab.colMeanPrefix": "Orta",
   "app.field.zonesTab.colRelToField": "Sahəyə nisbət",
@@ -2708,12 +2724,14 @@ export const az = {
 export type I18nKey = keyof typeof az;
 export type Dict = Partial<Record<I18nKey, string>>;
 
-// Phase 4 — 7 locales. az is the complete source of truth; the rest are machine-translated and fall
-// back to az for any missing key. Translations live in lib/locales/{en,tr,de,hu,it,pl}.ts.
-export type Locale = "az" | "en" | "tr" | "de" | "hu" | "it" | "pl";
-export const LOCALES: Locale[] = ["az", "en", "tr", "de", "hu", "it", "pl"];
+// Phase 4 / P1.1 — 8 locales. az is the complete source of truth; the rest fall back to az for any
+// missing key. Translations live in lib/locales/{en,ru,tr,de,hu,it,pl}.ts. ru is a launch-tier
+// language (the working lingua franca of agriculture across the South Caucasus and Central Asia),
+// held to the same quality bar as az — not a machine-translated afterthought.
+export type Locale = "az" | "en" | "ru" | "tr" | "de" | "hu" | "it" | "pl";
+export const LOCALES: Locale[] = ["az", "en", "ru", "tr", "de", "hu", "it", "pl"];
 export const LOCALE_NAMES: Record<Locale, string> = {
-  az: "Azərbaycan", en: "English", tr: "Türkçe", de: "Deutsch",
+  az: "Azərbaycan", en: "English", ru: "Русский", tr: "Türkçe", de: "Deutsch",
   hu: "Magyar", it: "Italiano", pl: "Polski",
 };
 

@@ -11,7 +11,7 @@ import type { NextRequest } from "next/server";
 const PANEL_HOST = (process.env.NEXT_PUBLIC_PANEL_HOST || "").toLowerCase();
 const AUTH_COOKIE = "bagban_session";
 const LOCALE_COOKIE = "bagban_locale";
-const PREFIXED = ["en", "tr", "de", "hu", "it", "pl"]; // az is the default (no prefix)
+const PREFIXED = ["en", "ru", "tr", "de", "hu", "it", "pl"]; // az is the default (no prefix)
 const APP_PREFIXES = ["/fields", "/farms", "/more", "/notifications", "/onboarding", "/team", "/admin",
   "/catalog", "/chat", "/account", "/provider", "/ledger",
   "/sales", "/inventory", "/equipment", "/reports", "/places", "/harvest-order"];

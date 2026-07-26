@@ -9,13 +9,14 @@
 import { headers } from "next/headers";
 import { az, LOCALES, type I18nKey, type Locale, type Dict } from "@/lib/i18n";
 import { en } from "@/lib/locales/en";
+import { ru } from "@/lib/locales/ru";
 import { tr } from "@/lib/locales/tr";
 import { de } from "@/lib/locales/de";
 import { hu } from "@/lib/locales/hu";
 import { it } from "@/lib/locales/it";
 import { pl } from "@/lib/locales/pl";
 
-const DICTS: Record<Locale, Dict> = { az, en, tr, de, hu, it, pl };
+const DICTS: Record<Locale, Dict> = { az, en, ru, tr, de, hu, it, pl };
 
 /** Resolve the active locale from the middleware-set x-locale header (falls back to the cookie, az). */
 export async function getServerLocale(): Promise<Locale> {

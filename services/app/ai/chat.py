@@ -22,7 +22,7 @@ SYSTEM = (
 LANG_NAMES = {
     "az": "Azerbaijani (Azərbaycan dili)", "en": "English", "tr": "Turkish (Türkçe)",
     "de": "German (Deutsch)", "hu": "Hungarian (Magyar)", "it": "Italian (Italiano)",
-    "pl": "Polish (Polski)",
+    "pl": "Polish (Polski)", "ru": "Russian (Русский)",
 }
 
 
@@ -42,6 +42,7 @@ _GATE_PAID = {
     "hu": "Az AI-csevegés a Pro (10 AZN) és Business csomagban érhető el. Kérjük, váltson magasabb csomagra.",
     "it": "La chat AI è nei piani Pro (10 AZN) e Business. Esegui l'upgrade.",
     "pl": "Czat AI jest w planach Pro (10 AZN) i Business. Przejdź na wyższy plan.",
+    "ru": "AI-чат доступен в тарифах Pro (10 AZN) и Business. Перейдите на более высокий тариф.",
 }
 _GATE_LIMIT = {
     "az": "Bu ay AI söhbət limitiniz ({n} mesaj) bitib. Növbəti ay yenilənir və ya paketi yüksəldin.",
@@ -51,6 +52,7 @@ _GATE_LIMIT = {
     "hu": "Elérte a havi AI-csevegési korlátot ({n} üzenet). Jövő hónapban visszaáll — vagy váltson csomagot.",
     "it": "Hai raggiunto il limite di chat AI di questo mese ({n} messaggi). Si azzera il mese prossimo — o esegui l'upgrade.",
     "pl": "Osiągnięto miesięczny limit czatu AI ({n} wiadomości). Zresetuje się w przyszłym miesiącu — lub przejdź na wyższy plan.",
+    "ru": "Месячный лимит AI-чата исчерпан ({n} сообщений). Он обновится в следующем месяце — или перейдите на более высокий тариф.",
 }
 
 

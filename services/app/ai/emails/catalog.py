@@ -9,9 +9,9 @@ blocks. If you are about to add a template, ask first whether it is a variant of
 (OTP is not here — routers/auth.py sends it through notify.send_email directly.)
 
 Structure: COPY[template_id] = {"roles"|"variants": bool, "<locale>": <content|{key: content}>}.
-AZ is the source of truth (native, reviewed); EN is authored too. The other five locales
-(tr/de/hu/it/pl) come from the translation workflow — until then `build()` falls back
-locale → en → az, so a template always renders.
+AZ is the source of truth (native, reviewed); EN and RU are authored too (RU is launch-tier). The
+other five locales (tr/de/hu/it/pl) come from the translation workflow — until then `build()` falls
+back locale → en → az, so a template always renders.
 
 Content dicts use {placeholders} filled from ctx at send time (name, name_suffix, field, area,
 fields_label, alerts_label, trial_days, app_url, site_url, add_field_url, ...). Inline <b> is
@@ -298,15 +298,19 @@ COPY: dict[str, dict] = {
 for _tid in _SIMPLE_AZ:
     COPY[_tid] = {"roles": False, "az": _SIMPLE_AZ[_tid], "en": _SIMPLE_EN.get(_tid, _SIMPLE_AZ[_tid])}
 
-# Merge the machine-translated tr/de/hu/it/pl copy (auto-generated). Missing locale → en → az.
+# Merge the tr/de/hu/it/pl/ru copy from catalog_i18n. Missing locale → en → az.
 try:
-    from .catalog_i18n import WELCOME_EXTRA, SIMPLE_EXTRA
+    from .catalog_i18n import WELCOME_EXTRA, SIMPLE_EXTRA, WEEKLY_EXTRA
     for _loc, _d in WELCOME_EXTRA.items():
         COPY["welcome"][_loc] = _d
     for _tid in _SIMPLE_AZ:
         for _loc, _d in SIMPLE_EXTRA.items():
             if _tid in _d:
                 COPY[_tid][_loc] = _d[_tid]
+    # Variant-keyed, so the whole locale block is dropped in as-is (see _payload's fallback walk:
+    # a locale missing a variant simply falls through to en).
+    for _loc, _d in WEEKLY_EXTRA.items():
+        COPY["weekly"][_loc] = _d
 except ImportError:
     pass
 

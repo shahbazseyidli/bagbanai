@@ -14,6 +14,7 @@ import {
 import { GitCompareArrows, Cloud, Contrast } from "lucide-react";
 import { api } from "@/lib/api";
 import { t } from "@/lib/i18n";
+import { formatArea, useAreaUnit } from "@/lib/units";
 import { DisplayMap, CompareMap } from "@/components/FieldMap";
 import { Placeholder, Spinner } from "@/components/ui";
 import {
@@ -122,6 +123,7 @@ function IndexLegend({ index, range, auto }: {
 
 export default function SatelliteTab({ field, sensor }: { field: FieldDetail; sensor: Sensor }) {
   const firstIndex = SENSOR_INDICES[sensor][0] ?? "NDVI";
+  const areaUnit = useAreaUnit();
   const [index, setIndex] = useState("NDVI");
   const [series, setSeries] = useState<IndexPoint[] | null>(null);
   const [benchmark, setBenchmark] = useState<Record<string, { p50: number; p10?: number; p90?: number }>>({});
@@ -296,6 +298,8 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
   const hasBenchmark = Object.keys(benchmark).length > 0;
   const hasSeries = chartData.length > 0;
 
+  // The pixel-count thresholds themselves stay in hectares (they come from the sensor's ground
+  // resolution); only the number shown to the farmer is converted.
   const smallField = field.area_ha != null && field.area_ha < AREA_MIN_S2;
   const smallForHls = field.area_ha != null && field.area_ha < AREA_MIN_HLS;
   const showSmallBanner = smallField || (sensor === "HLS" && smallForHls);
@@ -330,8 +334,8 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
       {showSmallBanner && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
           {smallField
-            ? `${t("app.field.satelliteTab.smallFieldPre")}${field.area_ha}${t("app.field.satelliteTab.smallFieldPost")}`
-            : `${t("app.field.satelliteTab.smallHlsPre")}${field.area_ha}${t("app.field.satelliteTab.smallHlsPost")}`}
+            ? `${t("app.field.satelliteTab.smallFieldPre")}${formatArea(field.area_ha, areaUnit)}${t("app.field.satelliteTab.smallFieldPost")}`
+            : `${t("app.field.satelliteTab.smallHlsPre")}${formatArea(field.area_ha, areaUnit)}${t("app.field.satelliteTab.smallHlsPost")}`}
         </div>
       )}
 

@@ -7,6 +7,7 @@ import { Plus, MapPin } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { t } from "@/lib/i18n";
+import { useFormatArea } from "@/lib/units";
 import { ErrorNote, Placeholder, Spinner } from "@/components/ui";
 import TelegramConnect from "@/components/TelegramConnect";
 import { ListSkeleton } from "@/components/Skeleton";
@@ -52,6 +53,7 @@ function Landing() {
 
 function Dashboard() {
   const router = useRouter();
+  const fmtArea = useFormatArea();
   const [orgs, setOrgs] = useState<Org[] | null>(null);
   const [error, setError] = useState("");
   const [selectedOrg, setSelectedOrg] = useState<string>("");
@@ -301,7 +303,7 @@ function Dashboard() {
                           {field.name}
                         </span>
                         <span className="text-sm text-slate-500">
-                          {field.area_ha?.toFixed(2)} {t("field.ha")}
+                          {fmtArea(field.area_ha)}
                         </span>
                       </Link>
                     </li>

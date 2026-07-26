@@ -37,6 +37,7 @@ import {
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { t } from "@/lib/i18n";
+import { formatArea, useAreaUnit, type AreaUnit } from "@/lib/units";
 import { wellnessHeadline } from "@/lib/wellnessText";
 import { SupportCard } from "@/components/ui/SupportCard";
 import FieldSectionMenu from "@/components/shell/FieldSectionMenu";
@@ -139,8 +140,9 @@ export function activeFieldId(pathname: string): string | null {
   return m ? m[1] : null;
 }
 
-function areaLabel(area: number | null): string {
-  return typeof area === "number" && Number.isFinite(area) ? `${area.toFixed(1)} ha` : "—";
+// Module-level, so the farmer's unit is threaded in as an argument rather than read from a hook.
+function areaLabel(area: number | null, unit: AreaUnit): string {
+  return formatArea(area, unit);
 }
 
 function StatusLine({ row, score }: { row: Row; score?: ScoreRow }) {
@@ -190,6 +192,8 @@ export default function FieldListPanel() {
   const { user } = useAuth();
   const pathname = usePathname() || "/";
   const activeId = activeFieldId(pathname);
+  // P1.2 — the panel renders every area in the farmer's own unit (ha / dönüm / sot).
+  const areaUnit = useAreaUnit();
 
   const [rows, setRows] = useState<Row[] | null>(null);
   const [orgName, setOrgName] = useState("");
@@ -439,7 +443,7 @@ export default function FieldListPanel() {
       </div>
 
       {/* Season selector row — current season + honest Σ area + field count (OneSoil "Season 2026 ·
-          N.NN ha"). No new API: the total is just the sum of the areas we already loaded. */}
+          N.NN ha", rendered in the farmer's unit). No new API: the total is just the sum of the areas we already loaded. */}
       <div className="mx-[18px] mb-1 mt-2.5 flex items-center gap-2 rounded-[10px] border border-line bg-paper-2 px-3 py-2">
         <Calendar className="h-4 w-4 shrink-0 text-grass" aria-hidden="true" />
         <span className="text-[13px] font-semibold text-ink">
@@ -448,7 +452,7 @@ export default function FieldListPanel() {
         <span className="ml-auto shrink-0 text-[12.5px] tabular-nums text-ink-soft">
           {rows === null
             ? "…"
-            : `${total} ${t("app.shell.fieldListPanel.fieldsUnit")} · ${areaTotal.toFixed(1)} ha`}
+            : `${total} ${t("app.shell.fieldListPanel.fieldsUnit")} · ${formatArea(areaTotal, areaUnit)}`}
         </span>
       </div>
 
@@ -465,7 +469,7 @@ export default function FieldListPanel() {
                 {focusedScore ? focusedScore.score : "\u2014"}
               </span>
               <span className="min-w-0 truncate text-[15px] font-semibold text-ink">{focused.name}</span>
-              <span className="ml-auto shrink-0 text-xs text-ink-soft">{areaLabel(focused.area_ha)}</span>
+              <span className="ml-auto shrink-0 text-xs text-ink-soft">{areaLabel(focused.area_ha, areaUnit)}</span>
             </div>
             <button
               onClick={() => setBrowsing(true)}
@@ -582,7 +586,7 @@ export default function FieldListPanel() {
                     {r.name}
                   </span>
                   <span className="ml-auto shrink-0 text-xs text-ink-soft">
-                    {areaLabel(r.area_ha)}
+                    {areaLabel(r.area_ha, areaUnit)}
                   </span>
                 </div>
                 <div className="mt-[7px] flex items-center gap-2 text-[12.5px] text-ink-soft">

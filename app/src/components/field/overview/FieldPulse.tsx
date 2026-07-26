@@ -14,6 +14,7 @@ import { EyeOff, RefreshCw } from "lucide-react";
 import { api, azError } from "@/lib/api";
 import { ErrorNote, Spinner } from "@/components/ui";
 import { t } from "@/lib/i18n";
+import { useFormatArea } from "@/lib/units";
 import { wellnessHeadline, wellnessLabel, wellnessReason } from "@/lib/wellnessText";
 import SpeakButton from "@/components/SpeakButton";
 import type { FieldDetail } from "@/lib/types";
@@ -65,6 +66,7 @@ export default function FieldPulse({ field }: { field: FieldDetail }) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const fmtArea = useFormatArea();
 
   const load = useCallback(async (refresh = false) => {
     if (refresh) setBusy(true);
@@ -137,7 +139,7 @@ export default function FieldPulse({ field }: { field: FieldDetail }) {
           </h3>
           {field.area_ha != null && (
             <p className="mt-1 text-[13px] text-ink-soft">
-              {field.area_ha.toFixed(2)} ha
+              {fmtArea(field.area_ha)}
               {data?.computed_on ? ` · ${t("app.field.wellnessCard.computedOn")}${data.computed_on}` : ""}
             </p>
           )}

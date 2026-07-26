@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { api, ApiError } from "./api";
+import { clearAreaUnitCache } from "./units";
 import type { User } from "./types";
 
 interface AuthState {
@@ -81,6 +82,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setUserState(null);
     writeCache(null);
+    // P1.2 — the area unit is a per-account preference; forget it so the next account that signs in
+    // on this device does not inherit the previous farmer's dönüm/sot choice.
+    clearAreaUnitCache();
   }, []);
 
   useEffect(() => {

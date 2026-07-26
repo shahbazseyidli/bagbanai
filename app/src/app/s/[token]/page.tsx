@@ -15,6 +15,7 @@ import { Spinner } from "@/components/ui";
 import { cropLabelOf } from "@/lib/insights";
 import { interpret } from "@/lib/indexStatus";
 import { t } from "@/lib/i18n";
+import { useFormatArea } from "@/lib/units";
 import type { Polygon } from "@/lib/types";
 
 // MapLibre is heavy — keep it out of the first paint of a link opened on a village 3G phone.
@@ -63,6 +64,8 @@ export default function PublicSharePage() {
   const [card, setCard] = useState<ShareCard | null>(null);
   const [loading, setLoading] = useState(true);
   const [gone, setGone] = useState(false);
+  // Signed-out visitor: the preference read 401s and the hook quietly falls back to the locale default.
+  const fmtArea = useFormatArea();
 
   const load = useCallback(async () => {
     if (!token) {
@@ -140,7 +143,7 @@ export default function PublicSharePage() {
           {card.field.area_ha != null && (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700">
               <Ruler className="h-3.5 w-3.5" aria-hidden="true" />
-              {card.field.area_ha.toFixed(2)} ha
+              {fmtArea(card.field.area_ha)}
             </span>
           )}
           {cropLabel && (

@@ -24,6 +24,7 @@ SENDERS: dict[str, str] = {
     "de": "Johanna Brandt <johanna@agradex.com>",
     "hu": "Réka Tóth <reka@agradex.com>",
     "pl": "Emilia Wójcik <emilia@agradex.com>",
+    "ru": "Марина Ковалева <marina@agradex.com>",
 }
 
 

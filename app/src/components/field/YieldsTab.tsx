@@ -13,6 +13,7 @@ import {
 import { Plus } from "lucide-react";
 import { api } from "@/lib/api";
 import { t } from "@/lib/i18n";
+import { areaUnitLabel, fromUnit, useAreaUnit } from "@/lib/units";
 import { ErrorNote, Field as FormField, Placeholder } from "@/components/ui";
 import ChoiceChips from "@/components/field/ChoiceChips";
 
@@ -21,6 +22,9 @@ const YIELD_UNITS = ["ton", "kq", "ton/ha", "kq/ha", "sentner/ha"].map((v) => ({
 import type { Yield } from "@/lib/types";
 
 export default function YieldsTab({ fieldId }: { fieldId: string }) {
+  // P1.2 — the farmer types the area in THEIR unit; it is converted back to hectares before the
+  // POST, because area_ha is and stays the API's unit.
+  const areaUnit = useAreaUnit();
   const [items, setItems] = useState<Yield[]>([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -66,7 +70,7 @@ export default function YieldsTab({ fieldId }: { fieldId: string }) {
         crop_type: crop || undefined,
         yield_value: value ? Number(value) : undefined,
         yield_unit: unit || undefined,
-        area_ha: area ? Number(area) : undefined,
+        area_ha: area ? fromUnit(Number(area), areaUnit) : undefined,
         revenue: revenue ? Number(revenue) : undefined,
         notes: notes || undefined,
       });
@@ -117,7 +121,7 @@ export default function YieldsTab({ fieldId }: { fieldId: string }) {
           <FormField label={t("yield.unit")}>
             <ChoiceChips value={unit} onChange={setUnit} options={YIELD_UNITS} other={{ placeholder: t("app.field.yieldsTab.otherUnitPlaceholder") }} />
           </FormField>
-          <FormField label={t("yield.area")}>
+          <FormField label={`${t("yield.area")} (${areaUnitLabel(areaUnit)})`}>
             <input className="input" type="number" step="any" value={area} onChange={(e) => setArea(e.target.value)} />
           </FormField>
           <FormField label={t("app.field.yieldsTab.revenueLabel")}>

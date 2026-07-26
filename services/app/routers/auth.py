@@ -55,6 +55,10 @@ _OTP_EMAIL: dict[str, tuple[str, str]] = {
     "pl": ("Agradex — kod weryfikacyjny",
            "Twój kod weryfikacji konta Agradex: {code}\n\n"
            "Kod jest ważny {ttl} minut. Jeśli to nie Ty, zignoruj tę wiadomość."),
+    # "мин." (not "минут") keeps the line grammatical for every {ttl} value.
+    "ru": ("Agradex — код подтверждения",
+           "Код для подтверждения вашего аккаунта Agradex: {code}\n\n"
+           "Код действителен {ttl} мин. Если вы не запрашивали его, просто проигнорируйте это письмо."),
 }
 
 
@@ -283,6 +287,73 @@ async def set_onboarding(body: dict, user_id: str = Depends(get_current_user_id)
                            user_id, json.dumps(onb))
         applied = await _apply_onboarding_to_fields(conn, user_id, onb)
     return {"onboarding": onb, "fields_updated": applied}
+
+
+# --- P1.2 local area unit ----------------------------------------------------------------------
+# Areas are stored in hectares everywhere; this preference only changes how they are DISPLAYED.
+# Turkey counts land in dönüm (= dekar = 1000 m² = 0.1 ha) and its land registry is written that
+# way; the South Caucasus says sotka (= ar = 100 m² = 0.01 ha) for small plots. NULL means "derive
+# from my country", so a farmer who never opens settings still sees a unit they recognise, and one
+# who later corrects their country follows it. sotka is opt-in only — it reads well below ~1 ha and
+# badly above it, so it is never derived as a default.
+AREA_UNITS = ("ha", "donum", "sotka")
+_TURKEY = {"TR", "TUR", "TURKEY", "TÜRKIYE", "TÜRKİYE"}
+
+
+def _effective_area_unit(stored, country, locale) -> str:
+    """The unit to actually display. Mirrors defaultAreaUnit() in app/src/lib/units.ts — keep both
+    sides in step if the country→unit mapping ever grows."""
+    if stored in AREA_UNITS:
+        return stored
+    c = (country or "").strip().upper()
+    if c in _TURKEY:
+        return "donum"
+    if c:  # an explicit country other than Turkey outranks the interface language
+        return "ha"
+    if (locale or "")[:2].lower() == "tr":
+        return "donum"
+    return "ha"
+
+
+def _clean_area_unit(raw):
+    """None / "" / "auto" all mean "follow my country". Anything else must be one of the three."""
+    if raw is None:
+        return None
+    if not isinstance(raw, str):
+        raise HTTPException(status_code=400, detail="invalid_area_unit")
+    v = raw.strip().lower()
+    if v in ("", "auto"):
+        return None
+    if v not in AREA_UNITS:
+        raise HTTPException(status_code=400, detail="invalid_area_unit")
+    return v
+
+
+@router.get("/area-unit")
+async def get_area_unit(user_id: str = Depends(get_current_user_id)):
+    """`unit` = what the farmer explicitly chose (null = auto); `effective` = what to render."""
+    async with connection(user_id) as conn:
+        row = await conn.fetchrow(
+            "select area_unit, country, locale from public.users where id=$1::uuid", user_id)
+    if not row:
+        raise HTTPException(status_code=401, detail="unauthorized")
+    stored = row["area_unit"] if row["area_unit"] in AREA_UNITS else None
+    return {"unit": stored,
+            "effective": _effective_area_unit(stored, row["country"], row["locale"])}
+
+
+@router.post("/area-unit")
+async def set_area_unit(body: dict, user_id: str = Depends(get_current_user_id)):
+    """Store the display unit. Pass null (or "auto") to go back to the country default."""
+    unit = _clean_area_unit(body.get("unit") if isinstance(body, dict) else None)
+    async with connection(user_id) as conn:
+        row = await conn.fetchrow(
+            "update public.users set area_unit=$2 where id=$1::uuid returning country, locale",
+            user_id, unit)
+    if not row:
+        raise HTTPException(status_code=401, detail="unauthorized")
+    return {"unit": unit,
+            "effective": _effective_area_unit(unit, row["country"], row["locale"])}
 
 
 @router.get("/name-public")

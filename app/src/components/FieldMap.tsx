@@ -6,6 +6,7 @@ import { Layers, Search, Ruler, Mountain, X } from "lucide-react";
 import { length as turfLength, area as turfArea, simplify as turfSimplify } from "@turf/turf";
 import type { Polygon } from "@/lib/types";
 import { t } from "@/lib/i18n";
+import { formatArea, useAreaUnit } from "@/lib/units";
 import { useMapReady } from "@/lib/useMapReady";
 import {
   BASEMAPS,
@@ -501,6 +502,8 @@ export function DisplayMap({
   const mRenderRef = useRef<() => void>(() => {});
   const ready = useMapReady();
   const [mStats, setMStats] = useState<{ dist: number; area: number | null }>({ dist: 0, area: null });
+  // P1.2 — the ruler reports the measured area in the farmer's own unit.
+  const areaUnit = useAreaUnit();
 
   function reapplyHillshade(map: maplibregl.Map) {
     const before = map.getLayer("field-fill") ? "field-fill" : undefined;
@@ -714,7 +717,7 @@ export function DisplayMap({
             <div>{t("mkt.map.clickToMeasure")}</div>
             <div className="tabular-nums">
               {t("mkt.map.distance")} <b>{mStats.dist.toFixed(2)} km</b>
-              {mStats.area != null && <> · {t("mkt.map.areaLabel")} <b>{mStats.area.toFixed(2)} ha</b></>}
+              {mStats.area != null && <> · {t("mkt.map.areaLabel")} <b>{formatArea(mStats.area, areaUnit)}</b></>}
             </div>
             <button type="button" onClick={clearMeasure} className="mt-0.5 text-amber-600 hover:underline">
               {t("mkt.map.clear")}

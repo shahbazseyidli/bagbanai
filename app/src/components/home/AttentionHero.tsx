@@ -11,6 +11,7 @@
 import Link from "next/link";
 import { ChevronRight, Droplets } from "lucide-react";
 import { t } from "@/lib/i18n";
+import { useFormatArea } from "@/lib/units";
 import PeerSuggest from "@/components/field/PeerSuggest";
 import { ScoreDot, bandOf, type FieldScore } from "./ScoreBadge";
 import { wellnessHeadline } from "@/lib/wellnessText";
@@ -32,6 +33,7 @@ export default function AttentionHero({
   score?: FieldScore | null;
 }) {
   const f = ft.field;
+  const fmtArea = useFormatArea();
   const preparing = ft.status === "queued" || ft.status === "processing";
   // Tone: the stored score wins (it folds in more evidence than the index verdict); otherwise the
   // İcmal verdict; otherwise a neutral warn, since this card only renders for flagged fields.
@@ -51,7 +53,7 @@ export default function AttentionHero({
           <div className="flex items-center gap-2">
             <p className="truncate text-base font-bold text-slate-900">{f.name}</p>
             {f.area_ha != null && (
-              <span className="shrink-0 text-sm text-slate-500">{f.area_ha.toFixed(2)} ha</span>
+              <span className="shrink-0 text-sm text-slate-500">{fmtArea(f.area_ha)}</span>
             )}
           </div>
 

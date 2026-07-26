@@ -25,6 +25,8 @@ _MSG = {
            "Le email importanti dell'account (verifica, avvisi) continueranno ad arrivare."),
     "pl": ("Zrezygnowano z subskrypcji", "Nie będziesz już otrzymywać takich wiadomości.",
            "Ważne e-maile konta (weryfikacja, alerty) nadal będą wysyłane."),
+    "ru": ("Вы отписались", "Такие письма вам больше приходить не будут.",
+           "Важные письма по аккаунту (код подтверждения, оповещения) будут приходить по-прежнему."),
 }
 
 

@@ -1,15 +1,15 @@
 "use client";
 
-// Phase 4 — language picker. Switches locale by navigating to the prefixed URL (/en, /tr, /de; az has
-// no prefix) so the middleware sets the cookie + the server re-renders in the new language. A full
-// navigation (not client-side) guarantees every string re-renders.
+// Phase 4 — language picker. Switches locale by navigating to the prefixed URL (/en, /ru, /tr, …; az
+// has no prefix) so the middleware sets the cookie + the server re-renders in the new language. A
+// full navigation (not client-side) guarantees every string re-renders.
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Globe } from "lucide-react";
 import { SHARED_COOKIE_DOMAIN } from "@/lib/host";
 import { LOCALES, LOCALE_NAMES, getLocale, type Locale } from "@/lib/i18n";
 
-// Strip ANY existing locale prefix (all of en/tr/de/hu/it/pl — az has none) so switching between
+// Strip ANY existing locale prefix (all of en/ru/tr/de/hu/it/pl — az has none) so switching between
 // two prefixed locales replaces the prefix instead of stacking it (which produced /pl/it → 404).
 const PREFIX_RE = new RegExp(`^/(${LOCALES.filter((l) => l !== "az").join("|")})(?=/|$)`);
 

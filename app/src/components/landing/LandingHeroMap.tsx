@@ -19,6 +19,7 @@ import { ArrowRight, Hand, Layers, Leaf, Loader2, Sparkles, Thermometer } from "
 import { area as turfArea } from "@turf/turf";
 import { api } from "@/lib/api";
 import { t } from "@/lib/i18n";
+import { areaUnitLabel, formatAreaNumber, useAreaUnit } from "@/lib/units";
 import type { Polygon } from "@/lib/types";
 
 // Lazy-load the map (MapLibre is heavy) so it stays out of the landing's initial bundle (D4.5).
@@ -61,6 +62,8 @@ export default function LandingHeroMap() {
   const router = useRouter();
   const [polygon, setPolygon] = useState<Polygon | null>(null);
   const [areaHa, setAreaHa] = useState<number | null>(null);
+  // Signed-out visitor: no stored preference, so this falls back to the locale/country default.
+  const areaUnit = useAreaUnit();
   const [importSeq, setImportSeq] = useState(0);
   const [detecting, setDetecting] = useState(false);
   const [hint, setHint] = useState<string>("");
@@ -206,8 +209,8 @@ export default function LandingHeroMap() {
                     {t("landing.yourField")}
                   </p>
                   <p className="lp-ink font-display text-[28px] font-bold leading-none">
-                    {areaHa != null ? areaHa.toFixed(2) : "—"}{" "}
-                    <span className="lp-muted text-base font-semibold">ha</span>
+                    {formatAreaNumber(areaHa, areaUnit)}{" "}
+                    <span className="lp-muted text-base font-semibold">{areaUnitLabel(areaUnit)}</span>
                   </p>
                 </div>
               </div>

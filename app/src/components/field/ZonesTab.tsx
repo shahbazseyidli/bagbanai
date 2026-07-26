@@ -15,6 +15,7 @@ import { BLANK_STYLE, applyBasemap, getSavedBasemap } from "@/lib/basemaps";
 import { useMapReady } from "@/lib/useMapReady";
 import { ErrorNote, Placeholder, Spinner } from "@/components/ui";
 import { t } from "@/lib/i18n";
+import { areaUnitLabel, formatAreaNumber, useAreaUnit } from "@/lib/units";
 
 // ── types (local on purpose — lib/types.ts is shared and owned elsewhere) ────────────────
 type Ring = [number, number][];
@@ -247,6 +248,9 @@ function ZonesMap({
 const ZONE_COUNTS = [3, 4, 5, 6, 7];
 
 export default function ZonesTab({ fieldId }: { fieldId: string }) {
+  // P1.2 — the zone/VRA tables carry bare numbers under a unit-bearing header, so the header names
+  // the farmer's unit and the cells are converted to it. Per-hectare DOSES stay per-hectare.
+  const areaUnit = useAreaUnit();
   const [data, setData] = useState<ZonesResponse | null>(null);
   const [field, setField] = useState<FieldGeom | null>(null);
   const [loading, setLoading] = useState(true);
@@ -480,7 +484,7 @@ export default function ZonesTab({ fieldId }: { fieldId: string }) {
                 <tr className="text-slate-500">
                   <th className="py-1 pr-2 font-medium">{t("app.field.zonesTab.colZone")}</th>
                   <th className="py-1 pr-2 font-medium">{t("app.field.zonesTab.colMeanPrefix")} {run?.index_name ?? "NDVI"}</th>
-                  <th className="py-1 pr-2 font-medium">{t("app.field.zonesTab.colArea")}</th>
+                  <th className="py-1 pr-2 font-medium">{t("app.field.zonesTab.colArea")} ({areaUnitLabel(areaUnit)})</th>
                   <th className="py-1 pr-2 font-medium">{t("app.field.zonesTab.colShare")}</th>
                   <th className="py-1 font-medium">{t("app.field.zonesTab.colRelToField")}</th>
                 </tr>
@@ -498,7 +502,7 @@ export default function ZonesTab({ fieldId }: { fieldId: string }) {
                       </span>
                     </td>
                     <td className="py-1.5 pr-2 text-slate-700">{fmt(z.mean_value, 3)}</td>
-                    <td className="py-1.5 pr-2 text-slate-700">{fmt(z.area_ha, 2)}</td>
+                    <td className="py-1.5 pr-2 text-slate-700">{formatAreaNumber(z.area_ha, areaUnit)}</td>
                     <td className="py-1.5 pr-2 text-slate-700">
                       {z.area_pct == null ? "—" : `${z.area_pct.toFixed(0)}%`}
                     </td>
@@ -630,7 +634,7 @@ export default function ZonesTab({ fieldId }: { fieldId: string }) {
                   <thead>
                     <tr className="text-slate-500">
                       <th className="py-1 pr-2 font-medium">{t("app.field.zonesTab.colZone")}</th>
-                      <th className="py-1 pr-2 font-medium">{t("app.field.zonesTab.colArea")}</th>
+                      <th className="py-1 pr-2 font-medium">{t("app.field.zonesTab.colArea")} ({areaUnitLabel(areaUnit)})</th>
                       <th className="py-1 pr-2 font-medium">{t("app.field.zonesTab.colDose")}</th>
                       <th className="py-1 font-medium">{t("app.field.zonesTab.colTotal")}</th>
                     </tr>
@@ -647,7 +651,7 @@ export default function ZonesTab({ fieldId }: { fieldId: string }) {
                             <span className="font-medium text-slate-700">{d.zone_no}</span>
                           </span>
                         </td>
-                        <td className="py-1.5 pr-2 text-slate-700">{fmt(d.area_ha, 2)}</td>
+                        <td className="py-1.5 pr-2 text-slate-700">{formatAreaNumber(d.area_ha, areaUnit)}</td>
                         <td className="py-1.5 pr-2 font-medium text-slate-800">
                           {fmt(d.dose_kg_ha, 1)}
                         </td>

@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { Upload, Download } from "lucide-react";
 import { api } from "@/lib/api";
 import { t } from "@/lib/i18n";
+import { formatArea, useAreaUnit } from "@/lib/units";
 import { DrawMap } from "@/components/FieldMap";
 import { ErrorNote, Field as FormField } from "@/components/ui";
 import { parseCoordinates, polygonFromRing, validatePolygon } from "@/lib/geo";
@@ -18,6 +19,8 @@ interface Props {
 type Mode = "draw" | "coords";
 
 export default function FieldCreator({ farmId, onCreated }: Props) {
+  // P1.2 — the drawn area is shown in the farmer's own unit; the POSTed geometry stays untouched.
+  const areaUnit = useAreaUnit();
   const [mode, setMode] = useState<Mode>("draw");
   const [name, setName] = useState("");
   const [drawnPolygon, setDrawnPolygon] = useState<Polygon | null>(null);
@@ -183,7 +186,7 @@ export default function FieldCreator({ farmId, onCreated }: Props) {
       <div className="flex items-center justify-between rounded-lg bg-emerald-50 px-4 py-2 text-sm">
         <span className="text-slate-600">{t("field.area")}</span>
         <span className="font-semibold text-emerald-700">
-          {areaHa !== null ? `${areaHa.toFixed(3)} ${t("field.ha")}` : "—"}
+          {formatArea(areaHa, areaUnit)}
         </span>
       </div>
 

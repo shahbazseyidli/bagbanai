@@ -3,12 +3,13 @@
 // Detailed account/settings page (HYBRID_PLAN §E W1/E13), OneSoil-style card grid. Reuses the
 // existing language / data-saver / email controls and surfaces role + country/region. Inline AZ.
 import { useRouter } from "next/navigation";
-import { Mail, Lock, Globe, Ruler, MapPin, Download, UserCog, LogOut, Store } from "lucide-react";
+import { Mail, Lock, Globe, MapPin, Download, UserCog, LogOut, Store } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import DataSaverToggle from "@/components/DataSaverToggle";
 import EmailLifecycleToggle from "@/components/EmailLifecycleToggle";
+import AreaUnitSetting from "@/components/AreaUnitSetting";
 import NamePublicToggle from "@/components/NamePublicToggle";
 import { t } from "@/lib/i18n";
 
@@ -49,7 +50,6 @@ export default function AccountPage() {
         <Card Icon={Mail} title={t("app.account.emailTitle")} value={user?.email} />
         <Card Icon={Lock} title={t("app.account.passwordTitle")} value={t("app.account.passwordValue")} action={<span className="text-xs font-semibold text-emerald-700">{t("app.account.change")}</span>} />
         <Card Icon={Globe} title={t("app.account.languageTitle")} action={<LanguageSwitcher />} />
-        <Card Icon={Ruler} title={t("app.account.unitsTitle")} value={t("app.account.unitsValue")} />
         <Card Icon={MapPin} title={t("app.account.countryRegionTitle")} value={[user?.country, user?.region].filter(Boolean).join(" · ") || t("app.account.notSet")} />
         <Card Icon={Download} title={t("app.account.downloadTitle")} value={t("app.account.downloadValue")} action={<span className="text-xs font-semibold text-emerald-700">{t("app.account.downloadCta")}</span>} />
         <Card Icon={UserCog} title={t("app.account.roleTitle")} value={roleLabel(user?.role)} />
@@ -64,6 +64,7 @@ export default function AccountPage() {
 
       <div className="space-y-3">
         <DataSaverToggle />
+        {user && <AreaUnitSetting />}
         {user && <EmailLifecycleToggle />}
         {user && <NamePublicToggle />}
       </div>

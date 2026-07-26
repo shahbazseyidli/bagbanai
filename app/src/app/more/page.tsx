@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth";
 import { t } from "@/lib/i18n";
 import DataSaverToggle from "@/components/DataSaverToggle";
 import EmailLifecycleToggle from "@/components/EmailLifecycleToggle";
+import AreaUnitSetting from "@/components/AreaUnitSetting";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default function MorePage() {
@@ -60,6 +61,7 @@ export default function MorePage() {
         <LanguageSwitcher />
       </div>
       <DataSaverToggle />
+      {user && <AreaUnitSetting />}
       {user && <EmailLifecycleToggle />}
 
       {user && (

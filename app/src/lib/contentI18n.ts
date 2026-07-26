@@ -6,6 +6,7 @@
 // visual/href/tone/id) were never extracted, so they are never overwritten.
 import type { Locale } from "@/lib/i18n";
 import { en } from "@/lib/content-locales/en";
+import { ru } from "@/lib/content-locales/ru";
 import { tr } from "@/lib/content-locales/tr";
 import { de } from "@/lib/content-locales/de";
 import { hu } from "@/lib/content-locales/hu";
@@ -13,7 +14,7 @@ import { it } from "@/lib/content-locales/it";
 import { pl } from "@/lib/content-locales/pl";
 
 export type ContentOverlay = Record<string, string>;
-const OVERLAY: Partial<Record<Locale, ContentOverlay>> = { en, tr, de, hu, it, pl };
+const OVERLAY: Partial<Record<Locale, ContentOverlay>> = { en, ru, tr, de, hu, it, pl };
 
 export function overlayFor(locale?: Locale | null): ContentOverlay | undefined {
   return locale && locale !== "az" ? OVERLAY[locale] : undefined;

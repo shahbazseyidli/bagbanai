@@ -23,7 +23,7 @@ DISCLAIMER = ("Bu məsləhətlər peyk və sahə məlumatlarına əsaslanan avto
 LANG_NAMES = {
     "az": "Azerbaijani (Azərbaycan dili)", "en": "English", "tr": "Turkish (Türkçe)",
     "de": "German (Deutsch)", "hu": "Hungarian (Magyar)", "it": "Italian (Italiano)",
-    "pl": "Polish (Polski)",
+    "pl": "Polish (Polski)", "ru": "Russian (Русский)",
 }
 DISCLAIMERS = {
     "az": DISCLAIMER,
@@ -33,6 +33,7 @@ DISCLAIMERS = {
     "hu": "Ez a tanács műholdas és tábla-adatokon alapuló automatikus elemzés; döntés előtt ellenőrizze a helyszínen.",
     "it": "Questo consiglio è un'analisi automatica basata su dati satellitari e di campo; verifica sul posto prima di decidere.",
     "pl": "Ta porada to automatyczna analiza oparta na danych satelitarnych i polowych; przed decyzją sprawdź w terenie.",
+    "ru": "Эта рекомендация — автоматический анализ по спутниковым и полевым данным; перед решением проверьте поле на месте.",
 }
 
 

@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Upload, MapPin, Mountain, Compass, TriangleRight } from "lucide-react";
 import { api } from "@/lib/api";
 import { t } from "@/lib/i18n";
+import { formatArea, useAreaUnit } from "@/lib/units";
 import { DrawMap } from "@/components/FieldMap";
 import UpgradeCta from "@/components/UpgradeCta";
 import { ErrorNote, Field as FormField } from "@/components/ui";
@@ -92,6 +93,8 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
   const [mode, setMode] = useState<Mode>("draw");
   const [drawnPolygon, setDrawnPolygon] = useState<Polygon | null>(null);
   const [coordsText, setCoordsText] = useState("");
+  // P1.2 — the drawn/detected area is shown in the farmer's own unit; the POSTed value stays ha.
+  const areaUnit = useAreaUnit();
   const [importedPolygon, setImportedPolygon] = useState<Polygon | null>(null);
   const [importSeq, setImportSeq] = useState(0);
   const [detect, setDetect] = useState(false);       // C3 tap-to-detect mode
@@ -159,7 +162,7 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
         setImportSeq((s) => s + 1);
         setDetect(false);
         setDetectMsg(
-          `~${d.area_ha} ha tapıldı — düzəldə və ya təsdiqləyə bilərsiniz.` +
+          `~${formatArea(d.area_ha, areaUnit)} tapıldı — düzəldə və ya təsdiqləyə bilərsiniz.` +
             (d.reason === "capped" ? " (Sərhəd tam aydın deyil, yoxlayın.)" : ""),
         );
       } else {
@@ -293,7 +296,11 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
       const poly = validateBoundary();
       if (!poly) return;
       if (areaHa != null && areaHa < 0.05) {
-        setError(t("app.field.fieldOnboarding.fieldTooSmallPre") + areaHa.toFixed(3) + t("app.field.fieldOnboarding.fieldTooSmallPost"));
+        setError(
+          t("app.field.fieldOnboarding.fieldTooSmallPre") +
+            formatArea(areaHa, areaUnit) +
+            t("app.field.fieldOnboarding.fieldTooSmallPost"),
+        );
         return;
       }
       void fetchGeo(poly);
@@ -509,7 +516,7 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
           <div className="flex items-center justify-between rounded-lg bg-emerald-50 px-4 py-2 text-sm">
             <span className="text-slate-600">{t("field.area")}</span>
             <span className="font-semibold text-emerald-700">
-              {areaHa !== null ? `${areaHa.toFixed(3)} ${t("field.ha")}` : "—"}
+              {formatArea(areaHa, areaUnit)}
             </span>
           </div>
         </div>
@@ -758,7 +765,7 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
               <SummaryItem label={t("field.name")} value={name || "—"} />
               <SummaryItem
                 label={t("field.area")}
-                value={areaHa !== null ? `${areaHa.toFixed(3)} ${t("field.ha")}` : "—"}
+                value={formatArea(areaHa, areaUnit)}
               />
               <SummaryItem label={t("meta.crop_type")} value={labelOf(CROP_OPTIONS, data.crop_type)} />
               <SummaryItem label={t("meta.variety")} value={data.variety || "—"} />

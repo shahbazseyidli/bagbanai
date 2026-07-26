@@ -124,6 +124,36 @@ _LABELS: dict[str, dict[str, str]] = {
         "crop_missing_lead": "No crop is set on: {fields}.",
         "months": "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec",
     },
+    # RU is a launch-tier locale, authored (not machine-translated). Counts use the Russian
+    # 1 / 2-4 / 5+ pattern: `_count` only has one/many, so "many" takes the genitive plural
+    # ("полей", "оповещений"), which is correct for 5+ and for every count we actually cap at.
+    "ru": {
+        "stat_fields": "полей",
+        "stat_alerts": "оповещений",
+        "stat_score": "ср. здоровье",
+        "sec_fields": "Ваши поля",
+        "sec_alerts": "Оповещения за неделю",
+        "sec_advice": "От AI-агронома",
+        "cta_app": "Перейти в панель →",
+        "cta_add": "Добавить первое поле →",
+        "cta_crop": "Указать культуру →",
+        "cta_pricing": "Посмотреть тарифы →",
+        "img_alt": "Снимок поля «{field}» со спутника (NDVI)",
+        "img_caption": "«{field}» · {date} · снимок со спутника (NDVI): тёмно-зелёный — мощная вегетация, жёлто-красный — слабая.",
+        "score_caption": "«{field}» — поле, которое требует внимания в первую очередь.",
+        "preparing": "спутниковые данные готовятся",
+        "no_data": "спутниковых данных пока нет",
+        "no_crop_tag": "культура не указана",
+        "trial_label": "Пробный Pro",
+        "trial_text": "Осталось дней: {days}. Без выбора тарифа аккаунт автоматически перейдёт на бесплатный — поля и данные сохранятся.",
+        "more_alerts": "и ещё оповещений: {n} — все они в панели.",
+        "field_one": "{n} поле",
+        "field_many": "{n} полей",
+        "alert_one": "{n} оповещение",
+        "alert_many": "{n} оповещений",
+        "crop_missing_lead": "Культура не указана на полях: {fields}.",
+        "months": "янв фев мар апр май июн июл авг сен окт ноя дек",
+    },
 }
 
 
@@ -521,8 +551,12 @@ def _image_block(fields: list[dict], rasters: dict[str, dict], loc: str | None) 
 
 def _empty_stats(loc: str | None) -> list[dict]:
     """The 'why bother' numbers for a farmer who has not drawn a field yet."""
-    if (loc or "az")[:2].lower() == "en":
+    lang = (loc or "az")[:2].lower()
+    if lang == "en":
         return [{"val": "2 min", "lab": "to set up"}, {"val": "9", "lab": "satellite indices"},
                 {"val": "$0", "lab": "no card needed"}]
+    if lang == "ru":
+        return [{"val": "2 мин", "lab": "на настройку"}, {"val": "9", "lab": "спутниковых индексов"},
+                {"val": "0 ₼", "lab": "карта не нужна"}]
     return [{"val": "2 dəq", "lab": "qurulma vaxtı"}, {"val": "9", "lab": "peyk indeksi"},
             {"val": "0 ₼", "lab": "kart tələb olunmur"}]

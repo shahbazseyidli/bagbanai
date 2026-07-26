@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { CalendarDays, ChevronRight, Info, ListOrdered, Satellite, Sprout } from "lucide-react";
 import { api, azError } from "@/lib/api";
 import { t } from "@/lib/i18n";
+import { useFormatArea } from "@/lib/units";
 import { useAuth } from "@/lib/auth";
 import { ErrorNote, Placeholder, Spinner } from "@/components/ui";
 import type { Org } from "@/lib/types";
@@ -69,6 +70,7 @@ function harvestLabel(days: number | null): string | null {
 }
 
 export default function HarvestOrderPage() {
+  const fmtArea = useFormatArea();
   const router = useRouter();
   const { user, loading } = useAuth();
   const [orgs, setOrgs] = useState<Org[]>([]);
@@ -153,7 +155,7 @@ export default function HarvestOrderPage() {
                       <span className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                         <span className="font-semibold text-slate-800">{r.name}</span>
                         {r.crop_type && <span className="text-xs text-slate-500">{r.crop_type}</span>}
-                        {r.area_ha != null && <span className="text-xs text-slate-400">{r.area_ha.toFixed(2)} ha</span>}
+                        {r.area_ha != null && <span className="text-xs text-slate-400">{fmtArea(r.area_ha)}</span>}
                       </span>
 
                       <span className="mt-1 block text-sm leading-snug text-slate-600">{r.reason}</span>
