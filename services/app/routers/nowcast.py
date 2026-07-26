@@ -1,7 +1,10 @@
 """A4 — rain nowcast: the next ~2 hours of 15-minute precipitation for a field (Open-Meteo).
 
-  GET /api/fields/{id}/rain-nowcast  — 15-minute precipitation steps + a plain-Azerbaijani verdict
-                                       ("40 dəqiqəyə yağış gözlənilir — çiləməyi təxirə salın").
+  GET /api/fields/{id}/rain-nowcast  — 15-minute precipitation steps + a spray verdict.
+
+The verdict travels as a stable `verdict_code` + `verdict_params` pair (the CODE+PARAMS convention
+used by wellness/weather), so the frontend renders it in the viewer's locale. The legacy Azerbaijani
+`verdict` string is still sent as the fallback for clients that do not know the code yet.
 
 This answers exactly one question the farmer asks while standing at the sprayer: "can I spray right
 now?". It is decoration on top of the real weather tab, so it NEVER fails loudly — an unreachable
@@ -57,10 +60,18 @@ def _num(v: Any) -> Optional[float]:
 
 
 def _window_label(minutes: int) -> str:
-    """'2 saat' / '90 dəqiqə' with the right Azerbaijani locative suffix for the verdict."""
+    """'2 saat' / '90 dəqiqə' with the right Azerbaijani locative suffix for the AZ fallback."""
     if minutes % 60 == 0:
         return f"{minutes // 60} saatda"
     return f"{minutes} dəqiqədə"
+
+
+def _dry_verdict_code(minutes: int) -> tuple[str, dict]:
+    """Whole hours and loose minutes are SEPARATE keys — languages decline the two units
+    differently, so the unit must never be glued onto a translated number by the caller."""
+    if minutes % 60 == 0:
+        return "nowcast.dryHours", {"hours": minutes // 60}
+    return "nowcast.dryMinutes", {"minutes": minutes}
 
 
 async def _field_point(conn, field_id: str) -> tuple[float, float]:
@@ -146,12 +157,16 @@ async def rain_nowcast(
         # Round to 5-minute granularity — a 15-minute model does not justify "37 dəqiqə".
         minutes_to_rain = max(0, int(round(first_wet["_delta"] / 5.0)) * 5)
 
+    # The AZ string stays the fallback; the code+params twin is what a localized client renders.
     if rain_expected and (minutes_to_rain or 0) <= 0:
         verdict = "Hazırda yağış yağır — çiləməyi təxirə salın."
+        verdict_code, verdict_params = "nowcast.rainNow", {}
     elif rain_expected:
         verdict = f"{minutes_to_rain} dəqiqəyə yağış gözlənilir — çiləməyi təxirə salın."
+        verdict_code, verdict_params = "nowcast.rainSoon", {"minutes": minutes_to_rain}
     else:
         verdict = f"Yaxın {_window_label(int(window))} yağış gözlənilmir."
+        verdict_code, verdict_params = _dry_verdict_code(int(window))
 
     for s in steps:
         s.pop("_delta", None)
@@ -160,6 +175,8 @@ async def rain_nowcast(
         "available": True,
         "field_id": field_id,
         "verdict": verdict,
+        "verdict_code": verdict_code,
+        "verdict_params": verdict_params,
         "tone": "warn" if rain_expected else "ok",
         "rain_expected": rain_expected,
         "spray_safe": not rain_expected,

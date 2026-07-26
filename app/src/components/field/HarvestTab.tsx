@@ -173,7 +173,8 @@ export default function HarvestTab({ fieldId, orgId }: { fieldId: string; orgId:
       <div>
         <div className="mb-3 flex items-center justify-between gap-3">
           <h3 className="font-semibold text-slate-800">{t("app.field.harvestTab.lotsTitle")}</h3>
-          <Link href={`/sales?field=${fieldId}&org=${orgId}`} className="btn-secondary">
+          {/* Satış is a section of /farm now; /sales still redirects here, but link direct. */}
+          <Link href={`/farm?tab=sales&field=${fieldId}&org=${orgId}`} className="btn-secondary">
             <Receipt className="h-4 w-4" /> {t("app.field.harvestTab.salesLink")}
           </Link>
         </div>
@@ -233,7 +234,7 @@ export default function HarvestTab({ fieldId, orgId }: { fieldId: string; orgId:
                   )}
                   {l.notes && <p className="text-sm text-slate-700">{l.notes}</p>}
 
-                  <Link href={`/sales?field=${l.field_id}&lot=${l.id}&org=${orgId}`} className="btn-primary">
+                  <Link href={`/farm?tab=sales&field=${l.field_id}&lot=${l.id}&org=${orgId}`} className="btn-primary">
                     <Receipt className="h-4 w-4" /> {t("app.field.harvestTab.recordSaleLink")}
                   </Link>
                 </li>

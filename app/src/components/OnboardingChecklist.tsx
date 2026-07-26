@@ -9,8 +9,9 @@ import Link from "next/link";
 import { Check, Circle, ChevronRight, X, PartyPopper } from "lucide-react";
 import { api } from "@/lib/api";
 import { track } from "@/lib/track";
-import { t } from "@/lib/i18n";
-import type { Farm, Field, Org } from "@/lib/types";
+import { t, tf } from "@/lib/i18n";
+import { missingMetaGaps } from "@/components/field/overview/completeness";
+import type { Farm, Field, FieldMetadata, Org } from "@/lib/types";
 
 interface Step {
   key: string;
@@ -45,12 +46,16 @@ export default function OnboardingChecklist() {
 
         let hasCrop = false;
         let hasData = false;
+        // Field-passport completeness: how many of the ranked, high-impact metadata gaps
+        // (planting date / irrigation / soil / district) are still open on the first field.
+        let metaGaps = 0;
         if (first) {
           const [meta, ds] = await Promise.all([
-            api.get<{ crop_type?: string }>(`/api/fields/${first.id}/metadata`).catch(() => null),
+            api.get<FieldMetadata | null>(`/api/fields/${first.id}/metadata`).catch(() => null),
             api.get<{ status: string }>(`/api/fields/${first.id}/data-status`).catch(() => null),
           ]);
           hasCrop = !!meta?.crop_type;
+          metaGaps = missingMetaGaps(meta).length;
           hasData = !!ds && ["ready", "partial", "processing"].includes(ds.status);
         }
         // Only offer the Telegram step when the bot is actually configured (otherwise it can never
@@ -65,6 +70,17 @@ export default function OnboardingChecklist() {
           { key: "field", label: t("onb.check.field"), done: fields.length > 0, href: "/onboarding" },
           { key: "crop", label: t("onb.check.crop"), done: hasCrop,
             href: first ? `/fields/${first.id}?tab=metadata` : "/onboarding" },
+          // Only offered once a field exists — otherwise it could never be completed and the
+          // checklist would never finish (same rule as the Telegram step below).
+          ...(first
+            ? [{
+                key: "profile",
+                label: t("onb.check.profile"),
+                done: metaGaps === 0,
+                href: `/fields/${first.id}?tab=metadata`,
+                hint: metaGaps > 0 ? tf("onb.check.profileHint", { count: metaGaps }) : undefined,
+              }]
+            : []),
           { key: "data", label: t("onb.check.data"), done: hasData,
             href: first ? `/fields/${first.id}` : undefined, hint: first && !hasData ? t("onb.check.dataHint") : undefined },
           { key: "advice", label: t("onb.check.advice"), done: flag("advice"),

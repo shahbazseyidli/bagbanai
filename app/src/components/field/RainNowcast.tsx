@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { CloudRain, CloudSun } from "lucide-react";
 import { api } from "@/lib/api";
 import { t } from "@/lib/i18n";
+import { nowcastVerdict } from "@/lib/wellnessText";
 
 interface Step {
   ts: string;
@@ -19,6 +20,8 @@ interface Nowcast {
   available: boolean;
   reason?: string | null;
   verdict?: string;
+  verdict_code?: string | null;
+  verdict_params?: Record<string, unknown> | null;
   tone?: "ok" | "warn";
   rain_expected?: boolean;
   spray_safe?: boolean;
@@ -81,9 +84,12 @@ export default function RainNowcast({ fieldId }: { fieldId: string }) {
       <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${tone.icon}`} aria-hidden="true" />
 
       <div className="min-w-0 flex-1">
-        {/* Never truncate: the actionable half of the verdict ("çiləməyi təxirə salın") sits at the
-            end of the sentence and must survive a narrow phone. */}
-        <p className={`text-sm font-medium leading-snug ${tone.text}`}>{data.verdict}</p>
+        {/* Never truncate: the actionable half of the verdict ("hold off on spraying") sits at the
+            end of the sentence and must survive a narrow phone. The backend sends a code + params;
+            its Azerbaijani sentence is only the fallback for a code this build does not know. */}
+        <p className={`text-sm font-medium leading-snug ${tone.text}`}>
+          {nowcastVerdict(data.verdict_code, data.verdict_params, data.verdict)}
+        </p>
 
         <div className="mt-1.5 flex h-6 items-end gap-[2px]" aria-hidden="true">
           {steps.map((s) => {

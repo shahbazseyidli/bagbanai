@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { HelpCircle, AlertTriangle } from "lucide-react";
 import { api } from "@/lib/api";
-import { t } from "@/lib/i18n";
+import { t, tf } from "@/lib/i18n";
 
 // One open clarification (knowledge layer M7). Farmer data is authoritative, but the AI does
 // not stay silent on a clear norm deviation — it asks, with structured options (spec §10).
@@ -12,8 +12,25 @@ interface Clarification {
   severity: "critical" | "normal";
   topic: string;
   question_text: string;
-  evidence: { observed?: number; expected_min?: number; index?: string; date?: string };
-  options: { value: string; label: string }[];
+  evidence: {
+    observed?: number;
+    expected_min?: number;
+    index?: string;
+    date?: string;
+    // CODE + PARAMS twin of question_text (services/app/ai/clarify.py). Rows written before this
+    // existed carry neither, and fall back to the stored Azerbaijani question.
+    question_code?: string | null;
+    question_params?: Record<string, unknown> | null;
+  };
+  options: { value: string; label: string; label_code?: string | null }[];
+}
+
+/** Localized string for a `*_code`, falling back to the AZ text stored with the row. */
+function coded(code: string | null | undefined, fallback: string, params?: Record<string, unknown> | null): string {
+  if (!code) return fallback;
+  const key = `app.${code}`;
+  const s = tf(key, params ?? {});
+  return s === key ? fallback : s;
 }
 
 export default function ClarificationBlock({ fieldId }: { fieldId: string }) {
@@ -77,7 +94,9 @@ export default function ClarificationBlock({ fieldId }: { fieldId: string }) {
       <div className="flex flex-col gap-3">
         {items.map((c) => (
           <div key={c.id} className="rounded-lg border border-slate-200 bg-white p-3">
-            <p className="text-sm text-slate-800">{c.question_text}</p>
+            <p className="text-sm text-slate-800">
+              {coded(c.evidence?.question_code, c.question_text, c.evidence?.question_params)}
+            </p>
             {c.evidence?.index && (
               <p className="mt-1 text-[11px] text-slate-400">
                 {c.evidence.index} = {c.evidence.observed}{t("app.field.clarificationBlock.expectedSeparator")}{c.evidence.expected_min}
@@ -93,7 +112,7 @@ export default function ClarificationBlock({ fieldId }: { fieldId: string }) {
                   onClick={() => answer(c.id, o.value, o.label)}
                   className="rounded-full border border-slate-300 px-3 py-1 text-xs font-medium text-slate-700 hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-50"
                 >
-                  {o.label}
+                  {coded(o.label_code, o.label)}
                 </button>
               ))}
             </div>

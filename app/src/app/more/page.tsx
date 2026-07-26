@@ -3,10 +3,11 @@
 // D2.1 — "Daha çox": the overflow menu (bottom-nav destination). Large rows, one screen.
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Tag, Users, Shield, LogOut, ChevronRight, Store, MessageCircle, UserCog, BookOpen,
-  Receipt, Package, Wrench, FileText, MapPin, GraduationCap } from "lucide-react";
+import { Tag, Users, Shield, LogOut, ChevronRight, Store, MessageCircle, UserCog, Tractor,
+  Bell, FileText, MapPin, GraduationCap } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { t } from "@/lib/i18n";
+import { SHOW_MARKETPLACE_NAV } from "@/lib/navFlags";
 import DataSaverToggle from "@/components/DataSaverToggle";
 import EmailLifecycleToggle from "@/components/EmailLifecycleToggle";
 import AreaUnitSetting from "@/components/AreaUnitSetting";
@@ -16,16 +17,23 @@ export default function MorePage() {
   const router = useRouter();
   const { user, logout } = useAuth();
 
+  // This list is the safety net for the trimmed navigation: everything the rail and the bottom nav
+  // no longer show has to be one tap away from here. Dəftər/Satış/Anbar/Texnika collapsed into the
+  // single "Təsərrüfat" row (they are ?tab= sections of /farm now), and Bildirişlər moved here when
+  // /farm took its bottom-nav slot.
   const items = [
-    { href: "/ledger", label: t("nav.ledger"), Icon: BookOpen, authOnly: true },
-    { href: "/sales", label: t("nav.sales"), Icon: Receipt, authOnly: true },
-    { href: "/inventory", label: t("nav.inventory"), Icon: Package, authOnly: true },
-    { href: "/equipment", label: t("nav.equipment"), Icon: Wrench, authOnly: true },
+    { href: "/farm", label: t("nav.farm"), Icon: Tractor, authOnly: true },
     { href: "/reports", label: t("nav.reports"), Icon: FileText, authOnly: true },
     { href: "/places", label: t("nav.places"), Icon: MapPin, authOnly: true },
+    { href: "/notifications", label: t("nav.notifications"), Icon: Bell, authOnly: true },
     { href: "/guide", label: t("app.more.howToStart"), Icon: GraduationCap, authOnly: false },
-    { href: "/catalog", label: t("nav.catalog"), Icon: Store, authOnly: true },
-    { href: "/chat", label: t("nav.community"), Icon: MessageCircle, authOnly: true },
+    // Kataloq / İcma are built and routable but empty — see SHOW_MARKETPLACE_NAV.
+    ...(SHOW_MARKETPLACE_NAV
+      ? [
+          { href: "/catalog", label: t("nav.catalog"), Icon: Store, authOnly: true },
+          { href: "/chat", label: t("nav.community"), Icon: MessageCircle, authOnly: true },
+        ]
+      : []),
     { href: "/account", label: t("more.account"), Icon: UserCog, authOnly: true },
     { href: "/pricing", label: t("more.pricingPlans"), Icon: Tag, authOnly: false },
     { href: "/team", label: t("nav.team"), Icon: Users, authOnly: true },

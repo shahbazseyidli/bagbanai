@@ -14,6 +14,20 @@ its name recorded in `missing`; the remaining weights are renormalized. A missin
 scored as zero — that would quietly punish a farmer for data the platform does not have. When every
 component is missing there is no score at all (`available=False`), not a fabricated one.
 
+PROXY RULE (the second half of the same honesty): when a component is scored from a STAND-IN signal
+rather than its real measurement, it must not speak with the authority of the real one. Concretely,
+a proxy-sourced component:
+  1. is compressed into the middle band `_PROXY_MIN.._PROXY_MAX` (25..85) — it can neither scream
+     "critical" nor certify "perfect"; only the real measurement earns the full 0..100 range;
+  2. carries its OWN label (`label_code`), never the label of the measurement it stands in for —
+     NDMI is a canopy-moisture signal, not a soil-water balance;
+  3. can never on its own push the verdict to the worst tone, nor be named as the deciding "worst"
+     component while a real measurement is present.
+The concrete case this rule exists for: a July field with a sparse canopy legitimately reads
+NDMI ≈ -0.13. Mapped linearly onto 0..100 that clamped to 0.0 and — at 0.25/0.65 = 38% of the
+composite — dragged a 45-point field down to 28/100 with the headline "water balance critical",
+while the very same component's reason line admitted the balance had never been computed.
+
 Deterministic — no LLM call, so it is cheap enough to compute on demand inside a GET.
 """
 from __future__ import annotations
@@ -34,6 +48,21 @@ LABELS: dict[str, str] = {
     "pest": "Zərərverici riski",
     "gdd": "İstilik toplanması (GDD)",
 }
+
+# AZ prose fallbacks for proxy-sourced component labels, keyed by `label_code`. The localized text
+# lives in the frontend dictionaries under `app.wl.label.<code>` / `app.wl.labelLower.<code>`.
+PROXY_LABELS: dict[str, str] = {"water.ndmi": "Peyk nəmlik siqnalı"}
+
+# Proxy band (PROXY RULE #1). A stand-in signal is mapped into 25..85 — never the extremes, which
+# are reserved for real measurements. 25 still reads as a clear "warn"; 85 is a solid "good" but
+# stops short of certifying perfection.
+_PROXY_MIN = 25.0
+_PROXY_MAX = 85.0
+
+# NDMI domain the proxy band spans. Below -0.20 canopy moisture is as low as the sensor usefully
+# distinguishes; above 0.40 it saturates. Linear and monotonic in between, so the signal still moves.
+_NDMI_LO = -0.20
+_NDMI_HI = 0.40
 
 # Universal NDVI band edges (çox zəif | zəif | orta | sağlam | çox sağlam) used when the crop has
 # no calibrated crop_thresholds.index_norms row.
@@ -208,7 +237,8 @@ async def _water(conn, field_id: str) -> Optional[dict]:
             params["reco"] = int(round(reco))
         return {"score": round(_clamp(score), 1), "value": round(dr, 1), "sensor": None,
                 "reason": f"Su balansı: çatışmazlıq {dr:.0f} mm / RAW {raw:.0f} mm — {why}.",
-                "extra": {"source": "water_balance", "depletion_mm": round(dr, 1),
+                # The real FAO-56 measurement keeps the full 0..100 range — it has earned it.
+                "extra": {"source": "water_balance", "proxy": False, "depletion_mm": round(dr, 1),
                           "raw_mm": round(raw, 1), "taw_mm": round(taw, 1), "reco_mm": reco,
                           "reason_code": code, "reason_params": params}}
 
@@ -220,10 +250,19 @@ async def _water(conn, field_id: str) -> Optional[dict]:
            limit 1""", field_id, _FRESH_DAYS)
     if ndmi and ndmi["mean"] is not None:
         v = float(ndmi["mean"])
-        score = _clamp((v + 0.05) / 0.45 * 100.0)
+        # PROXY RULE #1: NDMI is canopy moisture, not a soil-water balance. The old mapping
+        # ((v+0.05)/0.45*100) sent every negative reading to 0.0 — a sparse July canopy at NDMI
+        # -0.13 scored 0 and, weighted at ~38%, produced a fabricated "critical" verdict. The
+        # proxy is now compressed into _PROXY_MIN.._PROXY_MAX: still monotonic in NDMI, but it can
+        # neither reach 0 (critical) nor 100 (perfect) — only a real measurement earns those.
+        frac = (v - _NDMI_LO) / (_NDMI_HI - _NDMI_LO)
+        score = _clamp(_PROXY_MIN + (_PROXY_MAX - _PROXY_MIN) * frac, _PROXY_MIN, _PROXY_MAX)
         return {"score": round(score, 1), "value": round(v, 3), "sensor": _sensor_family(ndmi["sensor"]),
+                # PROXY RULE #2: its own name. Calling this "Su balansı" claimed a balance that was
+                # never computed — the reason line right below it said so in the same breath.
+                "label": PROXY_LABELS["water.ndmi"], "label_code": "water.ndmi",
                 "reason": f"Peyk nəmlik siqnalı NDMI {v:.2f} (torpaq-su balansı hesablanmayıb).",
-                "extra": {"source": "ndmi",
+                "extra": {"source": "ndmi", "proxy": True,
                           "reason_code": "water.ndmi", "reason_params": {"ndmi": f"{v:.2f}"}}}
     return None
 
@@ -307,8 +346,45 @@ def _tone(score: float) -> str:
     return "bad"
 
 
-def _headline(score: int, tone: str, worst_key: Optional[str], worst_score: Optional[float]) -> str:
-    label = LABELS.get(worst_key or "", "")
+def _apportion(shares: dict[str, float]) -> dict[str, int]:
+    """Largest-remainder apportionment of `shares` (which sum to 1.0) onto integers summing to 100.
+
+    Rounding each share on its own is what made the card show 62% + 39% = 101%. Here every component
+    takes its floor, and the leftover points go to the largest fractional remainders, so the numbers
+    the farmer adds up always come to exactly 100."""
+    if not shares:
+        return {}
+    keys = list(shares)
+    exact = {k: shares[k] * 100.0 for k in keys}
+    floors = {k: int(exact[k] // 1) for k in keys}
+    left = 100 - sum(floors.values())
+    # Ties broken by the fixed WEIGHTS order so the output is deterministic run to run.
+    order = sorted(keys, key=lambda k: (-(exact[k] - floors[k]), list(WEIGHTS).index(k) if k in WEIGHTS else 99))
+    for k in order[:max(0, left)]:
+        floors[k] += 1
+    return floors
+
+
+def _is_proxy(v: Optional[dict]) -> bool:
+    return bool((v or {}).get("extra", {}).get("proxy"))
+
+
+def _pick_worst(scores: dict[str, float], proxy: dict[str, bool]) -> Optional[str]:
+    """The component the verdict names. PROXY RULE #3: while ANY real measurement is present, the
+    deciding "worst" component is chosen among the real ones only. A stand-in signal may inform the
+    number, but it must never be the thing the platform points at and calls the field's problem —
+    that is exactly how NDMI ended up announcing a water-balance crisis it never measured. When
+    every present component is a proxy there is nothing better to point at, so the rule stands down."""
+    if not scores:
+        return None
+    real = [k for k in scores if not proxy.get(k)]
+    pool = real or list(scores)
+    return min(pool, key=lambda k: scores[k])
+
+
+def _headline(score: int, tone: str, worst_key: Optional[str], worst_score: Optional[float],
+              worst_label: Optional[str] = None) -> str:
+    label = worst_label or LABELS.get(worst_key or "", "")
     if tone == "good":
         return f"Sahə yaxşı vəziyyətdədir ({score}/100)."
     if tone == "warn":
@@ -320,19 +396,46 @@ def _headline(score: int, tone: str, worst_key: Optional[str], worst_score: Opti
     return f"Sahədə ciddi problem var ({score}/100)."
 
 
-def _headline_code(score: int, tone: str, worst_key: Optional[str],
-                   worst_score: Optional[float]) -> tuple[str, dict]:
+def _headline_code(score: int, tone: str, worst_key: Optional[str], worst_score: Optional[float],
+                   worst_label_code: Optional[str] = None) -> tuple[str, dict]:
     """Machine-readable twin of `_headline`: a stable code + raw params the frontend renders in the
-    active locale. The AZ string from `_headline` is kept alongside as the fallback."""
+    active locale. The AZ string from `_headline` is kept alongside as the fallback.
+
+    `worst_label_code` overrides the label the frontend looks up for the named component — a
+    proxy-sourced component is named by what it actually is (PROXY RULE #2)."""
+    def _worst_params() -> dict:
+        p: dict[str, Any] = {"worst_key": worst_key, "worst": int(round(worst_score or 0))}
+        if worst_label_code:
+            p["worst_label_code"] = worst_label_code
+        return p
+
     if tone == "good":
         return "headline.good", {"score": score}
     if tone == "warn":
         if worst_key and worst_score is not None:
-            return "headline.warn.worst", {"worst_key": worst_key, "worst": int(round(worst_score))}
+            return "headline.warn.worst", _worst_params()
         return "headline.warn.generic", {"score": score}
     if worst_key and worst_score is not None:
-        return "headline.bad.worst", {"worst_key": worst_key, "worst": int(round(worst_score))}
+        return "headline.bad.worst", _worst_params()
     return "headline.bad.generic", {"score": score}
+
+
+def headline_from_components(score: int, tone: str,
+                             comps: Optional[dict]) -> tuple[Optional[str], str, dict]:
+    """Rebuild `(worst_key, headline_code, headline_params)` from a STORED components blob.
+
+    Shared by `load_wellness` and the org read model so every headline surface applies the same
+    proxy rules — a stand-in signal is neither named as the deciding problem while a real
+    measurement exists (RULE #3) nor labelled as the measurement it stands in for (RULE #2)."""
+    comps = comps if isinstance(comps, dict) else {}
+    worst = _pick_worst(
+        {k: float(c.get("score") or 0.0) for k, c in comps.items() if isinstance(c, dict)},
+        {k: bool((c.get("detail") or {}).get("proxy")) for k, c in comps.items() if isinstance(c, dict)})
+    worst_score = comps[worst].get("score") if worst else None
+    code, params = _headline_code(
+        score, tone, worst, float(worst_score) if worst_score is not None else None,
+        (comps.get(worst or "") or {}).get("label_code"))
+    return worst, code, params
 
 
 async def compute_wellness(conn, field_id: str, *, store: bool = True) -> dict[str, Any]:
@@ -368,27 +471,52 @@ async def compute_wellness(conn, field_id: str, *, store: bool = True) -> dict[s
                 "headline_code": "headline.noInputs", "headline_params": {}}
 
     total_w = sum(WEIGHTS[k] for k in present)
-    score_f = sum(present[k]["score"] * (WEIGHTS[k] / total_w) for k in present)
+    shares = {k: WEIGHTS[k] / total_w for k in present}
+    score_f = sum(present[k]["score"] * shares[k] for k in present)
     score = int(round(_clamp(score_f)))
     tone = _tone(score)
 
+    proxy = {k: _is_proxy(v) for k, v in present.items()}
+    real = {k: v for k, v in present.items() if not proxy[k]}
+    # PROXY RULE #3 — a stand-in signal alone may not condemn a field. If the verdict is "bad" only
+    # because the proxy dragged the composite down (the same field scored on its real measurements
+    # would not be "bad"), the tone is floored at "warn". The score itself is left honest: the proxy
+    # did move it, and hiding that would be its own lie. What we refuse is the *worst* label, which
+    # a farmer reads as "your field is failing" — a claim no proxy is entitled to make on its own.
+    if tone == "bad":
+        if not real:
+            # Nothing here is a measurement — a page of stand-ins may worry the farmer, never
+            # condemn the field.
+            tone = "warn"
+        else:
+            real_w = sum(WEIGHTS[k] for k in real)
+            real_score = sum(real[k]["score"] * (WEIGHTS[k] / real_w) for k in real)
+            if _tone(real_score) != "bad":
+                tone = "warn"
+
+    pct = _apportion(shares)  # displayed integers, guaranteed to sum to exactly 100
     components: dict[str, Any] = {}
     for k, v in present.items():
         components[k] = {
             "key": k,
-            "label": LABELS[k],
+            "label": v.get("label") or LABELS[k],
+            "label_code": v.get("label_code"),
             "score": round(float(v["score"]), 1),
-            "weight": round(WEIGHTS[k] / total_w, 3),
+            "weight": round(shares[k], 3),
+            "weight_pct": pct.get(k, 0),
             "value": v.get("value"),
             "sensor": v.get("sensor"),
             "reason": v.get("reason"),
             "detail": v.get("extra") or {},
         }
 
-    worst_key = min(present, key=lambda k: present[k]["score"])
-    worst_score = float(present[worst_key]["score"])
-    headline = _headline(score, tone, worst_key, worst_score)
-    headline_code, headline_params = _headline_code(score, tone, worst_key, worst_score)
+    worst_key = _pick_worst({k: float(v["score"]) for k, v in present.items()}, proxy)
+    worst_score = float(present[worst_key]["score"]) if worst_key else None
+    worst_label = components.get(worst_key or "", {}).get("label")
+    worst_label_code = components.get(worst_key or "", {}).get("label_code")
+    headline = _headline(score, tone, worst_key, worst_score, worst_label)
+    headline_code, headline_params = _headline_code(
+        score, tone, worst_key, worst_score, worst_label_code)
     sensor = (present.get("ndvi") or {}).get("sensor")
 
     if store:
@@ -433,14 +561,13 @@ async def load_wellness(conn, field_id: str) -> Optional[dict[str, Any]]:
         except ValueError:
             comps = {}
     missing = list(row["missing"] or [])
-    worst = min(comps, key=lambda k: comps[k].get("score", 100)) if comps else None
     # Reconstruct the localizable headline twin from the stored row — no schema/write change needed:
-    # score + tone + the worst component (from the components jsonb) are all we require.
-    worst_score = comps[worst].get("score") if (worst and comps) else None
-    headline_code, headline_params = _headline_code(
+    # score + tone + the worst component (from the components jsonb) are all we require. PROXY RULE
+    # #3 applies here too, from the `detail.proxy` flag persisted with each component.
+    comps = comps or {}
+    worst, headline_code, headline_params = headline_from_components(
         int(row["score"]) if row["score"] is not None else 0,
-        row["tone"] or _tone(float(row["score"] or 0)), worst,
-        float(worst_score) if worst_score is not None else None)
+        row["tone"] or _tone(float(row["score"] or 0)), comps)
     return {
         "available": True, "field_id": field_id, "score": row["score"], "tone": row["tone"],
         "headline": row["headline"], "headline_code": headline_code, "headline_params": headline_params,

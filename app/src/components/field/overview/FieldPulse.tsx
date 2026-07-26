@@ -17,6 +17,7 @@ import { t } from "@/lib/i18n";
 import { useFormatArea } from "@/lib/units";
 import { wellnessHeadline, wellnessLabel, wellnessReason } from "@/lib/wellnessText";
 import SpeakButton from "@/components/SpeakButton";
+import MetadataNudge from "./MetadataNudge";
 import type { FieldDetail } from "@/lib/types";
 
 type Tone = "good" | "warn" | "bad";
@@ -24,8 +25,12 @@ type Tone = "good" | "warn" | "bad";
 interface WellnessComponent {
   key: string;
   label: string;
+  /** Set when the component was scored from a stand-in signal — it is labelled as that signal. */
+  label_code?: string | null;
   score: number;
   weight: number;
+  /** Largest-remainder integer share; the displayed percentages always add up to exactly 100. */
+  weight_pct?: number | null;
   value?: number | null;
   reason?: string | null;
   detail?: Record<string, unknown> | null;
@@ -162,7 +167,9 @@ export default function FieldPulse({ field }: { field: FieldDetail }) {
         <div className="mt-4 space-y-2 border-t border-dashed border-line pt-3.5">
           {comps.map((x) => (
             <div key={x.key} className="grid grid-cols-[minmax(96px,132px)_1fr_auto] items-center gap-2.5 text-[12.5px]">
-              <span className="font-semibold text-ink-soft">{wellnessLabel(x.key, x.label)}</span>
+              <span className="font-semibold text-ink-soft">
+                {wellnessLabel(x.key, x.label, x.label_code)}
+              </span>
               <span className="h-[7px] overflow-hidden rounded-full bg-black/[.06]">
                 <span
                   className={`block h-full rounded-full ${TONE[subTone(x.score)].bar}`}
@@ -171,7 +178,10 @@ export default function FieldPulse({ field }: { field: FieldDetail }) {
               </span>
               <span className="whitespace-nowrap text-right tabular-nums text-ink-soft">
                 <b className="text-ink">{Math.round(x.score)}</b>
-                <span className="text-ink-soft">{t("app.field.wellnessCard.weightSuffix")}{Math.round(x.weight * 100)}%</span>
+                <span className="text-ink-soft">
+                  {t("app.field.wellnessCard.weightSuffix")}
+                  {x.weight_pct ?? Math.round(x.weight * 100)}%
+                </span>
               </span>
             </div>
           ))}
@@ -199,6 +209,10 @@ export default function FieldPulse({ field }: { field: FieldDetail }) {
           </span>
         </p>
       ) : null}
+
+      {/* What the platform is blind to because nobody told it yet — ranked, at most two, fillable
+          in place, dismissible. Renders nothing once the passport is complete. */}
+      <MetadataNudge field={field} />
     </section>
   );
 }

@@ -66,18 +66,25 @@ async def detect_clarifications(conn, field_id: str) -> int:
         if exists:
             continue
         severity = "critical" if value < edges[0] else "normal"
+        # The AZ text is persisted as written (old rows keep rendering), and every string carries a
+        # `*_code` twin so the UI can ask the question in the reader's own language. The raw numbers
+        # already live in `evidence`, which is where the question's params come from.
         question = (
             f"Bu sahədə {idx} dəyəri {value:.2f}-dir; bu bitki üçün adətən {edges[1]:.2f}-dən "
             "yuxarı olur. Bu, seyrək əkin, budama və ya bitki stresi ola bilər — hansıdır?")
         options = [
-            {"value": "sparse", "label": "Seyrək əkin sıxlığı"},
-            {"value": "pruned", "label": "Bu il budanıb"},
-            {"value": "stress", "label": "Bitkidə problem var"},
-            {"value": "young", "label": "Bağın bir hissəsi cavan əvəzləmədir"},
-            {"value": "unknown", "label": "Bilmirəm"},
+            {"value": "sparse", "label": "Seyrək əkin sıxlığı", "label_code": "clarify.opt.sparse"},
+            {"value": "pruned", "label": "Bu il budanıb", "label_code": "clarify.opt.pruned"},
+            {"value": "stress", "label": "Bitkidə problem var", "label_code": "clarify.opt.stress"},
+            {"value": "young", "label": "Bağın bir hissəsi cavan əvəzləmədir",
+             "label_code": "clarify.opt.young"},
+            {"value": "unknown", "label": "Bilmirəm", "label_code": "clarify.opt.unknown"},
         ]
         evidence = {"observed": round(value, 3), "expected_min": edges[1],
-                    "index": idx, "date": acq.isoformat() if acq else None}
+                    "index": idx, "date": acq.isoformat() if acq else None,
+                    "question_code": "clarify.lowIndex",
+                    "question_params": {"index": idx, "value": f"{value:.2f}",
+                                        "expected": f"{edges[1]:.2f}"}}
         await conn.execute(
             """insert into public.clarifications
                  (field_id, org_id, severity, topic, question_text, evidence, options, status)

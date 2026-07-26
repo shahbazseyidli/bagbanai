@@ -7,16 +7,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Banknote,
   Bell,
-  BookOpen,
   FileText,
   Home,
   LayoutGrid,
   Leaf,
-  MapPin,
   MessageCircle,
-  Package,
   Settings,
   ShoppingBag,
   Sprout,
@@ -24,6 +20,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { t } from "@/lib/i18n";
+import { SHOW_MARKETPLACE_NAV } from "@/lib/navFlags";
 
 type RailItem = { href: string; label: string; Icon: LucideIcon };
 
@@ -69,17 +66,25 @@ export default function AppRail() {
 
   // Every href below is an existing route under app/src/app/. Labels are read on each render (t() is
   // module-level state set by LocaleProvider) so a locale switch re-labels the rail.
+  //
+  // Five destinations, down from eleven. What moved and why:
+  //   * Dəftər / Satış / Anbar / Texnika → the ONE "Təsərrüfat" entry (/farm), which renders them as
+  //     ?tab= sections. Four of eleven rail slots for weekly bookkeeping was a disproportionate
+  //     share of a rail the farmer reads on every visit;
+  //   * Kataloq / İcma → hidden behind SHOW_MARKETPLACE_NAV until they have suppliers/messages;
+  //   * Yerlər → /more, which already lists it.
+  // Everything removed is still reachable: /farm for the four modules, /more for the rest.
   const PRIMARY: RailItem[] = [
     { href: "/", label: t("app.shell.appRail.today"), Icon: Home },
     { href: "/fields", label: t("app.shell.appRail.fields"), Icon: Sprout },
-    { href: "/ledger", label: t("app.shell.appRail.ledger"), Icon: BookOpen },
-    { href: "/sales", label: t("app.shell.appRail.sales"), Icon: Banknote },
-    { href: "/inventory", label: t("app.shell.appRail.inventory"), Icon: Package },
-    { href: "/equipment", label: t("app.shell.appRail.equipment"), Icon: Tractor },
+    { href: "/farm", label: t("app.shell.appRail.farm"), Icon: Tractor },
     { href: "/reports", label: t("app.shell.appRail.reports"), Icon: FileText },
-    { href: "/places", label: t("app.shell.appRail.places"), Icon: MapPin },
-    { href: "/catalog", label: t("app.shell.appRail.catalog"), Icon: ShoppingBag },
-    { href: "/chat", label: t("app.shell.appRail.community"), Icon: MessageCircle },
+    ...(SHOW_MARKETPLACE_NAV
+      ? [
+          { href: "/catalog", label: t("app.shell.appRail.catalog"), Icon: ShoppingBag },
+          { href: "/chat", label: t("app.shell.appRail.community"), Icon: MessageCircle },
+        ]
+      : []),
     { href: "/more", label: t("app.shell.appRail.more"), Icon: LayoutGrid },
   ];
 

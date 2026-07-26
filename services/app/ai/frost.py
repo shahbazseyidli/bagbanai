@@ -207,6 +207,7 @@ def compute_from_days(days: list[dict], *, threshold_c: float = DEFAULT_THRESHOL
         ],
     }
     out["sentence_az"] = explain_az(out)
+    out["sentence_code"], out["sentence_params"] = explain_code(out)
     return out
 
 
@@ -236,6 +237,40 @@ def explain_az(clim: dict[str, Any]) -> str:
     if ff:
         sentence += f" Orta şaxtasız dövr {ff} gündür."
     return sentence
+
+
+def explain_code(clim: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+    """The same summary as `explain_az`, but as a stable code + RAW params (no prose, no month
+    names — 'MM-DD' strings, which the frontend formats with its own locale month list).
+
+    `frost.summary` is a COMPOSITE: the frontend starts from the spring-frost clause and appends the
+    optional clauses whose params are present. Keeping the assembly on the client is what lets a
+    language put the planting window before the frost dates if its grammar wants that."""
+    if not clim.get("ok"):
+        return "frost.unavailable", {}
+    n = clim.get("years_used") or 0
+    thr = clim.get("threshold_c", 0.0)
+    ls = clim.get("last_spring_frost") or {}
+    fa = clim.get("first_autumn_frost") or {}
+    win = clim.get("planting_window") or {}
+    ff = (clim.get("frost_free_days") or {}).get("p50")
+    # `thr` is a temperature the reader sees ("≤0°C"), so it is formatted here the way :g would
+    # print it — trailing zeros dropped — and passed as a ready-to-substitute number.
+    thr_out: Any = int(thr) if float(thr) == int(thr) else float(thr)
+    if not ls.get("p50_mmdd") and not fa.get("p50_mmdd"):
+        return "frost.none", {"years": n, "thr": thr_out}
+    params: dict[str, Any] = {"years": n, "thr": thr_out, "spring_mmdd": ls.get("p50_mmdd")}
+    if ls.get("safe_mmdd"):
+        params["safe_mmdd"] = ls.get("safe_mmdd")
+    if fa.get("p50_mmdd"):
+        params["autumn_mmdd"] = fa.get("p50_mmdd")
+    if win.get("start_mmdd") and win.get("end_mmdd"):
+        params["window_start_mmdd"] = win["start_mmdd"]
+        params["window_end_mmdd"] = win["end_mmdd"]
+        params["window_days"] = win.get("days")
+    if ff:
+        params["frost_free_days"] = ff
+    return "frost.summary", params
 
 
 async def frost_climatology(lat: float, lon: float, *, years: int = DEFAULT_YEARS,

@@ -66,7 +66,13 @@ export default function KnowledgePassport({ fieldId }: { fieldId: string }) {
     recommendation?: string;
     recommendation_code?: string | null;
     recommendation_params?: Record<string, unknown> | null;
-    fao56?: { reco_mm?: number | null; reco_date?: string | null; ndmi_mismatch?: string | null };
+    fao56?: {
+      reco_mm?: number | null;
+      reco_date?: string | null;
+      ndmi_mismatch?: string | null;
+      ndmi_mismatch_code?: string | null;
+      ndmi_mismatch_params?: Record<string, unknown> | null;
+    };
   } | undefined;
   const sprayC = spray?.content as
     | {
@@ -161,7 +167,12 @@ export default function KnowledgePassport({ fieldId }: { fieldId: string }) {
             </p>
             {waterC.fao56?.ndmi_mismatch && (
               <p className="mt-1 flex items-start gap-1 rounded bg-amber-50 p-1.5 text-[11px] text-amber-800">
-                <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" /> {waterC.fao56.ndmi_mismatch}
+                <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />{" "}
+                {weatherRecommendation(
+                  waterC.fao56.ndmi_mismatch_code,
+                  waterC.fao56.ndmi_mismatch_params,
+                  waterC.fao56.ndmi_mismatch,
+                )}
               </p>
             )}
             <Sources sources={water?.sources} />

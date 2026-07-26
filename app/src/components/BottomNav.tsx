@@ -5,7 +5,7 @@
 // Desktop keeps the top nav (Nav.tsx); this is md:hidden.
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Sprout, Plus, Bell, LayoutGrid } from "lucide-react";
+import { Home, Sprout, Plus, Tractor, LayoutGrid } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useIsAppHost } from "@/lib/host";
 import { t } from "@/lib/i18n";
@@ -33,14 +33,22 @@ export default function BottomNav() {
   const pathname = usePathname();
   // No app chrome on the apex marketing host (agradex.com) — only on app.agradex.com.
   if (!user || !appHost) return null;
-  const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
+  // Match on a path SEGMENT boundary, not a raw prefix: "/farms" (the farms screen) starts with
+  // "/farm" (the farm-modules container) and a plain startsWith would light up the wrong tab.
+  const isActive = (href: string) =>
+    href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
 
+  // Four slots plus the FAB, mirroring the desktop rail: Bu gün · Sahələr · [+] · Təsərrüfat ·
+  // Daha çox. "Təsərrüfat" (/farm) is the container for Dəftər/Satış/Anbar/Texnika, which used to
+  // be four separate destinations. It takes the slot Bildirişlər had: the top Nav already renders
+  // NotificationBell on mobile, so notifications stayed one tap away on every screen, while the
+  // farm books had no entry point here at all.
   const LEFT = [
     { href: "/", label: t("bnav.today"), Icon: Home },
     { href: "/fields", label: t("bnav.fields"), Icon: Sprout },
   ];
   const RIGHT = [
-    { href: "/notifications", label: t("bnav.notifications"), Icon: Bell },
+    { href: "/farm", label: t("bnav.farm"), Icon: Tractor },
     { href: "/more", label: t("bnav.more"), Icon: LayoutGrid },
   ];
 

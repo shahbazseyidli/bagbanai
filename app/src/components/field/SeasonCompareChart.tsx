@@ -18,7 +18,8 @@ import {
 import { CalendarRange, TrendingDown, TrendingUp, Minus } from "lucide-react";
 import { api, azError } from "@/lib/api";
 import { ErrorNote, Placeholder, Spinner } from "@/components/ui";
-import { t } from "@/lib/i18n";
+import { t, tf } from "@/lib/i18n";
+import { seasonCompareSentence } from "@/lib/wellnessText";
 
 interface SeasonRow {
   season_year: number;
@@ -36,6 +37,8 @@ interface Verdict {
   available: boolean;
   reason?: string | null;
   sentence: string;
+  sentence_code?: string | null;
+  sentence_params?: Record<string, unknown> | null;
   pct_diff: number | null;
   basis: string | null;
   doy: number | null;
@@ -53,13 +56,15 @@ interface CompareResponse {
 
 type Metric = "ndvi" | "integral";
 
-const MONTHS_AZ = ["yan", "fev", "mar", "apr", "may", "iyn", "iyl", "avq", "sen", "okt", "noy", "dek"];
+// Short month names live in the dictionary (one comma-joined key), so the axis labels follow the
+// reader's locale instead of being Azerbaijani for everyone.
+const monthsShort = (): string[] => tf("app.date.monthsShort").split(",").map((s) => s.trim());
 
 // Day-of-year → "12 iyul" (2001 is a non-leap reference year, matching the backend's DOY binning).
 function doyLabel(doy: number): string {
   const d = new Date(Date.UTC(2001, 0, 1));
   d.setUTCDate(doy);
-  return `${d.getUTCDate()} ${MONTHS_AZ[d.getUTCMonth()]}`;
+  return `${d.getUTCDate()} ${monthsShort()[d.getUTCMonth()] ?? ""}`;
 }
 
 // Current season first (emerald), then older seasons in cooler/dimmer colours.
@@ -162,7 +167,11 @@ export default function SeasonCompareChart({ fieldId }: { fieldId: string }) {
         <div className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-sm ${verdictTone}`}>
           <VerdictIcon className="mt-0.5 h-4 w-4 shrink-0" />
           <div>
-            <p className="font-medium">{v.sentence}</p>
+            {/* The backend's AZ sentence is only the fallback — a localized client renders the
+                code+params twin instead. */}
+            <p className="font-medium">
+              {seasonCompareSentence(v.sentence_code, v.sentence_params, v.sentence)}
+            </p>
             {v.available && v.doy !== null && (
               <p className="mt-0.5 text-xs opacity-80">
                 {t("app.field.seasonCompareChart.compareDateLabel")}{doyLabel(v.doy)} · {v.current_year}{t("app.field.seasonCompareChart.vsSeparator")}{v.prior_year} ·{" "}

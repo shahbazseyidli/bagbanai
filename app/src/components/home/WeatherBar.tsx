@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { t } from "@/lib/i18n";
+import { nowcastVerdict } from "@/lib/wellnessText";
 
 interface Current {
   temp: number;
@@ -27,6 +28,8 @@ interface Current {
 interface Nowcast {
   available: boolean;
   verdict?: string;
+  verdict_code?: string | null;
+  verdict_params?: Record<string, unknown> | null;
   rain_expected?: boolean;
   spray_safe?: boolean;
   minutes_to_rain?: number | null;
@@ -136,7 +139,7 @@ export default function WeatherBar({
       )}
       {chip && (
         <span
-          title={now?.verdict}
+          title={now ? nowcastVerdict(now.verdict_code, now.verdict_params, now.verdict) : undefined}
           className={`ml-auto inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-bold ${
             chip.warn ? "bg-warn-tint text-warn" : "bg-good-tint text-good"
           }`}

@@ -6,9 +6,9 @@
 // with almost no typing; step 4 confirms and submits (POST field → PUT metadata).
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Upload, MapPin, Mountain, Compass, TriangleRight } from "lucide-react";
+import { Upload, MapPin, Mountain, Compass, TriangleRight, Sparkles } from "lucide-react";
 import { api } from "@/lib/api";
-import { t } from "@/lib/i18n";
+import { t, tf } from "@/lib/i18n";
 import { formatArea, useAreaUnit } from "@/lib/units";
 import { DrawMap } from "@/components/FieldMap";
 import UpgradeCta from "@/components/UpgradeCta";
@@ -37,6 +37,7 @@ import PhPicker from "./info/PhPicker";
 import NumberSlider from "./info/NumberSlider";
 import AutoField from "./info/AutoField";
 import { COUNTRIES, AZ_RAYONS } from "@/lib/regions";
+import { META_GAPS, topMetaGaps, type GapKey } from "./overview/completeness";
 import YesNo from "./info/YesNo";
 import { ARRAY_DEFS, RepeatableRows, type Row, fromRows } from "./repeatableRows";
 
@@ -317,6 +318,22 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
     setStep((s) => Math.max(1, s - 1));
   }
 
+  // The high-impact metadata that is STILL empty at the confirm step, ranked (max 2). This is a
+  // note, never a gate: the farmer can create the field with nothing but a crop and fill the rest
+  // later from the field-status strip.
+  const openGaps = useMemo(() => topMetaGaps(data), [data]);
+
+  /** Jump back to the step that owns this gap (soil lives behind "Ətraflı" on step 3). */
+  function goToGap(key: GapKey) {
+    setError("");
+    if (key === "soil_type") {
+      setShowAdvanced(true);
+      setStep(3);
+    } else {
+      setStep(2);
+    }
+  }
+
   async function submit() {
     setError("");
     const poly = validateBoundary();
@@ -554,6 +571,7 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
               value={data.planting_date ?? null}
               onChange={(v) => set("planting_date", v ?? undefined)}
             />
+            <Why gapKey="planting_date" />
           </FormField>
 
           <FormField label={t("meta.irrigation_method")}>
@@ -564,6 +582,7 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
               allowOther
               allowUnknown
             />
+            <Why gapKey="irrigation_method" />
           </FormField>
 
           <FormField label={t("meta.irrigation_available")}>
@@ -592,6 +611,7 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
                   <option key={r} value={r}>{r}</option>
                 ))}
               </select>
+              <Why gapKey="region" />
             </FormField>
             <AutoField
               label={t("meta.elevation_m")}
@@ -641,6 +661,7 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
                   allowOther
                   allowUnknown
                 />
+                <Why gapKey="soil_type" />
               </FormField>
 
               <FormField label={t("meta.soil_ph")}>
@@ -799,6 +820,39 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
               />
             </dl>
           </div>
+
+          {/* Non-blocking: names what is still empty and what it would unlock, ranked, max two.
+              "Yarat" stays enabled either way — the same gaps reappear on the field-status strip. */}
+          {openGaps.length > 0 && (
+            <div className="rounded-xl border-[1.5px] border-dashed border-slate-200 bg-slate-50/70 p-3">
+              <p className="flex items-center gap-1.5 text-[12.5px] font-bold text-slate-800">
+                <Sparkles className="h-3.5 w-3.5 text-emerald-600" aria-hidden="true" />
+                {t("app.field.onboarding.gapsTitle")}
+              </p>
+              <p className="mt-0.5 text-[11.5px] leading-snug text-slate-500">
+                {t("app.field.onboarding.gapsSubtitle")}
+              </p>
+              <ul className="mt-2 space-y-1">
+                {openGaps.map((g) => (
+                  <li key={g.key}>
+                    <button
+                      type="button"
+                      onClick={() => goToGap(g.key)}
+                      className="min-h-9 w-full rounded-lg px-1 text-left text-[12.5px] leading-snug text-slate-700 hover:bg-white"
+                    >
+                      <b className="font-semibold text-slate-900">{tf(g.actionKey)}</b>
+                      <span className="text-slate-500"> — {tf(g.unlockKey)}</span>
+                      <span className="whitespace-nowrap text-slate-500">
+                        {" "}
+                        ({tf("app.field.meta.nudge.seconds", { n: g.seconds })})
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <p className="text-sm text-slate-500">
             {t("app.field.fieldOnboarding.queueInfo")}
           </p>
@@ -830,6 +884,17 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
       </div>
     </div>
   );
+}
+
+/**
+ * One-line "why this matters" under an optional control. Every optional answer here costs the
+ * farmer effort, so each one says what the AI can do with it — the same sentence the field-status
+ * completeness strip uses later, so the ask never changes wording between the two surfaces.
+ */
+function Why({ gapKey }: { gapKey: GapKey }) {
+  const gap = META_GAPS.find((g) => g.key === gapKey);
+  if (!gap) return null;
+  return <p className="mt-1.5 text-[11.5px] leading-snug text-slate-500">{tf(gap.unlockKey)}</p>;
 }
 
 function SummaryItem({

@@ -95,10 +95,10 @@ async def org_wellness(org_id: str, user_id: str = Depends(get_current_user_id))
                 comps = json.loads(comps)
             except ValueError:
                 comps = None
-        worst = min(comps, key=lambda k: comps[k].get("score", 100)) if isinstance(comps, dict) and comps else None
-        worst_score = comps[worst].get("score") if worst else None
-        headline_code, headline_params = wellness_mod._headline_code(
-            score, tone, worst, float(worst_score) if worst_score is not None else None)
+        # Proxy-aware: a component scored from a stand-in signal is neither named as the field's
+        # problem while a real measurement exists, nor labelled as the measurement it stands in for.
+        _worst, headline_code, headline_params = wellness_mod.headline_from_components(
+            score, tone, comps)
         out.append({
             "field_id": str(r["field_id"]),
             "score": score,
@@ -164,6 +164,7 @@ def _pct(cur: Optional[float], prior: Optional[float]) -> Optional[float]:
 
 
 def _sentence(pct: Optional[float], prior_year: int) -> str:
+    """AZ prose — kept only as the fallback for clients that do not read `sentence_code` yet."""
     if pct is None:
         return f"{prior_year}-ci mövsümlə müqayisə üçün kifayət qədər məlumat yoxdur."
     if pct <= -5:
@@ -171,6 +172,17 @@ def _sentence(pct: Optional[float], prior_year: int) -> str:
     if pct >= 5:
         return f"Keçən ilin bu vaxtından {pct:.0f}% qabaqdasınız."
     return "Keçən ilin bu vaxtı ilə demək olar eyni səviyyədəsiniz."
+
+
+def _sentence_code(pct: Optional[float], prior_year: int) -> tuple[str, dict[str, Any]]:
+    """The same verdict as a stable code + raw params, for the frontend to render in its locale."""
+    if pct is None:
+        return "seasoncmp.insufficient", {"year": prior_year}
+    if pct <= -5:
+        return "seasoncmp.behind", {"pct": round(abs(pct))}
+    if pct >= 5:
+        return "seasoncmp.ahead", {"pct": round(pct)}
+    return "seasoncmp.same", {}
 
 
 async def _stored_seasons(conn, field_id: str, years: list[int]) -> dict[int, Any]:
@@ -250,14 +262,16 @@ def _verdict(seasons: list[dict[str, Any]], current_year: int) -> dict[str, Any]
     if cur is None:
         return {"available": False, "reason": "no_current_season", "pct_diff": None, "basis": None,
                 "doy": None, "current_year": current_year, "prior_year": None,
-                "sentence": "Bu mövsüm üçün hələ peyk məlumatı yoxdur — müqayisə mümkün deyil."}
+                "sentence": "Bu mövsüm üçün hələ peyk məlumatı yoxdur — müqayisə mümkün deyil.",
+                "sentence_code": "seasoncmp.noCurrent", "sentence_params": {}}
 
     prior = next((s for s in seasons
                   if s["season_year"] < current_year and s["has_data"]), None)
     if prior is None:
         return {"available": False, "reason": "no_prior_season", "pct_diff": None, "basis": None,
                 "doy": cur["curve"][-1][0], "current_year": current_year, "prior_year": None,
-                "sentence": "Keçən mövsüm üçün peyk məlumatı yoxdur — müqayisə mümkün deyil."}
+                "sentence": "Keçən mövsüm üçün peyk məlumatı yoxdur — müqayisə mümkün deyil.",
+                "sentence_code": "seasoncmp.noPrior", "sentence_params": {}}
 
     doy = int(cur["curve"][-1][0])
     cur_ndvi = cur["curve"][-1][1]
@@ -274,8 +288,11 @@ def _verdict(seasons: list[dict[str, Any]], current_year: int) -> dict[str, Any]
         return {"available": False, "reason": "no_overlap", "pct_diff": None, "basis": None,
                 "doy": doy, "current_year": current_year, "prior_year": prior["season_year"],
                 "sentence": (f"{prior['season_year']}-ci mövsümdə bu tarix üçün müqayisə oluna "
-                             "bilən peyk məlumatı yoxdur.")}
+                             "bilən peyk məlumatı yoxdur."),
+                "sentence_code": "seasoncmp.noOverlap",
+                "sentence_params": {"year": prior["season_year"]}}
 
+    s_code, s_params = _sentence_code(pct, prior["season_year"])
     return {
         "available": True, "reason": None, "doy": doy,
         "current_year": current_year, "prior_year": prior["season_year"],
@@ -287,4 +304,5 @@ def _verdict(seasons: list[dict[str, Any]], current_year: int) -> dict[str, Any]
         "prior_integral": round(prior_int, 2) if prior_int is not None else None,
         "integral_pct_diff": int_pct,
         "sentence": _sentence(pct, prior["season_year"]),
+        "sentence_code": s_code, "sentence_params": s_params,
     }

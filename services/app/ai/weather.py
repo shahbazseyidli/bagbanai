@@ -75,13 +75,15 @@ async def refresh_field(conn, field_id: str, *, base: str = "https://api.open-me
         bal = await irrigation.compute_balance(conn, field_id, org_id, row["crop_type"])
         if bal.get("ok"):
             content["fao56"] = {k: bal.get(k) for k in
-                                ("reco_mm", "reco_date", "recommendation", "ndmi_mismatch",
-                                 "taw_mm", "raw_mm", "kc")}
+                                ("reco_mm", "reco_date", "recommendation", "recommendation_code",
+                                 "recommendation_params", "ndmi_mismatch", "ndmi_mismatch_code",
+                                 "ndmi_mismatch_params", "taw_mm", "raw_mm", "kc")}
+            # The FAO-56 recommendation REPLACES the coarse 7-day one, so its code must replace the
+            # coarse code too — otherwise a localized client would render a sentence that no longer
+            # matches the numbers it is shown next to.
             content["recommendation"] = bal["recommendation"]
-            # The FAO-56 recommendation replaces the coarse 7-day one, so the coarse code no longer
-            # describes the visible text — drop it and let the frontend fall back to the string.
-            content.pop("recommendation_code", None)
-            content.pop("recommendation_params", None)
+            content["recommendation_code"] = bal.get("recommendation_code")
+            content["recommendation_params"] = bal.get("recommendation_params") or {}
     except Exception:  # noqa: BLE001 — irrigation upgrade is best-effort
         pass
     await kb.upsert_field_block(

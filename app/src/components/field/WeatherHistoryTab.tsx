@@ -18,7 +18,8 @@ import {
 } from "recharts";
 import { CloudRain, Download, RefreshCw, Snowflake, Trash2 } from "lucide-react";
 import { api, azError } from "@/lib/api";
-import { t } from "@/lib/i18n";
+import { t, tf } from "@/lib/i18n";
+import { frostSentence } from "@/lib/wellnessText";
 import { ErrorNote, Field as FormField, Placeholder, Spinner } from "@/components/ui";
 
 interface FrostStat {
@@ -54,6 +55,8 @@ interface FrostDates {
   annual_precip_mm_mean?: number | null;
   coldest_t_min_mean?: number | null;
   sentence_az?: string;
+  sentence_code?: string | null;
+  sentence_params?: Record<string, unknown> | null;
 }
 
 interface MonthRow {
@@ -89,18 +92,22 @@ interface RainEntry {
   created_at: string;
 }
 
-const MONTHS_AZ = ["Yan", "Fev", "Mar", "Apr", "May", "İyn", "İyl", "Avq", "Sen", "Okt", "Noy", "Dek"];
-const MONTHS_SHORT = ["yan", "fev", "mar", "apr", "may", "iyn", "iyl", "avq", "sen", "okt", "noy", "dek"];
+// Short month names come from the dictionary (one comma-joined key) so a Turkish or Russian reader
+// does not get Azerbaijani abbreviations glued onto a localized date.
+const monthsShort = (): string[] => tf("app.date.monthsShort").split(",").map((s) => s.trim());
+/** Same list, capitalised for chart axis ticks. */
+const monthsAxis = (): string[] =>
+  monthsShort().map((m) => (m ? m.charAt(0).toLocaleUpperCase() + m.slice(1) : m));
 const LINE_COLORS = ["#15803D", "#0EA5E9", "#F59E0B", "#8B5CF6", "#EF4444", "#0F766E", "#DB2777"];
 const YEAR_CHOICES = [3, 5, 10];
 
-/** "04-12" → "12 apr" */
+/** "04-12" → "12 apr" in the active locale. */
 function mmddAz(v: string | null | undefined): string {
   if (!v || v.length < 5) return "—";
   const m = Number(v.slice(0, 2));
   const d = Number(v.slice(3, 5));
   if (!m || !d || m < 1 || m > 12) return "—";
-  return `${d} ${MONTHS_SHORT[m - 1]}`;
+  return `${d} ${monthsShort()[m - 1] ?? ""}`;
 }
 
 function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
@@ -179,7 +186,7 @@ export default function WeatherHistoryTab({ fieldId }: { fieldId: string }) {
 
   const chartData = useMemo(() => {
     if (!yearly) return [];
-    return MONTHS_AZ.map((label, i) => {
+    return monthsAxis().map((label, i) => {
       const row: Record<string, string | number | null> = { month: label };
       yearly.years.forEach((y) => {
         const m = yearly.months.find((x) => x.year === y && x.month === i + 1);
@@ -303,7 +310,13 @@ export default function WeatherHistoryTab({ fieldId }: { fieldId: string }) {
               </div>
             )}
 
-            {frost.sentence_az && <p className="text-sm text-slate-700">{frost.sentence_az}</p>}
+            {/* A zone_knowledge row cached before the code+params twin existed still only carries
+                sentence_az — frostSentence falls back to it rather than rendering nothing. */}
+            {(frost.sentence_code || frost.sentence_az) && (
+              <p className="text-sm text-slate-700">
+                {frostSentence(frost.sentence_code, frost.sentence_params, frost.sentence_az)}
+              </p>
+            )}
 
             <p className="text-xs text-slate-500">
               {t("app.field.weatherHistoryTab.sourceOpenMeteo")}

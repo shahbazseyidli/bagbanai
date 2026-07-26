@@ -76,22 +76,34 @@ async def compute_balance(conn, field_id: str, org_id: str, crop_type) -> dict:
             field_id, org_id, r["forecast_date"], et0, kc, etc, precip, round(dr, 1), raw, taw,
             (reco_mm if need_here else None))
 
+    # Every farmer-facing line below ships twice: the AZ prose (legacy fallback) and a stable
+    # code + raw params the frontend renders in the viewer's own language. Never translate here.
     if reco_date:
         rec = (f"Suvarma tövsiyəsi: ~{reco_mm:.0f} mm, {reco_date.isoformat()} tarixinədək "
                f"(torpaq nəmliyi RAW {raw:.0f} mm həddinə çatır).")
+        rec_code = "fao56.irrigate"
+        rec_params = {"mm": round(float(reco_mm)), "date": reco_date.isoformat(),
+                      "raw": round(float(raw))}
     else:
         rec = "Növbəti 7 gündə suvarma tələb olunmur (torpaq nəmliyi RAW həddindən yuxarıdır)."
+        rec_code, rec_params = "fao56.noIrrigation", {}
 
     # NDMI cross-check: model "dry" (needs water soon) but the canopy looks moist, or vice-versa.
     ndmi = await _latest_ndmi(conn, field_id)
     mismatch = None
+    mismatch_code: str | None = None
     if ndmi is not None:
         model_dry = reco_date is not None
         if model_dry and ndmi > 0.35:
             mismatch = "Model suvarma deyir, lakin peyk nəmliyi (NDMI) yüksəkdir — torpağı yoxlayın."
+            mismatch_code = "fao56.mismatchWet"
         elif not model_dry and ndmi < 0.10:
             mismatch = "Model kifayət nəmlik deyir, lakin peyk nəmliyi (NDMI) aşağıdır — su stresi ola bilər."
+            mismatch_code = "fao56.mismatchDry"
 
     return {"ok": True, "taw_mm": taw, "raw_mm": raw, "kc": kc, "reco_mm": reco_mm,
             "reco_date": reco_date.isoformat() if reco_date else None,
-            "recommendation": rec, "ndmi_mismatch": mismatch, "daily": daily}
+            "recommendation": rec, "recommendation_code": rec_code,
+            "recommendation_params": rec_params,
+            "ndmi_mismatch": mismatch, "ndmi_mismatch_code": mismatch_code,
+            "ndmi_mismatch_params": {}, "daily": daily}
