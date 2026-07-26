@@ -394,7 +394,7 @@ function GapEditor({
           onClick={() =>
             onSave("region", {
               region: guess,
-              economic_region: meta.economic_region ?? suggest?.economic_region ?? undefined,
+              economic_region: meta?.economic_region ?? suggest?.economic_region ?? undefined,
             })
           }
           className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border-[1.5px] border-grass bg-mint-soft px-3 text-[12.5px] font-semibold text-grass-deep disabled:opacity-50"
