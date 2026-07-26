@@ -246,12 +246,173 @@ async def logout(response: Response):
     return {"ok": True}
 
 
+# ---------------------------------------------------------------------------
+# Account self-service: change your password, edit your profile, close your account.
+#
+# None of this existed until now. A live product with real accounts had no way for anyone to change
+# their own password — someone whose password leaked could do nothing about it — and no way to leave.
+# ---------------------------------------------------------------------------
+
+MIN_PASSWORD_LEN = 8
+
+
+@router.post("/change-password")
+async def change_password(body: dict, response: Response,
+                          user_id: str = Depends(get_current_user_id)):
+    """Change the password, proving the current one first.
+
+    Re-issues the session cookie: the JWT itself is untouched by a password change, so without this
+    the caller keeps a valid token and — more to the point — so does anyone else who had one. Rotating
+    here at least gives the legitimate user a fresh session in the same breath."""
+    current = body.get("current_password") if isinstance(body, dict) else None
+    new = body.get("new_password") if isinstance(body, dict) else None
+    if not isinstance(current, str) or not isinstance(new, str):
+        raise HTTPException(status_code=400, detail="invalid_password")
+    if len(new) < MIN_PASSWORD_LEN:
+        raise HTTPException(status_code=400, detail="password_too_short")
+    if new == current:
+        raise HTTPException(status_code=400, detail="password_unchanged")
+
+    async with connection(user_id) as conn:
+        row = await conn.fetchrow(
+            "select password_hash from public.users where id=$1::uuid and deleted_at is null",
+            user_id)
+        if not row:
+            raise HTTPException(status_code=401, detail="unauthorized")
+        if not verify_password(current, row["password_hash"]):
+            # Deliberately its own code: "your current password is wrong" is useful and safe to say
+            # to someone who is already authenticated as this account.
+            raise HTTPException(status_code=403, detail="wrong_password")
+        await conn.execute("update public.users set password_hash=$2 where id=$1::uuid",
+                           user_id, hash_password(new))
+    _set_cookie(response, create_token(user_id))
+    return {"ok": True}
+
+
+@router.patch("/profile")
+async def update_profile(body: dict, user_id: str = Depends(get_current_user_id)):
+    """Edit your own name / country / region. Email is NOT editable here — changing it has to go
+    back through OTP verification, which is a separate flow."""
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail="invalid_profile")
+
+    def _opt_str(key: str, limit: int) -> tuple[bool, str | None]:
+        """(present, value). An absent key leaves the column alone; an empty string clears it."""
+        if key not in body:
+            return False, None
+        v = body.get(key)
+        if v is None:
+            return True, None
+        if not isinstance(v, str):
+            raise HTTPException(status_code=400, detail="invalid_profile")
+        v = v.strip()[:limit]
+        return True, (v or None)
+
+    sets: list[str] = []
+    vals: list = []
+    for key, limit in (("full_name", 120), ("country", 80), ("region", 80)):
+        present, value = _opt_str(key, limit)
+        if present:
+            vals.append(value)
+            sets.append(f"{key}=${len(vals) + 1}")
+    if not sets:
+        raise HTTPException(status_code=400, detail="invalid_profile")
+
+    async with connection(user_id) as conn:
+        row = await conn.fetchrow(
+            f"update public.users set {', '.join(sets)} "
+            "where id=$1::uuid and deleted_at is null "
+            "returning id, email, full_name, locale, is_admin, role, country, region",
+            user_id, *vals)
+    if not row:
+        raise HTTPException(status_code=401, detail="unauthorized")
+    return UserOut(id=str(row["id"]), email=row["email"], full_name=row["full_name"],
+                   locale=row["locale"], is_admin=row["is_admin"], role=row["role"],
+                   country=row["country"], region=row["region"])
+
+
+@router.post("/account/delete")
+async def delete_account(body: dict, response: Response,
+                         user_id: str = Depends(get_current_user_id)):
+    """Close the account. Irreversible.
+
+    Confirmation is the account's own email typed back — a password would be the obvious choice, but
+    it is the one thing a shared or hijacked session already has.
+
+    WHAT ACTUALLY HAPPENS (see db/migrations/0052): the person is erased, the records survive.
+    Fifteen tables reference users with ON DELETE NO ACTION — fields.created_by,
+    organizations.owner_id, sales.created_by and the rest — so a real DELETE fails for any account
+    that ever created anything, and cascading instead would wipe a farm's history because one worker
+    left. Instead every personal column is nulled, the email is rewritten to a non-routable
+    placeholder (which frees the real address for re-registration), the password hash is replaced
+    with a value bcrypt can never produce, and every membership row is deleted so access ends at
+    once.
+
+    REFUSED when the caller still owns an organisation that has other active members: closing then
+    would strand their colleagues' fields behind an owner who no longer exists. They are told to hand
+    the organisation over first."""
+    typed = body.get("email") if isinstance(body, dict) else None
+    if not isinstance(typed, str) or not typed.strip():
+        raise HTTPException(status_code=400, detail="confirm_email_required")
+
+    async with connection(user_id) as conn:
+        row = await conn.fetchrow(
+            "select email from public.users where id=$1::uuid and deleted_at is null", user_id)
+        if not row:
+            raise HTTPException(status_code=401, detail="unauthorized")
+        if typed.strip().lower() != (row["email"] or "").lower():
+            raise HTTPException(status_code=400, detail="confirm_email_mismatch")
+
+        blocking = await conn.fetchval(
+            """select count(*) from public.organizations o
+                where o.owner_id = $1::uuid
+                  and exists (select 1 from public.organization_members m
+                               where m.org_id = o.id and m.user_id <> $1::uuid
+                                 and m.status = 'active')""", user_id)
+        if blocking:
+            raise HTTPException(status_code=409, detail="transfer_ownership_first")
+
+        async with conn.transaction():
+            # Orgs where this person was the only member become unreachable, and their fields would
+            # otherwise keep the satellite pipeline and the crons working forever on data nobody can
+            # ever open. Retire them (soft-delete — the same flag the delete-a-field flow uses).
+            await conn.execute(
+                """update public.fields f set deleted_at = now()
+                    where f.deleted_at is null
+                      and f.org_id in (
+                        select o.id from public.organizations o
+                         where o.owner_id = $1::uuid
+                           and not exists (select 1 from public.organization_members m
+                                            where m.org_id = o.id and m.user_id <> $1::uuid
+                                              and m.status = 'active'))""", user_id)
+            await conn.execute("delete from public.organization_members where user_id=$1::uuid",
+                               user_id)
+            # '!' is not a valid bcrypt hash, so verify_password returns False for every input
+            # rather than raising — the account cannot be logged into by any password, including a
+            # future collision.
+            await conn.execute(
+                """update public.users set
+                     email = 'deleted+' || id::text || '@agradex.invalid',
+                     password_hash = '!', full_name = null, country = null, region = null,
+                     onboarding = null, notify_prefs = null, otp_code = null, otp_expires_at = null,
+                     is_active = false, email_lifecycle = false, deleted_at = now()
+                   where id=$1::uuid""", user_id)
+
+    response.delete_cookie(settings.cookie_name, path="/", domain=settings.cookie_domain or None)
+    return {"ok": True}
+
+
 @router.get("/me", response_model=UserOut)
 async def me(user_id: str = Depends(get_current_user_id)):
     async with connection(user_id) as conn:
+        # `and deleted_at is null` logs a closed account out everywhere. The JWT stays valid for its
+        # remaining lifetime and get_current_user_id deliberately does NOT hit the database (that
+        # would put a query on every authenticated request), so this is what ends the session on a
+        # second device: /me 401s and the client clears itself. Org-scoped data was already out of
+        # reach the moment the memberships were deleted — require_member finds nothing.
         row = await conn.fetchrow(
             "select id, email, full_name, locale, is_admin, role, country, region "
-            "from public.users where id=$1::uuid", user_id)
+            "from public.users where id=$1::uuid and deleted_at is null", user_id)
         # Activity signal for lifecycle/re-engagement emails; throttled to ~1/hour to avoid churn.
         await conn.execute(
             "update public.users set last_seen_at=now() where id=$1::uuid "
