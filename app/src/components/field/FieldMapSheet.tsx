@@ -11,50 +11,24 @@
 // resize, so we keep it in normal flow where DisplayMap paints on first mount.
 //
 // Ships behind ?ui=v2 (now the default UI). A camera FAB (D2.6) jumps to photo diagnosis.
-import { useEffect, useState } from "react";
-import { Camera, Layers } from "lucide-react";
-import { DisplayMap } from "@/components/FieldMap";
-import { api } from "@/lib/api";
-import { SENSOR_PARAM } from "@/lib/sensors";
-import { useDataSaver } from "@/lib/dataSaver";
+import { Camera } from "lucide-react";
 import { t } from "@/lib/i18n";
-import type { FieldDetail, RasterScenes } from "@/lib/types";
+import type { FieldDetail } from "@/lib/types";
 
 export default function FieldMapSheet({
-  field,
   header,
   tabNav,
   onCamera,
   children,
 }: {
+  // Still accepted from the field page, but this wrapper no longer reads it: the map (and its
+  // raster fetch) moved into SatelliteGlance, so nothing here needs the field data.
   field: FieldDetail;
   header: React.ReactNode;
   tabNav: React.ReactNode;
   onCamera?: () => void;
   children: React.ReactNode;
 }) {
-  const [rasterUrl, setRasterUrl] = useState<string | null>(null);
-  const dataSaver = useDataSaver();
-  const [forceRaster, setForceRaster] = useState(false);
-
-  // Latest Sentinel-2 NDVI raster for the map overlay (falls back to HLS inside the endpoint).
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        const sc = await api.get<RasterScenes>(
-          `/api/fields/${field.id}/scenes?index=NDVI&sensor=${SENSOR_PARAM.S2}`,
-        );
-        if (active) setRasterUrl(sc?.scenes?.[0]?.tile_url ?? null);
-      } catch {
-        /* no snapshot yet */
-      }
-    })();
-    return () => {
-      active = false;
-    };
-  }, [field.id]);
-
   return (
     <div className="space-y-4">
       {/* Field title / score / edit — above the map so the farmer knows the field first. */}
