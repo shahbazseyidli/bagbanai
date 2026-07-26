@@ -4,7 +4,11 @@
 > Dizayn tokenləri: `ONESOIL_DESIGN_SYSTEM.md` · Strateji nəticələr: `ONESOIL_MOBILE_TEARDOWN.md` · Bizim qarşılıqlar: `ONESOIL_VS_AGRADEX.md`
 >
 > **Əhatə dairəsi:** app-ın **daxili** bütün ekranları gəzildi. Xarici brauzerə çıxan sətirlər (`Web version features`, `Updates history`, `Support chat`, `User Guide`, `Telegram community`, `Privacy policy`, `Terms of Use`) qəsdən açılmadı — onlar app ekranı deyil, veb səhifədir; `Share app` sistem paylaşma vərəqidir.
-> **Əlçatmaz qalan:** pullu funksiyaların **içi** (Monitoring/AI Agronomist alınmayıb — yalnız upsell ekranları sənədləşdirilib; abunə almaq mənə qadağandır), çoxlu sahəsi/qrupu olan hesabın görünüşü (test hesabında 1 sahə var).
+> **Əlçatmaz qalan (yalnız 2 şey):**
+> 1. **Pullu funksiyaların içi** — Monitoring və AI Agronomist alınmayıb, yalnız upsell ekranları sənədləşdirilib. Abunə almaq mənə qadağandır.
+> 2. **Qruplu / çox-sahəli görünüş** — hesabda 2 sahə var, qrup yaradılmayıb; `Group` menyusu `No groups` göstərir. Qrup başlıqlarının real davranışı görülməyib.
+>
+> **Qalan hər şey gəzildi** — pre-auth, qeydiyyat, giriş, uçdan-uca ilk sahə yaradılması (BBCH və məhsul kataloqu daxil), bütün 5 tab, bütün alt-menyular, `Labels` dropdown-un tam siyahısı, sıralama variantları, vahid sistemləri.
 >
 > ⚠️ **Qeydiyyat axını üçün əlavə qeyd:** istifadəçi qəsdən logout etdi və pre-auth axını **tam gəzildi** (bax §0 aşağıda). **Hesab yaradılmadı və heç bir parol yazılmadı** — bu mənə qadağandır; ekranlar, sahələr və razılıq mexanizmi struktur olaraq sənədləşdirilib. Anonim halda sahə yaratma axınına **girilib**, amma **saxlanmayıb** — ona görə "saxlama addımı qeydiyyat tələb edirmi?" sualı **yoxlanılmamış qalır**.
 
@@ -70,6 +74,8 @@ Sonra yaşıl `Create account` · `Or continue with` → Google · boz `Sign in`
 
 ★ **Ad, telefon, ölkə sahəsi YOXDUR** — qeydiyyat cəmi **2 sahə + 2 razılıq**. Maksimum az sürtünmə.
 
+⚠️ **Canlı müşahidə — SSO hesab ayrılığı:** Google ilə giriş edildi və **başqa workspace açıldı** (`mirshahbazseyidli@gmail.com`), halbuki əvvəlki hesab `seyidlimirshahbaz@gmail.com` idi. Sahələr görünmədi. Yəni **email+parol hesabı ilə Google hesabı avtomatik birləşmir** — eyni adam iki ayrı workspace ilə qala bilər. Bizdə SSO əlavə edilsə, **email üzrə hesab birləşdirmə** qaydası əvvəlcədən həll olunmalıdır.
+
 ## A3 · Profile tabı (hesabsız)
 Başlıqda upsell bloku:
 > **`Keep your fields safe`**
@@ -100,6 +106,50 @@ Tam işləyir. **Fərqli basemap:** tünd/söndürülmüş dünya xəritəsi (Ma
 ## A7 · Sahə əlavə etmə (hesabsız)
 `Select | Draw` seqmenti açılır, alt-mərkəzdə zoom ikonu + **`Zoom-in to select fields`** ipucu.
 ⚠️ **Saxlama addımı yoxlanılmadı** — sahə yaratmaq istifadəçinin hesabında data yaratmaq demək olardı.
+
+---
+
+# §00 · İLK SAHƏ SƏYAHƏTİ (uçdan-uca, canlı çəkilib)
+
+> Yeni hesabda sıfırdan sahə yaradıldı və **hər addım çəkildi**. Bu, məhsulun ən vacib 3 dəqiqəsidir.
+
+| # | Ekran | Nə görünür |
+|---|---|---|
+| 1 | Boş xəritə | mavi `＋ Add fields` CTA |
+| 2 | `Select \| Draw` | alt-mərkəzdə **`Zoom-in to select fields`** ipucu (uzaqda) |
+| 3 | Yaxınlaşdı | ipucu itir, kontur gözlənilir *(AZ-də gəlmir)* |
+| 4 | `Draw` — çəkilir | **`Finish field boundary` / `Area 0.3 ha`** |
+| 5 | `Draw` — davam | sahə **canlı yenilənir**: `Area 1.1 ha` |
+| 6 | Seçim tamam | **`Continue with selected fields` / `Total area: 1.6 ha`** |
+| 7 | Adlandırma | `Selected fields` · ad inputu · `Select crop` |
+| 8 | Məhsul seçici | axtarış + təkliflər + `All crops` |
+| 9 | Məhsul axtarışı | `hazel` → **`Common hazel`** tapılır |
+| 10 | İnkişaf mərhələsi | **BBCH seçicisi** |
+| 11 | `Add crop` | məhsul · sort/hibrid · əkin tarixi · BBCH · **`Add multi-crop`** |
+| 12 | Siyahı | `test sahə · 1.6 ha · **No cloud-free image**` |
+| 13 | Siyahı (bir neçə saniyə sonra) | `test sahə · 1.6 ha · **0.53**` |
+| 14 | Sahə detalı | tam ekran, `History` lentində `Jul 26 · 0.53` |
+
+## ⭐ Çəkmə (Draw) UX-i — komponent detalları
+- Sol kənarda **tək tünd pill içində iki alət**: poliqon və **dairə** (pivot sahələr üçün)
+- Təpə nöqtələri **bərk ağ dairələr**; hər kənarın **ortasında yarı-şəffaf dairə** = "buraya nöqtə əlavə et" tutacağı
+- **`Undo` üzən tünd pill** (sol-alt), panel ikonu deyil
+- ★ **Sahə ölçüsü əsas düymənin İÇİNDƏ, ikinci sətirdə** — `Finish field boundary` / `Area 1.1 ha`. Nə saxlayacağını heç vaxt itirmirsən.
+- İki üsul birlikdə işləyir: **birbaşa toxunmaq** və ya **sabit mərkəz nişanı + düymə**
+
+## ⭐ Data gözləmə — **saniyələr, dəqiqələr yox**
+Sahə siyahısı əvvəlcə **`No cloud-free image`** göstərdi, **bir neçə saniyə sonra `0.53`** oldu. Ayrıca "hazırlanır" ekranı, proqres barı, ETA **YOXDUR** — ehtiyac da qalmır.
+
+⚠️ **Bizim ən böyük struktur fərqimiz budur.** Bizdə sahə `data_status='queued'` olur, cron **hər 2 dəqiqədən bir** işləyir, sonra geo pipeline emal edir; istifadəçiyə proqres bar + ETA göstərilir (`deploy/process-queue.sh`). Fermerin ilk təəssüratı "gözlə" olur, onlarda "al, hazırdır".
+
+## Məhsul kataloqu
+Axtarış + **təkliflər** qrupu + `All crops` əlifba siyahısı. Siyahı **çox genişdir və ağac/qoz-fındıq da daxildir** (`Almond`, `Apple`, `Apricot`, `Avocado`, `Common hazel`, `Arolla pine`) — halbuki öz FAQ-larında "nuts/fruit üçün az uyğundur" yazırlar.
+*(Keyfiyyət qüsurları: `Alfaalfa` yazılış səhvi; `Gum arabic` əlifba sırasını pozub birinci gəlir.)*
+
+## ⭐ BBCH inkişaf mərhələsi seçicisi
+Fazalara qruplaşdırılıb (`Germination` 00–09 · `Leaf development` 10+ · …). Hər sətir: **yuvarlaq-kvadrat kod nişanı** (`00`, `01`…) + `BBCHxx` etiketi. **Keçilmiş mərhələnin sağında TARİX yazılır** (`BBCH00 · Jul 26, 2026`) — yəni fenologiya jurnalı yığılır.
+
+⚠️ **Zəiflik = bizim şansımız:** etiketlər sadəcə `BBCH01`, `BBCH02` — insan izahı yoxdur, yalnız qrup başlıqları insanidir. Fermer `BBCH05`-in nə olduğunu bilmir. Bizdə **azərbaycanca izahla** üstün ola bilərik.
 
 ---
 
@@ -150,6 +200,15 @@ Seçili olan açıq boz kapsul alır.
 ## M6 · Labels dropdown
 `Average NDVI` seçicisi — poliqon üzərindəki etiketi dəyişir. *(Tam siyahısı açılmadı.)*
 
+## M6b · `Labels` dropdown — **tam siyahı (13 seçim)**
+Xəritədəki poliqonun üzərinə hansı rəqəmin/mətnin yazılacağını seçir:
+
+`No label` · `Field name` · `Crop` · `Area` · `Planting date` · `Harvesting date` · `Yield` · **`Stable Area`** · `Average NDVI` · `Heterogenity NDVI` · `Average NDWI` · `Last image date`
+
+★ Etiket **təkcə indeks deyil** — aqro-menecment metrikləri də (əkin/biçin tarixi, məhsuldarlıq, məhsul adı) poliqonun üzərinə yazıla bilir. `Stable Area` bizdə olmayan anlayışdır (sahənin sabit davranan hissəsi).
+
+⚠️ **Sahə daxilindəki qat vərəqi REDUKSİYA olunub:** yalnız **5 qat** (`No Fill` · `Satellite image` · `Vegetation` · `Productivity` · `Moisture`) — **`Crop` qatı və `Labels` sətri YOXDUR**, çünki onlar yalnız çox-sahəli kontekstdə məna daşıyır. Kontekstə görə menyu azaltma nümunəsi.
+
 ## M7 · Sahə əlavə et — `Select` rejimi
 Ağ ✕ (sol-üst) · tünd seqment pill **`Select | Draw`** · axtarış (sağ-üst).
 Mövcud sahə **yaşıl dolğu** ilə işarələnir.
@@ -196,6 +255,10 @@ Ağ dairəvi ← (sol-üst) · başlıq xəritə üzərində mərkəzdə · xər
 ## M13 · Sahə `⋮` menyusu
 `Show on map` · `Rename` · `Edit boundaries` · `Share field` · `Remove`
 
+★ **`Edit boundaries` var** — sərhəd yaradıldıqdan SONRA da dəyişdirilə bilir.
+★ **`Share field`** ayrıca app ekranı açmır — **birbaşa Android sistem paylaşma vərəqini** çağırır (`com.android.intentresolver`). Yəni link generasiyası arxa fondadır, istifadəçi dərhal "kimə göndərim?" sualına düşür. Sürtünmə minimumdur.
+*(Paylaşma vərəqinin özü çəkilmədi — orada istifadəçinin şəxsi kontaktları görünür.)*
+
 ## M14 · Məhsul redaktəsi (`Add crop`)
 Məhsul dropdown · `Specify variety/hybrid` · `Planting date` \| `Growth stage` (iki sütun) · `Harvest date` · `Remove crop` \| **`Add multi-crop`**
 ★ Bir sahədə **çox məhsul** dəstəklənir.
@@ -222,6 +285,21 @@ Başlıq `AI Agronomist`, alt sətir `1.1 ha • Field 1`, sonra **7 vəd**:
 - Qrup başlığı (`No groups`) + **qrupun ümumi sahəsi sağda** (`1.1 ha`)
 - Sətir: **52×52 dp sahə-formalı thumbnail** · ad · sahə · sağda **dəyər + qradiyent mövqe zolağı**
 - **Qat pill-i bottom nav-ın üstündə üzür** — qatı dəyişəndə sətirlərdəki rəqəm dəyişir
+
+### F1a · Başlıq ikonları
+`Axtarış` · `Əlavə et` (→ `Select \| Draw` rejimi) · `⋮`
+*(Qeyd: `uiautomator` axtarış ikonunu səhvən `Save` adlandırır — əslində axtarışdır.)*
+
+### F1b · `⋮` menyusu — siyahı konfiqurasiyası (əməliyyat DEYİL)
+| Parametr | Cari | Variantlar |
+|---|---|---|
+| **Group** | `No groups` | qruplar |
+| **Sort order** | `By name` | **8 variant** ↓ |
+| **Sort direction** | `A → Z` | tərs |
+
+**Sort order 8 variantı:** `By name` · `By NDVI` · `By NDWI` · `By yield` · `By planting date` · `By harvesting date` · `By crop` · `By productivity`
+
+★ Sıralama **aqronomik metriklərlə** aparılır — "ən pis NDVI birinci" bir toxunuşla alınır. Bu, çox sahəsi olan fermer/aqronom üçün əsas iş rejimidir.
 
 ---
 
@@ -259,11 +337,25 @@ Başlıq: loqo · **`My fields`** (workspace adı) · **`Workspace owner`** (rol
 ## P2 · My account
 `Change email` (cari ünvanı göstərir) · `Change password` · `Delete account` · **`Sign out`**
 
+## P1a · `Switch workspace` vərəqi
+Profil başlığındakı ⌄ açır: sürükləmə dəstəyi · **`Switch workspace`** başlığı · workspace siyahısı (`My fields`, yanında status ikonu).
+★ Workspace **birinci dərəcəli anlayışdır** — bizim `organization`-a uyğundur, amma onlarda mobil UI-da açıq şəkildə dəyişdiricisi var.
+
 ## P3 · Settings
 - **`Language`** → 17 dil
 - **`Unit system`** → `Metric`
 - Bölmə **`Recommendations`** — **3 push bildiriş keçidi**:
   `Vegetation index updates` · `Recommendations` · `New features`
+
+### P3a · `Unit system` — 3 preset, vahidlər açıq yazılıb
+| Preset | Etiket |
+|---|---|
+| Metric | `Metric: kg, ha, m/s, mm, °C` |
+| Imperial | `Imperial: lb, ac, mph, in, °F` |
+| Canada | `Canada: lb, bu, ac, km, °C` |
+
+★ **İki dərs:** (1) preset **regionla adlandırılıb** (`Canada`), abstrakt sistem adı ilə yox; (2) **hansı vahidləri alacağın etiketin içində yazılıb** — seçim şansa qalmır.
+⚠️ **`dönüm`/`sotka` YOXDUR** — bizim `app/src/lib/units.ts` bu nöqtədə Türkiyə və post-sovet bazarı üçün onlardan öndədir.
 
 ## P4 · Dil siyahısı — **17 dil, Azərbaycan dili YOXDUR**
 `Čeština · Deutsch · English · Español · Français · Italiano · Magyar · Polski · Português · Română · Tagalog · Türkçe · Български · Русский · Українська · Ελληνικά · العربية`
