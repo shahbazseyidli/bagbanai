@@ -1264,6 +1264,14 @@ export const az = {
   "app.field.fieldOnboarding.step3Title": "Ətraflı məlumat (istəyə bağlı)",
   "app.field.fieldOnboarding.step4Title": "Təsdiq",
   "app.field.fieldOnboarding.treeSpacing": "Ağac aralığı",
+  // Short-horizon index projection (services/app/ai/forecast.py). The backend names the METHOD;
+  // the sentence that names it to the farmer lives here, one per rung of the ladder.
+  "app.field.forecast.trend": "Proqnoz: son {days} günün gedişinə görə",
+  "app.field.forecast.ownHistory": "Proqnoz: bu sahənin {seasons} keçmiş mövsümünə görə",
+  "app.field.forecast.peers": "Proqnoz: eyni bitkinin qonşu sahələrinə görə",
+  "app.field.forecast.disclaimer": "Proqnoz indiki gedişi davam etdirir — vəd deyil; zolaq isə nəticənin nə qədər qeyri-müəyyən olduğunu göstərir.",
+  "app.field.forecast.line": "Proqnoz",
+  "app.field.forecast.band": "Proqnoz aralığı",
   "app.field.harvestTab.copyTraceAria": "İzləmə kodunu kopyala",
   "app.field.harvestTab.dateLabel": "Yığım tarixi",
   "app.field.harvestTab.deleteAria": "Yığımı sil",

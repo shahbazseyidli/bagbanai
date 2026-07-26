@@ -26,6 +26,7 @@ import {
   type IndexNorms,
 } from "@/lib/indexStatus";
 import StatusChip from "@/components/StatusChip";
+import { forecastMethodLabel } from "@/lib/wellnessText";
 import { useFieldDataStatus } from "@/lib/useFieldDataStatus";
 import type {
   FieldDetail, IndexPoint, IndexSeries, IndexBenchmark, RasterScene, RasterScenes,
@@ -43,7 +44,26 @@ type Scene = RasterScene & {
 };
 type ScenesResponse = Omit<RasterScenes, "scenes"> & { scenes: Scene[] };
 
+// GET /api/fields/{id}/forecast — the dotted continuation of the series (services/app/ai/
+// forecast.py). Declared here rather than in types.ts for the same reason as Scene above.
+// `method: null` with `points: []` is the normal answer on a field the ladder cannot serve.
+interface ForecastPoint { date: string; value: number; lo: number; hi: number; }
+interface ForecastResponse {
+  index?: string;
+  method: "own_history" | "peers" | "trend" | null;
+  method_params?: Record<string, unknown> | null;
+  horizon_days?: number;
+  anchor?: { date: string; value: number } | null;
+  points?: ForecastPoint[] | null;
+}
+
 const SUMMARY_INDICES = ["NDVI", "NDRE", "NDMI", "NDWI", "EVI", "SAVI", "NBR"];
+
+// The projection is drawn in a WASHED-OUT tint of the measured line's colour, never in the colour
+// itself: the eye should read it as the same quantity, and the dashes plus the pallor should make
+// it impossible to mistake for a scene that actually exists.
+const FORECAST_LINE = "#93c5fd"; // blue-300 against the S2 line's blue-600
+const FORECAST_BAND = "#dbeafe"; // blue-100
 
 function weekKey(dateStr: string): string {
   const d = new Date(`${dateStr}T00:00:00Z`);
@@ -127,6 +147,7 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
   const [index, setIndex] = useState("NDVI");
   const [series, setSeries] = useState<IndexPoint[] | null>(null);
   const [benchmark, setBenchmark] = useState<Record<string, { p50: number; p10?: number; p90?: number }>>({});
+  const [forecast, setForecast] = useState<ForecastResponse | null>(null);
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [noData, setNoData] = useState(false); // this sensor has no rasters (ignoring fallback)
   const [sceneIdx, setSceneIdx] = useState(0);
@@ -156,28 +177,36 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
     effectiveStatus === "queued" || effectiveStatus === "processing" || effectiveStatus === "partial";
   const ready = status?.status === "ready";
 
-  // Time series (both sensors, tagged) + regional benchmark.
+  // Time series (both sensors, tagged) + regional benchmark + short-horizon projection. All three
+  // feed the one chart below, so they are fetched together and the chart is drawn once.
   useEffect(() => {
     let active = true;
     setLoading(true);
     (async () => {
       try {
-        const [ser, bm] = await Promise.all([
+        const [ser, bm, fc] = await Promise.all([
           api.get<IndexSeries>(`/api/fields/${field.id}/indices?index=${index}`),
           api.get<IndexBenchmark>(`/api/fields/${field.id}/indices/benchmark?index=${index}`).catch(() => null),
+          // Optional: a failed/absent forecast must cost the chart nothing.
+          api.get<ForecastResponse>(
+            `/api/fields/${field.id}/forecast?index=${index}&sensor=${SENSOR_PARAM[sensor]}`,
+          ).catch(() => null),
         ]);
         if (!active) return;
         setSeries(ser?.series ?? []);
         const bench: Record<string, { p50: number; p10?: number; p90?: number }> = {};
         for (const p of bm?.series ?? []) bench[weekKey(p.date)] = { p50: p.mean, p10: p.p10, p90: p.p90 };
         setBenchmark(bench);
+        // Only a NAMED method is kept. A projection whose provenance we cannot put on a chip is
+        // not drawn at all — see forecastMethodLabel().
+        setForecast(fc?.method ? fc : null);
       } catch {
         if (!active) return;
-        setSeries([]); setBenchmark({});
+        setSeries([]); setBenchmark({}); setForecast(null);
       } finally { if (active) setLoading(false); }
     })();
     return () => { active = false; };
-  }, [field.id, index, ready]);
+  }, [field.id, index, sensor, ready]);
 
   // Map raster scenes for THIS sensor only — fallback to the other family is suppressed so a
   // dedicated sensor tab never shows the wrong sensor's raster.
@@ -270,6 +299,21 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
     }),
     [visibleScenes]);
 
+  // The projection is only allowed onto the chart when it actually continues THE LINE ON SCREEN.
+  //
+  // The backend treats ?sensor= as a PREFERENCE: if S2 has too few usable scenes it fits on HLS
+  // instead and says so in method_params.sensor. The chart, meanwhile, filters the measured series
+  // to one family. Drawing an HLS fit under an S2 line would float the dotted line free of the solid
+  // one and re-introduce, at the presentation layer, exactly the 10m/30m mixing the fit itself
+  // forbids. A method this build cannot name is dropped for the same reason it is never drawn: a
+  // projection whose provenance we cannot state is what a farmer mistakes for a measurement.
+  const activeForecast = useMemo(() => {
+    if (!forecast?.method || !(forecast.points?.length)) return null;
+    if (forecastMethodLabel(forecast.method, forecast.method_params) == null) return null;
+    if (forecast.method_params?.sensor !== SENSOR_PARAM[sensor]) return null;
+    return forecast;
+  }, [forecast, sensor]);
+
   // Pivot the two-sensor series → this sensor's line + weekly benchmark.
   const chartData = useMemo(() => {
     const byDate = new Map<string, Record<string, unknown>>();
@@ -282,7 +326,7 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
       byDate.set(p.date, row);
     }
     const hasBench = Object.keys(benchmark).length > 0;
-    return Array.from(byDate.values())
+    const rows: Record<string, unknown>[] = Array.from(byDate.values())
       .sort((a, b) => (String(a.date) < String(b.date) ? -1 : 1))
       .map((r) => {
         const b = benchmark[weekKey(String(r.date))];
@@ -293,10 +337,42 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
           benchBand: hasBench && b?.p10 != null && b?.p90 != null ? [b.p10, b.p90] : null,
         };
       });
-  }, [series, benchmark, sensor]);
+
+    // The projection rides on its OWN keys, so `mean` still stops at the last scene and nothing
+    // measured is ever synthesised. points[0] IS the anchor — the same date and value as the last
+    // usable measurement — so that first projected point lands on an EXISTING row and the dotted
+    // line starts on the solid one instead of floating beside it.
+    const points = activeForecast?.points ?? [];
+    if (points.length > 0) {
+      const byKey = new Map<string, Record<string, unknown>>(
+        rows.map((r) => [String(r.date), r] as [string, Record<string, unknown>]));
+      for (const p of points) {
+        if (p?.date == null || p.value == null) continue;
+        const patch = {
+          forecast: p.value,
+          forecastBand: p.lo != null && p.hi != null ? [p.lo, p.hi] : null,
+        };
+        const row = byKey.get(p.date);
+        if (row) { Object.assign(row, patch); continue; }
+        const added: Record<string, unknown> = { date: p.date, benchmark: null, benchBand: null, ...patch };
+        rows.push(added);
+        byKey.set(p.date, added);
+      }
+      // A cloudy scene AFTER the anchor stays in the measured series, so the appended future dates
+      // are not guaranteed to be the largest. Re-sort rather than assume.
+      rows.sort((a, b) => (String(a.date) < String(b.date) ? -1 : 1));
+    }
+    return rows;
+  }, [series, benchmark, sensor, activeForecast]);
 
   const hasBenchmark = Object.keys(benchmark).length > 0;
-  const hasSeries = chartData.length > 0;
+  // Measurements, not rows: chartData can contain projected rows, and a chart made of nothing but
+  // a dotted line must still fall through to the "no data yet" placeholder.
+  const hasSeries = (series ?? []).some((p) => sensorFamily(p.sensor) === sensor);
+
+  // The chip names the method that produced the projection; without a name, nothing is drawn.
+  const forecastLabel = forecastMethodLabel(activeForecast?.method, activeForecast?.method_params);
+  const hasForecast = activeForecast != null;
 
   // The pixel-count thresholds themselves stay in hectares (they come from the sensor's ground
   // resolution); only the number shown to the farmer is converted.
@@ -386,6 +462,16 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
           ) : !hasSeries ? (
             <Placeholder>{t("idx.noData")}</Placeholder>
           ) : (
+            <>
+            {hasForecast && (
+              <div className="mb-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">
+                  <span className="inline-block w-4 border-t-2 border-dashed" style={{ borderColor: FORECAST_LINE }} />
+                  {forecastLabel}
+                </span>
+                <p className="mt-1 text-[11px] text-slate-400">{t("app.field.forecast.disclaimer")}</p>
+              </div>
+            )}
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={chartData} margin={{ top: 5, right: 8, bottom: 5, left: -12 }}>
@@ -399,6 +485,12 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
                     <Area type="monotone" dataKey="benchBand" name={t("app.field.satelliteTab.regionSpread")}
                       fill="#fef3c7" stroke="none" connectNulls isAnimationActive={false} />
                   )}
+                  {/* Projection uncertainty, drawn behind the lines like the district spread. It
+                      widens with horizon on purpose — the further out, the less the method knows. */}
+                  {hasForecast && (
+                    <Area type="monotone" dataKey="forecastBand" name={t("app.field.forecast.band")}
+                      fill={FORECAST_BAND} stroke="none" connectNulls isAnimationActive={false} />
+                  )}
                   {/* In-field p10–p90 spread. Written for every sensor by persist_scene, so this is
                       no longer gated on HLS — that gate would have deleted the band from the UI the
                       moment NASA stopped being shown. */}
@@ -410,6 +502,11 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
                   )}
                   <Line type="monotone" dataKey="mean" name={meta.short}
                     stroke={meta.color} strokeWidth={2} dot={{ r: 2, fill: meta.color }} connectNulls />
+                  {/* Dashed, dotless and pale — everything about it says "not a measurement". */}
+                  {hasForecast && (
+                    <Line type="monotone" dataKey="forecast" name={t("app.field.forecast.line")}
+                      stroke={FORECAST_LINE} strokeWidth={2} strokeDasharray="4 3" dot={false} connectNulls />
+                  )}
                 </ComposedChart>
               </ResponsiveContainer>
               <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500">
@@ -429,8 +526,19 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
                     </span>
                   </>
                 )}
+                {hasForecast && (
+                  <>
+                    <span className="inline-flex items-center gap-1">
+                      <span className="inline-block w-4 border-t-2 border-dashed" style={{ borderColor: FORECAST_LINE }} /> {t("app.field.forecast.line")}
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <span className="inline-block h-2.5 w-4 rounded-sm" style={{ background: FORECAST_BAND }} /> {t("app.field.forecast.band")}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
+            </>
           )}
         </div>
 

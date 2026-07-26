@@ -29,6 +29,34 @@ export function severityLabel(code: string): string {
   return s === key ? code : s;
 }
 
+// ── Index forecast ─────────────────────────────────────────────────────────────────────────────
+
+// GET /api/fields/{id}/forecast names the METHOD that produced the projection (services/app/ai/
+// forecast.py, the own_history → peers → trend ladder) and hands over its raw params. Which of the
+// three sentences the farmer reads, and in which language, is decided here — the backend never
+// writes that sentence.
+const FORECAST_METHOD_KEY: Record<string, string> = {
+  trend: "app.field.forecast.trend",
+  own_history: "app.field.forecast.ownHistory",
+  peers: "app.field.forecast.peers",
+};
+
+/**
+ * The chip label for a forecast method, or null when there is nothing honest to say.
+ *
+ * null covers both `method: null` (no rung qualified — the expected answer on a young field) and a
+ * method this build does not know yet. Both must draw NOTHING: a projection whose provenance the UI
+ * cannot name is exactly the kind of line a farmer would mistake for a measurement.
+ */
+export function forecastMethodLabel(
+  method: string | null | undefined,
+  params: Params,
+): string | null {
+  const key = FORECAST_METHOD_KEY[(method || "").trim()];
+  if (!key) return null;
+  return tf(key, (params ?? {}) as Record<string, unknown>);
+}
+
 // ── Field Wellness ─────────────────────────────────────────────────────────────────────────────
 
 /**

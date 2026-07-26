@@ -438,6 +438,32 @@ async def benchmark(field_id: str, index: str = Query("NDVI"),
     }
 
 
+@router.get("/{field_id}/forecast")
+async def forecast(field_id: str, index: str = Query("NDVI"), sensor: str = Query("s2"),
+                   user_id: str = Depends(get_current_user_id)):
+    """Short-horizon projection of `index` — the dotted continuation the chart draws after the last
+    measurement (ai/forecast.py). Lives next to the series endpoint because it answers the same
+    question one step further out, from the same index_stats rows.
+
+    `method` is null with `points: []` whenever the data cannot support a projection, and that is a
+    normal answer, not an error: the chart then simply ends at the last scene. `index` accepts the
+    same names as the series endpoint (unknown ones just have no rows → method null)."""
+    from .. import tiers
+    from ..ai import forecast as forecast_mod
+    fam = _validate_sensor(sensor) or "s2"
+    async with connection(user_id) as conn:
+        org_id = await _org_of_field(conn, field_id)
+        await require_member(conn, user_id, org_id)
+        # The peers rung aggregates OTHER orgs' fields — the same cross-field data the regional
+        # benchmark sells at the business tier (T10). Gating it here keeps one commercial rule for
+        # one dataset; a blocked rung falls through to the trend, so the chart is never empty
+        # because of a tier.
+        peers_allowed = tiers.allows(await tiers.org_tier(conn, org_id), "benchmark")
+        result = await forecast_mod.forecast(conn, field_id, index=index, sensor=fam,
+                                             peers_allowed=peers_allowed)
+    return {"index": index, **result}
+
+
 @router.get("/{field_id}/indices")
 async def series(field_id: str, index: str = Query("NDVI"),
                  from_: Optional[str] = Query(None, alias="from"),
