@@ -2803,7 +2803,17 @@ export const az = {
 } as const;
 
 export type I18nKey = keyof typeof az;
-export type Dict = Partial<Record<I18nKey, string>>;
+
+/**
+ * A locale's strings: every az key, plus any plural form.
+ *
+ * The plural escape hatch exists because languages do not agree on how many forms there are.
+ * Azerbaijani keeps the singular after a numeral, so az declares only `app.plural.fields.other` —
+ * and if I18nKey were the whole of Dict, Russian could not declare the three forms its grammar
+ * requires. tp() reads these at runtime through tf(), which takes plain strings.
+ */
+type PluralForms = { [K in `app.plural.${string}`]?: string };
+export type Dict = Partial<Record<I18nKey, string>> & PluralForms;
 
 // Phase 4 / P1.1 — 8 locales. az is the complete source of truth; the rest fall back to az for any
 // missing key. Translations live in lib/locales/{en,ru,tr,de,hu,it,pl}.ts. ru is a launch-tier
