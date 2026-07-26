@@ -1317,7 +1317,7 @@ export const de: Dict = {
   "app.field.fieldOnboarding.importButton": "Import (GeoJSON/KML/Shapefile)",
   "app.field.wellnessCard.satelliteLabel": " · Satellit: ",
   "app.field.soilLabUpload.gateSubtitle": "Wechseln Sie zu Paket 3, um Bodenlaborberichte mit AI zu digitalisieren.",
-  "app.field.weatherHistoryTab.frostFreePeriodDays": "Tage frostfreie Periode",
+  "app.field.weatherHistoryTab.frostFreePeriod": "frostfreie Periode",
   "app.shell.fieldListPanel.sortAria": "Sortierung",
   "app.field.fieldOnboarding.step4Title": "Bestätigung",
   "app.field.seasonTab.makeCurrentBtn": "Als aktuell festlegen",

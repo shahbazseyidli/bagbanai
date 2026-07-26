@@ -137,6 +137,12 @@ export default function OnboardingQuiz() {
   /** Back to question one. Resetting the save state matters: without it a retake would keep showing
    *  the previous "saved" line and never POST the new answers. */
   function restart() {
+    // Retire the in-flight attempt FIRST. Without this bump, a POST still running from the previous
+    // pass passes its own `attemptRef.current !== attempt` guard, flips saveState to "saved" and
+    // calls clearAnswers() — wiping the answers the visitor is at that moment retyping, since
+    // update() writes every keystroke back through saveAnswers(). The effect's `saveState !== "idle"`
+    // guard then refuses to run again, so the retake is silently never saved.
+    attemptRef.current += 1;
     setSaveState("idle");
     setApplied(0);
     setStep(0);

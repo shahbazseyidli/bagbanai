@@ -592,9 +592,11 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
               instead, so the eye still binds line → button. Guards mirror the buttons' own render
               guards exactly — a hint can never appear without the control it explains. Once
               compare is engaged, compareHint below takes over and says how to USE it; never both. */}
-          {(contrastAvailable || (visibleScenes.length >= 2 && !compare)) && (
+          {((contrastAvailable && !contrast) || (visibleScenes.length >= 2 && !compare)) && (
             <div className="mb-3 space-y-1">
-              {contrastAvailable && (
+              {/* !contrast, like the compare line below: a hint that explains why to turn something
+                  on has nothing to say once it IS on. */}
+              {contrastAvailable && !contrast && (
                 <ModeHint icon={<Contrast className="mt-0.5 h-3 w-3 shrink-0" />}
                   text={t("app.field.satelliteTab.contrastWhy")} />
               )}

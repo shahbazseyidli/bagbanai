@@ -1662,7 +1662,7 @@ export const az = {
   "app.field.weatherHistoryTab.frostCalculating": "Şaxta tarixçəsi hesablanır…",
   "app.field.weatherHistoryTab.frostDatesHeading": "Bölgənin şaxta tarixləri",
   "app.field.weatherHistoryTab.frostFreeDays": "Şaxtasız günlər",
-  "app.field.weatherHistoryTab.frostFreePeriodDays": "gün şaxtasız dövr",
+  "app.field.weatherHistoryTab.frostFreePeriod": "şaxtasız dövr",
   "app.field.weatherHistoryTab.frostNotCalculated": "Bu bölgə üçün şaxta məlumatı hələ hesablanmayıb.",
   "app.field.weatherHistoryTab.gddStartPrefix": " · istilik toplanmasının (GDD) başlanğıcı ",
   "app.field.weatherHistoryTab.lastDayPrefix": ", son gün ",

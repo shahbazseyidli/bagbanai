@@ -10,3 +10,8 @@ python-multipart==0.0.20
 httpx==0.28.1
 email-validator==2.2.0
 anthropic>=0.69
+# Web Push (VAPID). routers/push.py imports it lazily so a missing dependency degrades the feature
+# to dormant rather than crashing FastAPI — but WITHOUT this line it degrades permanently: the
+# operator installs the VAPID keys, configured() still returns False because the module is absent,
+# and the settings screen keeps saying "unavailable" while they hunt through .env.
+pywebpush>=1.14.1,<3

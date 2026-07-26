@@ -1317,7 +1317,7 @@ export const hu: Dict = {
   "app.field.fieldOnboarding.importButton": "Importálás (GeoJSON/KML/Shapefile)",
   "app.field.wellnessCard.satelliteLabel": " · műhold: ",
   "app.field.soilLabUpload.gateSubtitle": "A talajlaboratóriumi jelentések AI-alapú digitalizálásához váltson a 3. csomagra.",
-  "app.field.weatherHistoryTab.frostFreePeriodDays": "nap fagymentes időszak",
+  "app.field.weatherHistoryTab.frostFreePeriod": "fagymentes időszak",
   "app.shell.fieldListPanel.sortAria": "Rendezés",
   "app.field.fieldOnboarding.step4Title": "Megerősítés",
   "app.field.seasonTab.makeCurrentBtn": "Beállítás aktuálisként",

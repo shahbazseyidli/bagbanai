@@ -1592,7 +1592,7 @@ export const ru: Dict = {
   "app.field.weatherHistoryTab.frostCalculating": "История заморозков рассчитывается…",
   "app.field.weatherHistoryTab.frostDatesHeading": "Даты заморозков в регионе",
   "app.field.weatherHistoryTab.frostFreeDays": "Дни без заморозков",
-  "app.field.weatherHistoryTab.frostFreePeriodDays": "дн. без заморозков",
+  "app.field.weatherHistoryTab.frostFreePeriod": "без заморозков",
   "app.field.weatherHistoryTab.frostNotCalculated": "Данные о заморозках для этого региона ещё не рассчитаны.",
   "app.field.weatherHistoryTab.gddStartPrefix": " · начало накопления тепла (GDD) ",
   "app.field.weatherHistoryTab.lastDayPrefix": ", последний день ",

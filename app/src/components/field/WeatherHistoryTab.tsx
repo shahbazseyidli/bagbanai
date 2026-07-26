@@ -303,7 +303,8 @@ export default function WeatherHistoryTab({ fieldId }: { fieldId: string }) {
                   {mmddAz(frost.planting_window.end_mmdd)}
                 </p>
                 <p className="mt-0.5 text-emerald-800">
-                  {frost.planting_window.days} {t("app.field.weatherHistoryTab.frostFreePeriodDays")}
+                  {frost.planting_window.days} {tp("app.plural.days", frost.planting_window.days)}{" "}
+                  {t("app.field.weatherHistoryTab.frostFreePeriod")}
                   {frost.gdd_start_mmdd
                     ? `${t("app.field.weatherHistoryTab.gddStartPrefix")}${mmddAz(frost.gdd_start_mmdd)}`
                     : ""}

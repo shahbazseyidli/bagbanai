@@ -1317,7 +1317,7 @@ export const tr: Dict = {
   "app.field.fieldOnboarding.importButton": "İçe aktar (GeoJSON/KML/Shapefile)",
   "app.field.wellnessCard.satelliteLabel": " · uydu: ",
   "app.field.soilLabUpload.gateSubtitle": "Toprak laboratuvar raporlarını AI ile dijitalleştirmek için Paket 3'e geçin.",
-  "app.field.weatherHistoryTab.frostFreePeriodDays": "gün donsuz dönem",
+  "app.field.weatherHistoryTab.frostFreePeriod": "donsuz dönem",
   "app.shell.fieldListPanel.sortAria": "Sıralama",
   "app.field.fieldOnboarding.step4Title": "Onay",
   "app.field.seasonTab.makeCurrentBtn": "Güncel yap",

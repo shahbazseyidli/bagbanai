@@ -62,6 +62,14 @@ export default function ProfileForm() {
       });
       // Also rewrites the cached user, so the "Ölkə & region" card above updates in the same tick.
       setUser(updated);
+      // Re-seed from the RESPONSE, not from what was typed. The backend trims and truncates
+      // (auth.py: v.strip()[:limit]), and the seeding effect is keyed on the user id, which does not
+      // change on save — so a trailing space from a phone keyboard left local state differing from
+      // the stored value forever, keeping the form permanently "dirty" and Save enabled next to a
+      // green "saved" line.
+      setFullName(updated.full_name ?? "");
+      setCountry(updated.country ?? "");
+      setRegion(updated.region ?? "");
       setOk(true);
     } catch (err) {
       setBanner(azError(err));
