@@ -252,7 +252,6 @@ export const de: Dict = {
   "today.preparing": "Satellitendaten werden vorbereitet…",
   "today.noAnalysis": "Noch keine Satellitenanalyse — sie erscheint hier, sobald Daten vorliegen.",
   "today.waterReco": "Bewässerung empfohlen",
-  "today.fieldsWord": "Felder",
   "today.needAttention": "brauchen Aufmerksamkeit",
   "today.allGood": "alles in Ordnung",
   "today.org": "Organisation",
@@ -1996,7 +1995,6 @@ export const de: Dict = {
   "app.fieldsList.computedOnLabel": "Berechnet: ",
   "app.fieldsList.srScoreLabel": "Gesundheitswert: ",
   "app.fieldsList.heading": "Felder",
-  "app.fieldsList.fieldsCountSep": " Felder · ",
   "app.fieldsList.addField": "Feld hinzufügen",
   "app.fieldsList.emptyTitle": "Fügen Sie Ihre Felder hinzu",
   "app.fieldsList.emptyBody": "Zeichnen Sie Ihr erstes Feld auf der Karte ein für Satellitenüberwachung, Wettervorhersage und AI-Agronomberatung — das dauert nur wenige Minuten.",
@@ -2729,4 +2727,6 @@ export const de: Dict = {
   "app.advice.regenerate": "In meiner Sprache neu erstellen",
   "app.advice.regenerating": "Wird neu erstellt…",
   "app.advice.regenFailed": "Hat nicht geklappt — versuchen Sie es gleich noch einmal.",
+  "app.plural.fields.one": "Feld",
+  "app.plural.fields.other": "Felder",
 };

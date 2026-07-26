@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { api, azError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { t, getLocale, type Locale } from "@/lib/i18n";
+import { t, tp, getLocale, type Locale } from "@/lib/i18n";
 import { ErrorNote } from "@/components/ui";
 import { ListSkeleton } from "@/components/Skeleton";
 import OnboardingChecklist from "@/components/OnboardingChecklist";
@@ -246,7 +246,7 @@ export default function TodayHome() {
         {fields.length > 0 && (
           <p className="mt-1 text-sm text-slate-600">
             {greeting ? `${greeting} — ` : ""}
-            {fields.length} {t("today.fieldsWord")}
+            {fields.length} {tp("app.plural.fields", fields.length)}
             {resolved.length > 0 && (
               <>
                 {" · "}

@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, MapPin, Plus } from "lucide-react";
 import { api, azError } from "@/lib/api";
-import { t } from "@/lib/i18n";
+import { t, tp } from "@/lib/i18n";
 import { useFormatArea } from "@/lib/units";
 import { wellnessHeadline } from "@/lib/wellnessText";
 import { useAuth } from "@/lib/auth";
@@ -138,7 +138,7 @@ export default function FieldsListPage() {
           <h1 className="font-display text-2xl font-bold text-teal">{t("app.fieldsList.heading")}</h1>
           {fields.length > 0 && (
             <p className="mt-0.5 text-sm text-ink-soft">
-              {fields.length}{t("app.fieldsList.fieldsCountSep")}{fmtArea(totalHa)}
+              {fields.length} {tp("app.plural.fields", fields.length)} · {fmtArea(totalHa)}
             </p>
           )}
         </div>

@@ -252,7 +252,6 @@ export const tr: Dict = {
   "today.preparing": "Uydu verileri hazırlanıyor…",
   "today.noAnalysis": "Henüz uydu analizi yok — veriler geldiğinde burada görünecek.",
   "today.waterReco": "Sulama öneriliyor",
-  "today.fieldsWord": "tarla",
   "today.needAttention": "dikkat gerektiriyor",
   "today.allGood": "hepsi yolunda",
   "today.org": "Kuruluş",
@@ -1996,7 +1995,6 @@ export const tr: Dict = {
   "app.fieldsList.computedOnLabel": "Hesaplanma: ",
   "app.fieldsList.srScoreLabel": "Sağlık puanı: ",
   "app.fieldsList.heading": "Tarlalar",
-  "app.fieldsList.fieldsCountSep": " tarla · ",
   "app.fieldsList.addField": "Tarla ekle",
   "app.fieldsList.emptyTitle": "Tarlalarınızı ekleyin",
   "app.fieldsList.emptyBody": "Uydu izleme, hava tahmini ve AI agronom tavsiyesi için ilk tarlanızı haritada çizin — birkaç dakika sürer.",
@@ -2729,4 +2727,5 @@ export const tr: Dict = {
   "app.advice.regenerate": "Kendi dilimde yeniden oluştur",
   "app.advice.regenerating": "Yeniden oluşturuluyor…",
   "app.advice.regenFailed": "Olmadı — birazdan tekrar deneyin.",
+  "app.plural.fields.other": "tarla",
 };

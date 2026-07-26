@@ -252,7 +252,6 @@ export const hu: Dict = {
   "today.preparing": "Műholdas adatok készülnek…",
   "today.noAnalysis": "Még nincs műholdas elemzés — amint megérkeznek az adatok, itt megjelenik.",
   "today.waterReco": "Öntözés ajánlott",
-  "today.fieldsWord": "tábla",
   "today.needAttention": "figyelmet igényel",
   "today.allGood": "minden rendben",
   "today.org": "Szervezet",
@@ -1996,7 +1995,6 @@ export const hu: Dict = {
   "app.fieldsList.computedOnLabel": "Számítva: ",
   "app.fieldsList.srScoreLabel": "Egészségpontszám: ",
   "app.fieldsList.heading": "Mezők",
-  "app.fieldsList.fieldsCountSep": " mező · ",
   "app.fieldsList.addField": "Mező hozzáadása",
   "app.fieldsList.emptyTitle": "Adja hozzá a mezőit",
   "app.fieldsList.emptyBody": "A műholdas megfigyeléshez, időjárás-előrejelzéshez és AI-agronómus tanácshoz rajzolja meg az első mezőjét a térképen — néhány percet vesz igénybe.",
@@ -2729,4 +2727,5 @@ export const hu: Dict = {
   "app.advice.regenerate": "Újragenerálás a saját nyelvemen",
   "app.advice.regenerating": "Újragenerálás…",
   "app.advice.regenFailed": "Nem sikerült — próbálja meg kicsit később.",
+  "app.plural.fields.other": "tábla",
 };

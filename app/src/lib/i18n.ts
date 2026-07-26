@@ -273,7 +273,6 @@ export const az = {
   "today.preparing": "Peyk məlumatı hazırlanır…",
   "today.noAnalysis": "Hələ peyk təhlili yoxdur — məlumat gələn kimi burada görünəcək.",
   "today.waterReco": "Suvarma tövsiyə olunur",
-  "today.fieldsWord": "sahə",
   "today.needAttention": "diqqət tələb edir",
   "today.allGood": "hamısı qaydasındadır",
   "today.org": "Təşkilat",
@@ -2010,7 +2009,6 @@ export const az = {
   "app.fieldsList.computedOnLabel": "Hesablanma: ",
   "app.fieldsList.emptyBody": "Peyk monitorinqi, hava proqnozu və AI aqronom məsləhəti üçün ilk sahənizi xəritədə çəkin — bir neçə dəqiqə çəkir.",
   "app.fieldsList.emptyTitle": "Sahələrinizi əlavə edin",
-  "app.fieldsList.fieldsCountSep": " sahə · ",
   "app.fieldsList.heading": "Sahələr",
   "app.fieldsList.selectFieldAria": " seç",
   "app.fieldsList.srScoreLabel": "Sağlamlıq balı: ",
@@ -2816,7 +2814,8 @@ export const LOCALE_NAMES: Record<Locale, string> = {
 };
 
 // Registered lazily by LocaleProvider so this module has no import cycle with the big dicts.
-const DICTS: Partial<Record<Locale, Dict>> = { az };
+const DICTS: Partial<Record<Locale, Dict>> = { az   "app.plural.fields.other": "sahə",
+};
 export function registerDict(locale: Locale, dict: Dict): void {
   DICTS[locale] = dict;
 }
@@ -2862,4 +2861,24 @@ export function tf(key: string, params?: Record<string, unknown>): string {
   return raw.replace(/\{(\w+)\}/g, (m, name) =>
     Object.prototype.hasOwnProperty.call(params, name) ? String(params[name]) : m,
   );
+}
+
+/**
+ * The noun form that agrees with `n` in the active locale: tp("app.plural.fields", 1).
+ *
+ * A count and a fixed noun cannot simply be concatenated once there is more than one language in
+ * the product. Azerbaijani and Turkish keep the singular after any numeral ("5 sahə"), English and
+ * German need one/other, and Russian and Polish need three forms — which is how "1 полей" reached
+ * the field list. Intl.PluralRules knows every one of those rules, so the dictionaries only supply
+ * the forms: `<base>.one|few|many|other`, with `.other` as the fallback every locale must have.
+ */
+export function tp(base: string, n: number): string {
+  let cat = "other";
+  try {
+    cat = new Intl.PluralRules(_locale).select(n);
+  } catch {
+    /* unknown locale tag — `other` is the safe form */
+  }
+  const exact = tf(`${base}.${cat}`);
+  return exact === `${base}.${cat}` ? tf(`${base}.other`) : exact;
 }
