@@ -8,7 +8,7 @@ import { Tag, Users, Shield, LogOut, ChevronRight, Store, MessageCircle, UserCog
 import { useAuth } from "@/lib/auth";
 import { t } from "@/lib/i18n";
 import DataSaverToggle from "@/components/DataSaverToggle";
-import EmailAlertsToggle from "@/components/EmailAlertsToggle";
+import EmailLifecycleToggle from "@/components/EmailLifecycleToggle";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default function MorePage() {
@@ -60,7 +60,7 @@ export default function MorePage() {
         <LanguageSwitcher />
       </div>
       <DataSaverToggle />
-      {user && <EmailAlertsToggle />}
+      {user && <EmailLifecycleToggle />}
 
       {user && (
         <>

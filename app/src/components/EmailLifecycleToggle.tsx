@@ -1,7 +1,9 @@
 "use client";
 
-// E2.4 — per-user opt-in for lifecycle/onboarding/digest email (welcome tips, "your data is ready",
-// re-engagement, weekly digest). Transactional email (verification, security) always sends. Default on.
+// E15 — the ONE per-user opt-out for every non-transactional email. Since alerts, advice changes and
+// the onboarding/re-engagement nudges were folded into a single Wednesday weekly digest, this switch
+// governs all of them (the old separate email_alerts flag is gone, migration 0047). Transactional
+// email (OTP/verification, welcome, first "field is ready" report) always sends. Default on.
 import { useEffect, useState } from "react";
 import { MailCheck } from "lucide-react";
 import { api } from "@/lib/api";

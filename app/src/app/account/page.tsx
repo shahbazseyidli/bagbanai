@@ -1,14 +1,13 @@
 "use client";
 
 // Detailed account/settings page (HYBRID_PLAN §E W1/E13), OneSoil-style card grid. Reuses the
-// existing language / data-saver / email-alert controls and surfaces role + country/region. Inline AZ.
+// existing language / data-saver / email controls and surfaces role + country/region. Inline AZ.
 import { useRouter } from "next/navigation";
 import { Mail, Lock, Globe, Ruler, MapPin, Download, UserCog, LogOut, Store } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import DataSaverToggle from "@/components/DataSaverToggle";
-import EmailAlertsToggle from "@/components/EmailAlertsToggle";
 import EmailLifecycleToggle from "@/components/EmailLifecycleToggle";
 import NamePublicToggle from "@/components/NamePublicToggle";
 import { t } from "@/lib/i18n";
@@ -65,7 +64,6 @@ export default function AccountPage() {
 
       <div className="space-y-3">
         <DataSaverToggle />
-        {user && <EmailAlertsToggle />}
         {user && <EmailLifecycleToggle />}
         {user && <NamePublicToggle />}
       </div>

@@ -34,8 +34,12 @@ function HomeInner() {
   // brand/logo can point here and show the landing, not the app. The app dashboard lives on the app
   // host (app.agradex.com). Shared with AppShell/BottomNav via useIsAppHost so they never diverge.
   const appHost = useIsAppHost();
+  // The apex is ALWAYS marketing, and the host is known from the request (middleware → x-app-host →
+  // AppHostProvider), so this branch is taken during SSR and the landing ends up in the HTML.
+  // It used to sit below the `loading` gate: on the server `loading` starts true, so every crawler
+  // got a spinner and the most important page on the site had no indexable content at all.
+  if (!appHost) return <Landing />;
   if (loading) return <Spinner />;
-  if (!appHost) return <Landing />; // apex host → marketing landing (SSR default; corrected on mount)
   if (!user) return <Landing />;
   return v2 ? <TodayHome /> : <Dashboard />;
 }

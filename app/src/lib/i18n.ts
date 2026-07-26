@@ -293,10 +293,9 @@ export const az = {
   "install.body": "Tətbiq kimi açılır — offline işləyir, tarlada daha sürətli.",
   "install.cta": "Quraşdır",
 
-  // email-alerts toggle (#4)
-  "emailAlerts.title": "Email bildirişləri",
-  "emailLifecycle.title": "Məhsul və məsləhət məktubları",
-  "emailLifecycle.body": "Xoş gəldin, ipucları, «data hazır» və həftəlik xülasə. Vacib hesab məktubları həmişə gəlir.",
+  // single opt-out for every non-transactional email (E15: one weekly digest)
+  "emailLifecycle.title": "Həftəlik email xülasəsi",
+  "emailLifecycle.body": "Həftədə bir məktub (çərşənbə səhəri): sahələrinizin vəziyyəti, siqnallar və məsləhətlər. Yeganə müntəzəm məktubdur. Vacib hesab məktubları (kod, xoş gəldin, ilk hesabat) həmişə gəlir.",
   "app.opt.irr.drip": "Damcı suvarma",
   "app.opt.irr.subsurface_drip": "Yeraltı damcı",
   "app.opt.irr.sprinkler": "Yağış yağdıran (sprinkler)",
@@ -369,7 +368,6 @@ export const az = {
   "namePublic.body": "Söndürsəniz, chat və icmada digər istifadəçilər adınız əvəzinə gizli ad (user_xxxx) görəcək.",
   "app.signup.namePublicLabel": "Adım digər istifadəçilərə görünsün",
   "app.signup.namePublicHint": "Fermer icması və chat üçün. Söndürsəniz gizli ad (user_xxxx) göstərilir. İstənilən vaxt Parametrlərdən dəyişə bilərsiniz.",
-  "emailAlerts.body": "Kritik və xəbərdarlıq siqnalları email-ə gəlsin",
 
   // data-saver toggle (D4.5)
   "dataSaver.title": "Data qənaəti",
@@ -924,10 +922,11 @@ export const az = {
   "mkt.compare.noteResearchLocal": "+ lokal",
 
   // mkt.hero / mkt.heroMap / mkt.map — landing hero + hero map widget (wave 1b)
+  "landing.metaDescription": "Peyk, hava və süni intellekt bir yerdə — Agradex tarlanız üçün xəritə yox, konkret cavab verir. Fermerlər, kooperativlər və aqronomlar üçün.",
   "mkt.hero.eyebrow": "peyk · ai · dəftər · icma",
-  "mkt.hero.titleLine1": "Torpağını peykdən gör,",
-  "mkt.hero.titleLine2": "hər manatı hesabla.",
-  "mkt.hero.subtitle": "Peyk indeksləri, AI aqronom, təsərrüfat dəftəri — üstəlik laboratoriya, aqronom və təchizatçıların bir yerdə olduğu platforma. Fermerlər, kooperativlər və aqronomlar üçün.",
+  "mkt.hero.titleLine1": "Tarlanız üçün AI aqronom —",
+  "mkt.hero.titleLine2": "xəritə yox, cavab.",
+  "mkt.hero.subtitle": "NDVI xəritəsinə baxıb «indi nə edim?» deyə düşünməyin. Agradex peyki, havanı və süni intellekti birləşdirib növbəti addımı deyir — laboratoriya, aqronom və təchizatçı da eyni platformadadır.",
   "mkt.hero.ctaStart": "1 ay pulsuz başla",
   "mkt.hero.ctaDemo": "Demo izlə",
   "mkt.hero.badgeBold": "1 ay pulsuz sınaq",

@@ -1,12 +1,23 @@
 """Localized copy for every Agradex email template.
 
-Structure: COPY[template_id] = {"roles": bool, "<locale>": <content|{role: content}>}. AZ is the
-source of truth (native, reviewed); EN is authored too. The other five locales (tr/de/hu/it/pl) are
-filled by the translation workflow — until then `build()` falls back locale → en → az, so a template
-always renders.
+THE WHOLE CATALOG IS THREE TEMPLATES (E15). Agradex sends exactly two transactional emails —
+`welcome` (once per account) and `data_ready` (the first "your field is visible from space") — plus
+`weekly`, the single recurring digest. The nine templates that used to fan out on their own day
+offsets (no_field_d1/d3/d7, edu_ndvi/edu_ledger/edu_invite, no_crop, inactive_10d/inactive_30d,
+trial_ending, digest_weekly) are gone: their intent now lives inside `weekly` as variants and
+blocks. If you are about to add a template, ask first whether it is a variant of the weekly digest.
+(OTP is not here — routers/auth.py sends it through notify.send_email directly.)
 
-Content dicts use {placeholders} filled from ctx at send time (name, field, area, crop, ndvi,
-wellness, days, trial_days, app_url, site_url, add_field_url, ...). Inline <b> is allowed in copy.
+Structure: COPY[template_id] = {"roles"|"variants": bool, "<locale>": <content|{key: content}>}.
+AZ is the source of truth (native, reviewed); EN is authored too. The other five locales
+(tr/de/hu/it/pl) come from the translation workflow — until then `build()` falls back
+locale → en → az, so a template always renders.
+
+Content dicts use {placeholders} filled from ctx at send time (name, name_suffix, field, area,
+fields_label, alerts_label, trial_days, app_url, site_url, add_field_url, ...). Inline <b> is
+allowed in copy. WARNING: `_fmt` swallows KeyError, so a placeholder the caller forgot to supply
+ships to the farmer as the literal "{field}" — every key a template references must be defaulted by
+its caller.
 """
 from __future__ import annotations
 
@@ -172,108 +183,6 @@ _SIMPLE_AZ: dict[str, dict] = {
         "outro": ["Növbəti peyk səhnəsi gələndə AI aqronom avtomatik məsləhət hazırlayacaq."],
         "signoff": "Ülkər Nəsirova — Agradex",
     },
-    "no_field_d1": {
-        "subject": "İlk sahənizi 2 dəqiqəyə əlavə edin",
-        "preheader": "Peykin sahənizi görməsi üçün yalnız sərhəd lazımdır.",
-        "heading": "Bir sahə — bütün fərqi yaradır",
-        "intro": ["Salam {name}! Hesabınız hazırdır, amma hələ sahə əlavə etməmisiniz. <b>Peykin sahənizi “görməsi” üçün cəmi sərhədi çəkmək lazımdır.</b>",
-                  "Çəkmək istəmirsiniz? Xəritədə sahəyə <b>toxunun</b> — Agradex sərhədi özü aşkarlayır."],
-        "stats": [{"val": "2 dəq", "lab": "qurulma vaxtı"}, {"val": "9", "lab": "peyk indeksi"}, {"val": "0 ₼", "lab": "kart tələb olunmur"}],
-        "cta": {"label": "Xəritəni aç →", "url": "{add_field_url}"},
-        "signoff": "Ülkər Nəsirova — Agradex",
-    },
-    "no_field_d3": {
-        "subject": "Sahənizi bir toxunuşla aşkarlayın",
-        "preheader": "Çəkməyə ehtiyac yoxdur — xəritədə toxunun.",
-        "heading": "Çəkmək əziyyət deyil",
-        "intro": ["Salam {name}. Sahənizi hələ əlavə etməmisiniz — bəlkə sərhəd çəkmək əziyyətli görünür?",
-                  "Xəritədə sahənizə sadəcə <b>toxunun</b>, Agradex sərhədi avtomatik tapsın. Yaxud demo sahə ilə platformanı sınayın."],
-        "cta": {"label": "Toxun və aşkarla →", "url": "{add_field_url}"},
-        "outro": ["Bir şey aydın deyilsə, bu məktuba cavab yazın — kömək edərəm."],
-        "signoff": "Ülkər Nəsirova — Agradex",
-    },
-    "no_field_d7": {
-        "subject": "Kömək lazımdırsa, buradayam",
-        "preheader": "Sahə əlavə etməkdə çətinlik var? Cavab yazın.",
-        "heading": "Başlamağa kömək edim?",
-        "intro": ["Salam {name}. Bir həftə əvvəl Agradex-ə qeydiyyatdan keçdiniz, amma hələ sahə əlavə etməmisiniz.",
-                  "Nəyinsə çətin olub-olmadığını bilmək istəyirəm. <b>Bu məktuba bir cümlə ilə cavab yazın</b> — nə lazımdırsa kömək edim, istəsəniz qısa zəng də təşkil edərik."],
-        "cta": {"label": "İlk sahəni əlavə et →", "url": "{add_field_url}"},
-        "signoff": "Ülkər Nəsirova — Agradex",
-    },
-    "no_crop": {
-        "subject": "“{field}” üçün məhsulu seçin — dəqiq məsləhət açılsın",
-        "preheader": "Məhsul seçimi məhsula uyğun normaları aktiv edir.",
-        "heading": "Bir addım qalıb: məhsulu seçin",
-        "intro": ["<b>“{field}”</b> sahəsini əlavə etdiniz — əla! İndi məhsulu seçsəniz, Agradex <b>məhsula uyğun sağlamlıq həddləri</b> və daha dəqiq məsləhət verə bilər."],
-        "cta": {"label": "Məhsulu seç →", "url": "{field_url}"},
-        "signoff": "Ülkər Nəsirova — Agradex",
-    },
-    "inactive_10d": {
-        "subject": "Yoxluğunuzda sahələrinizdə nə dəyişdi",
-        "preheader": "Yeni peyk səhnəsi və sağlamlıq dəyişimi.",
-        "heading": "Sizsiz də sahələriniz işləyirdi",
-        "intro": ["Salam {name}. Bir müddətdir Agradex-ə baş çəkməmisiniz — bu vaxt sahələriniz üçün <b>yeni peyk səhnələri</b> gəldi və bitki sağlamlığı dəyişdi.",
-                  "Bir baxışda nəyin dəyişdiyini görün — bəlkə diqqət tələb edən nəsə var."],
-        "cta": {"label": "Sahələrimə bax →", "url": "{app_url}"},
-        "signoff": "Ülkər Nəsirova — Agradex",
-    },
-    "inactive_30d": {
-        "subject": "Sahələriniz sizi gözləyir",
-        "preheader": "Bir aydır görüşmürük — geri dönün.",
-        "heading": "Bir aydır görüşmürük",
-        "intro": ["Salam {name}. Bir aydır Agradex-ə baş çəkməmisiniz. Bu müddətdə peyk sahələrinizi izləməyə davam etdi.",
-                  "Bircə baxışla məhsulunuzun vəziyyətini yoxlayın — <b>bir dəqiqə çəkir, amma xəbərdarlıq qazandırır.</b>"],
-        "cta": {"label": "Geri dön →", "url": "{app_url}"},
-        "outro": ["Nəyisə yaxşılaşdıra bilərikmi? Bu məktuba cavab yazın — dinləyirəm."],
-        "signoff": "Ülkər Nəsirova — Agradex",
-    },
-    "trial_ending": {
-        "subject": "Pro sınağınıza {trial_days} gün qalıb",
-        "preheader": "Sınaq bitməzdən əvvəl paketi seçin.",
-        "heading": "Pro sınağınız bitmək üzrədir",
-        "intro": ["Salam {name}. Pulsuz Pro sınağınıza <b>{trial_days} gün</b> qalıb. Bundan sonra hesabınız avtomatik pulsuz plana keçəcək (datanız qalır).",
-                  "Pro-nun məhsuldarlıq zonaları, VRA və genişləndirilmiş məsləhətini saxlamaq istəyirsinizsə, paketi indi seçin."],
-        "cta": {"label": "Paketlərə bax →", "url": "{pricing_url}"},
-        "signoff": "Ülkər Nəsirova — Agradex",
-    },
-    "edu_ndvi": {
-        "subject": "NDVI nədir və rəqəm nəyi göstərir?",
-        "preheader": "Sahənizin sağlamlıq qiymətini oxumağı öyrənin.",
-        "heading": "NDVI-ni 1 dəqiqəyə oxumağı öyrənin",
-        "intro": ["NDVI bitki sağlamlığının peyk ölçüsüdür. Qaydası sadədir:",
-                  "<b>0.2–0.5</b> — erkən mərhələ və ya stres · <b>0.5–0.85</b> — sağlam, aktiv böyümə · <b>0.25 və aşağı</b> — biçinə yaxın və ya problem.",
-                  "Rəqəm gözlənilməz düşürsə, sahəni yoxlamağa dəyər: su, zərərverici, qidalanma."],
-        "cta": {"label": "Sahəmin NDVI-sinə bax →", "url": "{app_url}"},
-        "signoff": "Ülkər Nəsirova — Agradex",
-    },
-    "edu_ledger": {
-        "subject": "Hər manatın hesabını aparın",
-        "preheader": "Təsərrüfat dəftəri ilə xərc və məhsuldarlıq.",
-        "heading": "Təsərrüfat dəftəri — xərc və gəlir bir yerdə",
-        "intro": ["Agradex yalnız peyk deyil — <b>təsərrüfat dəftəridir</b>. Əməliyyatları, xərcləri və məhsuldarlığı qeyd edin, mövsümün sonunda hər sahənin real hesabını görün.",
-                  "Bir neçə qeyd bu gün — mövsüm sonunda aydın mənzərə."],
-        "cta": {"label": "Dəftəri aç →", "url": "{app_url}"},
-        "signoff": "Ülkər Nəsirova — Agradex",
-    },
-    "edu_invite": {
-        "subject": "Komandanızı və aqronomunuzu dəvət edin",
-        "preheader": "Sahələri birlikdə idarə edin.",
-        "heading": "Tək işləməyin — komandanı dəvət edin",
-        "intro": ["Sahələrinizi ailə üzvləri, işçilər və ya aqronomunuzla birlikdə idarə edə bilərsiniz. Hər kəs öz giriş hüququ ilə eyni sahələri görür.",
-                  "Aqronomunuz məsləhətləri birbaşa Agradex-də verə bilər."],
-        "cta": {"label": "Dəvət göndər →", "url": "{app_url}"},
-        "signoff": "Ülkər Nəsirova — Agradex",
-    },
-    "digest_weekly": {
-        "subject": "Həftəlik sahə xülasəniz",
-        "preheader": "NDVI trendi, hava və açıq tapşırıqlar.",
-        "heading": "Bu həftə sahələrinizdə",
-        "intro": ["Salam {name}. Sahələrinizin həftəlik xülasəsi hazırdır — bitki sağlamlığı trendi, hava proqnozu və açıq tapşırıqlar.",
-                  "Ətraflı mənzərə üçün panelə keçin."],
-        "cta": {"label": "Xülasəyə bax →", "url": "{app_url}"},
-        "signoff": "Ülkər Nəsirova — Agradex",
-    },
 }
 _SIMPLE_EN: dict[str, dict] = {
     "data_ready": {
@@ -285,113 +194,106 @@ _SIMPLE_EN: dict[str, dict] = {
         "outro": ["When the next satellite scene arrives, the AI agronomist will prepare advice automatically."],
         "signoff": "Olivia Hayes — Agradex",
     },
-    "no_field_d1": {
-        "subject": "Add your first field in 2 minutes",
-        "preheader": "The satellite just needs a boundary to see your field.",
-        "heading": "One field makes all the difference",
-        "intro": ["Hi {name}! Your account is ready, but you haven't added a field yet. <b>The satellite just needs a boundary to “see” your field.</b>",
-                  "Don't want to draw it? Just <b>tap</b> the field on the map — Agradex detects the boundary for you."],
-        "stats": [{"val": "2 min", "lab": "to set up"}, {"val": "9", "lab": "satellite indices"}, {"val": "$0", "lab": "no card needed"}],
-        "cta": {"label": "Open the map →", "url": "{add_field_url}"},
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# WEEKLY DIGEST (variant-keyed) — E15. The ONE recurring email; everything that used to be its own
+# message (alerts, advice changes, onboarding nudges, win-backs, trial warnings) arrives inside it.
+#
+# ONE template id with four framings, deliberately: the send ledger dedups per
+# (user, template_id, dedup_key=ISO week), so separate ids would let a farmer who adds a field on
+# Thursday receive a second email in the same week. The body is not here — `weekly.build_weekly()`
+# assembles it from the week's data and passes it to send_template(blocks=...).
+#
+# ctx keys available to this copy (weekly.build_weekly guarantees all of them exist — catalog._fmt
+# swallows KeyError and would ship a literal "{field}" to the farmer):
+#   {name} {name_suffix} {field} {fields_label} {alerts_label} {trial_days} + the URL keys.
+# ─────────────────────────────────────────────────────────────────────────────
+_WEEKLY_AZ = {
+    "calm": {
+        "subject": "Həftəlik xülasə: {fields_label} qaydasındadır",
+        "preheader": "Sağlamlıq balı, NDVI trendi və AI məsləhəti — bir baxışda.",
+        "heading": "Bu həftə sahələrinizdə",
+        "intro": ["Salam{name_suffix}! Bu həftə sahələrinizdə təcili heç nə olmadı — budur qısa xülasə."],
+        "outro": ["Təcili xəbərdarlıqlar dərhal tətbiqdə görünür; email həftədə bir dəfə, çərşənbə səhəri gəlir.",
+                  "Sualınız var? Bu məktuba cavab yazın — hər birini oxuyuram."],
+        "signoff": "Ülkər Nəsirova — Agradex",
+    },
+    "alerts": {
+        "subject": "⚠️ {alerts_label} — həftəlik xülasəniz",
+        "preheader": "Ən çox diqqət tələb edən sahə: “{field}”.",
+        "heading": "Bu həftə diqqət tələb edən sahələr",
+        "intro": ["Salam{name_suffix}! Bu həftə sahələrinizdə <b>{alerts_label}</b> qeydə alındı. Ən çox diqqət tələb edən sahə — <b>“{field}”</b>.",
+                  "Hamısı aşağıdadır. Sahəyə çıxmazdan əvvəl bir dəqiqəlik oxuyun."],
+        "outro": ["Təcili xəbərdarlıqlar dərhal tətbiqdə görünür; email həftədə bir dəfə, çərşənbə səhəri gəlir.",
+                  "Sualınız var? Bu məktuba cavab yazın — hər birini oxuyuram."],
+        "signoff": "Ülkər Nəsirova — Agradex",
+    },
+    "no_crop": {
+        "subject": "Bir addım qalıb: “{field}” üçün məhsulu seçin",
+        "preheader": "Məhsul seçimi məhsula uyğun normaları aktiv edir.",
+        "heading": "Bir addım qalıb: məhsulu seçin",
+        "intro": ["Salam{name_suffix}! Sahələriniz peykdə görünür, amma hələ məhsul seçilməyib. Məhsulu seçən kimi Agradex <b>məhsula uyğun sağlamlıq həddləri</b>, gübrə normaları və daha dəqiq məsləhət verə bilir.",
+                  "Bir dəqiqəlik işdir. Aşağıda bu həftənin xülasəsi də var."],
+        "outro": ["Bu məktub həftədə bir dəfə, çərşənbə səhəri gəlir."],
+        "signoff": "Ülkər Nəsirova — Agradex",
+    },
+    "no_fields": {
+        "subject": "İlk sahənizi 2 dəqiqəyə əlavə edin",
+        "preheader": "Peykin sahənizi görməsi üçün yalnız sərhəd lazımdır.",
+        "heading": "Bir sahə — bütün fərqi yaradır",
+        "intro": ["Salam{name_suffix}! Hesabınız hazırdır, amma hələ sahə əlavə etməmisiniz. <b>Peykin sahənizi “görməsi” üçün cəmi sərhədi çəkmək lazımdır.</b>",
+                  "Çəkmək istəmirsiniz? Xəritədə sahəyə <b>toxunun</b> — Agradex sərhədi özü aşkarlayır."],
+        "outro": ["Nəyisə çətindirsə, bu məktuba bir cümlə ilə cavab yazın — kömək edərəm.",
+                  "Sahə əlavə edən kimi bu məktubun yerinə həftəlik sahə xülasəniz gələcək."],
+        "signoff": "Ülkər Nəsirova — Agradex",
+    },
+}
+_WEEKLY_EN = {
+    "calm": {
+        "subject": "Your week: {fields_label}, all steady",
+        "preheader": "Health score, NDVI trend and AI advice — at a glance.",
+        "heading": "This week in your fields",
+        "intro": ["Hi{name_suffix}! Nothing urgent happened in your fields this week — here's the short version."],
+        "outro": ["Urgent alerts show up in the app straight away; email comes once a week, on Wednesday morning.",
+                  "Questions? Just reply to this email — I read every one."],
         "signoff": "Olivia Hayes — Agradex",
     },
-    "no_field_d3": {
-        "subject": "Detect your field with one tap",
-        "preheader": "No drawing needed — just tap on the map.",
-        "heading": "Drawing isn't the hard part",
-        "intro": ["Hi {name}. You haven't added a field yet — maybe drawing a boundary feels like a chore?",
-                  "Just <b>tap</b> your field on the map and let Agradex find the boundary automatically. Or try the platform with a demo field."],
-        "cta": {"label": "Tap to detect →", "url": "{add_field_url}"},
-        "outro": ["If anything's unclear, just reply to this email — I'll help."],
-        "signoff": "Olivia Hayes — Agradex",
-    },
-    "no_field_d7": {
-        "subject": "Here if you need a hand",
-        "preheader": "Stuck adding a field? Just reply.",
-        "heading": "Can I help you get started?",
-        "intro": ["Hi {name}. You joined Agradex a week ago but haven't added a field yet.",
-                  "I'd love to know if something got in the way. <b>Reply with one line</b> and I'll help with whatever you need — we can even set up a quick call."],
-        "cta": {"label": "Add your first field →", "url": "{add_field_url}"},
+    "alerts": {
+        "subject": "⚠️ {alerts_label} — your weekly summary",
+        "preheader": "The field that needs you most: “{field}”.",
+        "heading": "What needs your attention this week",
+        "intro": ["Hi{name_suffix}! <b>{alerts_label}</b> fired in your fields this week. The one that needs you most is <b>“{field}”</b>.",
+                  "They're all below. Worth a minute before you head out to the field."],
+        "outro": ["Urgent alerts show up in the app straight away; email comes once a week, on Wednesday morning.",
+                  "Questions? Just reply to this email — I read every one."],
         "signoff": "Olivia Hayes — Agradex",
     },
     "no_crop": {
-        "subject": "Set the crop for “{field}” to unlock precise advice",
+        "subject": "One step left: set the crop for “{field}”",
         "preheader": "Choosing a crop activates crop-specific norms.",
         "heading": "One step left: set the crop",
-        "intro": ["You added <b>“{field}”</b> — great! Now if you set the crop, Agradex can apply <b>crop-specific health thresholds</b> and give sharper advice."],
-        "cta": {"label": "Set the crop →", "url": "{field_url}"},
+        "intro": ["Hi{name_suffix}! Your fields are visible from space, but no crop is set yet. The moment you pick one, Agradex can apply <b>crop-specific health thresholds</b>, fertilizer norms and sharper advice.",
+                  "It takes a minute. This week's summary is below as well."],
+        "outro": ["This email comes once a week, on Wednesday morning."],
         "signoff": "Olivia Hayes — Agradex",
     },
-    "inactive_10d": {
-        "subject": "What changed in your fields while you were away",
-        "preheader": "New satellite scene and health change.",
-        "heading": "Your fields kept working without you",
-        "intro": ["Hi {name}. It's been a while since you visited Agradex — meanwhile <b>new satellite scenes</b> arrived and crop health shifted.",
-                  "See what changed at a glance — there may be something that needs attention."],
-        "cta": {"label": "View my fields →", "url": "{app_url}"},
-        "signoff": "Olivia Hayes — Agradex",
-    },
-    "inactive_30d": {
-        "subject": "Your fields are waiting for you",
-        "preheader": "It's been a month — come back.",
-        "heading": "It's been a month",
-        "intro": ["Hi {name}. It's been a month since you visited Agradex. The satellite kept monitoring your fields the whole time.",
-                  "Check your crops at a glance — <b>it takes a minute and can save you a warning.</b>"],
-        "cta": {"label": "Come back →", "url": "{app_url}"},
-        "outro": ["Anything we could do better? Reply to this email — I'm listening."],
-        "signoff": "Olivia Hayes — Agradex",
-    },
-    "trial_ending": {
-        "subject": "{trial_days} days left in your Pro trial",
-        "preheader": "Choose a plan before your trial ends.",
-        "heading": "Your Pro trial is ending soon",
-        "intro": ["Hi {name}. You have <b>{trial_days} days</b> left in your free Pro trial. After that your account switches to the free plan automatically (your data stays).",
-                  "To keep Pro's productivity zones, VRA and extended advice, choose a plan now."],
-        "cta": {"label": "See plans →", "url": "{pricing_url}"},
-        "signoff": "Olivia Hayes — Agradex",
-    },
-    "edu_ndvi": {
-        "subject": "What is NDVI, and what does the number mean?",
-        "preheader": "Learn to read your field's health score.",
-        "heading": "Learn to read NDVI in one minute",
-        "intro": ["NDVI is the satellite measure of plant health. The rule of thumb is simple:",
-                  "<b>0.2–0.5</b> — early stage or stress · <b>0.5–0.85</b> — healthy, active growth · <b>0.25 and below</b> — near harvest or a problem.",
-                  "If the number drops unexpectedly, it's worth checking the field: water, pests, nutrition."],
-        "cta": {"label": "See my field's NDVI →", "url": "{app_url}"},
-        "signoff": "Olivia Hayes — Agradex",
-    },
-    "edu_ledger": {
-        "subject": "Account for every manat",
-        "preheader": "Track cost and yield with the farm ledger.",
-        "heading": "The farm ledger — cost and income in one place",
-        "intro": ["Agradex isn't only satellite — it's a <b>farm ledger</b>. Log operations, costs and yields, and at season's end see the real numbers for each field.",
-                  "A few entries today — a clear picture at harvest."],
-        "cta": {"label": "Open the ledger →", "url": "{app_url}"},
-        "signoff": "Olivia Hayes — Agradex",
-    },
-    "edu_invite": {
-        "subject": "Invite your team and your agronomist",
-        "preheader": "Manage fields together.",
-        "heading": "Don't work alone — invite your team",
-        "intro": ["You can manage your fields together with family, workers or your agronomist. Everyone sees the same fields with their own access rights.",
-                  "Your agronomist can give advice directly inside Agradex."],
-        "cta": {"label": "Send an invite →", "url": "{app_url}"},
-        "signoff": "Olivia Hayes — Agradex",
-    },
-    "digest_weekly": {
-        "subject": "Your weekly field summary",
-        "preheader": "NDVI trend, weather and open tasks.",
-        "heading": "This week in your fields",
-        "intro": ["Hi {name}. Your weekly field summary is ready — crop-health trend, weather forecast and open tasks.",
-                  "Open the dashboard for the full picture."],
-        "cta": {"label": "See the summary →", "url": "{app_url}"},
+    "no_fields": {
+        "subject": "Add your first field in 2 minutes",
+        "preheader": "The satellite just needs a boundary to see your field.",
+        "heading": "One field makes all the difference",
+        "intro": ["Hi{name_suffix}! Your account is ready, but you haven't added a field yet. <b>The satellite just needs a boundary to “see” your field.</b>",
+                  "Don't want to draw it? Just <b>tap</b> the field on the map — Agradex detects the boundary for you."],
+        "outro": ["If anything got in the way, reply with one line and I'll help.",
+                  "As soon as you add a field, this email becomes your weekly field summary instead."],
         "signoff": "Olivia Hayes — Agradex",
     },
 }
 
-# Assemble the registry. WELCOME is role-keyed; the rest are flat.
+# Assemble the registry. WELCOME is role-keyed, WEEKLY is variant-keyed, the rest are flat.
 COPY: dict[str, dict] = {
     "welcome": {"roles": True, "az": _WELCOME_AZ, "en": _WELCOME_EN},
+    "weekly": {"variants": True, "default_variant": "calm", "az": _WEEKLY_AZ, "en": _WEEKLY_EN},
 }
 for _tid in _SIMPLE_AZ:
     COPY[_tid] = {"roles": False, "az": _SIMPLE_AZ[_tid], "en": _SIMPLE_EN.get(_tid, _SIMPLE_AZ[_tid])}
@@ -409,14 +311,32 @@ except ImportError:
     pass
 
 
-def build(template_id: str, locale: str | None, role: str | None, ctx: dict) -> dict | None:
-    """Resolve a template to a formatted content dict. Falls back locale → en → az."""
+def _payload(entry: dict, loc: str, role: str | None, variant: str | None) -> dict | None:
+    """Walk locale → en → az and return the first payload that actually resolves.
+
+    The walk (rather than picking a locale up front) matters for keyed templates: a machine-
+    translated locale written before a template gained roles/variants is a FLAT dict with no such
+    key, and picking it would render half a template. Missing key → drop to the next locale.
+    """
+    for cand in (loc, "en", "az"):
+        raw = entry.get(cand)
+        if not isinstance(raw, dict):
+            continue
+        if entry.get("roles"):
+            raw = raw.get(role if role in ROLES else "farmer") or raw.get("farmer")
+        elif entry.get("variants"):
+            raw = raw.get(variant or "") or raw.get(entry.get("default_variant") or "")
+        if isinstance(raw, dict) and raw:
+            return raw
+    return None
+
+
+def build(template_id: str, locale: str | None, role: str | None, ctx: dict,
+          variant: str | None = None) -> dict | None:
+    """Resolve a template to a formatted content dict. Falls back locale → en → az.
+    `variant` selects between framings of one template id (see the weekly digest above)."""
     entry = COPY.get(template_id)
     if not entry:
         return None
-    loc = (locale or "az")[:2].lower()
-    raw = entry.get(loc) or entry.get("en") or entry.get("az")
-    if entry.get("roles"):
-        r = role if role in ROLES else "farmer"
-        raw = raw.get(r) or raw.get("farmer")
-    return _fmt(raw, ctx)
+    raw = _payload(entry, (locale or "az")[:2].lower(), role, variant)
+    return _fmt(raw, ctx) if raw else None

@@ -47,8 +47,13 @@ async def email_data_ready(field_id: str):
 
 @router.post("/emails/lifecycle/drain")
 async def emails_lifecycle_drain():
-    """Evaluate behavioral/lifecycle email rules across all users and send the matching templates
-    (E2.3). Idempotent; run daily by cron. No-op if email isn't configured."""
+    """Send this ISO week's digest to every eligible user (E15) — the ONE recurring email.
+
+    Path kept (the cron in deploy/lifecycle-emails.sh calls it), behaviour replaced: it no longer
+    evaluates nine behavioral rules, it runs the single weekly pass. Scheduled Wednesday 03:00 UTC
+    = 07:00 Asia/Baku, but SAFE TO CALL ANY DAY — the send ledger dedups on the ISO week, so a
+    manual call simply sends this week's digest if it has not gone out yet, and is a no-op if it
+    has. No-op if email isn't configured."""
     from ..ai import notify
     if not notify.email_configured():
         return {"ok": False, "reason": "email_not_configured"}

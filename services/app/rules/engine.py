@@ -1,5 +1,9 @@
 """Rule engine + dispatcher (T1).
 
+DELIVERY CHANNELS: alerts are delivered **in-app (public.notifications) + Telegram only**. Email is
+NOT an alert channel — everything the farmer needs by email arrives once a week in the Wednesday
+07:00 (Azerbaijan) digest, which reads the same notifications this engine writes.
+
 `run_rules(conn, field_id)` gathers candidate alerts from every registered producer and dispatches
 each through anti-spam gating:
   - quiet hours 22:00–07:00 (Azerbaijan, UTC+4): non-critical alerts are held; critical (e.g.
@@ -7,6 +11,7 @@ each through anti-spam gating:
   - cooldown: the same (field, rule_type) won't re-fire within COOLDOWN_HOURS unless the severity
     escalates;
 so a notification lands in public.notifications at most once per real event, not once per cron run.
+That gating still matters: it protects the in-app feed and the Telegram push.
 
 Producers are pure readers of already-computed state (e.g. the weather job stores its alerts in the
 `spray_window` field_knowledge block) — the engine owns notification writing, the jobs don't."""
@@ -162,8 +167,12 @@ async def dispatch(conn, field_id: str, org_id: str, candidates: list[dict]) -> 
                on conflict (field_id, rule_type, dedup_key) do update set
                  last_severity=excluded.last_severity, last_fired_at=now(), active=true""",
             field_id, rt, c.get("dedup_key", ""), sev)
+        # NO EMAIL HERE — on purpose. This used to call _deliver_email(), which sent one message
+        # per fired alert per field: a farmer with 3 fields in bad weather got a dozen emails a
+        # day, none of them going through send_template (no idempotency ledger, no opt-out gate,
+        # no unsubscribe link). Alerts are now in-app + Telegram for immediacy; email is delivered
+        # once a week by the Wednesday digest, which reads public.notifications. Do not re-add.
         await _deliver_telegram(conn, org_id, c["title"], c["body"])
-        await _deliver_email(conn, org_id, c["title"], c["body"], sev)
         fired += 1
     return {"candidates": len(candidates), "fired": fired, "quiet_hours": quiet}
 
@@ -185,32 +194,6 @@ async def _deliver_telegram(conn, org_id: str, title: str, body: str) -> None:
                 "insert into public.message_log (channel_id, text, status) values ($1,$2,$3)",
                 r["id"], title, "sent" if ok else "failed")
     except Exception:  # noqa: BLE001 — never let delivery break dispatch
-        pass
-
-
-async def _deliver_email(conn, org_id: str, title: str, body: str, severity: str) -> None:
-    """Best-effort email of a dispatched alert to opted-in org members (#4). Only critical/warning
-    (quiet-hours already held non-critical during 22:00–07:00). Dormant until Resend is configured."""
-    if severity not in ("critical", "warning"):
-        return
-    from ..ai import notify
-    if not notify.email_configured():
-        return
-    try:
-        rows = await conn.fetch(
-            """select distinct u.email, u.locale from public.users u
-               join public.organization_members m on m.user_id = u.id
-               where m.org_id=$1::uuid and m.status='active'
-                 and u.email is not null and u.email_alerts is true""", org_id)
-        subject = f"[Agradex] {title}"
-        text = (f"{title}\n\n{body}\n\n— Agradex\n"
-                "Bu bildirişləri Parametrlərdə (Daha çox) söndürə bilərsiniz.")
-        for r in rows:
-            try:
-                await notify.send_email(r["email"], subject, text, locale=r["locale"])
-            except Exception:  # noqa: BLE001
-                pass
-    except Exception:  # noqa: BLE001 — delivery must never break dispatch
         pass
 
 

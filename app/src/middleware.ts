@@ -44,14 +44,22 @@ export function middleware(req: NextRequest) {
   // Locale prefix to re-attach when we bounce between hosts, so /en/... does not silently become az.
   const prefix = m ? `/${locale}` : "";
 
+  // Is this request on the APP host? Resolved here and handed to the server layer as a header, so
+  // Server Components and generateMetadata know it WITHOUT waiting for a client effect. Before this,
+  // the home page could not decide what it was until the browser mounted, so the server rendered a
+  // spinner and the entire marketing landing was missing from the HTML crawlers see.
+  const reqHost = (req.headers.get("host") || "").toLowerCase();
+  const onAppHost = PANEL_HOST
+    ? reqHost === PANEL_HOST || reqHost.startsWith("app.") || reqHost.startsWith("panel.")
+    : true; // split off → every host is the app host (pre-split behaviour)
+
   // --- Panel/marketing host split (dormant unless PANEL_HOST set); operates on the stripped path ---
   if (PANEL_HOST) {
-    const host = (req.headers.get("host") || "").toLowerCase();
     // The panel host is app.agradex.com (or legacy panel.*). Strip that leading label to get the
     // marketing apex — a `/^panel\./` regex would NOT strip "app." and apexHost would equal the
     // panel host, sending the login redirect to itself → infinite loop.
     const apexHost = PANEL_HOST.replace(/^(app|panel)\./, "");
-    const isPanel = host === PANEL_HOST || host.startsWith("app.") || host.startsWith("panel.");
+    const isPanel = onAppHost;
     const hasAuth = req.cookies.has(AUTH_COOKIE);
     if (isPanel) {
       // Public/marketing pages live on the apex even when reached through the app host — and this
@@ -81,6 +89,10 @@ export function middleware(req: NextRequest) {
   // Pass the resolved locale to the server layout via a request header.
   const headers = new Headers(req.headers);
   headers.set("x-locale", locale || "az");
+  headers.set("x-app-host", onAppHost ? "1" : "0");
+  // The locale-stripped path, so the layout can emit hreflang alternates for every language of THIS
+  // page without each page having to build them itself.
+  headers.set("x-pathname", path);
 
   const res = m
     ? NextResponse.rewrite(new URL(`${path}${search}`, req.url), { request: { headers } })

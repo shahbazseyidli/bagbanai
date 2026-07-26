@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
 // Single source of truth for the panel split (agradex.com = marketing · app.agradex.com = the app).
 // `true` when the current browser host is the APP host, so app chrome (AppRail, FieldListPanel,
@@ -19,13 +19,27 @@ export const APEX_HOST = PANEL_HOST ? PANEL_HOST.replace(/^(app|panel)\./, "") :
  *  Derived — no extra env var to keep in sync. Empty when the split is off (host-only cookie). */
 export const SHARED_COOKIE_DOMAIN = APEX_HOST ? `.${APEX_HOST}` : "";
 
+// The middleware already knows which host served the request and puts it in x-app-host, so the
+// root layout can hand the answer down. That matters beyond tidiness: while this was decided by a
+// mount effect, the server had to render something host-agnostic — and the home page rendered a
+// spinner, which is why crawlers saw an empty marketing page. With the value known during SSR the
+// landing is in the HTML, and the app host never flashes marketing before correcting itself.
+const HostContext = createContext<boolean | null>(null);
+
+export function AppHostProvider({ value, children }: { value: boolean; children: React.ReactNode }) {
+  return <HostContext.Provider value={value}>{children}</HostContext.Provider>;
+}
+
 export function useIsAppHost(): boolean {
-  const [appHost, setAppHost] = useState(false);
+  const fromServer = useContext(HostContext);
+  // Fallback for any tree rendered outside the provider — same behaviour as before.
+  const [detected, setDetected] = useState(false);
   useEffect(() => {
+    if (fromServer !== null) return;
     const host = typeof window !== "undefined" ? window.location.hostname.toLowerCase() : "";
-    setAppHost(PANEL_HOST ? host === PANEL_HOST || host.startsWith("app.") : true);
-  }, []);
-  return appHost;
+    setDetected(PANEL_HOST ? host === PANEL_HOST || host.startsWith("app.") : true);
+  }, [fromServer]);
+  return fromServer ?? detected;
 }
 
 /** Absolute URL for a link that must work for a SIGNED-OUT recipient (share links, invites).

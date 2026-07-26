@@ -1,6 +1,8 @@
 """AI agronomic advice: NASA indices + crop data + completed work → summary,
 risks, recommendations, next steps (Azerbaijani). Stored in public.advice; when
-the advice materially changes vs the previous one, notify the farmer (in-app + email)."""
+the advice materially changes vs the previous one, notify the farmer **in-app only**.
+Email is not sent per advice change (that fired every 2-3 days per field); the weekly
+Wednesday digest reads the same change signal and reports it once."""
 from __future__ import annotations
 
 import json
@@ -9,7 +11,7 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
-from . import llm, notify, usage as ai_usage
+from . import llm, usage as ai_usage
 from .context import build_field_context
 
 DISCLAIMER = ("Bu məsləhətlər peyk və sahə məlumatlarına əsaslanan avtomatik təhlildir; "
@@ -194,15 +196,8 @@ async def _notify(conn, field_id: str, org_id: str, field_name: str,
            values ($1::uuid,$2::uuid,'vegetation','ai_advice',$3,$4,$5,array['inapp'])""",
         field_id, org_id, sev, title, body)
 
-    # Email the org owner (best-effort; skipped if SMTP not configured).
-    owner = await conn.fetchrow(
-        """select u.email, u.locale from public.organizations o
-           join public.users u on u.id=o.owner_id where o.id=$1::uuid""", org_id)
-    if owner and owner["email"]:
-        lines = [body, "", "Risklər:"]
-        lines += [f"• [{r.severity}] {r.title} — {r.detail}" for r in result.risks] or ["• (yoxdur)"]
-        lines += ["", "Məsləhətlər:"]
-        lines += [f"• {r.title}: {r.detail}" for r in result.recommendations]
-        lines += ["", "Növbəti addımlar:"] + [f"{i+1}. {s}" for i, s in enumerate(result.next_steps)]
-        lines += ["", DISCLAIMER, "", "— Agradex · https://agradex.com"]
-        await notify.send_email(owner["email"], title, "\n".join(lines), locale=owner["locale"])
+    # NO EMAIL HERE — on purpose. This used to mail the org owner the full advice body on every
+    # material change, i.e. after almost every new satellite scene (every 2-3 days, per field), and
+    # it bypassed send_template entirely (no idempotency ledger, no opt-out gate, no unsubscribe
+    # link). The in-app notification above is the immediate channel; the weekly Wednesday digest
+    # picks up this same change signal and reports it once. Do not re-add.

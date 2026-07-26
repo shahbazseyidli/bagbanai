@@ -258,23 +258,6 @@ async def me(user_id: str = Depends(get_current_user_id)):
                    role=row["role"], country=row["country"], region=row["region"])
 
 
-@router.get("/email-alerts")
-async def get_email_alerts(user_id: str = Depends(get_current_user_id)):
-    """Whether this user receives email alerts (#4)."""
-    async with connection(user_id) as conn:
-        val = await conn.fetchval("select email_alerts from public.users where id=$1::uuid", user_id)
-    return {"enabled": bool(val)}
-
-
-@router.post("/email-alerts")
-async def set_email_alerts(body: dict, user_id: str = Depends(get_current_user_id)):
-    """Toggle this user's email alerts (#4)."""
-    enabled = bool(body.get("enabled"))
-    async with connection(user_id) as conn:
-        await conn.execute("update public.users set email_alerts=$2 where id=$1::uuid", user_id, enabled)
-    return {"enabled": enabled}
-
-
 @router.get("/onboarding")
 async def get_onboarding(user_id: str = Depends(get_current_user_id)):
     """The landing quiz answers stored on this account (E13). Used to prefill the field wizard."""
