@@ -1577,6 +1577,8 @@ export const it: Dict = {
   "app.field.meta.nudge.saved": "Salvato — il prossimo consiglio ne terrà conto",
   "app.field.meta.nudge.saveError": "Salvataggio non riuscito. Riprova.",
   "app.field.meta.nudge.seconds": "circa {n} secondi",
+  "app.field.meta.gap.crop_type.action": "Scegli la coltura",
+  "app.field.meta.gap.crop_type.unlock": "norme, soglie e fasi di sviluppo si calcolano per quella coltura",
   "app.field.meta.gap.planting_date.action": "Aggiungi la data di semina",
   "app.field.meta.gap.planting_date.unlock": "l'AI può consigliare in base alla fase di sviluppo e al calore accumulato (GDD)",
   "app.field.meta.gap.irrigation_method.action": "Scegli il metodo di irrigazione",

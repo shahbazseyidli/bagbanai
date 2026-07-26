@@ -1577,6 +1577,8 @@ export const tr: Dict = {
   "app.field.meta.nudge.saved": "Kaydedildi — sonraki tavsiye bunu dikkate alacak",
   "app.field.meta.nudge.saveError": "Kaydedilemedi. Yeniden deneyin.",
   "app.field.meta.nudge.seconds": "yaklaşık {n} saniye",
+  "app.field.meta.gap.crop_type.action": "Ürünü seçin",
+  "app.field.meta.gap.crop_type.unlock": "tüm normlar, eşikler ve gelişme dönemleri ürüne göre hesaplanır",
   "app.field.meta.gap.planting_date.action": "Ekim tarihini ekleyin",
   "app.field.meta.gap.planting_date.unlock": "AI gelişim evresine ve biriken sıcaklığa (GDD) göre tavsiye verebilir",
   "app.field.meta.gap.irrigation_method.action": "Sulama yöntemini seçin",

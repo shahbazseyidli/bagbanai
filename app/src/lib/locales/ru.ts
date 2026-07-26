@@ -1255,6 +1255,8 @@ export const ru: Dict = {
   "app.field.meta.nudge.saved": "Сохранено — следующий совет это учтёт",
   "app.field.meta.nudge.saveError": "Не удалось сохранить. Попробуйте ещё раз.",
   "app.field.meta.nudge.seconds": "примерно {n} секунд",
+  "app.field.meta.gap.crop_type.action": "Выберите культуру",
+  "app.field.meta.gap.crop_type.unlock": "все нормы, пороги и фазы развития считаются именно по культуре",
   "app.field.meta.gap.planting_date.action": "Добавьте дату посева",
   "app.field.meta.gap.planting_date.unlock": "AI сможет давать советы по фазе развития и накопленному теплу (GDD)",
   "app.field.meta.gap.irrigation_method.action": "Выберите способ полива",

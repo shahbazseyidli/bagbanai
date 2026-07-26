@@ -27,6 +27,7 @@ import { IRRIGATION_METHOD_OPTIONS, SOIL_TYPE_OPTIONS } from "@/lib/metadataOpti
 import type { FieldDetail, FieldMetadata, GeoSite } from "@/lib/types";
 import ClickDate from "../info/ClickDate";
 import ChoiceChips from "../info/ChoiceChips";
+import CropGrid from "../info/CropGrid";
 import { topMetaGaps, type GapKey, type MetaGap } from "./completeness";
 
 // Dismissal is a snooze, not a delete: the data still matters next month, and a farmer who taps ×
@@ -49,8 +50,10 @@ function snoozed(fieldId: string): boolean {
 // normalization in MetadataTab: "" → null, numeric columns → number|null (Pydantic rejects "").
 const NUMERIC_KEYS = ["soil_ph", "seeding_density", "elevation_m", "slope_deg", "aspect_deg", "target_yield"];
 
-function toPayload(meta: FieldMetadata, patch: Partial<FieldMetadata>): Record<string, unknown> {
-  const payload: Record<string, unknown> = { ...meta, ...patch };
+function toPayload(meta: FieldMetadata | null, patch: Partial<FieldMetadata>): Record<string, unknown> {
+  // meta is null when the field has no passport row at all — PUT upserts, so the patch alone (which
+  // in that case carries crop_type, the only required column) is a complete create.
+  const payload: Record<string, unknown> = { ...(meta ?? {}), ...patch };
   for (const k of Object.keys(payload)) {
     if (payload[k] === "") payload[k] = null;
   }
@@ -136,12 +139,16 @@ export default function MetadataNudge({ field }: { field: FieldDetail }) {
 
   const save = useCallback(
     async (key: GapKey, patch: Partial<FieldMetadata>) => {
-      if (!meta?.crop_type) return; // crop_type is required by PUT; the checklist owns that case
+      // PUT requires crop_type, so nothing but the crop itself can be saved until it exists. This
+      // used to bail out silently instead — and the strip above it refused to render at all, which
+      // meant the one field that most needed the passport (no crop, so no thresholds, no phenology,
+      // AI reduced to raw index numbers) was the one field that was never asked.
+      if (!meta?.crop_type && !patch.crop_type) return;
       setBusy(true);
       setFailed(false);
       try {
         await api.put(`/api/fields/${field.id}/metadata`, toPayload(meta, patch));
-        setMeta({ ...meta, ...patch });
+        setMeta({ ...(meta ?? ({} as FieldMetadata)), ...patch });
         setOpen(null);
         setSavedKey(key);
         track("meta_gap_filled", { key });
@@ -172,8 +179,8 @@ export default function MetadataNudge({ field }: { field: FieldDetail }) {
     return () => clearTimeout(id);
   }, [savedKey]);
 
-  // The strip exists only while there is something to ask for and something to ask it about.
-  if (hidden || !loaded || !meta?.crop_type) return null;
+  // The strip exists only while there is something to ask for.
+  if (hidden || !loaded) return null;
   if (gaps.length === 0 && !savedKey) return null;
 
   return (
@@ -312,7 +319,8 @@ function GapEditor({
   onSave,
 }: {
   gap: MetaGap;
-  meta: FieldMetadata;
+  /** null when the field has no passport row yet — only the crop editor can run in that state. */
+  meta: FieldMetadata | null;
   busy: boolean;
   suggest: GeoSite | null;
   suggestState: "idle" | "loading" | "done";
@@ -320,10 +328,23 @@ function GapEditor({
 }) {
   const [draft, setDraft] = useState<string | null>(null);
 
+  if (gap.key === "crop_type") {
+    return (
+      <CropGrid
+        cycle={meta?.crop_cycle ?? null}
+        value={draft}
+        onChange={(v) => {
+          setDraft(v);
+          if (v) onSave("crop_type", { crop_type: v });
+        }}
+      />
+    );
+  }
+
   if (gap.key === "planting_date") {
     return (
       <ClickDate
-        mode={meta.crop_cycle === "perennial" ? "year" : "date"}
+        mode={meta?.crop_cycle === "perennial" ? "year" : "date"}
         value={draft}
         onChange={(v) => {
           setDraft(v);

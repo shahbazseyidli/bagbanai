@@ -1577,6 +1577,8 @@ export const hu: Dict = {
   "app.field.meta.nudge.saved": "Mentve — a következő tanács figyelembe veszi",
   "app.field.meta.nudge.saveError": "Nem sikerült menteni. Próbáld újra.",
   "app.field.meta.nudge.seconds": "körülbelül {n} másodperc",
+  "app.field.meta.gap.crop_type.action": "Válassza ki a növényt",
+  "app.field.meta.gap.crop_type.unlock": "minden norma, küszöb és fejlődési szakasz a növényhez igazodik",
   "app.field.meta.gap.planting_date.action": "Add meg a vetés dátumát",
   "app.field.meta.gap.planting_date.unlock": "az AI a fejlődési fázis és a felhalmozott hő (GDD) alapján tud tanácsot adni",
   "app.field.meta.gap.irrigation_method.action": "Válaszd ki az öntözés módját",

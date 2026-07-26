@@ -1600,6 +1600,8 @@ export const en: Dict = {
   "app.field.meta.nudge.saved": "Saved — the next advice will take this into account",
   "app.field.meta.nudge.saveError": "Could not save. Please try again.",
   "app.field.meta.nudge.seconds": "about {n} seconds",
+  "app.field.meta.gap.crop_type.action": "Pick the crop",
+  "app.field.meta.gap.crop_type.unlock": "every norm, threshold and growth stage is calculated for that crop",
   "app.field.meta.gap.planting_date.action": "Add the planting date",
   "app.field.meta.gap.planting_date.unlock": "the AI can advise by growth stage and accumulated heat (GDD)",
   "app.field.meta.gap.irrigation_method.action": "Choose the irrigation method",

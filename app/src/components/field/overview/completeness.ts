@@ -5,9 +5,12 @@
 // growth stage, without an irrigation method it cannot size a water recommendation, without a soil
 // type it cannot put a number on a fertilizer dose, and without a district it cannot resolve the
 // local knowledge zone (services/app/ai/knowledge.py resolve_zone) that carries frost dates and pest
-// models. Only crop_type is mandatory (enforced in the wizard at step 2 and in PUT /metadata); the
-// rest is optional BY DESIGN — a farmer must never be walled in — so the product asks for it later,
-// quietly, ranked by impact, at most two at a time.
+// models. crop_type outranks all of them: it is what every threshold, norm and phenology lookup is
+// keyed by, and without it the analysis can only talk about raw index numbers. It is mandatory in
+// the creation wizard and in PUT /metadata, but a field can still reach this screen without one —
+// imported, created before the wizard asked, or drawn in a hurry — and the strip used to hide
+// itself in exactly that case. The rest is optional BY DESIGN — a farmer must never be walled in —
+// so the product asks for it later, quietly, ranked by impact, at most two at a time.
 //
 // Shared by MetadataNudge (the strip on the field-status section), FieldOnboarding (the step-4
 // "still empty" note) and OnboardingChecklist (the profile-completeness step) so the wording and the
@@ -15,7 +18,7 @@
 import type { FieldMetadata } from "@/lib/types";
 
 /** The metadata keys worth nudging for. Anything else is genuinely nice-to-have. */
-export type GapKey = "planting_date" | "irrigation_method" | "soil_type" | "region";
+export type GapKey = "crop_type" | "planting_date" | "irrigation_method" | "soil_type" | "region";
 
 export interface MetaGap {
   key: GapKey;
@@ -32,6 +35,12 @@ export interface MetaGap {
  * the strip shows only the first MAX_GAPS entries that are still empty.
  */
 export const META_GAPS: MetaGap[] = [
+  {
+    key: "crop_type",
+    actionKey: "app.field.meta.gap.crop_type.action",
+    unlockKey: "app.field.meta.gap.crop_type.unlock",
+    seconds: 5,
+  },
   {
     key: "planting_date",
     actionKey: "app.field.meta.gap.planting_date.action",

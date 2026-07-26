@@ -1322,6 +1322,8 @@ export const az = {
   "app.field.meta.nudge.saved": "Yadda saxlanıldı — növbəti məsləhət bunu nəzərə alacaq",
   "app.field.meta.nudge.saveError": "Yadda saxlamaq alınmadı. Yenidən cəhd edin.",
   "app.field.meta.nudge.seconds": "təxminən {n} saniyə",
+  "app.field.meta.gap.crop_type.action": "Bitki növünü seç",
+  "app.field.meta.gap.crop_type.unlock": "bütün normalar, hədlər və fenologiya məhz bitkiyə görə hesablanır",
   "app.field.meta.gap.planting_date.action": "Əkin tarixini əlavə et",
   "app.field.meta.gap.planting_date.unlock": "AI inkişaf mərhələsinə və toplanmış istiliyə (GDD) görə məsləhət verə bilər",
   "app.field.meta.gap.irrigation_method.action": "Suvarma üsulunu seç",
