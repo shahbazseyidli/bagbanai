@@ -3,6 +3,59 @@
 Bütün əhəmiyyətli dəyişikliklər burada qeyd olunur. Format [Keep a Changelog](https://keepachangelog.com/),
 versiyalar [SemVer](https://semver.org/).
 
+## [1.14.0] — 2026-07-26 — Sahə səhifəsi yenidən (E14) + tək həftəlik email (E15) + rus dili + hesab öz-xidməti
+
+> Detallı sessiya jurnalı: `docs/SESSION_2026-07-26.md`. **37 commit, 211 fayl.**
+> ⚠️ Bu buraxılışın son hissəsi (hesab UI, hüquqi səhifələr, push, proqnoz) **hələ deploy edilməyib** —
+> istifadəçi nəzarəti altında tək deploy gözlənilir. Miqrasiya 0053 image-dən ƏVVƏL tətbiq olunmalıdır.
+
+### Added
+- **Sahə səhifəsi E14 taksonomiyası:** 16 bölmə / 3 qrup, tək mənbə `app/src/lib/fieldSections.ts`.
+  «İcmal»→**«Sahənin vəziyyəti»**, «AI aqronom»→**«Sahə analizi»** (monitorinq qrupuna keçdi),
+  AI bloku→**«Siqnallar və görülməli tədbirlər»**. `OverviewTab.tsx` + `WellnessCard.tsx` **silindi**,
+  yerinə `field/overview/{FieldPulse,SatelliteGlance,SignalsActions,MetadataNudge}`.
+  **`?tab=` alias cədvəli QƏSDƏN yoxdur** — köhnə link səssizcə ilk bölməyə düşür.
+- **Rus dili — 8-ci locale** (`lib/locales/ru.ts` + `content-locales/ru.ts`), path-prefix `/ru`.
+- **Sahə vahidləri:** ha / dönüm / sotka (`lib/units.ts`, migration **0048** `users.area_unit`).
+  NULL = ölkədən törə (TR→dönüm); sotka heç vaxt default deyil.
+- **Landing onboarding quiz** (4 sual) hero-da; cavablar signup-a və profilə keçir (**0046**).
+- **Public demo turu** `/demo` — qeydiyyatsız açıqdır, 5 addımlıq tur, `GET /api/public/demo`
+  (**0050** `fields.is_demo`). Marşrut **heç vaxt LLM çağırmır** — anonim endpoint hesab boşaldan
+  vektor olardı; məsləhət 8 dildə əvvəlcədən yaradılıb.
+- **Desktop iş masası:** geniş ekranda «Sahənin vəziyyəti» tək iş səthinə çevrilir — mərkəzdə xəritə,
+  üstündə indeks çipləri, altında səhnə lenti, sağda sağlamlıq balı + siqnallar.
+- **Qısa üfüqlü NDVI proqnozu** (`GET /api/fields/{id}/forecast`): üç pilləli metod nərdivanı
+  (öz tarixçən → qonşular → cari trayektoriya), Theil-Sen maillik + sönmə + genişlənən zolaq.
+  Data yetməzsə **xətt çəkilmir**.
+- **Hesab öz-xidməti:** parol dəyişmə, profil redaktəsi, hesab bağlama (**0052**). Bağlama şəxsi
+  məlumatı silir, yaratdığı qeydləri saxlayır — 15 cədvəl `users`-ə `NO ACTION` ilə bağlıdır.
+- **Məxfilik siyasəti + istifadə şərtləri**, 8 dildə. ⚠️ **Hüquqi baxışdan keçməyib.**
+- **Web push** (**0053**) — bildiriş matrisində dördüncü kanal. VAPID açarları gələnə qədər dormant.
+- **Bildiriş matrisi:** 5 kateqoriya × kanallar (**0051** `users.notify_prefs`), çatdırılma
+  nöqtələrində **həqiqətən tətbiq olunur** — saxlanan, amma işləməyən keçid deyil.
+- NDVI thumbnail-ləri sahə siyahısında + paket istifadə barı; AI çatda hazır sual çipləri;
+  `PhotoInput` (kamera + qalereya ayrıca).
+
+### Changed
+- **Email TAM konsolidasiya (E15):** hər-hadisə-bir-email **silindi** → **tək həftəlik dijest**,
+  çərşənbə 07:00 Asia/Baku. `rules/engine._deliver_email` və məsləhət-emaili silindi (hər ikisinin
+  yerində «Do not re-add» şərhi var). Tək opt-out `users.email_lifecycle`; `email_alerts` **0047**-də
+  DROP. Təcililik in-app + Telegram ilə.
+- **NASA/HLS istifadəçi səthindən çıxarıldı** — «Peyk görüntüsü». Data qatı və atribusiya toxunulmayıb.
+- **/fields sadələşdi** (xəritə çıxdı), **/farm** dörd modulu bir tabda birləşdirdi (307 redirect).
+- **AI məsləhəti oxucunun dilində** (**0049** `advice.lang`): avtomatik generasiya sahibin dilini
+  götürür, uyğunsuzluqda bir toxunuşla yenidən yaradılır.
+- Marketinq landing artıq **SSR-də** render olunur (əvvəl crawler spinner alırdı) + hreflang.
+
+### Fixed
+- **Yanlış «kritik» hökm:** NDMI proxy 0-a çatıb kompoziti aşağı çəkirdi — lecet 28/kritik → 40/diqqət.
+  Proxy indi 25–85 bandına sıxılır və **öz adını** daşıyır («Peyk nəmlik siqnalı»).
+- **Xəritələr arxa-fon tabda boş qalırdı** — MapLibre style-ı kadr gözləyir (`lib/useMapReady.ts`).
+- **`viewport-fit=cover` yox idi**, ona görə `env(safe-area-inset-*)` 0-a həll olunurdu: aşağı menyu
+  jest zolağının altında qalırdı. ⚠️ Real cihazda **yoxlanmayıb**.
+- Kvota bitəndə `/advice/generate` **200** qaytarırdı → indi **429**.
+- Kamera açılmırdı (fayl seçicisi); cəm formaları (`tp()` + `Intl.PluralRules`).
+
 ## [1.13.0] — 2026-07-25 — Agradex rebrand + email sistemi (E1+E2 CANLI) + panel split aktiv + UX/i18n
 
 > Detallı sessiya jurnalı: `docs/SESSION_2026-07-25.md`.
