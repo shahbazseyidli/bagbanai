@@ -1,8 +1,9 @@
 "use client";
 
-// D2.1 / OneSoil-form — Sahələr as a MAP-FIRST screen: a tall multi-field map is the hero, the field
-// list sits beside it (desktop two-column) or below it (mobile stack). Multi-select checkboxes, the
-// bulk-actions bar and the per-row wellness score chips are all preserved from the flat-list version.
+// Sahələr — a plain list. The multi-field map that used to be the hero was removed (E15): on this
+// screen it answered a question nobody was asking, since every row already carries the field's name,
+// area and wellness score, and the field's own page has a map anyway. What is left is what the
+// screen is for: see your fields, add one, open one, share one, act on several at once.
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -16,7 +17,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { SupportCard } from "@/components/ui/SupportCard";
 import { ListSkeleton } from "@/components/Skeleton";
 import BulkActions from "@/components/BulkActions";
-import FieldsOverviewMap, { type GeoField } from "@/components/FieldsOverviewMap";
+import ShareButton from "@/components/field/ShareButton";
 import type { Tone } from "@/lib/indexStatus";
 import type { Farm, Field, Org } from "@/lib/types";
 
@@ -81,7 +82,6 @@ export default function FieldsListPage() {
   const [scores, setScores] = useState<Record<string, FieldScore>>({});
   // Map hero — the org's field geometries (name + area + data_status + geom in one call). Best-effort:
   // if it fails the list still stands on its own.
-  const [geoFields, setGeoFields] = useState<GeoField[]>([]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -104,13 +104,6 @@ export default function FieldsListPage() {
         const flat = lists.flat();
         setFields(flat);
         if (flat.length > 0) {
-          // Map geometry for the hero — one org-wide read (never per field). A bonus over the list.
-          try {
-            const g = await api.get<{ fields: GeoField[] }>(`/api/fields/geo?org_id=${orgs[0].id}`);
-            setGeoFields(g?.fields ?? []);
-          } catch {
-            /* the map is a garnish — the list stands on its own */
-          }
           // A3 — one org-wide read for every chip (never one request per field). Best-effort: a
           // failure just means no chips, never a broken list.
           try {
@@ -162,17 +155,7 @@ export default function FieldsListPage() {
           <SupportCard />
         </EmptyState>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
-          {/* Map hero — dominant, tall, beside the list on wide screens. NOT position:sticky:
-              a WebGL canvas inside a sticky layer isn't composited until a window resize forces
-              it, which left the map blank on first paint. A plain tall column renders correctly. */}
-          <FieldsOverviewMap
-            fields={geoFields}
-            scores={scores}
-            heightClass="h-[48vh] min-h-[320px] lg:h-[70vh] lg:min-h-[520px]"
-          />
-
-          {/* Field list — beside the map (desktop) / below it (mobile). */}
+        <div className="max-w-3xl">
           <div className="space-y-3">
             <ul className="space-y-2">
               {fields.map((f) => {
@@ -208,6 +191,11 @@ export default function FieldsListPage() {
                         aria-hidden="true"
                       />
                     </Link>
+                    {/* Sibling of the row link, never nested inside it — an <a> may not contain a
+                        button. ShareButton fetches nothing until it is opened. */}
+                    <div className="shrink-0">
+                      <ShareButton fieldId={f.id} />
+                    </div>
                   </li>
                 );
               })}
