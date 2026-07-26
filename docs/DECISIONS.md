@@ -5,12 +5,14 @@
 > https://agradex.com). Each entry states the **Context** (the problem), the **Decision**
 > (what we chose), the **Rationale** (why, and the trade-offs), and the **Consequences**
 > (what it implies plus any follow-ups). Written for the developer/operator (and a future
-> AI assistant) picking this up cold. UI is Azerbaijani; all code, SQL, identifiers, and
+> AI assistant) picking this up cold. The UI now ships in **8 languages** (`az` is the default
+> and the complete source of truth — see ADR-0016 … ADR-0019); all code, SQL, identifiers, and
 > commits are English.
 >
 > Source of truth for requirements: `docs/Bagban_AI_Platforma_Spesifikasiya_AZ.md` (§1–§29)
-> and `docs/Bagban_AI_Subsidiya_Kalkulyatoru_Modul.md` (§30). Working context that these
-> decisions extend: `CLAUDE.md`.
+> and `docs/Bagban_AI_Subsidiya_Kalkulyatoru_Modul.md` (§30 — note the subsidy calculator was
+> removed from the product in v1.12.0; the `0008` `subsidy_*` tables are dormant, not dropped).
+> Working context that these decisions extend: `CLAUDE.md`.
 
 ---
 
@@ -219,9 +221,13 @@ hard-coded** — a security and portability requirement.
 
 **Consequences.** `is_configured()` gates everything: **with no key, calls raise `LLMUnavailable`
 and every AI endpoint degrades gracefully** (advice returns null / `configured:false`; generate
-and chat return 503). This is the current live state — `LLM_API_KEY` in `/opt/bagbanai/.env` is
-**empty**. To activate: add `LLM_PROVIDER=anthropic`, `LLM_MODEL=claude-opus-4-8`,
-`LLM_API_KEY=sk-ant-...` to `.env` and restart the `api` container. Requires `anthropic>=0.69`.
+and chat return 503). Requires `anthropic>=0.69`.
+
+> **Update — AI is LIVE.** `LLM_PROVIDER=anthropic` / `LLM_MODEL=claude-opus-4-8` / `LLM_API_KEY`
+> have been set in `/opt/bagbanai/.env` since **2026-07-16**; the paragraph above described the
+> no-key state and is kept only as the description of that fallback. A *spent quota* is now a
+> different failure from a *missing key*: 503 `ai_not_configured` vs **429 `advice_quota_exceeded`**
+> (ADR-0017).
 
 ---
 
@@ -258,8 +264,14 @@ alert fatigue — a silent daily refresh shouldn't ping anyone.
 
 **Consequences.** Two root crontab entries drive this (queue every 2 min; HLS refresh at 03:00).
 `data_status` semantics matter: `track=1` runs update status and can notify; `track=0` must not.
-Email is best-effort — in-app notifications work even with SMTP unconfigured (`SMTP_*` in `.env`
-are currently empty). Relevant tables: `advice`, `ai_chat_messages`, `notifications`.
+Relevant tables: `advice`, `ai_chat_messages`, `notifications`.
+
+> **Update — the advice-change email is gone (E15, commit `6bf36a6`).** The "best-effort SMTP email
+> to the org owner" described above was deleted from `services/app/ai/advice.py` `_notify()`, which
+> now carries an explicit *do not re-add* comment: it fired after almost every new scene (every 2–3
+> days, per field) and bypassed the template system entirely. The **in-app notification on change is
+> unchanged** — and its title now follows the language the advice was written in (ADR-0017).
+> Non-transactional email is the weekly digest only (ADR-0020).
 
 ---
 
@@ -284,6 +296,10 @@ integrate Stripe/PSP (Phase 2, spec §28).
 ---
 
 ## ADR-0011 — Deploy on the agradex.com **root** domain (no subdomain)
+
+> **Superseded in part by ADR-0024.** The app has served from **app.agradex.com** since 2026-07-25;
+> the apex is the marketing site. Everything below about nginx, the container port bindings,
+> same-origin `/api` and Cloudflare still holds.
 
 **Context.** The platform needs a public URL. The spec is agnostic; the user owns agradex.com.
 
@@ -328,8 +344,8 @@ crash-loop. Secrets backup: `/root/agradex.env.bak`.
 
 ## Open follow-ups referenced above
 
-- Add `LLM_API_KEY` (+ `LLM_PROVIDER`, `LLM_MODEL`) to `.env` to activate AI (ADR-0008).
-- Flip Cloudflare SSL to Full (Strict); origin `:443` is ready (ADR-0011).
+- ~~Add `LLM_API_KEY` (+ `LLM_PROVIDER`, `LLM_MODEL`) to `.env` to activate AI (ADR-0008).~~ **Done 2026-07-16.**
+- ~~Flip Cloudflare SSL to Full (Strict); origin `:443` is ready (ADR-0011).~~ **Done, verified 2026-07-16.**
 - Clean up the duplicate nginx `server_name` block (ADR-0011).
 - Regenerate `EARTHDATA_TOKEN` before **2026-08-30** (ADR-0004).
 - Remaining Sprint-2 parity items in `docs/Infrastruktur_Layer_Tekmillesdirme.md` §6
@@ -346,4 +362,505 @@ crash-loop. Secrets backup: `/root/agradex.env.bak`.
 - **Lifecycle email idempotency via `email_sends` ledger** (unique per user+template+dedup_key) rather than per-user timestamps — simplest correct "send once" that also audits; the weekly digest uses the ISO week as dedup_key to allow repeats.
 - **Farmer name privacy = display alias, not data removal** — the real name stays stored (owner sees it); only cross-user views substitute `user_<hash>`. Farmers only (labs/consultants/suppliers are businesses meant to be discoverable).
 - **English solution slugs** aligned to the `user_role` enum (farmer/lab/consultant/supplier); old Azerbaijani slugs 308-redirect.
+
+---
+
+## ADR-0013 — Renamed field sections with **no `?tab=` alias table**
+
+**Context.** E14 replaced the field page's tab quartet (`TabKey` / `TABS` / `GROUPS` / `GROUP_OF`,
+all living inside `app/src/app/fields/[id]/page.tsx`) with `app/src/lib/fieldSections.ts` — 16
+sections in 3 groups (`monitoring` / `work` / `records`), with `GROUP_OF` **derived** from
+`SECTION_GROUPS` instead of hand-maintained. The section keys **are** the `?tab=` query values, and
+the redesign renamed them: `overview → status`, `sentinel2 → satellite`, `ai → analysis`, and
+`nasa` was deleted outright (ADR-0014).
+
+**Decision.** Ship the rename with **no backwards-compatibility alias map**. `resolveSection(raw)`
+returns `DEFAULT_SECTION` (`"status"`) for anything not in `ALL_SECTIONS`; there is no
+`overview → status` lookup, no redirect and no deprecation window. Taken deliberately, at the
+product owner's explicit instruction: clean architecture over compatibility with links that only
+test users could hold.
+
+**Rationale.** Stated verbatim in the file header (`fieldSections.ts:8-13`): "the product has only
+test users, every internal link builder was updated with the rename, and a compatibility shim for a
+compatibility problem we do not have would outlive anyone who remembers why it exists." The
+fall-through to the first section is **robustness against a truncated or hand-edited URL, not
+legacy support** — the header says so explicitly, so nobody later reads it as the alias mechanism.
+
+**Consequences.** An old link carrying `?tab=overview` / `?tab=ai` / `?tab=sentinel2` / `?tab=nasa`
+silently opens **"Sahənin vəziyyəti"** — no redirect, no 404, no notice; a stale link therefore
+*looks* like it works. Verified at the time of the change: no such string remains anywhere under
+`app/src`, and nothing in `services/app` builds a `tab=` deep link. Reintroducing an alias map is a
+~5-line change at `fieldSections.ts:96-98` — read the header comment first; the absence is a
+decision, not an oversight. Four dictionary keys are now **orphaned but still present in all 8
+locale files** (`field.tab.overview`, `field.tab.sentinel2`, `field.tab.nasa`, `field.tab.ai`), and
+`field.tab.nasa` was even renamed to "Peyk arxivi" in `722b808` although nothing references it — so
+a grep for "NASA" looks clean while the dead key survives. Also orphaned:
+`app.fieldDetail.groupVaziyyet/Isler/Melumat`, superseded by `app.field.group.monitoring/work/records`.
+
+---
+
+## ADR-0014 — HLS/NASA hidden from the **UI** behind one boolean; ingestion untouched
+
+**Context.** The platform ingests two sensor families — NASA HLS (30 m, the long archive and the
+denser time series) and Sentinel-2 (10 m, the sharp raster). The UI exposed that split to the
+farmer: a separate "NASA" section, a sensor picker in the zones tab, and "NASA + Sentinel-2" in the
+marketing copy.
+
+**Decision.** Remove the split from the **user interface only**, behind a single constant:
+`HLS_ENABLED = false` in `app/src/lib/sensors.ts`, with `UI_SENSORS` and `sensorVisible()` derived
+from it. The `nasa` section was deleted, the field page renders `<SatelliteTab sensor="S2" />`
+unconditionally, `ZonesTab`'s sensor picker is gone, and Sentinel-2 is presented as
+**"Peyk görüntüsü · 10m"** rather than by its programme name. `SENSOR_META` (a module-level const)
+became `sensorMeta()`, a **function**, because the labels go through `t()` and a const captured
+whichever locale loaded first.
+
+**Rationale.** "NASA" as a UI word made the farmer think about the data supplier instead of the
+field. The data layer keeps both sensors and is untouched — geo pipeline, the `run-hls` cron, the
+stored `S30`/`L30` rows, the regional benchmark SQL, A8 backfill and A6 zones all still read HLS
+(`sensors.ts:3-12`). **Attribution is a deliberate carve-out**: `/status` still names NASA HLS and
+Sentinel-2 (Copernicus), the marketing footer keeps its data-source line, the EOX basemap keeps its
+CC BY-NC-SA credit, and the required "Contains modified Copernicus Sentinel data 2026" notice was
+*added* in all 7 translated locales (`722b808`). Licence attribution is a legal obligation, not
+branding.
+
+**Consequences.** `sensorFamily()` must keep resolving `hls`/`s30`/`l30` regardless of the flag,
+because rows tagged with those codes still reach the app. Do not let a cleanup pass delete the HLS
+branches as dead code. **Honest caveat on the advertised rollback:** flipping `HLS_ENABLED` to
+`true` alone would *not* restore the old UI — nothing outside `sensors.ts` currently consumes
+`HLS_ENABLED`, `UI_SENSORS` or `sensorVisible()`, the page hard-codes `sensor="S2"`, and
+`SECTION_GROUPS` has no HLS section; a real rollback also needs a section entry and a second
+`SatelliteTab` instance. Related: `SatelliteTab`'s p10–p90 spread lines were **un-gated** from
+`sensor === "HLS"` because `persist_scene` writes those values for every sensor — the gate would
+have deleted the band from the UI the moment NASA stopped being shown. Operational lesson from the
+same commit: the sensor-picker deletion in `ZonesTab` over-cut and took the compute button, all four
+state banners, the zones map and the statistics table with it (`03620b1` −109 lines, `30b3698`
++85) — a structural deletion anchored on a JSX block boundary compiles fine and the type system
+notices nothing.
+
+---
+
+## ADR-0015 — A **proxy** wellness component may move the score, but never name the verdict
+
+**Context.** The Field Wellness Score (B8) composes 0-100 from vegetation / water / pest / GDD, with
+missing components dropped and the remaining weights renormalized. The water component falls back to
+NDMI when the FAO-56 soil-water balance has not been computed. The old fallback mapped NDMI linearly
+onto the full range (`(v + 0.05) / 0.45 * 100`), so a real field reading NDMI ≈ −0.13 — a legitimate
+sparse July canopy — scored −17.8, clamped to **0**. Carrying 0.25/0.65 = 38.5 % of the composite, it
+dragged a field whose vegetation scored 45 down to **28/100**, headlined *"Risk: water balance
+critical (0/100)"* — printed directly above that component's own reason line admitting the balance
+had never been computed.
+
+**Decision.** Codify a three-part **PROXY RULE** in the module docstring of
+`services/app/ai/wellness.py`, as the second half of the existing HONESTY RULE. A proxy-sourced
+component: (1) is compressed into the band `_PROXY_MIN.._PROXY_MAX` = **25..85** over the NDMI
+domain `_NDMI_LO.._NDMI_HI` = −0.20..0.40, so it can neither scream "critical" nor certify
+"perfect"; (2) carries its **own** `label_code` (`water.ndmi` → "Peyk nəmlik siqnalı"), never the
+label of the measurement it stands in for; (3) is never chosen by `_pick_worst()` as the deciding
+worst component while any real measurement exists, and can never on its own push the tone to `bad`
+(the tone is floored to `warn` when the real-only composite would not be bad).
+
+**Rationale.** The system was accusing the farmer on the strength of a number it admitted, one line
+lower, that it could not compute. The rule is about **honesty of authority**: a stand-in signal may
+influence the number but must not be the thing the platform points at and calls the field's problem.
+The **score itself is deliberately left unchanged** — the proxy did move it, and hiding that would
+be its own lie; what is refused is the worst-component label and the worst tone. Measured effect on
+the real field (`b2e973f`): 28/100 *"water balance critical (0/100)"* → **40/100 "Diqqət: bitki
+örtüyü zəifdir (45/100)"**.
+
+**Consequences.** A field can now show 40/100 with a `warn` tone even though `_WARN_MIN = 45` — that
+looks inconsistent and is intentional; do not "fix" it by clamping the score. Any **new** proxy
+component must set `extra.proxy = True`, carry its own `label_code`, be band-limited, and ship
+`app.wl.label.<code>` + `app.wl.labelLower.<code>` in all 8 locale files, or the headline renders a
+raw key. `headline_from_components()` is public precisely so every headline surface applies the same
+rules — `load_wellness()` and the org read model (`routers/analytics.py::org_wellness`) both call it;
+a third surface must too. Displayed weights now come from `_apportion()` (largest-remainder, ties
+broken by the fixed `WEIGHTS` order) so they sum to exactly 100 — the card had been showing
+62 % + 39 % = 101 %. The old float `weight` is still emitted alongside the new int `weight_pct`;
+consumers must prefer `weight_pct` (`x.weight_pct ?? Math.round(x.weight * 100)`) or they
+reintroduce the rounding bug. Rows stored before `b2e973f` carry no `weight_pct`, no `label_code`
+and no `detail.proxy` — every reader keeps a fallback.
+
+---
+
+## ADR-0016 — Backend-computed prose ships as **code + params**; the sentence lives in the frontend
+
+**Context.** Six backend modules were composing finished **Azerbaijani sentences in Python** —
+rain nowcast verdicts, season-compare verdicts, FAO-56 irrigation recommendations, frost
+climatology summaries, clarification questions and their option labels. A Turkish or Russian farmer
+read Azerbaijani prose inside an otherwise translated interface. This extends the 2026-07-25
+decision above ("email backend text via structured codes") to every farmer-facing string the server
+composes.
+
+**Decision.** Each of those modules now emits a stable `*_code` plus raw `*_params` **alongside** the
+existing Azerbaijani sentence; the frontend resolves the pair through `tf()` in
+`app/src/lib/wellnessText.ts`. Code families introduced: `seasoncmp.*` (`routers/analytics.py`),
+`nowcast.*` (`routers/nowcast.py`), `fao56.*` (`ai/irrigation.py`), `frost.*` (`ai/frost.py`),
+`clarify.*` (`ai/clarify.py`). Two shape rules fell out of it: whole hours and loose minutes are
+**separate codes** (`nowcast.dryHours` / `nowcast.dryMinutes`) because languages decline the two
+units differently and a unit must never be glued onto a translated number by the caller; and
+`frost.summary` is a **composite** whose params are raw `MM-DD` strings and numbers — never month
+names — so a language can reorder its clauses and supply its own month vocabulary
+(`app.date.monthsShort`).
+
+**Rationale.** Never translate in Python. The dictionaries already hold the grammar; the server
+holds the numbers. Keeping the Azerbaijani sentence as a sibling field means rows written before the
+change — and any client that does not know a code — still render something true.
+
+**Consequences.** **When one code path overrides another's text, the code must be replaced, not
+dropped.** A real shipped bug: when the FAO-56 daily balance overrode the coarse 7-day water
+recommendation, `ai/weather.py` did `content.pop("recommendation_code")` — correct diagnosis (the
+coarse code no longer described the visible text), wrong fix, since it left a localized client with
+*no* code and a silent fall back to Azerbaijani. It now assigns the FAO-56 twins instead. The
+Azerbaijani fallback has a long tail: frost climatology is cached in `zone_knowledge` with a
+**365-day TTL**, so `sentence_az` must keep rendering for up to a year unless an agronomist forces
+`?refresh=1`; clarification rows and stored wellness `components` from before `b2e973f` likewise
+carry no codes. One category deliberately stays **untranslated at the source**: the severity words
+`aşağı` / `orta` / `yüksək` are *codes* (DB values, notification severity derivation) and are mapped
+to `app.advice.sev.*` only at the label layer by `severityLabel()`, which returns an unrecognised
+value **verbatim** rather than dropping it — a new severity must never make a risk invisible.
+
+---
+
+## ADR-0017 — AI advice is **generated** per language and stored; never translated on read
+
+**Context.** A live test in Russian showed the field analysis rendered in Azerbaijani. Five
+independent gaps produced it: `users.locale` was written once at signup and never again (the
+language switcher only set a cookie); `POST /api/internal/advice/run` — the geo pipeline's
+after-every-scene trigger, and therefore the producer of most advice rows — passed no language at
+all; `public.advice` had no record of the language a row was written in; the read endpoint returned
+the newest row blind to the reader; and both advice surfaces printed the raw Azerbaijani severity
+word as the chip label.
+
+**Decision.** Advice prose is **generated once, in one language, and stored as text**. Concretely:
+`public.advice.lang` (migration `0049`, `not null default 'az'`) records the language;
+`generate_and_store(..., lang=)` writes it; the internal trigger resolves the **org owner's**
+`users.locale` (fields → organizations → users) because there is no HTTP caller to take a language
+from, and the owner is the person the notification and the weekly digest go to; `POST
+/api/auth/locale` persists the switcher's choice so cron- and pipeline-driven work can read it;
+`GET /api/fields/{id}/advice` returns `lang` and `lang_mismatch`; and `AdviceLangNote` offers a
+one-tap regeneration when they disagree. Notification titles follow the advice language
+(`_NOTIFY_TITLE`, 8 locales) because the notification body **is** the advice summary.
+
+**Rationale, and the alternatives rejected.**
+- *Translate the stored text on read.* Not done: the row is free-form model output, not a template.
+  The code+params convention of ADR-0016 works precisely because those sentences are a **closed set**
+  authored in the dictionaries; advice text is unbounded, so there is nothing to key on.
+- *Return the newest row **in the reader's language**, i.e. prefer a stale same-language analysis.*
+  Rejected explicitly in the handler docstring: "a fresh analysis the reader can have translated
+  beats a stale one they can read." The newest row always wins.
+- *Show the foreign prose silently.* Rejected — that is the bug, restated. `lang_mismatch` names the
+  situation instead.
+- *Regenerate automatically on mismatch.* Not done; it is an **offer**. A regeneration spends a slot
+  of the org's monthly advice quota (`services/app/tiers.py`: free 1, pro 8, business 30).
+- `default 'az'` on the new column backfills existing rows **correctly**, because the auto-trigger
+  genuinely never passed a language — that is why no data migration was needed.
+
+**Consequences.** A spent quota is now a **refusal with a status**: `POST /api/fields/{id}/advice/generate`
+raises **429 `advice_quota_exceeded`** (`f3a7cf3`). It used to return 200 carrying
+`{"quota_exceeded": true}`, so every caller read it as success — the spinner stopped, the page
+re-fetched the same old analysis, and a farmer was told "try again shortly" about a limit that
+resets next month. Note the service function still *returns* that dict rather than raising: the
+router converts it, so **`POST /api/internal/advice/run` still reports `{"ok": true}` on a quota
+refusal** and a cron log will not show it. Two loose ends worth knowing: the index created by
+`0049` (`advice_field_lang_idx` on `(field_id, lang, generated_at desc)`) is **not used by any query
+today** — every reader filters on `field_id` alone — so do not assume a lang-filtered read path
+exists; and the weekly digest quotes `advice.summary` with **no `lang` predicate**, so an
+Azerbaijani row can still be quoted inside a Russian or English digest. The field page is covered by
+the mismatch affordance; the email is not.
+
+---
+
+## ADR-0018 — The **client states its language** (`X-Locale`); the server stops inferring it
+
+**Context.** Found while verifying ADR-0017 end to end: the developer's own browser held **more than
+one `bagban_locale` cookie**. The app host and the marketing apex are different hosts, so a
+host-only cookie from before the panel split coexists with the `.agradex.com` one. Next's
+`cookies.get()` returns the **first**; Starlette's cookie dict keeps the **last**. The interface
+could therefore render in one language while the backend wrote prose in another — exactly the bug
+the previous two commits set out to remove.
+
+**Decision.** `app/src/lib/api.ts` sends **`X-Locale`** on every request (GET/POST/PUT/PATCH/DELETE
+and the multipart upload) via a shared `headers()` helper, taken from `getLocale()` — the same value
+`t()` is about to render with. `services/app/routers/advice.py::_resolve_locale` prefers it over the
+cookie: **body `locale` → `X-Locale` → `bagban_locale` cookie → `az`**.
+
+**Rationale.** The cookie is genuinely ambiguous in a two-host deployment, and the fix is to stop
+guessing rather than to add another heuristic. The client is the only party that knows what it is
+rendering.
+
+**Consequences.** The header reaches FastAPI unmodified (`deploy/nginx-agradex.conf`'s `/api/` block
+sets only Host/X-Real-IP/X-Forwarded-\*; CORS is `allow_headers=["*"]`). **There is no locale
+middleware** — only three handlers read it (`GET /fields/{id}/advice`, `POST
+/fields/{id}/advice/generate`, `POST /fields/{id}/chat`); `GET /fields/{id}/chat` deliberately does
+not. A fourth reader must call `_resolve_locale(request, ...)` explicitly. One request is
+deliberately outside the wrapper: `LanguageSwitcher` posts `/api/auth/locale` with a raw `fetch` and
+`keepalive: true` (the switcher navigates immediately), so it carries no `X-Locale` — harmless, the
+locale is in the body — and it also bypasses `ApiError`/`azError`, so a 401 on the signed-out
+marketing apex is swallowed by design. The locale cookie is now written with
+`domain=.agradex.com` on both hosts, but a pre-split host-only cookie can still coexist; the header
+is what makes that harmless.
+
+---
+
+## ADR-0019 — Plural forms via `Intl.PluralRules`, with `Dict` widened for `app.plural.*`
+
+**Context.** The field-list header read **"1 полей"** and **"1 fields"**. It concatenated a count
+with one fixed noun — which only ever works in Azerbaijani and Turkish, where the singular follows
+any numeral ("5 sahə"). English and German need one/other; Russian and Polish need three forms.
+
+**Decision.** `tp(base, n)` in `app/src/lib/i18n.ts` selects the form with
+`new Intl.PluralRules(_locale).select(n)` and resolves `<base>.<category>` through `tf()`, falling
+back to `<base>.other` when the selected form is absent. The dictionaries supply only the forms
+themselves: az/tr/hu declare `.other` alone, en/de/it declare one+other, ru/pl declare
+one/few/many/other. The two single-noun keys it replaces (`today.fieldsWord`,
+`app.fieldsList.fieldsCountSep`) were deleted from all eight dictionaries.
+
+**Rationale, and why `Dict` had to change.** `I18nKey` is derived from the `az` dictionary
+(`export type I18nKey = keyof typeof az`), and **Azerbaijani has no `few`/`many` form to derive the
+key from** — so with `Dict = Partial<Record<I18nKey, string>>` Russian and Polish literally could not
+declare the forms their grammar requires. `Dict` is therefore
+`Partial<Record<I18nKey, string>> & PluralForms`, where
+``type PluralForms = { [K in `app.plural.${string}`]?: string }``. The widening is scoped to the
+`app.plural.` prefix on purpose: every other key stays governed by the az source of truth.
+
+**Consequences.** Adding a plural noun needs **both halves**: `az` must declare `<base>.other`
+(that key becomes the `I18nKey`), and any locale needing `few`/`many` relies on the widening. Two
+call sites exist today (`/fields` header, `TodayHome`); other `<n> <noun>` sites carry the same flaw
+and are named as future conversions — sales records, share views, peer farmers, rain days. **Editing
+hazard, already burned once (`8c38e8b`):** `i18n.ts`'s **last `};` is the `DICTS` registry, not the
+`az` dictionary**, so a script that anchors on it produces `const DICTS = { az   "app.plural.fields.other": "sahə", };`
+and breaks the module. The seven per-locale files each hold a single object and are safe. This
+machine has **no local Node**, so such a break only surfaces in the server-side `docker build web` —
+which is also where the follow-up type error was caught (`84e5f28`).
+
+---
+
+## ADR-0020 — One **weekly digest** instead of per-event email; critical alerts folded in
+
+**Context.** Three independent senders mailed the farmer, two of them bypassing the template system
+entirely: `rules/engine.py::_deliver_email()` sent one message **per fired alert per field** (a
+farmer with 3 fields in bad weather got a dozen a day); `ai/advice.py::_notify()` mailed the org
+owner the full advice body after almost every material change, i.e. every 2–3 days per field; and
+`emails/lifecycle.py` ran **nine behavioral rules** daily (`no_field_d1/d3/d7`, `edu_ndvi/edu_ledger/edu_invite`,
+`no_crop`, `inactive_10d/30d`, `trial_ending`, `digest_weekly`). Two opt-out flags governed the whole
+thing — `email_alerts` (0030) and `email_lifecycle` (0044) — and the two bypassing senders honoured
+neither.
+
+**Decision (E15).** Outbound email is now **transactional + one weekly digest**, and nothing else.
+- Transactional: OTP/verification, welcome, and the first "your field is ready" report.
+- Recurring: **one** template id `weekly` (`services/app/ai/emails/weekly.py`) with four variants —
+  `no_fields`, `no_crop`, `alerts`, `calm` — sent **Wednesday 03:00 UTC = 07:00 Asia/Baku**
+  (Azerbaijan is UTC+4 with no DST), deduped on the **ISO week**
+  (`to_char(now(), 'IYYY-"W"IW')`).
+- **Alerts fold in.** The rule engine still writes `public.notifications` and still pushes Telegram
+  **immediately**; the digest is their only *email* surface. Both deleted senders leave an explicit
+  *"Do not re-add"* comment where they used to be.
+- `users.email_alerts` is **dropped** (migration `0047`), leaving `email_lifecycle` as the single
+  opt-out for all non-transactional email; the dead `/api/auth/email-alerts` endpoints and
+  `EmailAlertsToggle.tsx` went with it.
+
+**Rationale.** One template id with variants rather than four ids, **because the ledger dedups on
+(user, template_id, dedup_key)** — separate ids would let a farmer who adds a field on Thursday
+receive a second email in the same week. Immediacy is not what email is good at: in-app and Telegram
+already deliver it, cost nothing and cannot flood. Two independent guards now sit in `send.py`: the
+dedup key, and a `TRANSACTIONAL_CAP_HOURS = 24` rolling cap — because transactional mail bypasses
+the opt-out and a farmer who draws five fields in one afternoon has five distinct dedup keys.
+Over-cap sends are recorded as `skipped` so a later cron cannot deliver them late.
+
+**Consequences.** The drain path is **unchanged** (`POST /api/internal/emails/lifecycle/drain`) so
+the crontab entry's URL did not have to move — but the **cron line changed** from `15 6 * * *`
+(daily) to `0 3 * * 3`, and `deploy/lifecycle-emails.sh` can only document that; **root's crontab on
+95.216.208.82 must be edited by hand**. Until it is, the drain runs daily — harmless, because the
+ISO-week dedup makes it a no-op, but the digest lands on the old weekday. Calling it out of band is
+safe by design, not a bug to "fix" in the runbook. The response `sent` map is keyed by **variant**,
+not template id, so any monitor keyed on `no_field_d1` / `edu_ndvi` / `trial_ending` silently reports
+zero. `catalog_i18n.py` still carries copy for the eleven deleted templates in tr/de/hu/it/pl —
+inert (only `data_ready` is merged) but do not read it as a list of live templates. **Translation
+debt:** `WEEKLY_EXTRA` contains only `ru`, and `weekly._LABELS` only az/en/ru, so tr/de/hu/it/pl
+receive the digest in **English** by fallback. The digest embeds a satellite image over a **public**
+TiTiler URL (`/titiler/cog/preview.png`, not the tile route) because Gmail proxies images — the
+exposure equals the public share links in `routers/shares.py`. Deploy ordering: `0047` drops a
+column, so it must go **with or after** the code that stopped reading it (`6bf36a6`); rolling the
+API back past that commit while `0047` is applied resurrects two endpoints and one dispatcher that
+500 against a dropped column.
+
+---
+
+## ADR-0021 — Hectares stay the storage unit; area units convert **only at the render edge**
+
+**Context.** Everything the platform stores and computes is in hectares — `fields.area_ha`, the geo
+pipeline, the FAO-56 and fertilizer models, the AI context. That is not the unit farmers think in:
+Turkey's *tapu* land registry is written in **dönüm** (1 000 m² = dekar), and Azerbaijani everyday
+speech uses **sot/sotka** (100 m²) for small plots — "beş sot bağ", not "0.05 hektar".
+
+**Decision.** Add a per-user display preference `users.area_unit` (migration `0048`, nullable with a
+CHECK of `ha` | `donum` | `sotka`) behind `GET`/`POST /api/auth/area-unit`, and do **all** conversion
+in one client-side formatter, `app/src/lib/units.ts`. `NULL` means *derive from `users.country`*
+(TR → dönüm, any other explicit country → ha, else the interface language, else ha). Decimals differ
+per unit on purpose (ha 2, dönüm 1, sotka 0) because nobody wants to read "13.60 dönüm".
+**`sotka` is never a default** — it reads well below ~1 ha and badly above it (a 40 ha field as
+"4000 sot"), so it is explicit opt-in only.
+
+**Rationale.** Showing everyone hectares is a quiet "this app was not built for me" signal. Keeping
+hectares as the storage unit means no model, no migration and no API contract changes — the
+preference is a rendering concern and stays one.
+
+**Consequences.** Anything that **writes** an area must convert back: `YieldsTab` does
+`fromUnit(Number(area), areaUnit)` before POSTing. **Per-hectare rates stay per hectare**
+(t/ha yields, kg/ha fertilizer doses, the zone dose columns) — those are agronomic norms published
+per hectare, and the code says so at both sites. `units.ts` is `"use client"`: Server Components must
+not call `formatArea()`/`useFormatArea()` — pass the number down, the same rule that already applies
+to `t()`. `services/app/routers/auth.py::_effective_area_unit()` is a **deliberate duplicate** of
+`defaultAreaUnit()` in `units.ts` and says so; if the country→unit mapping grows beyond the `_TURKEY`
+set, both sides change or the server's `effective` and the client's optimistic default disagree.
+`useAreaUnit()` initialises from an in-memory module variable, so the first component on a page load
+can paint hectares for one frame; and `clearAreaUnitCache()` is called from logout
+(`app/src/lib/auth.tsx:85`) so the next account on a shared device does not inherit the previous
+farmer's unit — keep that call if logout is refactored.
+
+---
+
+## ADR-0022 — The four farm-record modules live behind **one `/farm` tab** (and are parked); empty marketplace surfaces hidden
+
+**Context.** Dəftər (ledger), Satış (sales), Anbar (inventory) and Texnika (equipment) were four
+separate top-level rail destinations. They are four views of **the same object — the farm business,
+not a field** — and the farmer opens them weekly at most. Separately, `/catalog` (supplier
+marketplace) and `/chat` (farmer community) are fully implemented and currently **empty**: no seeded
+providers, no messages.
+
+**Decision.** Consolidate the four into one container route `/farm` with `?tab=` sections
+(`app/src/lib/farmSections.ts`), and **park them there**: the rail now lists five destinations
+(Bu gün · Sahələr · Təsərrüfat · Hesabatlar · Daha çox), `/more` collapses the four rows into one,
+and the bottom nav's `/notifications` slot became `/farm`. The four page bodies moved **verbatim**
+into `app/src/components/farm/*Section.tsx`, each keeping its own auth/org guards — nothing was
+removed. Section keys are deliberately identical to the old route slugs so the mapping is mechanical
+and the redirects cannot drift from the list. Catalog and chat are hidden from the rail, bottom nav
+and `/more` behind a single constant `SHOW_MARKETPLACE_NAV = false`
+(`app/src/lib/navFlags.ts`) — **not** a kill switch: routes, API and components stay live, deep links
+still open them, and the landing still links to `/catalog`.
+
+**Rationale.** Four of the rail's entries for records opened weekly at most was a disproportionate
+share of the farmer's attention. And "a marketplace with no suppliers and a community with no
+conversations advertise emptiness exactly where the farmer is looking for value" (`navFlags.ts`) —
+seeding content is the only precondition for flipping the flag back.
+
+**Consequences.** The old routes `/ledger` `/sales` `/inventory` `/equipment` **`redirect()` = 307,
+deliberately not `permanentRedirect()` = 308**: "a permanent redirect is cached by the browser
+forever, so reverting the consolidation would strand anyone who had visited the old URL." Do not
+"harmonise" this with the 308 on `/yenilikler → /whats-new`, where the rename **is** final. In-app
+deep links were repointed rather than left to the redirect (`HarvestTab` now links
+`/farm?tab=sales&…`). `BottomNav`'s `isActive` had to become a **segment-boundary** match
+(`pathname === href || pathname.startsWith(href + "/")`) because `/farms` starts with `/farm` and a
+raw prefix match lit up the wrong tab. `SHOW_MARKETPLACE_NAV` is annotated `: boolean` on purpose —
+without the annotation TypeScript infers the literal `false`, narrows every ternary to its else
+branch and reports the enabled branch as dead code; the annotation keeps flipping it a genuine
+one-character change. **Unresolved detail:** the source comments disagree on the rail's previous
+size — `AppRail.tsx` says "four of eleven rail slots", `farmSections.ts` says "four of thirteen rail
+entries". The post-change count (five) is verified; the before-count is not.
+
+---
+
+## ADR-0023 — Every MapLibre map waits for a **real animation frame** before it is constructed
+
+**Context.** Maps were blank on `app.agradex.com`: a correctly sized canvas, a live WebGL context,
+working zoom controls, the legend drawn — and no tiles, no polygons and **not a single console
+error**. Two defensive fixes against the wrong diagnosis did not help (see Consequences). Diagnosed
+by reaching the MapLibre instance **through the React fiber** on the live page and reading its
+private state: `style._loaded === false`, `style.stylesheet === null`, empty `sourceCaches`,
+`style._frameRequest` still pending, `document.visibilityState === "hidden"`.
+
+**Decision.** Gate **every** map construction on `useMapReady()`
+(`app/src/lib/useMapReady.ts`) — a hook that returns `false` until the first `requestAnimationFrame`
+callback actually fires, re-arming on `visibilitychange → visible`. All five constructions are
+gated: `FieldMap`'s `DrawMap` / `DisplayMap` / `CompareMap`, `FieldsOverviewMap`, and `ZonesTab`'s
+`ZonesMap`.
+
+**Rationale.** MapLibre's `Style.loadJSON` does not parse the style inline — it awaits one animation
+frame (`browser.frameAsync`) and **swallows the rejection** if that frame never arrives. A background
+tab produces no frames, so a map built there never loads its style, never fires `load`, never
+requests a tile, never raises an error — **and MapLibre does not retry when the tab is later shown**.
+The bug was never specific to one component: the per-field map and the zones map were equally blank;
+the marketing map "worked" only because that page happened to be built while its tab was in front.
+Users hit it through a middle-click / open-in-new-tab, a restored session, a PWA warm start, or a
+link opened behind the current window. `requestAnimationFrame` was chosen over
+`document.visibilityState` because a minimised or fully occluded window can report `"visible"` while
+still being throttled.
+
+**Consequences.** Any new MapLibre map **must** gate on this hook or it is permanently blank in a
+background tab, silently. Recognise the symptom by its silence: sized canvas, live context, no
+tiles, no error. The earlier fix in `FieldsOverviewMap` — listeners attached before any draw, every
+draw wrapped in `drawSafe()`, `styledata` added alongside `load`/`idle` (`70e1378`) — is **still in
+the code and is a legitimate defensive change, but it is not the root-cause remedy**; it was attempt
+#1 against the wrong diagnosis (`073b62f` is the fix). Do not read it as such. The fiber-walk is the
+technique to reuse for any "no error, nothing renders" WebGL/canvas symptom.
+
+---
+
+## ADR-0024 — The app lives on **app.agradex.com**, and the host is resolved on the **server** (supersedes part of ADR-0011)
+
+**Context.** The panel split has been active since 2026-07-25: `app.agradex.com` serves the
+application, the apex `agradex.com` (and `www`) serves marketing. But the **home page could not
+decide which one it was until the browser mounted** — `useIsAppHost()` was a mount effect, and the
+landing sat behind `if (loading)`, which on the server always starts `true`. Every crawler therefore
+received a spinner: the home page was **12.5 KB with zero `<h1>` and zero `<p>`**, while `/pricing`,
+`/how-it-works`, `/solutions` and `/status` already server-rendered 83–152 KB with real headings.
+(That last measurement also **corrects** the strategy reports' claim that the whole site rendered
+client-side.)
+
+**Decision.** Resolve the host from the request, on the server. `middleware.ts` sets three request
+headers — `x-app-host` (`"1"`/`"0"`, from the `Host` header against `PANEL_HOST`), `x-locale`, and
+the locale-stripped `x-pathname`. `RootLayout` wraps the tree in `<AppHostProvider value={…}>` and
+`useIsAppHost()` reads context, falling back to the old mount detection only outside the provider.
+`app/src/lib/host.ts` therefore became **`host.tsx`** — the extension change is load-bearing, the
+module now exports a JSX provider — while the import specifier `@/lib/host` is unchanged everywhere.
+Two things ride along on the same header plumbing: `generateMetadata()` emits a per-request canonical
+plus `alternates.languages` for **every** locale in `LOCALES` plus `x-default` (there were **no**
+hreflang alternates at all, so eight language versions were competing for the same queries), and
+`publicUrl(path)` mints share and invite links against the **apex** rather than
+`window.location.origin` — links minted inside the app pointed at `app.agradex.com/s/…`, where the
+host bounces signed-out visitors to `/login`, i.e. exactly the people a share link exists for.
+
+**Rationale.** The apex is always marketing and the host is known from the request, so the branch can
+be taken during SSR. Side benefit: the app host no longer flashes marketing before correcting itself.
+
+**Consequences.** ADR-0011's "root domain, no subdomain" no longer describes production; its nginx,
+port-binding, same-origin `/api` and Cloudflare content still does. **A missing `x-app-host` header
+means APP host** (`layout.tsx` computes `h.get("x-app-host") !== "0"`) — the opposite of the old
+client default; the middleware matcher covers every HTML route today, but any future path excluded
+from it renders as the app host. The app host's public-path allowlist (`/pricing`, `/solutions`,
+`/how-it-works`, `/finduq`, `/guide`, `/whats-new`, `/yenilikler`, `/status`, `/s/*`) **must stay
+above the auth gate** — it was moved there specifically so `/s/` share links work for signed-out
+recipients, and putting it back below `if (!hasAuth)` silently reinstates the login wall for every
+share link and team invite. Cross-host redirects now carry the locale prefix, and the locale cookie
+is written with `domain: .agradex.com` when the split is on (see ADR-0018). **Honest gap:** only the
+*before* HTML sizes are recorded in `6bf36a6`; no after-measurement exists anywhere in the repo, so
+the improvement is asserted structurally (the landing now renders during SSR) and would have to be
+measured against the live site if a number is needed.
+
+---
+
+## Open follow-ups from ADR-0013 – ADR-0024
+
+- **Edit root's crontab on 95.216.208.82**: the digest line must become `0 3 * * 3`; the repo can
+  only document it in `deploy/lifecycle-emails.sh` (ADR-0020).
+- **Weekly-digest translation debt**: `catalog_i18n.WEEKLY_EXTRA` holds only `ru` and
+  `weekly._LABELS` only az/en/ru, so tr/de/hu/it/pl receive the digest in English by fallback
+  (ADR-0020).
+- **Digest image URL is unverified end to end**: `https://app.agradex.com/titiler/cog/preview.png`
+  must resolve anonymously or every weekly email ships a broken `<img>`; the repo's
+  `deploy/nginx-agradex.conf` names only the apex, so this needs a curl test on the host (ADR-0020).
+- **`HLS_ENABLED` is not yet a sufficient rollback** — a section entry in `fieldSections.ts` and a
+  second `SatelliteTab` instance are also required (ADR-0014).
+- **The weekly digest quotes advice prose with no `lang` predicate**, so an Azerbaijani row can
+  appear inside a Russian digest; the field page is covered by `lang_mismatch`, the email is not
+  (ADR-0017).
+- **Dead keys to sweep when convenient**: `field.tab.overview/sentinel2/nasa/ai` and
+  `app.fieldDetail.groupVaziyyet/Isler/Melumat` in all 8 locale files (ADR-0013); the eleven deleted
+  email templates' copy in `catalog_i18n.py` for tr/de/hu/it/pl (ADR-0020); the unused
+  `advice_field_lang_idx` (ADR-0017).
+- **`FieldMapSheet` leftovers**: it still runs a `scenes?index=NDVI&sensor=s2` request per field open
+  whose result is unused, and `dataSaver` / `forceRaster` / the `DisplayMap` and `Layers` imports are
+  dead after the hero-map removal — an oversight, not a decision (ADR-0014).
+- **Convert the remaining `<n> <noun>` sites to `tp()`**: sales records, share views, peer farmers,
+  rain days (ADR-0019).
 
