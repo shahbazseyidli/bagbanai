@@ -27,9 +27,15 @@ export default function FieldWorkbench({
 }) {
   // Written as COMPLETE literals: Tailwind's content scanner cannot see a class name assembled
   // from a template string, and a missing grid-cols silently collapses this to one column.
-  // 400px only once the stage can spare it; below that FieldPulse still gets >= 320px of content.
+  // Three steps, because the workbench now starts at a 778px stage (a 1440px laptop with the field
+  // list open) rather than at 920: give the map its share back at the bottom end, and let the rail
+  // grow once there is room for FieldPulse's score ring and component bars to breathe.
   const cols =
-    stageW >= 1280 ? "grid-cols-[minmax(0,1fr)_400px]" : "grid-cols-[minmax(0,1fr)_360px]";
+    stageW >= 1280
+      ? "grid-cols-[minmax(0,1fr)_400px]"
+      : stageW >= 1000
+        ? "grid-cols-[minmax(0,1fr)_360px]"
+        : "grid-cols-[minmax(0,1fr)_340px]";
 
   // The height has to be MEASURED, not budgeted from a constant. AppRail and FieldListPanel can use
   // a flat `100vh - 92px` because they are sticky at 76px from the viewport top. The workbench is

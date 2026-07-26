@@ -41,10 +41,15 @@ import FieldWorkbench from "@/components/field/workbench/FieldWorkbench";
 import { useStageWidth } from "@/components/field/workbench/useStageWidth";
 import type { FieldDetail } from "@/lib/types";
 
-// The status section becomes the two-column workbench only when the measured stage can afford it:
-// a 360px rail plus a map that is still worth looking at. Below this the stacked layout is better,
-// and it is what xl-with-an-expanded-field-list (~778px) gets until the farmer collapses the list.
-const WORKBENCH_MIN = 920;
+// The status section becomes the two-column workbench when the measured stage can afford a rail
+// plus a map still worth looking at.
+//
+// This was 920, which sounded reasonable and meant the workbench never appeared: the real stage on
+// a 1440px laptop with the field list expanded — the single most common desktop setup — is 778px.
+// The feature shipped unreachable. 760 is the honest floor: it leaves the map ~420px next to a
+// 340px rail, which is a usable field map, and it is what the layout was actually being asked to
+// handle. The rail steps up again as soon as there is room (see FieldWorkbench).
+const WORKBENCH_MIN = 760;
 
 export default function FieldDetailPage() {
   // useSearchParams (tab state) requires a Suspense boundary under the app router.

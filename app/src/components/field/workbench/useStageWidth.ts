@@ -21,12 +21,19 @@ export function useStageWidth(): [(node: HTMLDivElement | null) => void, number 
     obsRef.current = null;
     if (!node) return;
 
-    // No ResizeObserver (very old browsers) must not leave the section on the skeleton forever —
-    // measure once and stay there.
-    if (typeof ResizeObserver === "undefined") {
-      setWidth(node.clientWidth);
-      return;
-    }
+    // MEASURE SYNCHRONOUSLY, FIRST. ResizeObserver callbacks are delivered in the frame lifecycle,
+    // exactly like requestAnimationFrame — and a hidden tab produces no frames. Waiting for the
+    // observer therefore left `width` null forever whenever the field was opened in a background
+    // tab (middle-click, restored session, unfocused window), and the caller sat on its skeleton
+    // with the entire status section missing. Verified live: in a hidden tab a freshly attached
+    // observer on a laid-out 1066x460 div never fired at all.
+    //
+    // getBoundingClientRect does not need a frame — it forces layout and returns synchronously —
+    // so the first value is always available. The observer below only refines it.
+    // Same failure family as lib/useMapReady.ts; see docs and the maplibre-background-tab note.
+    setWidth(node.getBoundingClientRect().width);
+
+    if (typeof ResizeObserver === "undefined") return;
 
     const ro = new ResizeObserver((entries) => {
       const w = entries[0]?.contentRect.width;

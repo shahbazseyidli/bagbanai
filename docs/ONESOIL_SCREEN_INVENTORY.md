@@ -4,7 +4,9 @@
 > Dizayn tokenləri: `ONESOIL_DESIGN_SYSTEM.md` · Strateji nəticələr: `ONESOIL_MOBILE_TEARDOWN.md` · Bizim qarşılıqlar: `ONESOIL_VS_AGRADEX.md`
 >
 > **Əhatə dairəsi:** app-ın **daxili** bütün ekranları gəzildi. Xarici brauzerə çıxan sətirlər (`Web version features`, `Updates history`, `Support chat`, `User Guide`, `Telegram community`, `Privacy policy`, `Terms of Use`) qəsdən açılmadı — onlar app ekranı deyil, veb səhifədir; `Share app` sistem paylaşma vərəqidir.
-> **Əlçatmaz qalan:** onboarding/qeydiyyat axını (hesab artıq loginli idi), pullu funksiyaların içi (Monitoring/AI Agronomist alınmayıb), çoxlu sahəsi/qrupu olan hesabın görünüşü (test hesabında 1 sahə var).
+> **Əlçatmaz qalan:** pullu funksiyaların **içi** (Monitoring/AI Agronomist alınmayıb — yalnız upsell ekranları sənədləşdirilib; abunə almaq mənə qadağandır), çoxlu sahəsi/qrupu olan hesabın görünüşü (test hesabında 1 sahə var).
+>
+> ⚠️ **Qeydiyyat axını üçün əlavə qeyd:** istifadəçi qəsdən logout etdi və pre-auth axını **tam gəzildi** (bax §0 aşağıda). **Hesab yaradılmadı və heç bir parol yazılmadı** — bu mənə qadağandır; ekranlar, sahələr və razılıq mexanizmi struktur olaraq sənədləşdirilib. Anonim halda sahə yaratma axınına **girilib**, amma **saxlanmayıb** — ona görə "saxlama addımı qeydiyyat tələb edirmi?" sualı **yoxlanılmamış qalır**.
 
 ---
 
@@ -33,6 +35,71 @@ Bottom nav (5)
    ├─ Subscription → Purchase (3 paket)
    └─ Export field boundaries (PAYWALL)
 ```
+
+---
+
+# §0 · PRE-AUTH — hesabsız istifadə ★ ən mühüm struktur tapıntı
+
+> **OneSoil hesabsız TAM işləyir.** Login divarı yoxdur. App açılır, xəritə gəlir, öz mövqeyin görünür, hava işləyir, sahə əlavə etmə axını açılır. Hesab yalnız **saxlamaq və veb versiyaya keçmək** üçün təklif olunur.
+
+## A0 · Soyuq açılış (hesabsız) — Map tabı
+Tam ekran peyk xəritəsi, **istifadəçinin öz mövqeyində** (mavi nöqtə `#4A90E2` + istiqamət oxu).
+
+| Element | Vəziyyət |
+|---|---|
+| Qrup/mövsüm pill · axtarış · `+` · mövqeyim | **var** (loginli ilə eyni) |
+| Qat seçici pill | **YOX** |
+| Qeyd əlavə et düyməsi | **YOX** |
+| **`＋ Add fields` böyük CTA** | alt-mərkəzdə, **128×120 dp**, **MAVİ `#1877F2`** |
+
+★ **Nümunə — vəziyyətə görə yuva dəyişməsi:** xəritənin alt-mərkəz yuvası eyni qalır, məzmunu dəyişir: **sahə yoxdursa** `Add fields` CTA → **sahə varsa** qat seçici pill.
+
+★ **Rəng qərarı:** boş vəziyyətin əsas hərəkəti **brend yaşılı deyil, mavidir** (`#1877F2`). Kontrastla ayrılıb — yaşıl "təsdiq/uğur", mavi "başla".
+
+## A1 · Sign in (`Welcome back!`)
+Loqo 56 dp · başlıq · `Email` (395×56 dp) · `Password` (395×52 dp) + göz keçidi (48 dp) · `Forgot your password?` · yaşıl `Sign in` (395×56) · `Or continue with` · **Google** dairəsi · `Sign up`.
+
+## A2 · Sign up (`Welcome to OneSoil!`)
+Boz dairəvi `✕` (sağ-üst) · yaşıl yuvarlaq-kvadrat loqo · başlıq · `Email` · `Password` + göz.
+
+★ **İKİ AYRI RAZILIQ QUTUSU** (paketlənmiş tək checkbox DEYİL), hər ikisi **sağ tərəfdə** dairəvi:
+1. *"I have read and agree to OneSoil's **Terms of Use**"* (altdan xətli link)
+2. *"I give consent for my personal data to be processed according to **Privacy policy**"* (altdan xətli link)
+
+Sonra yaşıl `Create account` · `Or continue with` → Google · boz `Sign in`.
+
+★ **Ad, telefon, ölkə sahəsi YOXDUR** — qeydiyyat cəmi **2 sahə + 2 razılıq**. Maksimum az sürtünmə.
+
+## A3 · Profile tabı (hesabsız)
+Başlıqda upsell bloku:
+> **`Keep your fields safe`**
+> *"Create an account or sign in to save your data and use the web version"*
+> `Create an account` · `I have an account`
+
+Altında menyu **qismən qalır**: `Settings` · `Subscription` · `Export field boundaries` · `Learn more`…
+(`My account` yoxdur — o, yalnız loginlidə var.)
+
+★ Upsell **funksiyanı kəsmir** — "datanı itirmə" və "veb versiya" faydası ilə satılır, qorxu ilə yox.
+
+## A4 · Fields tabı (hesabsız)
+Boş vəziyyət: *"Add fields to start monitoring vegetation, satellite images…"* + `Add fields` düyməsi. Başlıq sətrində `Save` · `Add` · `More options` ikonları qalır.
+
+## A5 · Notes tabı (hesabsız)
+*"You need at least one field before adding notes."* — **hesab yox, SAHƏ tələb olunur**. Yəni asılılıq düzgün modelləşdirilib: qeyd sahəyə bağlıdır, hesaba yox.
+
+## A6 · Weather tabı (hesabsız) ★
+Tam işləyir. **Fərqli basemap:** tünd/söndürülmüş dünya xəritəsi (Map tabındakı peyk deyil) — yağış rəngləri onun üzərində seçilsin deyə.
+
+- Sol kənarda **iki hissəli şaquli legend** (yuxarı: sarı→çəhrayı→bənövşəyi→mavi; aşağı: sian gradient)
+- Alt-mərkəzdə **`⊕ Add virtual weather station`** — həmin mavi `#1877F2`
+- Sağ-üstdə pin-plus ikonu (stansiya əlavə et)
+- Zaman scrubber: keçmiş bərk, gələcək çizgili
+
+★ **Virtual hava stansiyası ayrıca varlıqdır** — sahəyə bağlı deyil, xəritədə istənilən nöqtəyə qoyulur. Bizdə analoqu yoxdur (`weather_cache` sahəyə bağlıdır).
+
+## A7 · Sahə əlavə etmə (hesabsız)
+`Select | Draw` seqmenti açılır, alt-mərkəzdə zoom ikonu + **`Zoom-in to select fields`** ipucu.
+⚠️ **Saxlama addımı yoxlanılmadı** — sahə yaratmaq istifadəçinin hesabında data yaratmaq demək olardı.
 
 ---
 
