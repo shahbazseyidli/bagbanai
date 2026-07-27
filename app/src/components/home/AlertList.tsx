@@ -67,7 +67,9 @@ export default function AlertList({
       {more > 0 && (
         <Link
           href="/notifications"
-          className="inline-flex items-center gap-1 text-sm font-bold text-emerald-700"
+          // Hit area grown to the 48px floor without changing the visual box — see the same pattern
+          // on TodayHome's add link for why it is a pseudo-element and not padding.
+          className="relative inline-flex items-center gap-1 text-sm font-bold text-emerald-700 after:absolute after:inset-x-[-8px] after:-inset-y-3.5 after:content-['']"
         >
           {t("app.home.alerts.seeAll")}
           <ChevronRight className="h-4 w-4" aria-hidden="true" />

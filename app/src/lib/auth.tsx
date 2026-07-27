@@ -52,6 +52,16 @@ function reconcileLocale(me: User) {
       (prefixed && (LOCALES as readonly string[]).includes(prefixed)) ||
       document.cookie.includes("bagban_locale=");
     const shown = getLocale();
+    // Expire a leftover HOST-ONLY bagban_locale. LanguageSwitcher writes a domain-scoped cookie and
+    // now clears this one too, but only for people who switch language again — everyone carrying a
+    // pre-panel-split cookie stays shadowed forever otherwise, and the two servers read the pair in
+    // opposite orders (Next takes the first, Starlette the last), so the interface and the API can
+    // disagree about the language indefinitely. Deleting needs the same domain-less scope it was
+    // written with. Safe here: the domain cookie is the deliberate one, and `shown` — what the page
+    // actually rendered, hence what we just persisted — survives either way.
+    if (document.cookie.split("; ").filter((c) => c.startsWith("bagban_locale=")).length > 1) {
+      document.cookie = "bagban_locale=; path=/; max-age=0; samesite=lax";
+    }
     if (!explicit || me.locale === shown) return;
     void api.post("/api/auth/locale", { locale: shown }).catch(() => {});
   } catch {

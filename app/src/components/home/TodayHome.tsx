@@ -490,7 +490,13 @@ export default function TodayHome() {
             <h2 className="text-sm font-bold text-slate-600">{t("app.home.todayHome.myFields")}</h2>
             {/* One add affordance per screen: the wide header already carries the primary button. */}
             {!wide && (
-              <Link href="/onboarding" className="inline-flex items-center gap-1 text-sm font-bold text-emerald-700">
+              // The hit area is grown to the 48px floor with a pseudo-element rather than padding:
+              // an inline link beside a heading has to keep its 20px visual box or the row's rhythm
+              // shifts, but at 20px it was the smallest tappable thing on the phone home.
+              <Link
+                href="/onboarding"
+                className="relative inline-flex items-center gap-1 text-sm font-bold text-emerald-700 after:absolute after:inset-x-[-8px] after:-inset-y-3.5 after:content-['']"
+              >
                 <Plus className="h-4 w-4" /> {t("common.add")}
               </Link>
             )}

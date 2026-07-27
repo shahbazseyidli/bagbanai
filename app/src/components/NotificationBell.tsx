@@ -82,14 +82,23 @@ export default function NotificationBell() {
         type="button"
         onClick={toggle}
         aria-label={t("app.notificationBell.ariaLabel")}
-        className="relative rounded-lg p-2 text-slate-600 hover:bg-emerald-50 hover:text-emerald-700"
+        // 48px floor (--tap), not p-2's 36. This bell IS the notifications entry point on a phone:
+        // the bottom nav deliberately spends its fifth slot on /account because this exists, so it
+        // has to clear the same target size as everything in that bar. The icon stays 20px; only
+        // the hit area grows.
+        className="relative inline-flex h-[var(--tap)] w-[var(--tap)] items-center justify-center rounded-lg text-slate-600 hover:bg-emerald-50 hover:text-emerald-700"
       >
-        <Bell className="h-5 w-5" />
-        {unread > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-            {unread > 9 ? "9+" : unread}
-          </span>
-        )}
+        {/* The badge hangs off the ICON, not off the button. The button is a 48px tap target with a
+            20px glyph centred in it, so a badge anchored to the button's own corner would float ~14px
+            away from the bell and read as an unrelated dot. */}
+        <span className="relative inline-flex">
+          <Bell className="h-5 w-5" />
+          {unread > 0 && (
+            <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+              {unread > 9 ? "9+" : unread}
+            </span>
+          )}
+        </span>
       </button>
 
       {open && (
