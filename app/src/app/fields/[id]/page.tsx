@@ -7,11 +7,12 @@ import { api, azError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { t } from "@/lib/i18n";
 import {
-  GROUP_OF, SECTION_GROUPS, groupSections, resolveSection, sectionOf, type SectionKey,
+  DEFAULT_SECTION, GROUP_OF, SECTION_GROUPS, groupSections, resolveSection, sectionOf,
+  type SectionKey,
 } from "@/lib/fieldSections";
 import { ErrorNote, Spinner } from "@/components/ui";
-import FieldPulse from "@/components/field/overview/FieldPulse";
-import SignalsActions from "@/components/field/overview/SignalsActions";
+// FieldPulse / SignalsActions / ShareButton are no longer imported here: the phone renders them
+// inside FieldFeed (mobile/FieldFeed.tsx), which is now the only narrow body of the status section.
 import SatelliteTab from "@/components/field/SatelliteTab";
 import FieldMapSheet from "@/components/field/FieldMapSheet";
 import FieldMapCard from "@/components/field/FieldMapCard";
@@ -30,12 +31,13 @@ import SeasonTab from "@/components/field/SeasonTab";
 import DocumentsTab from "@/components/field/DocumentsTab";
 import WeatherHistoryTab from "@/components/field/WeatherHistoryTab";
 import SeasonCompareChart from "@/components/field/SeasonCompareChart";
-import ShareButton from "@/components/field/ShareButton";
 import BackfillCard from "@/components/field/BackfillCard";
 import RainNowcast from "@/components/field/RainNowcast";
 import FieldHeader from "@/components/field/FieldHeader";
 import FieldWorkbench from "@/components/field/workbench/FieldWorkbench";
 import { fieldLayout, useStageWidth } from "@/components/field/workbench/useStageWidth";
+import FieldFeed from "@/components/field/mobile/FieldFeed";
+import SectionHeaderBar from "@/components/field/mobile/SectionHeaderBar";
 import type { FieldDetail } from "@/lib/types";
 
 // Sections that build their own MapLibre map, and therefore must NOT also get the persistent card
@@ -67,11 +69,40 @@ function FieldDetailInner() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const tab: SectionKey = resolveSection(searchParams.get("tab"));
+  // Whether the section entry currently on the stack was pushed BY US. The phone's tabless screen
+  // needs it for the same reason ?map=full does below: a farmer who arrived straight on
+  // ?tab=metadata from a notification has no feed behind them, and router.back() there ejects them
+  // from the app entirely. Every in-page route into a section sets it; backToFeed consumes it.
+  const pushedSectionRef = useRef(false);
   function setTab(key: SectionKey) {
     const sp = new URLSearchParams(searchParams.toString());
     sp.set("tab", key);
     // A section change always leaves fullscreen: the param must never survive one, or tapping
     // "Peyk görüntüsü" from inside the overlay would land on the satellite section still covered.
+    sp.delete("map");
+    sp.delete("chart");
+    // TRUE only when the entry we are pushing ON TOP OF is the feed. A bare `= true` made this a
+    // "we pushed something" flag rather than "the feed is underneath": section → section → back
+    // then popped to the FIRST section while the bar still named the feed, so the control landed
+    // somewhere other than the screen it advertised.
+    pushedSectionRef.current = tab === DEFAULT_SECTION;
+    router.push(`${pathname}?${sp.toString()}`, { scroll: false });
+  }
+  /**
+   * Back out of a phone DETAIL view to the feed (?tab=status).
+   *
+   * Mirrors closeFullscreen's idiom exactly: pop our own entry when there is one, otherwise push a
+   * fresh feed URL. Pushing is the safe branch, not the clever one — the worst it costs is an extra
+   * history entry, whereas an unconditional router.back() on a deep link leaves the field.
+   */
+  function backToFeed() {
+    if (pushedSectionRef.current) {
+      pushedSectionRef.current = false;
+      router.back();
+      return;
+    }
+    const sp = new URLSearchParams(searchParams.toString());
+    sp.set("tab", DEFAULT_SECTION);
     sp.delete("map");
     sp.delete("chart");
     router.push(`${pathname}?${sp.toString()}`, { scroll: false });
@@ -147,6 +178,15 @@ function FieldDetailInner() {
   // exists once and every surface that derives from it moves together.
   const layout = fieldLayout(stageW);
   const wide = layout === "wide";
+  // The phone's tabless field screen (OneSoil teardown §3). TWO view modes, decided by the URL and
+  // the measurement alone — no extra state, no alias table, no URL rewriting:
+  //   FEED   = narrow stage AND ?tab=status → one continuous scroll (FieldFeed)
+  //   DETAIL = narrow stage AND any other tab → that section's UNCHANGED body + a back-to-feed bar
+  // Because no section body is touched, every ?tab= URL keeps working byte-for-byte: a share link,
+  // a notification deep link, ?tab=metadata&focus=… and the retired ?tab=overview|ai|sentinel2|nasa
+  // values (which resolveSection folds onto "status", i.e. onto the feed) all land where they did.
+  const narrow = layout === "narrow";
+  const feedMode = narrow && tab === DEFAULT_SECTION;
   // 6.5 — "scouting" is the one exception to the wide rule. Its notes ARE map data: pins with no
   // map is a feature with its output removed, and the workbench only renders on the status
   // section, so a wide stage would otherwise leave this section mapless. Everywhere else the wide
@@ -284,6 +324,11 @@ function FieldDetailInner() {
       orgId={field.org_id}
       farmId={field.farm_id}
       layout={layout}
+      // In a phone DETAIL view the chevron returns to the FEED, not out of the field: the feed is
+      // the screen this section was opened from, so leaving the field on the first back press would
+      // skip a whole level. Undefined everywhere else, which is FieldHeader's own default (browser
+      // back, then /fields).
+      onBack={narrow && !feedMode ? backToFeed : undefined}
       actions={
         !editing ? (
           <button
@@ -359,7 +404,15 @@ function FieldDetailInner() {
   const groupTabs = groupSections(activeGroup);
   // Above xl the left panel carries this navigation (FieldSectionMenu); below xl the panel does not
   // exist, so the chip rows stay. The two are never on screen together.
-  const tabNav = (
+  //
+  // The chip row now also depends on the MEASURED stage, and that pairing is what keeps a dead band
+  // from opening up. FieldListPanel is `xl:flex` and this row is `xl:hidden` — one contract — so the
+  // three cases are:
+  //   narrow  → no chips; the feed's blocks, its "Daha çox" list and the detail back bar navigate.
+  //   wide    → chips render exactly as before. That covers stage ≥ 760 with viewport < xl (iPad,
+  //             a half-screen laptop), which has neither the feed nor the left panel.
+  //   unknown → nothing for the one unmeasured frame, so no chip row flashes and then vanishes.
+  const tabNav = !wide ? null : (
     <div className="space-y-2 xl:hidden">
       {/* Primary: 3 farmer intents */}
       <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
@@ -406,6 +459,12 @@ function FieldDetailInner() {
       <h2 className="mb-3 hidden font-display text-xl font-bold text-ink xl:block">
         {t(sectionOf(tab).labelKey)}
       </h2>
+      {/* Phone DETAIL view: the only chrome a section gains from the tabless screen. It carries the
+          way back to the feed and, below xl, the name of the section — the <h2> above is
+          `hidden xl:block`, and this bar is `xl:hidden`, so exactly one of them is ever on screen. */}
+      {narrow && !feedMode && (
+        <SectionHeaderBar title={t(sectionOf(tab).labelKey)} onBack={backToFeed} />
+      )}
       {tab === "status" && (
         <div>
           {layout === "unknown" ? (
@@ -429,14 +488,25 @@ function FieldDetailInner() {
               />
             </div>
           ) : (
-            // The satellite block is gone from here: FieldMapCard renders it above the nav, for
-            // every section, and two /scenes read models would drift apart within one tap.
-            <div className="space-y-4">
-              <RainNowcast fieldId={field.id} />
-              <FieldPulse field={field} />
-              <SignalsActions fieldId={field.id} onOpenAnalysis={() => setTab("analysis")} />
-              <ShareButton fieldId={field.id} />
-            </div>
+            // NARROW — and, since "unknown" and "wide" are handled above, this leaf IS feedMode.
+            //
+            // The phone's whole field screen: one continuous scroll (teardown §3). The satellite
+            // block is not here and never was — FieldMapCard renders it above the nav, for every
+            // section, and two /scenes read models would drift apart within one tap. RainNowcast
+            // MOVED into the spraying block inside the feed, where its verdict belongs.
+            <FieldFeed
+              field={field}
+              pathname={pathname}
+              search={searchParams.toString()}
+              onOpenAnalysis={() => setTab("analysis")}
+              onOpenWeather={() => setTab("weather")}
+              // A "Daha çox" row is a <Link>, so it pushes without going through setTab — tell the
+              // back bar the entry it would pop is ours.
+              onNavigateSection={() => {
+                // Same rule as setTab: only the feed may be claimed as the entry underneath.
+                pushedSectionRef.current = tab === DEFAULT_SECTION;
+              }}
+            />
           )}
         </div>
       )}
@@ -495,6 +565,9 @@ function FieldDetailInner() {
             sp.set("tab", "analysis");
             sp.delete("map"); // same rule as setTab: a section change always leaves fullscreen
             sp.delete("chart");
+            // Same bookkeeping setTab does, and the same rule: the flag means "the feed is the
+            // entry underneath", so it is only true when we are leaving the feed.
+            pushedSectionRef.current = tab === DEFAULT_SECTION;
             router.push(`${pathname}?${sp.toString()}`, { scroll: false });
             setTimeout(
               () => document.getElementById("photo-diagnose")?.scrollIntoView({ behavior: "smooth", block: "start" }),
@@ -521,6 +594,10 @@ function FieldDetailInner() {
             ) : undefined
           }
           tabNav={tabNav}
+          // Teardown §4.10 — the floating "AI aqronom" pill, and it belongs to the FEED only: in a
+          // detail view the section the pill opens may already be the one on screen. Ours is free
+          // where OneSoil paywalls it, which is exactly why it is worth a permanent shortcut.
+          onOpenAi={feedMode ? () => setTab("analysis") : undefined}
         >
           {tabContent}
         </FieldMapSheet>

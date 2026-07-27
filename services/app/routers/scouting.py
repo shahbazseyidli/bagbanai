@@ -48,6 +48,26 @@ def _severity_out(raw: Any) -> Optional[int]:
     return n if 1 <= n <= 5 else None
 
 
+def _row_out(r: Any) -> dict:
+    """One serialiser for both scopes.
+
+    Extracted so a note read through the org list and the same note read through its field can
+    never disagree about a type. `field_name` rides through untouched: it exists only in the
+    org statement's column list, and dict(row) carries exactly the columns that were selected."""
+    d = dict(r)
+    d["id"] = str(d["id"])
+    d["field_id"] = str(d["field_id"])
+    d["created_by"] = str(d["created_by"]) if d["created_by"] else None
+    d["severity"] = _severity_out(d["severity"])
+    d["color"] = _color(d["color"])
+    d["status"] = d["status"] or "open"
+    d["lat"] = float(d["lat"]) if d["lat"] is not None else None
+    d["lon"] = float(d["lon"]) if d["lon"] is not None else None
+    d["observed_at"] = d["observed_at"].isoformat()
+    d["resolved_at"] = d["resolved_at"].isoformat() if d["resolved_at"] else None
+    return d
+
+
 @router.post("")
 async def create_obs(body: ScoutingIn, user_id: str = Depends(get_current_user_id)):
     async with connection(user_id) as conn:
@@ -72,35 +92,82 @@ async def create_obs(body: ScoutingIn, user_id: str = Depends(get_current_user_i
 
 
 @router.get("")
-async def list_obs(field_id: str = Query(...), user_id: str = Depends(get_current_user_id)):
+async def list_obs(
+    field_id: Optional[str] = Query(default=None),
+    org_id: Optional[str] = Query(default=None),
+    limit: int = Query(default=100, ge=1, le=200),
+    user_id: str = Depends(get_current_user_id),
+):
+    """Notes for ONE field, or for a whole org. Exactly one scope — never neither, never both.
+
+    The two scopes are two SEPARATE literal statements chosen by an `if`, not one statement with an
+    interpolated WHERE. A branch that swaps predicates while still passing every argument leaves the
+    statement with parameters it never references, which asyncpg cannot type — see the comment in
+    create_obs, where that was a real bug.
+
+    The response SHAPES differ on purpose. Field scope returns a BARE array, because that is what it
+    has always returned and the field page types it that way; org scope returns {"items": [...]},
+    leaving room for the list to grow a cursor or a total later without breaking the field read.
+
+    `limit` binds the ORG statement ONLY. The field read stays unbounded: silently truncating a
+    farmer's own notes for one field would be a quiet data lie, and one field genuinely holds tens
+    of notes. A parameter that does nothing in one mode is worse than a sentence saying so."""
+    # An explicit 422 rather than FastAPI's implicit one: making field_id optional removed the
+    # required-parameter guard that used to reject "neither" for us. `?field_id=` is not a scope.
+    field_id = (field_id or "").strip() or None
+    org_id = (org_id or "").strip() or None
+    if field_id and org_id:
+        raise HTTPException(status_code=422, detail="scouting_scope_ambiguous")
+    if not field_id and not org_id:
+        raise HTTPException(status_code=422, detail="scouting_scope_required")
+
+    if field_id:
+        async with connection(user_id) as conn:
+            owner_org = await _org_of_field(conn, field_id)
+            await require_member(conn, user_id, owner_org)
+            # st_y/st_x, not st_asgeojson: the client has always typed these as lat/lon numbers, so
+            # the GeoJSON this used to return matched nothing and the coordinate line never once
+            # rendered. Resolved notes are returned TOO — "resolved is not deleted" only means
+            # something if the row still arrives; the filter belongs to the client, which fades them.
+            rows = await conn.fetch(
+                """select id, field_id, category, severity, note, photos, color, status,
+                          st_y(geom) as lat, st_x(geom) as lon,
+                          created_by, observed_at, resolved_at
+                   from public.scouting_observations where field_id=$1::uuid order by observed_at desc""",
+                field_id)
+        return [_row_out(r) for r in rows]
+
+    # Not an `else`: the two guards above leave org scope as the only remaining case. Narrowing
+    # happens on org_id ITSELF here — safe_uuid returns a plain str — rather than being inferred
+    # from the state of field_id, so the invariant lives in one variable instead of across two.
+    scope_org = safe_uuid(org_id, "org_not_found")
     async with connection(user_id) as conn:
-        org_id = await _org_of_field(conn, field_id)
-        await require_member(conn, user_id, org_id)
-        # st_y/st_x, not st_asgeojson: the client has always typed these as lat/lon numbers, so the
-        # GeoJSON this used to return matched nothing and the coordinate line never once rendered.
-        # Resolved notes are returned TOO — "resolved is not deleted" only means something if the
-        # row still arrives; the filter belongs to the client, which shows them faded.
+        # The same gate the field path reaches after _org_of_field, applied one step earlier.
+        await require_member(conn, user_id, scope_org)
+        # Filtered on o.org_id, not on a farms join: that is the very column the scouting_read
+        # policy (0007) reads, so the server-side gate and the row filter cannot drift apart.
+        # The join to public.fields does double duty — it supplies field_name (fields.name is
+        # NOT NULL, 0003) and carries `f.deleted_at is null`, matching how every other org-scoped
+        # read is written, so a soft-deleted field never surfaces its notes.
+        # `o.id desc` only breaks ties on identical observed_at, keeping the page order stable.
         rows = await conn.fetch(
-            """select id, field_id, category, severity, note, photos, color, status,
-                      st_y(geom) as lat, st_x(geom) as lon,
-                      created_by, observed_at, resolved_at
-               from public.scouting_observations where field_id=$1::uuid order by observed_at desc""",
-            field_id)
-    out = []
-    for r in rows:
-        d = dict(r)
-        d["id"] = str(d["id"])
-        d["field_id"] = str(d["field_id"])
-        d["created_by"] = str(d["created_by"]) if d["created_by"] else None
-        d["severity"] = _severity_out(d["severity"])
-        d["color"] = _color(d["color"])
-        d["status"] = d["status"] or "open"
-        d["lat"] = float(d["lat"]) if d["lat"] is not None else None
-        d["lon"] = float(d["lon"]) if d["lon"] is not None else None
-        d["observed_at"] = d["observed_at"].isoformat()
-        d["resolved_at"] = d["resolved_at"].isoformat() if d["resolved_at"] else None
-        out.append(d)
-    return out
+            """select o.id, o.field_id, f.name as field_name, o.category, o.severity, o.note,
+                      o.photos, o.color, o.status,
+                      st_y(o.geom) as lat, st_x(o.geom) as lon,
+                      o.created_by, o.observed_at, o.resolved_at
+               from public.scouting_observations o
+               join public.fields f on f.id = o.field_id
+               where o.org_id=$1::uuid and f.deleted_at is null
+               order by o.observed_at desc, o.id desc
+               limit $2""",
+            # ONE MORE than asked for. `limit` alone makes truncation invisible: a response of
+            # exactly `limit` rows is indistinguishable from a farm that happens to have exactly
+            # that many notes, so the client either stays silent about a truncated log or prints a
+            # total it cannot support. Reading limit+1 and slicing back turns "is there more" into
+            # an observed fact for the cost of a single row.
+            scope_org, limit + 1)
+    has_more = len(rows) > limit
+    return {"items": [_row_out(r) for r in rows[:limit]], "has_more": has_more}
 
 
 @router.patch("/{obs_id}")

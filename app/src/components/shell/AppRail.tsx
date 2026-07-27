@@ -32,6 +32,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Bell,
+  CloudSun,
   Home,
   LayoutGrid,
   Leaf,
@@ -232,6 +233,11 @@ export default function AppRail() {
   const PRIMARY: RailItem[] = [
     { href: "/", label: t("app.shell.appRail.today"), Icon: Home },
     { href: "/fields", label: t("app.shell.appRail.fields"), Icon: Sprout },
+    // /weather is a bottom-nav destination on the phone AND has a purpose-built two-column desktop
+    // layout (grep twoCol in components/weather/WeatherScreen.tsx). Without a rail entry that
+    // layout was reachable only by typing the URL. Same key the bottom bar uses, so the two bars
+    // cannot end up calling one destination two different things.
+    { href: "/weather", label: t("bnav.weather"), Icon: CloudSun },
     ...(SHOW_MARKETPLACE_NAV
       ? [
           { href: "/catalog", label: t("app.shell.appRail.catalog"), Icon: ShoppingBag },

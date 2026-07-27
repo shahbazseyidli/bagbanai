@@ -3,7 +3,7 @@
 // Detailed account/settings page (HYBRID_PLAN §E W1/E13), OneSoil-style card grid. Reuses the
 // existing language / data-saver / email controls and surfaces role + country/region. Inline AZ.
 import { useRouter } from "next/navigation";
-import { Mail, Lock, Globe, MapPin, Download, UserCog, LogOut, Store } from "lucide-react";
+import { Mail, Lock, Globe, MapPin, Download, UserCog, LogOut, Store, LayoutGrid, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
@@ -50,6 +50,29 @@ export default function AccountPage() {
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-bold text-slate-900">{t("app.account.title")}</h1>
+
+      {/* THE DOOR TO /more. The phone's bottom bar is five true tabs now (Xəritə · Sahələr · Hava ·
+          Qeydlər · Hesab), so "Daha çox" lost its slot — and with it every phone route into
+          Kataloq, İcma, Bələdçi, Qiymətlər, Komanda, /notifications and /admin, all of which live
+          only on that page. The desktop rail still lists /more; this row is what keeps it one tap
+          away on a phone, which is why it sits directly under the title rather than in the grid.
+          Same shape as the logout row at the bottom of this page (min-h 48px = --tap, the one touch
+          floor in globals.css), so nothing new is invented. The sub-line is worded open-endedly on
+          purpose so it does not rot the next time /more's list changes. */}
+      <Link
+        href="/more"
+        className="flex min-h-[var(--tap)] w-full items-center gap-3 rounded-xl border-[1.5px] border-slate-300 bg-white px-4 py-3 hover:border-emerald-300"
+      >
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-emerald-700">
+          <LayoutGrid className="h-4 w-4" aria-hidden="true" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-base font-medium text-slate-900">{t("more.title")}</span>
+          <span className="block truncate text-xs text-slate-500">{t("app.account.moreValue")}</span>
+        </span>
+        <ChevronRight className="h-5 w-5 shrink-0 text-slate-400" aria-hidden="true" />
+      </Link>
+
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Card Icon={Mail} title={t("app.account.emailTitle")} value={user?.email} />
         {/* Was a decorative <span>: the card advertised "Dəyiş" and did nothing. Now it jumps to the

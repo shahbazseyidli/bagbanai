@@ -29,6 +29,22 @@ export interface Section {
   key: SectionKey;
   labelKey: I18nKey;
   icon: IconName;
+  /**
+   * "The phone feed already carries a way into this section, so it is not repeated in the
+   * 'Daha çox' list at the end of that scroll."
+   *
+   * That is the WHOLE meaning of the flag — it is not importance, and it is not a desktop concept:
+   * FieldSectionMenu (the xl left panel) renders every section regardless, in this file's order.
+   * Each `true` below owes the feed a real entry point, and each one has one today:
+   *   status    — IS the feed
+   *   satellite — the map card's "Ətraflı təhlil" button
+   *   analysis  — the AI block's hand-off and the floating AI pill
+   *   weather   — the weather block's "Ətraflı hava" link
+   * Take an entry point away and the section has to come back to the list, or it becomes
+   * unreachable on a phone. REQUIRED rather than optional so a new section has to answer the
+   * question instead of silently defaulting into (or out of) the list.
+   */
+  primary: boolean;
 }
 
 export interface SectionGroup {
@@ -43,30 +59,30 @@ export const SECTION_GROUPS: SectionGroup[] = [
     key: "monitoring",
     labelKey: "app.field.group.monitoring",
     sections: [
-      { key: "status", labelKey: "app.field.section.status", icon: "pulse" },
-      { key: "satellite", labelKey: "app.field.section.satellite", icon: "satellite" },
-      { key: "analysis", labelKey: "app.field.section.analysis", icon: "analysis" },
-      { key: "weather", labelKey: "field.tab.weather", icon: "weather" },
+      { key: "status", labelKey: "app.field.section.status", icon: "pulse", primary: true },
+      { key: "satellite", labelKey: "app.field.section.satellite", icon: "satellite", primary: true },
+      { key: "analysis", labelKey: "app.field.section.analysis", icon: "analysis", primary: true },
+      { key: "weather", labelKey: "field.tab.weather", icon: "weather", primary: true },
     ],
   },
   {
     key: "work",
     labelKey: "app.field.group.work",
     sections: [
-      { key: "fertilizer", labelKey: "field.tab.fertilizer", icon: "fertilizer" },
-      { key: "photos", labelKey: "field.tab.photos", icon: "photos" },
-      { key: "scouting", labelKey: "field.tab.scouting", icon: "scouting" },
-      { key: "operations", labelKey: "field.tab.operations", icon: "operations" },
+      { key: "fertilizer", labelKey: "field.tab.fertilizer", icon: "fertilizer", primary: false },
+      { key: "photos", labelKey: "field.tab.photos", icon: "photos", primary: false },
+      { key: "scouting", labelKey: "field.tab.scouting", icon: "scouting", primary: false },
+      { key: "operations", labelKey: "field.tab.operations", icon: "operations", primary: false },
     ],
   },
   {
     key: "records",
     labelKey: "app.field.group.records",
     sections: [
-      { key: "season", labelKey: "field.tab.season", icon: "season" },
-      { key: "soil", labelKey: "field.tab.soil", icon: "soil" },
-      { key: "metadata", labelKey: "field.tab.metadata", icon: "metadata" },
-      { key: "documents", labelKey: "field.tab.documents", icon: "documents" },
+      { key: "season", labelKey: "field.tab.season", icon: "season", primary: false },
+      { key: "soil", labelKey: "field.tab.soil", icon: "soil", primary: false },
+      { key: "metadata", labelKey: "field.tab.metadata", icon: "metadata", primary: false },
+      { key: "documents", labelKey: "field.tab.documents", icon: "documents", primary: false },
     ],
   },
 ];
@@ -86,6 +102,22 @@ export function sectionOf(key: SectionKey): Section {
 
 export function groupSections(key: GroupKey): Section[] {
   return SECTION_GROUPS.find((g) => g.key === key)?.sections ?? [];
+}
+
+/**
+ * The groups as the phone's "Daha çox" list shows them: same groups, same order, same labels, with
+ * every primary section removed and any group that empties out dropped entirely.
+ *
+ * DERIVED on purpose. A hand-written second list is the exact failure GROUP_OF used to have — add a
+ * section, forget one of the two places, and it is either missing from the phone or listed twice.
+ * Called rather than exported as a constant so it is evaluated after SECTION_GROUPS is fully
+ * initialised, whatever import order a bundler picks.
+ */
+export function secondaryGroups(): SectionGroup[] {
+  return SECTION_GROUPS.map((g) => ({
+    ...g,
+    sections: g.sections.filter((s) => !s.primary),
+  })).filter((g) => g.sections.length > 0);
 }
 
 /** ?tab= → a real section. Anything unrecognised opens the first section rather than erroring. */

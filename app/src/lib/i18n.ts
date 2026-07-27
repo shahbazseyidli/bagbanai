@@ -233,6 +233,12 @@ export const az = {
   "nav.admin": "Admin",
   "bnav.today": "Bu gün",
   "bnav.fields": "Sahələr",
+  // The phone tab bar is Xəritə · Sahələr · Hava · Qeydlər · Hesab — the map is the mobile home,
+  // so the bar stops using bnav.today. That key stays defined because the DESKTOP dashboard is
+  // still called "Bu gün". Each label lands in a ~73px slot, so keep every locale to one word.
+  "bnav.map": "Xəritə",
+  "bnav.weather": "Hava",
+  "bnav.notes": "Qeydlər",
   "bnav.notifications": "Bildiriş",
   "bnav.more": "Daha çox",
   "bnav.mainNav": "Əsas naviqasiya",
@@ -2731,6 +2737,167 @@ export const az = {
   "app.field.nav.nextField": "Növbəti sahə",
   "app.field.nav.position": "{n} / {total}",
   "app.field.nav.breadcrumbAria": "Sahənin yeri",
+
+  // ── OneSoil mobile wave ─────────────────────────────────────────────────────────────────────
+  // Appended as one contiguous block, in this exact order, in all eight dictionaries — the same
+  // choice, for the same reason, as the desktop-workspace block above: the older app.home.* /
+  // app.field.* families sit at a different position in every locale file, so only a trailing
+  // block keeps a locale-to-locale diff readable. (bnav.map/weather/notes are the exception —
+  // that family is still in one shared order everywhere, so those three sit beside their siblings.)
+  // Everything here is a PHONE surface; the desktop dashboard and chart panel keep their own keys.
+
+  // Home map — the 48×48 controls that sit ON the map, plus the field sheet beneath it.
+  // searchFields must NOT reuse mkt.map.searchPlaceholder ("Yer axtar"): this box filters the
+  // farmer's OWN field names, it never geocodes a village.
+  "app.home.map.searchFields": "Sahə axtar",
+  "app.home.map.searchEmpty": "Bu ada uyğun sahə tapılmadı",
+  "app.home.map.locate": "Mövqeyim",
+  // States only that the reading failed. Nothing is drawn on the map in this case, so the wording
+  // must never imply the farmer is somewhere.
+  "app.home.map.locateUnavailable": "Mövqe məlumatı əlçatan deyil",
+  // Heading of the basemap option list; the options themselves reuse mkt.map.basemap* .
+  "app.home.map.basemap": "Xəritə fonu",
+  "app.home.map.openField": "Sahəni aç",
+  "app.home.map.sheetAria": "Sahə siyahısı",
+  // A different state from today.noFields: fields exist, but not one of them carries a polygon,
+  // so it needs a different instruction — draw the boundary, do not add a field.
+  "app.home.map.noGeometry": "Sahələrinizin sərhədi çəkilməyib — xəritədə göstərmək üçün sərhədi çəkin.",
+  "app.home.map.loadFailed": "Xəritə yüklənmədi — bağlantını yoxlayıb yenidən cəhd edin.",
+
+  // Account — sub-line of the row that leads to /more; the row's label reuses more.title.
+  // Worded open-endedly on purpose so it does not rot when /more's list changes.
+  "app.account.moreValue": "Kataloq, İcma, bələdçi və digər bölmələr",
+
+  // Field feed — the phone's single continuous scroll. These title BLOCKS inside one page, which
+  // is why they do not reuse the section names in app.field.section.* or the tab labels.
+  "app.field.feed.healthTitle": "Sahənin sağlamlığı",
+  // Not field.tab.weather ("Hava"): the block is a forecast, not the weather section.
+  "app.field.feed.weatherTitle": "Hava proqnozu",
+  "app.field.feed.sprayTitle": "Dərmanlama pəncərəsi",
+  // Deliberately not bnav.more/more.title — those name a bottom-nav destination and may be
+  // retitled on their own without touching this heading.
+  "app.field.feed.moreTitle": "Daha çox",
+  "app.field.feed.moreHint": "Sahə qeydləri, gübrə, foto və sənədlər",
+  // Only the aria-label; the control's visible text reuses app.field.section.status.
+  "app.field.feed.backAria": "Sahənin vəziyyətinə qayıt",
+  "app.field.feed.aiPill": "AI aqronom",
+  "app.field.feed.aiPillAria": "AI aqronom — sahə analizini aç",
+
+  // Field feed — weather block. Honest empty states instead of a silent hole under a title.
+  "app.field.weatherGlance.unavailable": "Hava proqnozu indi əlçatan deyil.",
+  "app.field.weatherGlance.noCoords": "Sahənin mərkəz koordinatı yoxdur — hava proqnozu göstərilə bilmir.",
+  "app.field.weatherGlance.precip": "Yağış",
+  "app.field.weatherGlance.more": "Ətraflı hava",
+  // The figures come from a third party, not from our API.
+  "app.field.weatherGlance.source": "Mənbə: Open-Meteo",
+  // Own key rather than app.field.chart.today: the chart panel is a separate surface.
+  "app.field.weatherGlance.today": "Bu gün",
+  // tf() TEMPLATE. Screen-reader form of a card whose visible text is only "24° / 12°". A missing
+  // value renders as an em-dash inside this sentence too — never as a zero.
+  "app.field.weatherGlance.dayAria": "{day}: ən yüksək {max}°, ən aşağı {min}°, yağış {mm} mm",
+
+  // Field feed — spraying block (teardown §4.3).
+  "app.field.spray.alertsTitle": "Hava xəbərdarlıqları",
+  "app.field.spray.empty": "Dərmanlama pəncərəsi hava məlumatı hazır olandan sonra görünəcək.",
+
+  // ── Weather page (/weather) ──
+  // Page chrome. The bottom-nav tab label is bnav.weather; a tab label and a screen title are free
+  // to diverge per locale, so they are separate keys.
+  "app.weather.title": "Hava",
+  "app.weather.subtitle": "Yağış radarı və sahələrinizin üzərindəki proqnoz",
+  // Empty state = icon + ONE sentence + ONE button (teardown §4.9).
+  "app.weather.empty.body": "Radar sahələrinizin üzərində göstərilir. Əvvəlcə bir sahə əlavə edin.",
+  "app.weather.empty.cta": "Sahə əlavə et",
+  "app.weather.loadError": "Sahələr yüklənmədi.",
+
+  // Rain radar (RainViewer). The attribution is a LICENCE requirement rendered as visible text,
+  // because these maps are built with attributionControl:false — do not drop it.
+  "app.weather.radar.heading": "Yağış radarı",
+  "app.weather.radar.attribution": "Yağış radarı: RainViewer",
+  "app.weather.radar.loading": "Radar kadrları yüklənir…",
+  "app.weather.radar.unavailable": "Radar məlumatı hazırda əlçatan deyil — xəritə sahələrinizi göstərməyə davam edir.",
+  // Past frames are solid, future frames hatched; the badge names which one is on screen, and
+  // "Müşahidə" must never appear over a nowcast frame.
+  "app.weather.radar.observed": "Müşahidə",
+  "app.weather.radar.forecast": "Proqnoz",
+  "app.weather.radar.now": "İndi",
+  // RainViewer's nowcast list came back empty twice on 2026-07-27, so this state is real: say so
+  // rather than inventing a future track.
+  "app.weather.radar.noForecast": "Bu an üçün radar proqnozu verilmir — yalnız müşahidə kadrları var.",
+  "app.weather.radar.play": "Oynat",
+  "app.weather.radar.pause": "Dayandır",
+  "app.weather.radar.timelineAria": "Radar zaman xətti",
+  // tf() TEMPLATE. {kind} is app.weather.radar.observed or .forecast, already translated.
+  "app.weather.radar.frameAria": "{time} · {kind}",
+  "app.weather.radar.legendTitle": "Yağış gücü",
+  "app.weather.radar.legendLight": "Zəif",
+  "app.weather.radar.legendModerate": "Orta",
+  "app.weather.radar.legendHeavy": "Güclü",
+  // Data-saver consent gate — same pattern as app.field.layers.showPictures.
+  "app.weather.radar.loadCta": "Radarı yüklə",
+  "app.weather.radar.loadHint": "Data qənaəti açıqdır — radar kadrları avtomatik yüklənmir.",
+  "app.weather.radar.fullscreen": "Tam ekran",
+  "app.weather.radar.exitFullscreen": "Tam ekrandan çıx",
+  "app.weather.radar.fullscreenAria": "Yağış radarı — tam ekran",
+  "app.weather.radar.mapAria": "Yağış radarı xəritəsi",
+  // Tapping a polygon SELECTS it for the panel below; it does not navigate away.
+  "app.weather.radar.tapHint": "Sahəyə toxunub həmin sahənin havasına baxın.",
+
+  // Per-field forecast panel under the radar. Every heading names a block that is omitted outright
+  // when Open-Meteo returns nothing — a missing forecast is never zero-filled.
+  "app.weather.field.pickerLabel": "Sahə",
+  "app.weather.field.openField": "Sahəyə keç",
+  "app.weather.field.currentHeading": "İndiki hava",
+  "app.weather.field.hourlyHeading": "Növbəti 24 saat",
+  "app.weather.field.dailyHeading": "7 günlük proqnoz",
+  "app.weather.field.unavailable": "Bu sahə üçün hava proqnozu gəlmədi.",
+  "app.weather.field.noPoint": "Bu sahənin xəritə koordinatı yoxdur.",
+  "app.weather.field.windLabel": "Külək",
+  "app.weather.field.precipLabel": "Yağıntı",
+  "app.weather.field.probLabel": "Yağış ehtimalı",
+  // title= on an em-dash cell: the self-explaining unknown the no-invented-numbers rule requires.
+  "app.weather.field.noReading": "Bu göstərici üçün cavab gəlmədi.",
+  "app.weather.field.attribution": "Proqnoz mənbəyi: Open-Meteo",
+  // mm, °C and % stay literal by house convention, but wind speed cannot: Azerbaijani writes
+  // km/s (saat), English km/h, Russian км/ч. app.weatherrec.alert.wind already spells it per locale.
+  "app.weather.unit.windSpeed": "km/s",
+
+  // ── Notes page (/notes) ──
+  // Same word as the bottom-nav tab, its own key: a tab label and a screen title may diverge.
+  "app.notes.heading": "Qeydlər",
+  // Empty state, teardown §4.9: icon + ONE sentence + ONE button. emptyBody MUST STAY ONE SENTENCE
+  // in every locale — a second sentence breaks the formula being copied.
+  "app.notes.emptyTitle": "Hələ qeyd yoxdur",
+  "app.notes.emptyBody": "Sahədə gördüyünü qeyd et: zərərverici, xəstəlik, su problemi — hər qeyd tarixi və yeri ilə sahədə qalır.",
+  // Points at /fields, because a note is always written on a field.
+  "app.notes.emptyAction": "Sahə seç",
+  // Day-group headers. Not today.title / app.field.chart.today: a date header and a screen title
+  // can diverge. `unknown` is defensive — observed_at is NOT NULL DEFAULT now(), so an unparseable
+  // timestamp should never occur; it exists so one can never be rendered as a guessed date.
+  "app.notes.day.today": "Bu gün",
+  "app.notes.day.yesterday": "Dünən",
+  "app.notes.day.unknown": "Tarixi bilinmir",
+  // Shown when field_name is missing from the payload — never a made-up name.
+  "app.notes.fieldUnknown": "Adsız sahə",
+  "app.notes.filterAllFields": "Bütün sahələr",
+  "app.notes.filterAllCategories": "Bütün növlər",
+  "app.notes.filterFieldsAria": "Sahəyə görə süz",
+  "app.notes.filterCategoriesAria": "Növə görə süz",
+  // An empty FILTER result is a different sentence from the real empty state above: notes exist,
+  // this combination just has none.
+  "app.notes.filterEmpty": "Bu süzgəcə uyğun qeyd yoxdur.",
+  "app.notes.filterReset": "Süzgəci sıfırla",
+  // TRANSLATORS: {n} is the request limit and is always 100 in practice, so a form agreeing with
+  // 100 is correct in ru/pl. Keep the {n} token.
+  "app.notes.capped": "Yalnız son {n} qeyd göstərilir.",
+  // The 5 is the DB constraint (severity 1..5), so it stays inside the template.
+  "app.notes.severityAria": "Şiddət: {n} / 5",
+  // tf() TEMPLATE — {field} is the field name.
+  "app.notes.openField": "{field} — skautinq qeydlərini aç",
+  // Not decorative: for a note with no text, the photo IS the content.
+  "app.notes.photoAlt": "Qeydə əlavə olunmuş şəkil",
+  // Title of the small pin icon. No coordinate numbers are printed on the row.
+  "app.notes.hasLocation": "Xəritədə yeri göstərilib",
 } as const;
 
 export type I18nKey = keyof typeof az;

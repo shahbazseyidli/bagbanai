@@ -10,18 +10,26 @@
 // wide at 320px, 100.8px at the max-w-lg (512px) cap. Every slot clears var(--tap) = 48px on both
 // axes, and the border-box height stays 81.5px (h-20 + border-t-[1.5px]) = globals.css --nav-h.
 //
-// This header used to claim "85×80 slots" and the code did not have them. LEFT held two items and
-// RIGHT one, each side wrapped in an equal `flex-1` group, so a group's share was split among ITS
-// children and the real widths on a 375px screen were 72.75 / 72.75 / 76 / 145.5: "Daha çox" got a
-// slot twice as wide as "Bu gün" and its icon sat at x≈298 (79% of the screen) rather than at the
-// centre of a uniform slot, with the empty half of its own slot reading as a gap beside the +.
-// Balancing the destinations 2 | + | 2 fixes the CENTRING; flattening the groups into one row of
-// five identical children is what makes the SLOTS uniform — both were needed. The + is centred
-// because it is the third of an ODD five; a sixth destination breaks that, which is the real
-// constraint on adding one.
+// FIVE TRUE DESTINATIONS, NO CENTRE BUTTON — Xəritə · Sahələr · Hava · Qeydlər · Hesab, the same
+// five tabs the measured teardown found (docs/ONESOIL_MOBILE_TEARDOWN.md §3: "Map · Fields ·
+// Weather · Notes · Profile", and "Xəritə default tab-dır və evdir"). The bar used to be 2 | + | 2
+// with a raised add-field cell in the middle; that cell is gone because OneSoil puts add-field on
+// the MAP as a 48×48 control (teardown §2, `add_field_button`), which is where components/home/
+// MapHome.tsx now renders it, and /fields keeps its own add button. "Bu gün" also leaves the bar:
+// on a phone the map IS the home, and the dashboard it named is a desktop layout.
+//
+// The geometry argument that survives all of that: the slots are uniform ONLY because this is one
+// flat row of five identical `flex-1` children. Wrapping any of them in a group splits that group's
+// share among ITS children and one slot silently becomes double-width — the bug this markup was
+// flattened to fix. A SIXTH destination breaks the 5×flex-1 uniformity and the ~73px label budget
+// with it, so the real constraint on adding one is width, not taste.
+//
+// /more lost its slot to /weather and /notes. It is NOT unreachable: app/account/page.tsx carries a
+// labelled row to it (grep `more.title` there), and the desktop rail still lists it. Losing that
+// route would strand Kataloq, İcma, Bələdçi, Qiymətlər and Komanda on a phone.
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Sprout, Plus, LayoutGrid, Settings, type LucideIcon } from "lucide-react";
+import { Map as MapIcon, Sprout, CloudSun, NotebookPen, Settings, type LucideIcon } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useIsAppHost } from "@/lib/host";
 import { t } from "@/lib/i18n";
@@ -65,29 +73,25 @@ export default function BottomNav() {
 
   const p = stripLocale(pathname || "/");
   // Match on a path SEGMENT boundary, not a raw prefix: a plain startsWith would light up the
-  // wrong tab (e.g. "/fields" against "/fields-something").
+  // wrong tab (e.g. "/fields" against "/fields-something"). "/" stays an exact match so the map tab
+  // does not stay lit on every other screen.
   const isActive = (href: string) => (href === "/" ? p === "/" : p === href || p.startsWith(`${href}/`));
 
-  // Four destinations around the add-field button: Bu gün · Sahələr · [+] · Daha çox · Hesab.
-  //
   // WHY /account IS THE FIFTH AND NOT /notifications. Both are one tap away inside /more, so the
   // question is which one earns a permanent slot. Notifications ALREADY has a second affordance on
   // this exact screen: Nav.tsx renders `{user && <NotificationBell />}` in its md:hidden block, so
   // on every mobile app screen the badge and its poller are visible in the top bar. A slot here
   // would duplicate a control the farmer can already see — and mean a second poller mounted on
-  // every screen. /account has no mobile entry point at all except a row inside /more.
+  // every screen. /account has no other mobile entry point, and it is now also the door to /more.
   //
-  // Both halves of that were read, not assumed: components/Nav.tsx (the mobile bell) and
-  // app/more/page.tsx (which lists /notifications AND /account, so nothing becomes unreachable).
-  const LEFT = [
-    { href: "/", label: t("bnav.today"), Icon: Home },
-    { href: "/fields", label: t("bnav.fields"), Icon: Sprout },
-  ];
   // Settings (not UserCog) so the icon matches AppRail's /account entry — the same destination
-  // should not change glyph between the phone bar and the desktop rail. Reuses the rail's label key
-  // rather than inventing a bnav.* twin that seven locale files would have to be taught.
-  const RIGHT = [
-    { href: "/more", label: t("bnav.more"), Icon: LayoutGrid },
+  // should not change glyph between the phone bar and the desktop rail. It reuses the rail's label
+  // key rather than inventing a bnav.* twin that eight dictionaries would have to be taught.
+  const ITEMS = [
+    { href: "/", label: t("bnav.map"), Icon: MapIcon },
+    { href: "/fields", label: t("bnav.fields"), Icon: Sprout },
+    { href: "/weather", label: t("bnav.weather"), Icon: CloudSun },
+    { href: "/notes", label: t("bnav.notes"), Icon: NotebookPen },
     { href: "/account", label: t("app.shell.appRail.account"), Icon: Settings },
   ];
 
@@ -96,32 +100,9 @@ export default function BottomNav() {
       className="fixed inset-x-0 bottom-0 z-40 border-t-[1.5px] border-slate-300 bg-white pb-[env(safe-area-inset-bottom)] md:hidden"
       aria-label={t("bnav.mainNav")}
     >
-      {/* ONE flex row, five equal `flex-1` siblings — no group wrappers. Wrapping the sides in
-          equal-weight groups is what made the slots unequal (a group's flex-1 share is split among
-          ITS children, so the 1-item side got a double-width slot), and the + drifted off centre
-          with it. As the third of five identical children the + is exactly centred. */}
+      {/* ONE flex row, five equal `flex-1` siblings — no group wrappers, no odd child. */}
       <div className="mx-auto flex max-w-lg items-stretch px-1">
-        {LEFT.map((it) => (
-          <NavItem key={it.href} {...it} active={isActive(it.href)} />
-        ))}
-        {/* Add-field: it used to hang 20px ABOVE the bar (-mt-5) because a 56px circle did not fit a
-            56px bar. An 80px bar holds it, so it is a normal full-height slot — the touch target is
-            the whole ~73×80 slot, the 48px circle is only its icon treatment, and the bar no longer
-            steals taps from the content above it. flex-1 like its neighbours, so it can never be
-            the one odd width in the row. */}
-        <Link
-          href="/onboarding"
-          aria-label={t("bnav.addField")}
-          className="flex h-20 min-w-0 flex-1 select-none touch-manipulation flex-col items-center justify-center gap-1"
-        >
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white shadow-[0_4px_12px_rgba(21,128,61,0.30)]">
-            <Plus className="h-6 w-6" strokeWidth={2.4} aria-hidden="true" />
-          </span>
-          <span className="max-w-full truncate px-1 text-[12px] font-semibold leading-4 text-brand-dark">
-            {t("bnav.add")}
-          </span>
-        </Link>
-        {RIGHT.map((it) => (
+        {ITEMS.map((it) => (
           <NavItem key={it.href} {...it} active={isActive(it.href)} />
         ))}
       </div>

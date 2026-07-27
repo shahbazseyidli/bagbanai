@@ -9,7 +9,18 @@
 // (TodayStats, 4 across × 2), then a workspace row (TodayInstrument) carrying a scope dropdown, a
 // segmented strip that chooses what the map is coloured BY (health / alerts / weather), the
 // multi-field map as the primary object, and the Intelligence Feed beside it. Then "Sahələrim".
-// Narrow stays the stacked screen below, unchanged.
+//
+// ON A NARROW STAGE THE MAP IS THE WHOLE SCREEN (components/home/MapHome.tsx). The stacked
+// greeting-plus-cards phone home is gone: docs/ONESOIL_MOBILE_TEARDOWN.md §3 measured a product
+// with no "today" screen at all, and the owner took that call. Nothing was dropped, it moved —
+//   * "which fields need me" → the polygon colour on the map AND the attention bar under it;
+//   * the worst-field hero → that same bar, one tap to open, a "+n" chip for the rest;
+//   * the unread alert strip → inside the map's field sheet, same AlertList component, plus its
+//     permanent second home in the top bar's NotificationBell;
+//   * the weather bar → the /weather tab (it still renders here, inside IntelligenceFeed);
+//   * "Sahələrim" → the /fields tab, which is now a first-class bottom-nav destination.
+// The notice stack (error / trial / checklist / PWA nudge) deliberately did NOT move: it stays in
+// flow above the map, because an error must never be something you have to open a sheet to find.
 //
 // THIS IS THE ONLY HOME for a signed-in farmer. app/src/app/page.tsx renders it unconditionally on
 // the app host — the `?ui=v1` console Dashboard and lib/uiFlag.ts were both deleted on 2026-07-27,
@@ -25,22 +36,22 @@
 // (GET /api/orgs/{id}/wellness — one request per org, never a per-field computation), weather from
 // the field centroid via keyless Open-Meteo + the rain-nowcast endpoint. Missing data is omitted,
 // never faked. The onboarding checklist, the PWA nudge and the org switcher all stay.
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Plus, Sprout } from "lucide-react";
 import { api, azError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { t, tp, getLocale } from "@/lib/i18n";
+import { t, getLocale } from "@/lib/i18n";
 import { ErrorNote } from "@/components/ui";
 import { ListSkeleton } from "@/components/Skeleton";
 import OnboardingChecklist from "@/components/OnboardingChecklist";
 import TrialBanner from "@/components/TrialBanner";
 import InstallPrompt from "@/components/InstallPrompt";
-import FieldsOverviewMap, { type GeoField } from "@/components/FieldsOverviewMap";
-import AttentionHero from "@/components/home/AttentionHero";
+import { type GeoField } from "@/components/FieldsOverviewMap";
 import FieldGrid from "@/components/home/FieldGrid";
-import AlertList, { type TodayAlert } from "@/components/home/AlertList";
+import MapHome from "@/components/home/MapHome";
+import { type TodayAlert } from "@/components/home/AlertList";
 import TodayInstrument from "@/components/home/TodayInstrument";
 import TodayStats, {
   type AlertSummary,
@@ -48,7 +59,9 @@ import TodayStats, {
   type SatelliteSummary,
   type SceneSummary,
 } from "@/components/home/TodayStats";
-import WeatherBar from "@/components/home/WeatherBar";
+// WeatherBar is NOT imported here any more — the phone's live-conditions strip moved to the
+// /weather tab, and the wide dashboard reaches the same component through IntelligenceFeed. The
+// component itself is very much alive; only this file's direct use of it is gone.
 import { formatToday } from "@/components/home/homeDate";
 import { bandOf, type FieldScore } from "@/components/home/ScoreBadge";
 import { useStageWidth } from "@/components/field/workbench/useStageWidth";
@@ -159,11 +172,6 @@ function worstOf(resolved: FieldToday[], scores: Record<string, FieldScore>): Fi
   return byTone[0];
 }
 
-/** The mockup's .sectitle — one compact heading style for every block on this screen. */
-function SectionTitle({ children }: { children: ReactNode }) {
-  return <h2 className="mb-2 mt-1 text-sm font-bold text-slate-600">{children}</h2>;
-}
-
 export default function TodayHome() {
   const router = useRouter();
   const { user, loading } = useAuth();
@@ -175,6 +183,9 @@ export default function TodayHome() {
   // ask" indistinguishable; the satellite tile has to tell them apart to choose between "0 ready"
   // and a dash. Every other consumer reads it through `geoList` below.
   const [geoFields, setGeoFields] = useState<GeoFieldFull[] | null>(null);
+  /** The geo read FAILED (as opposed to "has not answered yet"). Only the phone home acts on it —
+   *  there the map is the entire screen, so the difference decides between a spinner and an error. */
+  const [geoError, setGeoError] = useState(false);
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [orgId, setOrgId] = useState<string>("");
   // null, not [], until the request resolves — and it stays null when the request FAILS, so the
@@ -227,6 +238,7 @@ export default function TodayHome() {
     setTodays({});
     setScores({});
     setGeoFields(null);
+    setGeoError(false);
     (async () => {
       try {
         const farms = await api.get<Farm[]>(`/api/farms?org_id=${orgId}`);
@@ -245,7 +257,14 @@ export default function TodayHome() {
       try {
         const g = await api.get<{ fields: GeoFieldFull[] }>(`/api/fields/geo?org_id=${orgId}`);
         if (active) setGeoFields(g?.fields ?? []);
-      } catch { /* map + weather placement are a bonus */ }
+      } catch {
+        // The map is a bonus on the DESKTOP dashboard, where a missing map costs one panel out of
+        // several. On the PHONE the map IS the home screen, so a silent failure left `geoFields`
+        // null forever and MapHome — which cannot tell null-because-in-flight from
+        // null-because-failed — showed a skeleton that never resolved, with no error, no retry and
+        // no add-field control. Record the failure so the phone can say so.
+        if (active) setGeoError(true);
+      }
       try {
         // A3 read model: ONE org-wide request for every score on the screen (never per field, never
         // an on-demand computation). A field with no stored row simply gets no number.
@@ -277,7 +296,13 @@ export default function TodayHome() {
   const wide = stageW >= WIDE_MIN;
 
   const resolved = fields.map((f) => todays[f.id]).filter((x): x is FieldToday => x != null);
-  const attn = resolved.filter((ft) => needsAttention(ft, scores[ft.field.id])).length;
+  // The ids, not just the count: the phone home lists exactly these fields behind its "+n" chip, and
+  // deriving them there from a second copy of needsAttention() is how the map, the bar and the sheet
+  // would come to disagree about which fields are flagged.
+  const flaggedIds = resolved
+    .filter((ft) => needsAttention(ft, scores[ft.field.id]))
+    .map((ft) => ft.field.id);
+  const attn = flaggedIds.length;
   // How many fields we can actually SAY something about — not how many requests came back.
   // fetchFieldToday catches each of its three requests (lib/today.ts), so a field whose /insights
   // 404s still resolves, with verdict null. It then fails needsAttention (nothing to flag) AND
@@ -359,10 +384,9 @@ export default function TodayHome() {
       ? { date: sceneDates.reduce((a, b) => (a > b ? a : b)), fields: sceneDates.length }
       : null;
 
-  // The stacked strip shows a slice; the tile counts the whole list. Both read the one stored array.
-  // The wide dashboard is handed `alertsAll` instead and slices for itself — its feed has its own
-  // row budget, and its map has to colour from every unread row, not from the four on screen.
-  const shownAlerts = alertsAll ? alertsAll.slice(0, 4) : [];
+  // Both consumers are handed `alertsAll` WHOLE and slice for themselves: the dashboard feed has its
+  // own row budget and its map has to colour from every unread row, and the phone's field sheet has
+  // a different budget again. The tile needs the true total either way.
   const alertSummary: AlertSummary | null =
     alertsAll == null
       ? null
@@ -374,12 +398,14 @@ export default function TodayHome() {
 
   const greeting = user?.full_name ? `${t("app.home.todayHome.greeting")}${user.full_name.split(" ")[0]}` : null;
 
+  // Wide-only now: the phone home has no header to hang it on, so MapHome renders the same control
+  // as the first block of its field sheet. Neither surface loses the multi-org agronomist.
   const orgSwitcher =
     orgs.length > 1 ? (
       <select
         value={orgId}
         onChange={(e) => setOrgId(e.target.value)}
-        className={wide ? "input max-w-[220px]" : "input mt-3 max-w-xs"}
+        className="input max-w-[220px]"
         aria-label={t("today.org")}
       >
         {orgs.map((o) => (
@@ -389,8 +415,17 @@ export default function TodayHome() {
     ) : null;
 
   return (
-    <div ref={stageRef} className="space-y-5">
-      {wide ? (
+    // The stack gap is WIDE-ONLY. On the phone this element has exactly two children — the notice
+    // stack and the full-height MapHome — and MapHome is sized to fill every pixel the shell leaves,
+    // so a `space-y-5` margin above it would be 20px of white that nothing can reclaim (the notice
+    // wrapper self-hides in the steady state, and a display:none sibling still hands the next child
+    // its margin). The gap moves onto the notice wrapper instead, where it only exists when there is
+    // actually a notice. The wide branch keeps the stack it shipped with, untouched.
+    <div ref={stageRef} className={wide ? "space-y-5" : ""}>
+      {/* Dated greeting — wide only. On a phone the map IS the screen (teardown §3), and a title bar
+          announcing today's date costs it 80px; the roll-up sentence that used to sit here is now
+          carried more precisely by the polygon colours plus MapHome's attention bar. */}
+      {wide && (
         // The roll-up sentence is dropped here on purpose: the stat tiles below say the same thing
         // with more precision, and saying it twice is noise.
         <div className="flex items-start justify-between gap-4">
@@ -407,37 +442,18 @@ export default function TodayHome() {
             </Link>
           </div>
         </div>
-      ) : (
-        /* Dated greeting + one-line status roll-up */
-        <div>
-          <p className="text-sm font-medium text-slate-500">{formatToday(today, locale)}</p>
-          <h1 className="mt-0.5 text-2xl font-bold text-slate-900">{t("today.title")}</h1>
-          {fields.length > 0 && (
-            <p className="mt-1 text-sm text-slate-600">
-              {greeting ? `${greeting} — ` : ""}
-              {fields.length} {tp("app.plural.fields", fields.length)}
-              {resolved.length > 0 && (
-                <>
-                  {" · "}
-                  {attn > 0 ? (
-                    <span className="font-bold text-warn">{attn} {t("today.needAttention")}</span>
-                  ) : (
-                    <span className="font-bold text-good">{t("today.allGood")}</span>
-                  )}
-                </>
-              )}
-            </p>
-          )}
-          {orgSwitcher}
-        </div>
       )}
 
       {/* The notice stack is also one column of cards, so it takes the reading column too — a
           six-row checklist stretched across a 1400px stage is the same failure as a giant field
           card. `empty:hidden` is load-bearing: all four of these self-hide (no error, no trial,
           checklist complete, PWA already installed), and without it the leftover wrapper would
-          still collect a space-y-5 gap and open a phantom 20px hole in the steady state. */}
-      <div className={`${READ_COL} space-y-5 empty:hidden`}>
+          still collect a space-y-5 gap and open a phantom 20px hole in the steady state. On the
+          phone it also carries the gap to the map below (see the root's className), which the same
+          `empty:hidden` correctly withholds when there is no notice to separate.
+          NOT moved into MapHome on purpose: an error or a trial warning must be readable without
+          opening anything. */}
+      <div className={`${READ_COL} space-y-5 empty:hidden ${wide ? "" : "mb-5"}`}>
         <ErrorNote message={error} />
 
         {/* D3.6 — activation checklist (hides itself once complete) */}
@@ -488,80 +504,54 @@ export default function TodayHome() {
           </>
         )
       ) : (
-        /* One column of stacked cards — capped at the reading column so it cannot inherit the
-           full-bleed stage. `space-y-5` moves onto this wrapper because it is now a single child of
-           the parent stack, which keeps the gaps between these blocks exactly what they were, and
-           `empty:hidden` covers the case where every block inside declines to render (no weather
-           point, nothing flagged, no unread alert, no geometry) so no phantom gap appears. */
-        <div className={`${READ_COL} space-y-5 empty:hidden`}>
-          {/* MOCK-app-today-weatherbar — live conditions over the field that matters most today. */}
-          {weatherField && weatherPoint && (
-            <WeatherBar
-              lat={weatherPoint.lat}
-              lon={weatherPoint.lon}
-              placeLabel={weatherField.name}
-              fieldId={weatherField.id}
-            />
-          )}
-
-          {/* MOCK-app-today-attention — the hero for the single worst field. */}
-          {worst && (
-            <section>
-              <SectionTitle>{t("app.home.todayHome.attentionNeeded")}</SectionTitle>
-              <AttentionHero ft={worst} score={scores[worst.field.id]} />
-            </section>
-          )}
-
-          {/* Attention strip — active alerts, each deep-links to its field */}
-          <AlertList alerts={shownAlerts} />
-
-          {/* D4.3 — desktop agronomist workspace: all fields on one map (click a polygon to open).
-              Gated on real geometry, not on a non-empty array: a basemap with nothing drawn on it
-              looks like a map of your farm and is a map of nothing. */}
-          {geoList.some((g) => g?.geom != null) && (
-            <section className="hidden md:block">
-              <SectionTitle>{t("today.fieldsOnMap")}</SectionTitle>
-              <div className="h-[380px]">
-                {/* Pass the scores we already loaded so the map does not repeat the same org-wide
-                    request; it repaints itself when they land. */}
-                <FieldsOverviewMap fields={geoList} heightClass="h-full" scores={scores} />
-              </div>
-            </section>
-          )}
-        </div>
+        /* THE PHONE HOME. One child, full height, and it fetches nothing — every input below is
+           already in this component's state, which is the whole reason the map home costs zero
+           extra requests and mounts no second poller. Note it is handed `geoFields` RAW, not
+           `geoList`: null there means "we have not been told yet", and MapHome has to tell that
+           apart from "this org has drawn no boundaries" to avoid instructing a farmer to draw
+           boundaries that already exist. */
+        <MapHome
+          fields={fields}
+          geoFields={geoFields}
+          geoError={geoError}
+          scores={scores}
+          todays={todays}
+          flaggedIds={flaggedIds}
+          worst={worst}
+          evaluated={evaluated}
+          alerts={alertsAll}
+          orgs={orgs}
+          orgId={orgId}
+          onOrgChange={setOrgId}
+        />
       )}
 
-      {/* MOCK-app-today-fieldgrid — "Sahələrim". READ_COL on both arms: the 3-up grid is the block
-          the full-bleed stage damages most (three cards across 1400px are billboards, not cards),
-          and a lone empty-state card stretched that wide reads as a broken panel. */}
-      {fields.length === 0 ? (
-        <div className={`card ${READ_COL} text-center`}>
-          <Sprout className="mx-auto h-8 w-8 text-emerald-600" />
-          <p className="mt-2 text-slate-700">{t("today.noFields")}</p>
-          <Link href="/onboarding" className="btn-primary mt-3 inline-flex">
-            <Plus className="h-4 w-4" /> {t("today.addFirst")}
-          </Link>
-        </div>
-      ) : (
-        <section className={READ_COL}>
-          <div className="mb-2 mt-1 flex items-center justify-between gap-3">
-            <h2 className="text-sm font-bold text-slate-600">{t("app.home.todayHome.myFields")}</h2>
-            {/* One add affordance per screen: the wide header already carries the primary button. */}
-            {!wide && (
-              // The hit area is grown to the 48px floor with a pseudo-element rather than padding:
-              // an inline link beside a heading has to keep its 20px visual box or the row's rhythm
-              // shifts, but at 20px it was the smallest tappable thing on the phone home.
-              <Link
-                href="/onboarding"
-                className="relative inline-flex items-center gap-1 text-sm font-bold text-emerald-700 after:absolute after:inset-x-[-8px] after:-inset-y-3.5 after:content-['']"
-              >
-                <Plus className="h-4 w-4" /> {t("common.add")}
-              </Link>
-            )}
+      {/* MOCK-app-today-fieldgrid — "Sahələrim", WIDE ONLY. The phone reaches the same list through
+          the Sahələr tab, which is now a first-class bottom-nav destination rather than a section
+          under the fold; leaving it here as well would put a scrolling card grid underneath a screen
+          that is exactly viewport-height. READ_COL because the 3-up grid is the block a full-bleed
+          stage damages most (three cards across 1400px are billboards, not cards), and a lone
+          empty-state card stretched that wide reads as a broken panel. */}
+      {wide &&
+        (fields.length === 0 ? (
+          <div className={`card ${READ_COL} text-center`}>
+            <Sprout className="mx-auto h-8 w-8 text-emerald-600" />
+            <p className="mt-2 text-slate-700">{t("today.noFields")}</p>
+            <Link href="/onboarding" className="btn-primary mt-3 inline-flex">
+              <Plus className="h-4 w-4" /> {t("today.addFirst")}
+            </Link>
           </div>
-          <FieldGrid fields={fields} todays={todays} scores={scores} />
-        </section>
-      )}
+        ) : (
+          <section className={READ_COL}>
+            <div className="mb-2 mt-1 flex items-center justify-between gap-3">
+              <h2 className="text-sm font-bold text-slate-600">{t("app.home.todayHome.myFields")}</h2>
+              {/* One add affordance per screen, and on this branch the header above already carries
+                  the primary button — which is why the inline phone-only "Əlavə et" link that used
+                  to sit here is gone with the branch that needed it. */}
+            </div>
+            <FieldGrid fields={fields} todays={todays} scores={scores} />
+          </section>
+        ))}
     </div>
   );
 }
