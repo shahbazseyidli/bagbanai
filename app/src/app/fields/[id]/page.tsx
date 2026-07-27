@@ -412,7 +412,13 @@ function FieldDetailInner() {
             // One frame. Rendering the stacked branch here would construct a MapLibre map on a wide
             // screen and tear it down again the moment the measurement lands.
             <div className="h-[460px] animate-pulse rounded-xl bg-paper-2" aria-hidden="true" />
-          ) : wide ? (
+          ) : wide && stageW !== null ? (
+            // `wide` already implies a measured stage — fieldLayout() returns "unknown" for null —
+            // but that is an invariant across two variables, and TypeScript narrows types, not
+            // invariants: `stageW` stays `number | null` here and FieldWorkbench wants a `number`.
+            // The redundant-looking test is the narrowing, and it is the honest one: passing
+            // `stageW ?? 0` would compile and then feed the workbench's own 1000/1280 tier ladder a
+            // zero if the invariant were ever broken.
             <div className="space-y-4">
               <RainNowcast fieldId={field.id} />
               <FieldWorkbench
