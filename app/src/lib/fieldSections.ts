@@ -14,8 +14,8 @@
 import type { I18nKey } from "@/lib/i18n";
 
 export type SectionKey =
-  | "status" | "satellite" | "analysis" | "weather" | "zones"
-  | "tasks" | "fertilizer" | "photos" | "scouting" | "operations" | "yields" | "harvest"
+  | "status" | "satellite" | "analysis" | "weather"
+  | "fertilizer" | "photos" | "scouting" | "operations"
   | "season" | "soil" | "metadata" | "documents";
 
 export type GroupKey = "monitoring" | "work" | "records";
@@ -47,20 +47,16 @@ export const SECTION_GROUPS: SectionGroup[] = [
       { key: "satellite", labelKey: "app.field.section.satellite", icon: "satellite" },
       { key: "analysis", labelKey: "app.field.section.analysis", icon: "analysis" },
       { key: "weather", labelKey: "field.tab.weather", icon: "weather" },
-      { key: "zones", labelKey: "field.tab.zones", icon: "zones" },
     ],
   },
   {
     key: "work",
     labelKey: "app.field.group.work",
     sections: [
-      { key: "tasks", labelKey: "field.tab.tasks", icon: "tasks" },
       { key: "fertilizer", labelKey: "field.tab.fertilizer", icon: "fertilizer" },
       { key: "photos", labelKey: "field.tab.photos", icon: "photos" },
       { key: "scouting", labelKey: "field.tab.scouting", icon: "scouting" },
       { key: "operations", labelKey: "field.tab.operations", icon: "operations" },
-      { key: "yields", labelKey: "field.tab.yields", icon: "yields" },
-      { key: "harvest", labelKey: "field.tab.harvest", icon: "harvest" },
     ],
   },
   {

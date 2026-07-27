@@ -9,7 +9,7 @@ this safe:
 2. ONE TRANSACTION. db.connection() opens a transaction for the whole `async with` block, so a
    failure on field #4 rolls back fields #1-#3 too.
 
-No new tables: rows land in public.tasks and public.field_operations exactly like the single-field
+No new tables: rows land in public.field_operations exactly like the single-field
 endpoints in mgmt.py."""
 import json
 import uuid as _uuid_mod
@@ -146,35 +146,6 @@ async def _verify_fields(conn, org_id: str, field_ids: list[str]) -> dict[str, O
 
 
 # ---------- endpoints ----------
-@router.post("/bulk/tasks")
-async def bulk_tasks(body: BulkTaskIn, user_id: str = Depends(get_current_user_id)):
-    """One public.tasks row per selected field (status defaults to 'todo')."""
-    org_id = _as_uuid(body.org_id, "invalid_org_id")
-    field_ids = _field_ids(body.field_ids)
-    title = _text(body.title, _MAX_TITLE)
-    if not title:
-        raise HTTPException(status_code=400, detail="title_required")
-    ttype = _text(body.type, _MAX_TYPE)
-    notes = _text(body.notes, _MAX_NOTES)
-    priority = _priority(body.priority)
-    due = _parse_date(body.due_date, False, "invalid_due_date")
-
-    created_ids: list[str] = []
-    async with connection(user_id) as conn:                       # single transaction
-        await require_role(conn, user_id, org_id, ROLES_WRITE)
-        farms = await _verify_fields(conn, org_id, field_ids)
-        for fid in field_ids:
-            row = await conn.fetchrow(
-                """insert into public.tasks
-                     (org_id, farm_id, field_id, title, type, due_date, priority,
-                      created_by, notes, status)
-                   values ($1::uuid,$2::uuid,$3::uuid,$4,$5,$6::date,$7,$8::uuid,$9,'todo')
-                   returning id""",
-                org_id, farms.get(fid), fid, title, ttype, due, priority, user_id, notes)
-            created_ids.append(str(row["id"]))
-    return {"ok": True, "created": len(created_ids), "ids": created_ids}
-
-
 @router.post("/bulk/operations")
 async def bulk_operations(body: BulkOperationIn, user_id: str = Depends(get_current_user_id)):
     """One public.field_operations row per selected field."""

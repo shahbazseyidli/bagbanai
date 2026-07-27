@@ -77,8 +77,6 @@ export default function AppRail() {
   const PRIMARY: RailItem[] = [
     { href: "/", label: t("app.shell.appRail.today"), Icon: Home },
     { href: "/fields", label: t("app.shell.appRail.fields"), Icon: Sprout },
-    { href: "/farm", label: t("app.shell.appRail.farm"), Icon: Tractor },
-    { href: "/reports", label: t("app.shell.appRail.reports"), Icon: FileText },
     ...(SHOW_MARKETPLACE_NAV
       ? [
           { href: "/catalog", label: t("app.shell.appRail.catalog"), Icon: ShoppingBag },

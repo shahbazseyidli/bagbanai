@@ -22,9 +22,6 @@ export default function MorePage() {
   // single "Təsərrüfat" row (they are ?tab= sections of /farm now), and Bildirişlər moved here when
   // /farm took its bottom-nav slot.
   const items = [
-    { href: "/farm", label: t("nav.farm"), Icon: Tractor, authOnly: true },
-    { href: "/reports", label: t("nav.reports"), Icon: FileText, authOnly: true },
-    { href: "/places", label: t("nav.places"), Icon: MapPin, authOnly: true },
     { href: "/notifications", label: t("nav.notifications"), Icon: Bell, authOnly: true },
     { href: "/guide", label: t("app.more.howToStart"), Icon: GraduationCap, authOnly: false },
     // Kataloq / İcma are built and routable but empty — see SHOW_MARKETPLACE_NAV.

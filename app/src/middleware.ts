@@ -12,12 +12,8 @@ const PANEL_HOST = (process.env.NEXT_PUBLIC_PANEL_HOST || "").toLowerCase();
 const AUTH_COOKIE = "bagban_session";
 const LOCALE_COOKIE = "bagban_locale";
 const PREFIXED = ["en", "ru", "tr", "de", "hu", "it", "pl"]; // az is the default (no prefix)
-// "/farm" is the container for the four farm-management modules; "/ledger" … "/equipment" are the
-// legacy routes that now redirect into it and must stay app-side so the redirect happens on the app
-// host rather than bouncing to marketing.
-const APP_PREFIXES = ["/fields", "/farm", "/farms", "/more", "/notifications", "/onboarding", "/team", "/admin",
-  "/catalog", "/chat", "/account", "/provider", "/ledger",
-  "/sales", "/inventory", "/equipment", "/reports", "/places", "/harvest-order"];
+const APP_PREFIXES = ["/fields", "/farms", "/more", "/notifications", "/onboarding", "/team", "/admin",
+  "/catalog", "/chat", "/account", "/provider"];
 
 function isAppPath(path: string): boolean {
   return path === "/" || APP_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`));
@@ -70,9 +66,9 @@ export function middleware(req: NextRequest) {
       // the gate, a farmer who copied a link out of the app was handing every recipient a login
       // page instead of the field.
       if (path === "/pricing" || path === "/solutions" || path.startsWith("/solutions/") ||
-          path === "/how-it-works" || path === "/finduq" || path === "/guide" || path.startsWith("/guide/") ||
+          path === "/how-it-works" || path === "/guide" || path.startsWith("/guide/") ||
           path === "/privacy" || path === "/terms" ||
-          path === "/whats-new" || path === "/yenilikler" || path === "/status" || path === "/demo" ||
+          path === "/demo" ||
           path.startsWith("/s/")) {
         return NextResponse.redirect(new URL(`https://${apexHost}${prefix}${path}${search}`));
       }

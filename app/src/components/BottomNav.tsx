@@ -34,7 +34,7 @@ export default function BottomNav() {
   // No app chrome on the apex marketing host (agradex.com) — only on app.agradex.com.
   if (!user || !appHost) return null;
   // Match on a path SEGMENT boundary, not a raw prefix: "/farms" (the farms screen) starts with
-  // "/farm" (the farm-modules container) and a plain startsWith would light up the wrong tab.
+  // A plain startsWith would light up the wrong tab ("/fields" vs "/farms").
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
 
@@ -48,7 +48,6 @@ export default function BottomNav() {
     { href: "/fields", label: t("bnav.fields"), Icon: Sprout },
   ];
   const RIGHT = [
-    { href: "/farm", label: t("bnav.farm"), Icon: Tractor },
     { href: "/more", label: t("bnav.more"), Icon: LayoutGrid },
   ];
 

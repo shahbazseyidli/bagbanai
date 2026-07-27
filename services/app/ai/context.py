@@ -1,5 +1,5 @@
 """Assemble the per-field context the AI reasons over: NASA index trends + crop
-metadata + completed work (scouting/tasks/operations/yields) + prior advice.
+metadata + completed work (scouting/operations) + prior advice.
 
 Everything is read through the RLS-scoped connection the caller already holds."""
 from __future__ import annotations
@@ -96,13 +96,6 @@ async def build_field_context(conn, field_id: str) -> dict[str, Any]:
         """select type, performed_on as date, notes
            from public.field_operations where field_id=$1::uuid
            order by performed_on desc limit 8""", field_id)
-    tasks = await conn.fetch(
-        """select title, status, due_date, priority from public.tasks
-           where field_id=$1::uuid and status <> 'done'
-           order by due_date nulls last limit 8""", field_id)
-    yields = await conn.fetch(
-        """select season_year, yield_value, yield_unit from public.yields
-           where field_id=$1::uuid order by season_year desc limit 5""", field_id)
     prior = await conn.fetchrow(
         """select summary, generated_at::date as date from public.advice
            where field_id=$1::uuid order by generated_at desc limit 1""", field_id)
@@ -152,8 +145,6 @@ async def build_field_context(conn, field_id: str) -> dict[str, Any]:
         "satellite_indices": s2_trends,
         "scouting": rows(scouting),
         "operations": rows(operations),
-        "open_tasks": rows(tasks),
-        "yields": rows(yields),
         "soil_analysis": dict(soil) if soil else None,
         "recent_photos": rows(photos),
         "fertilizer_plan": rows(fert),

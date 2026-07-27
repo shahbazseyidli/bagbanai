@@ -46,16 +46,12 @@ _BY_TYPE = {
     "ai_advice": "advice",
     "data_ready": "system",
     "data_partial": "system",
-    "service_due": "system",
-    "low_stock": "system",
 }
 
 _BY_SOURCE = {
     "weather": "weather",
     "vegetation": "vegetation",
     "pest": "pest",
-    "equipment": "system",
-    "inventory": "system",
 }
 
 

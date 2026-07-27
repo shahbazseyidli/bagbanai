@@ -25,15 +25,11 @@ import PhotosTab from "@/components/field/PhotosTab";
 import PeerSuggest from "@/components/field/PeerSuggest";
 import ScoutingTab from "@/components/field/ScoutingTab";
 import { useScoutMap } from "@/components/field/scouting/useScoutMap";
-import TasksTab from "@/components/field/TasksTab";
 import OperationsTab from "@/components/field/OperationsTab";
-import YieldsTab from "@/components/field/YieldsTab";
 import SeasonTab from "@/components/field/SeasonTab";
 import DocumentsTab from "@/components/field/DocumentsTab";
 import WeatherHistoryTab from "@/components/field/WeatherHistoryTab";
-import HarvestTab from "@/components/field/HarvestTab";
 import SeasonCompareChart from "@/components/field/SeasonCompareChart";
-import ZonesTab from "@/components/field/ZonesTab";
 import ShareButton from "@/components/field/ShareButton";
 import BackfillCard from "@/components/field/BackfillCard";
 import RainNowcast from "@/components/field/RainNowcast";
@@ -53,11 +49,11 @@ import type { FieldDetail } from "@/lib/types";
 const WORKBENCH_MIN = 760;
 
 // Sections that build their own MapLibre map, and therefore must NOT also get the persistent card
-// stacked above them: "satellite" (SatelliteTab) and "zones" (ZonesTab). Verified by grep — those
-// are the only two of the sixteen. Hand-maintained, and it lives here rather than in
+// stacked above them. "zones" used to be the second entry; it left with the productivity-zones
+// feature, so "satellite" is now the only one. Hand-maintained, and it lives here rather than in
 // fieldSections.ts because that file is the section taxonomy, not a rendering detail; a future
 // section that embeds a map has to be added here or it will sit under a second map.
-const SECTION_OWNS_MAP = new Set<SectionKey>(["satellite", "zones"]);
+const SECTION_OWNS_MAP = new Set<SectionKey>(["satellite"]);
 
 export default function FieldDetailPage() {
   // useSearchParams (tab state) requires a Suspense boundary under the app router.
@@ -386,13 +382,6 @@ function FieldDetailInner() {
       )}
       {tab === "satellite" && <SatelliteTab field={field} sensor="S2" />}
       {tab === "weather" && <WeatherHistoryTab fieldId={field.id} />}
-      {tab === "zones" && (
-        <div className="space-y-6">
-          <ZonesTab fieldId={field.id} />
-          {/* A6 needs multi-season COGs, which only exist after an A8 backfill. */}
-          <BackfillCard fieldId={field.id} forZones />
-        </div>
-      )}
       {tab === "analysis" && (
         <div className="space-y-6">
           <AiTab fieldId={field.id} />
@@ -409,15 +398,17 @@ function FieldDetailInner() {
         <div className="space-y-6">
           <SeasonCompareChart fieldId={field.id} />
           <SeasonTab fieldId={field.id} />
+          {/* The backfill request UI lives here now. It used to sit under "zones", which was the
+              only way to ask for past seasons at all — and past seasons are what this chart and the
+              forecast's own-history rung are made of. Without forZones: the peak-season COGs only
+              productivity zones needed are no longer written. */}
+          <BackfillCard fieldId={field.id} />
         </div>
       )}
       {tab === "documents" && <DocumentsTab fieldId={field.id} />}
       {tab === "metadata" && <MetadataTab fieldId={field.id} />}
       {tab === "scouting" && <ScoutingTab fieldId={field.id} map={scout} />}
-      {tab === "tasks" && <TasksTab fieldId={field.id} orgId={field.org_id} />}
       {tab === "operations" && <OperationsTab fieldId={field.id} />}
-      {tab === "yields" && <YieldsTab fieldId={field.id} />}
-      {tab === "harvest" && <HarvestTab fieldId={field.id} orgId={field.org_id} />}
     </div>
   );
 

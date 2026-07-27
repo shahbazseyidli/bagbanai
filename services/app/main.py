@@ -7,10 +7,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
 from .db import close_pool, init_pool
 from .routers import (admin, advice, analytics, auth, backfill, bulk, chat, demo, documents,
-                      email_prefs, equipment, events, farms, fertilizer, fields, geo, harvest_order,
-                      health, indices, internal, inventory, knowledge, ledger, messaging, mgmt,
-                      nowcast, orgs, photos, places, providers, push, reports, sales, scouting,
-                      seasons, shares, uploads, weather_history, zones)
+                      email_prefs, events, farms, fertilizer, fields, geo, health, indices, internal, knowledge, messaging, mgmt,
+                      nowcast, orgs, photos, providers, push, scouting,
+                      seasons, shares, uploads, weather_history)
 
 
 @asynccontextmanager
@@ -52,23 +51,15 @@ def create_app() -> FastAPI:
     app.include_router(chat.router)
     app.include_router(fertilizer.router)
     app.include_router(photos.router)
-    app.include_router(ledger.router)
     app.include_router(seasons.router)
     app.include_router(documents.router)
     app.include_router(weather_history.router)
     app.include_router(analytics.router)
-    app.include_router(sales.router)
-    app.include_router(inventory.router)
-    app.include_router(equipment.router)
-    app.include_router(reports.router)
-    app.include_router(places.router)
     app.include_router(bulk.router)
     app.include_router(backfill.router)
-    app.include_router(zones.router)
     app.include_router(shares.router)
     app.include_router(demo.router)
     app.include_router(nowcast.router)
-    app.include_router(harvest_order.router)
     app.include_router(email_prefs.router)
     app.include_router(push.router)
     return app

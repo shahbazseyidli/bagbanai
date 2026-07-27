@@ -46,8 +46,9 @@ class BackfillIn(BaseModel):
     year_from: int
     year_to: int
     sensor: str = "hls"
-    # Also write peak-season per-pixel COGs for one index, so productivity zones (A6) — which read
-    # only public.index_rasters — actually become computable. Costs disk, hence opt-in.
+    # Kept as an accepted-and-ignored field: productivity zones (A6) were removed, and they were the
+    # only consumer of the peak-season per-pixel COGs this used to request. A client still sending it
+    # gets a normal stats-only backfill rather than a 422.
     for_zones: bool = False
     # A finished ('done') job is returned untouched unless the caller explicitly asks for a
     # re-run. A 'failed' job is always re-queued (retrying a failure is what the user means).

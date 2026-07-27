@@ -20,7 +20,6 @@ const PRODUCT: Array<[string, I18nKey]> = [
   ["/pricing", "mkt.footer.linkPricing"],
   ["/how-it-works", "mkt.footer.linkHow"],
   ["/guide", "mkt.footer.linkGuide"],
-  ["/status", "mkt.footer.linkStatus"],
 ];
 
 const ACCOUNT: Array<[string, I18nKey]> = [
