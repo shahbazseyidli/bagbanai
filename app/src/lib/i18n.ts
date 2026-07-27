@@ -67,20 +67,7 @@ export const az = {
   "landing.feat3.body": "Skautinq, tapşırıqlar, əməliyyatlar və məhsuldarlıq bir yerdə.",
 
   // dashboard
-  "dash.title": "Sahələrim",
-  "dash.orgs": "Təşkilatlar",
   "dash.selectOrg": "Təşkilat seçin",
-  "dash.newOrg": "Yeni təşkilat",
-  "dash.farms": "Fermalar",
-  "dash.newFarm": "Yeni ferma",
-  "dash.fields": "Sahələr",
-  "dash.newField": "Yeni sahə",
-  "dash.noFarms": "Bu təşkilatda hələ ferma yoxdur.",
-  "dash.noFields": "Bu fermada hələ sahə yoxdur.",
-  "dash.tariff": "Tarif: Pulsuz",
-  "dash.orgName": "Təşkilatın adı",
-  "dash.farmName": "Fermanın adı",
-  "dash.farmRegion": "Region",
   "dash.role": "Rol",
 
   // onboarding
@@ -2626,6 +2613,124 @@ export const az = {
   "app.field.layers.group.burn": "Quraqlıq və yanğın",
   "app.field.layers.mode": "Rəng rejimi",
   "app.field.layers.mode.fixed": "Sabit aralıq",
+
+  // ── Desktop workspace wave ──────────────────────────────────────────────────────────────────
+  // Appended as one contiguous block, in this exact order, in all eight dictionaries. The older
+  // app.shell.* / app.home.* keys drifted out of a shared order long ago (the same key sits at a
+  // different position in every locale file), so a trailing block is the only placement that lets
+  // a locale-to-locale diff stay readable.
+
+  // Shell — full-height sidebar + top bar. Both hamburger labels exist because the control is
+  // icon-only: a screen reader gets no other clue about which way it will move.
+  "app.shell.sidebar.collapse": "Menyunu yığ",
+  "app.shell.sidebar.expand": "Menyunu aç",
+  "app.shell.topbar.help": "Kömək",
+  "app.shell.topbar.accountMenu": "Hesab menyusu",
+  // The slim panel on a field page lists that field's SECTIONS, so it must not reuse
+  // app.shell.fieldListPanel.panelAria ("Sahə siyahısı") — that would announce the wrong thing.
+  "app.shell.fieldPanel.aria": "Sahə bölmələri",
+
+  // Dashboard KPI tiles + the satellite group in the feed. Every sub-line here names what the
+  // number is missing, because the reference design has tiles we cannot compute and a bare figure
+  // over partial data reads as a fact about the whole farm.
+  "app.home.stats.attnLabel": "Diqqət tələb edir",
+  "app.home.stats.attnUnknown": "Hələ heç bir sahə qiymətləndirilməyib",
+  // Satellite pipeline states, straight from fields.data_status (none|queued|processing|partial|
+  // ready|failed). Label-colon-number on purpose: no noun has to agree with the numeral, so ru/pl
+  // need no plural forms for these six lines.
+  "app.home.sat.label": "Peyk məlumatı",
+  "app.home.sat.ready": "Hazır: {n}",
+  "app.home.sat.preparing": "Hazırlanır: {n}",
+  "app.home.sat.partial": "Qismən: {n}",
+  "app.home.sat.failed": "Xəta: {n}",
+  "app.home.sat.notStarted": "Başlamayıb: {n}",
+  "app.home.sat.unknown": "Sahə statusu yüklənmədi",
+  // A zero here means "no field HAS a recommendation", never "no field NEEDS water" — the water
+  // balance may simply never have been computed, and the two are not the same claim.
+  "app.home.stats.irrigationLabel": "Suvarma tövsiyəsi",
+  "app.home.stats.irrigationSource": "FAO-56 su balansına görə",
+  "app.home.stats.irrigationNone": "Su balansı tövsiyəsi olan sahə yoxdur",
+  // The date is the newest scene across the org, not a date that holds for every field.
+  "app.home.stats.sceneLabel": "Son peyk görüntüsü",
+  "app.home.stats.sceneCoverage": "{n} sahə üzrə ən yeni",
+  "app.home.stats.sceneNone": "Peyk təhlili hələ yoxdur",
+
+  // Dashboard map — scope dropdown, the three colour modes, and their legends.
+  "app.home.dash.allFields": "Bütün sahələr",
+  "app.home.dash.fieldSelectAria": "Xəritədə göstərilən sahə",
+  "app.home.dash.viewGroupAria": "Xəritə görünüşü",
+  "app.home.dash.viewHealth": "Sağlamlıq",
+  "app.home.dash.viewAlerts": "Xəbərdarlıqlar",
+  "app.home.dash.viewWeather": "Hava",
+  "app.home.dash.alertCritical": "Kritik",
+  "app.home.dash.alertWarning": "Xəbərdarlıq",
+  "app.home.dash.alertNone": "Açıq xəbərdarlıq yoxdur",
+  // Honesty disclaimer, not filler: the notifications read is capped, so a grey polygon means
+  // "nothing in the rows we looked at", which is a much weaker statement than "healthy".
+  "app.home.dash.alertNoneNote": "«Xəbərdarlıq yoxdur» sahənin sağlam olması demək deyil — yalnız son bildirişlər nəzərə alınıb.",
+  "app.home.dash.weatherTitle": "Yaxın 2 saat",
+  "app.home.dash.weatherRain": "Yağış gözlənilir",
+  "app.home.dash.weatherDry": "Yağışsız pəncərə",
+  "app.home.dash.weatherUnknown": "Məlumat yoxdur",
+  "app.home.dash.weatherLoading": "Hava məlumatı yüklənir…",
+  // Discloses that the grey polygons were never asked about, rather than letting them read as dry.
+  "app.home.dash.weatherCoverage": "Yalnız {n} sahə üçün soruşuldu",
+  "app.home.dash.openFeed": "Məlumat lentini aç",
+  "app.home.dash.closeFeed": "Məlumat lentini bağla",
+  "app.home.dash.popupNoScore": "Bal yoxdur",
+
+  // Right-hand feed panel — group headings. Kept separate from the map tab labels so a locale can
+  // word a column heading and a button differently.
+  "app.home.feed.title": "Məlumat lenti",
+  "app.home.feed.alerts": "Açıq xəbərdarlıqlar",
+  "app.home.feed.weather": "Hava",
+  "app.home.feed.health": "Sahə sağlamlığı",
+  "app.home.feed.healthEmpty": "Hələ heç bir sahə üçün bal hesablanmayıb.",
+  "app.home.feed.quick": "Sürətli əməliyyat",
+
+  // Field — index chart panel under the satellite map (desktop).
+  "app.field.chart.panelAria": "İndeks qrafiki paneli",
+  "app.field.chart.selectedDate": "Seçilmiş tarix",
+  // DATE TEMPLATE. {mon} is a short month from app.date.monthsShort; reorder the tokens per locale
+  // (en puts the month first and needs the comma) but never translate the token names.
+  "app.field.chart.dateLong": "{d} {mon} {y}",
+  "app.field.chart.rangeLabel": "{from} – {to}",
+  "app.field.chart.rangeAria": "Vaxt aralığı",
+  // Six buttons share one segmented strip, so these stay at 2-3 characters in every locale.
+  "app.field.chart.range.1w": "1H",
+  "app.field.chart.range.1m": "1A",
+  "app.field.chart.range.3m": "3A",
+  "app.field.chart.range.6m": "6A",
+  "app.field.chart.range.1y": "1İ",
+  "app.field.chart.range.all": "Hamısı",
+  "app.field.chart.rangeEmpty": "Bu aralıqda peyk ölçməsi yoxdur",
+  "app.field.chart.prevScene": "Əvvəlki görüntü",
+  "app.field.chart.nextScene": "Sonrakı görüntü",
+  // Deliberately not "Bu gün": the newest scene is usually several days old, and a button that
+  // says "Today" would promise an image that does not exist.
+  "app.field.chart.latestScene": "Son görüntü",
+  "app.field.chart.stepperAria": "Görüntü tarixləri arasında keçid",
+  // The two hints exist because a free y-axis magnifies noise: the same NDVI wobble looks trivial
+  // against the map's colour range and alarming against a fitted axis, and the reader must know
+  // which one they are looking at.
+  "app.field.chart.lockScale": "Şkalanı sabitlə",
+  "app.field.chart.unlockScale": "Şkalanı sərbəst burax",
+  "app.field.chart.lockedHint": "Şkala xəritədəki rəng aralığını əhatə edir — kiçik dəyişiklik kiçik görünür.",
+  "app.field.chart.unlockedHint": "Şkala yalnız bu aralıqdakı ölçmələrə uyğunlaşır — kiçik dəyişiklik böyük görünür.",
+  "app.field.chart.fullscreenAria": "İndeks qrafiki — tam ekran",
+  "app.field.chart.today": "Bu gün",
+  // Pairs with app.field.forecast.line ("Proqnoz") — solid measurement vs dashed estimate.
+  "app.field.chart.measured": "Ölçülmüş",
+  "app.field.chart.clickHint": "Tarixi xəritədə açmaq üçün nöqtəyə klikləyin",
+  "app.field.chart.tipRange": "Aralıq {lo} – {hi}",
+  "app.field.chart.noScenePicture": "Bu tarixin xəritə görüntüsü yoxdur",
+  "app.field.satelliteTab.mapToolsAria": "Xəritə qatı seçimi",
+
+  // Field header — desktop-only previous/next row above the map.
+  "app.field.nav.prevField": "Əvvəlki sahə",
+  "app.field.nav.nextField": "Növbəti sahə",
+  "app.field.nav.position": "{n} / {total}",
+  "app.field.nav.breadcrumbAria": "Sahənin yeri",
 } as const;
 
 export type I18nKey = keyof typeof az;

@@ -3,8 +3,8 @@
 // D2.1 — "Daha çox": the overflow menu (bottom-nav destination). Large rows, one screen.
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Tag, Users, Shield, LogOut, ChevronRight, Store, MessageCircle, UserCog, Tractor,
-  Bell, FileText, MapPin, GraduationCap } from "lucide-react";
+import { Tag, Users, Shield, LogOut, ChevronRight, Store, MessageCircle, UserCog,
+  Bell, GraduationCap } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { t } from "@/lib/i18n";
 import { SHOW_MARKETPLACE_NAV } from "@/lib/navFlags";
@@ -18,18 +18,24 @@ export default function MorePage() {
   const { user, logout } = useAuth();
 
   // This list is the safety net for the trimmed navigation: everything the rail and the bottom nav
-  // no longer show has to be one tap away from here. Dəftər/Satış/Anbar/Texnika collapsed into the
-  // single "Təsərrüfat" row (they are ?tab= sections of /farm now), and Bildirişlər moved here when
-  // /farm took its bottom-nav slot.
+  // do not show has to be one tap away from here.
+  //
+  // The Dəftər/Satış/Anbar/Texnika row this comment used to describe is GONE — the ERP strip
+  // deleted those modules and the /farm container that held them, so there is nothing to collapse.
   const items = [
     { href: "/notifications", label: t("nav.notifications"), Icon: Bell, authOnly: true },
     { href: "/guide", label: t("app.more.howToStart"), Icon: GraduationCap, authOnly: false },
-    // Kataloq / İcma are built and routable but empty — see SHOW_MARKETPLACE_NAV.
     ...(SHOW_MARKETPLACE_NAV
       ? [
           { href: "/catalog", label: t("nav.catalog"), Icon: Store, authOnly: true },
           { href: "/chat", label: t("nav.community"), Icon: MessageCircle, authOnly: true },
         ]
+      : []),
+    // /provider is the provider's OWN profile + catalog editor, not somewhere a farmer buys
+    // anything — showing it to a farmer would offer to edit a profile they do not have. Role, not
+    // SHOW_MARKETPLACE_NAV, is the right gate: it stays correct whichever way that flag moves.
+    ...(user && user.role && user.role !== "farmer"
+      ? [{ href: "/provider", label: t("app.provider.title"), Icon: Store, authOnly: true }]
       : []),
     { href: "/account", label: t("more.account"), Icon: UserCog, authOnly: true },
     { href: "/pricing", label: t("more.pricingPlans"), Icon: Tag, authOnly: false },

@@ -589,9 +589,10 @@ export default function FieldMapCard({
           // / `filter` / `backdrop-filter` ancestor turns position:fixed into an ordinary containing
           // block, and inset-0 would then size to THAT ancestor — the map would be built at the
           // wrong size and never resized (DisplayMap exposes no resize()). The field page sits
-          // inside AppShell's flex row, on the SHELL_BLEED full-bleed track
-          // (`xl:mx-[calc(50%_-_50vw)]`, exported from AppShell.tsx — the old frozen "xl:-mx-14
-          // 2xl:-mx-44" pair is gone), under a backdrop-blur header. z-50 clears BottomNav (z-40),
+          // inside AppShell's flex row, on the full-bleed track exported as SHELL_BLEED (grep it in
+          // AppShell.tsx — a negative-margin calc whose breakpoint prefix has changed more than
+          // once, which is why it is not quoted here), under a backdrop-blur header.
+          // z-50 clears BottomNav (z-40),
           // Nav (z-30) and the rail/list panel (z-30).
           //
           // The fixed root IS the sized frame the map hangs in — no sticky ancestor, and no

@@ -5,21 +5,21 @@
 // alerts, then one card PER FIELD carrying a plain-language health verdict + an irrigation hint.
 // Everything is deterministic (reuses the İcmal insight engine) so it renders without the LLM.
 //
-// W2 — on a WIDE stage the same material is re-laid-out as an instrument panel: a four-tile stat
-// header (TodayStats), the multi-field map promoted to a primary object with the attention hero and
-// the alerts as a rail beside it (TodayInstrument), then "Sahələrim". Narrow stays the stacked
-// screen below, unchanged.
+// On a WIDE stage the same material is re-laid-out as a dashboard: an EIGHT-tile KPI grid
+// (TodayStats, 4 across × 2), then a workspace row (TodayInstrument) carrying a scope dropdown, a
+// segmented strip that chooses what the map is coloured BY (health / alerts / weather), the
+// multi-field map as the primary object, and the Intelligence Feed beside it. Then "Sahələrim".
+// Narrow stays the stacked screen below, unchanged.
 //
-// THIS IS THE DEFAULT HOME for every signed-in farmer. app/src/app/page.tsx renders
-// `v2 ? <TodayHome/> : <Dashboard/>`, and useUiV2 (lib/uiFlag.ts) is ON unless localStorage holds
-// the sticky "v1" that only `?ui=v1` writes. So the ternary is an ESCAPE HATCH, not a rollout gate:
-// changes here are user-facing the moment they deploy. The old console Dashboard is still reachable
-// at ?ui=v1, which is why page.tsx caps its width itself — "/" is a wide stage now.
+// THIS IS THE ONLY HOME for a signed-in farmer. app/src/app/page.tsx renders it unconditionally on
+// the app host — the `?ui=v1` console Dashboard and lib/uiFlag.ts were both deleted on 2026-07-27,
+// so there is no longer a fallback and no flag to check. Changes here are user-facing on deploy.
 //
 // The branch is chosen from a MEASURED stage width, never a breakpoint: AppShell's content stage is
-// the viewport minus the 78px rail minus a field list that only appears at xl, which makes the
-// stage NARROWER at xl (~778px) than at lg (~894px). No media query can express that inversion —
-// this is the same reason FieldWorkbench measures (see workbench/useStageWidth).
+// the viewport minus the sidebar — which WIDENS at xl (grep SIDEBAR_EXPANDED in shell/AppRail) —
+// minus a field list that also only appears at xl. Both steps land on the same breakpoint and both
+// take width away, so the stage can be NARROWER at xl than at lg. No media query can express that
+// inversion; this is the same reason the field workbench measures (see workbench/useStageWidth).
 //
 // Every number on the screen is real: wellness scores come from the STORED read model
 // (GET /api/orgs/{id}/wellness — one request per org, never a per-field computation), weather from
@@ -31,7 +31,7 @@ import Link from "next/link";
 import { Plus, Sprout } from "lucide-react";
 import { api, azError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { t, tp, getLocale, type Locale } from "@/lib/i18n";
+import { t, tp, getLocale } from "@/lib/i18n";
 import { ErrorNote } from "@/components/ui";
 import { ListSkeleton } from "@/components/Skeleton";
 import OnboardingChecklist from "@/components/OnboardingChecklist";
@@ -42,43 +42,32 @@ import AttentionHero from "@/components/home/AttentionHero";
 import FieldGrid from "@/components/home/FieldGrid";
 import AlertList, { type TodayAlert } from "@/components/home/AlertList";
 import TodayInstrument from "@/components/home/TodayInstrument";
-import TodayStats, { type AlertSummary } from "@/components/home/TodayStats";
+import TodayStats, {
+  type AlertSummary,
+  type IrrigationSummary,
+  type SatelliteSummary,
+  type SceneSummary,
+} from "@/components/home/TodayStats";
 import WeatherBar from "@/components/home/WeatherBar";
+import { formatToday } from "@/components/home/homeDate";
 import { bandOf, type FieldScore } from "@/components/home/ScoreBadge";
 import { useStageWidth } from "@/components/field/workbench/useStageWidth";
 import { fetchFieldToday, type FieldToday } from "@/lib/today";
 import type { Tone } from "@/lib/indexStatus";
 import type { Farm, Field, Org } from "@/lib/types";
 
-const AZ_MONTHS = [
-  "yanvar", "fevral", "mart", "aprel", "may", "iyun",
-  "iyul", "avqust", "sentyabr", "oktyabr", "noyabr", "dekabr",
-];
-const AZ_WEEKDAYS = [
-  "bazar", "bazar ertəsi", "çərşənbə axşamı", "çərşənbə", "cümə axşamı", "cümə", "şənbə",
-];
-function azDate(d: Date): string {
-  const s = `${AZ_WEEKDAYS[d.getDay()]}, ${d.getDate()} ${AZ_MONTHS[d.getMonth()]}`;
-  return s.charAt(0).toLocaleUpperCase("az") + s.slice(1);
-}
-// Localized "weekday, day month" — manual AZ arrays (reliable), Intl for en/tr/de.
-function formatToday(d: Date, locale: Locale): string {
-  if (locale === "az") return azDate(d);
-  try {
-    const s = new Intl.DateTimeFormat(locale, { weekday: "long", day: "numeric", month: "long" }).format(d);
-    return s.charAt(0).toUpperCase() + s.slice(1);
-  } catch {
-    return azDate(d);
-  }
-}
-
 /**
- * The stage width at which the instrument layout turns on. Same floor as FieldWorkbench, so a 778px
- * xl stage qualifies for both.
+ * The stage width at which the dashboard layout turns on.
  *
- * It cannot reach a phone: below `md` there is no rail and no field list, which caps the stage at
+ * The same number as the field screen's floor (grep WORKBENCH_MIN in workbench/useStageWidth), so a
+ * laptop that gets the workbench also gets the dashboard — but deliberately NOT imported from there:
+ * that constant is tuned for a map beside a rail on the field page, and the two screens must be
+ * free to move apart without one silently dragging the other with it.
+ *
+ * It cannot reach a phone: below `md` there is no sidebar and no field list, which caps the stage at
  * roughly vw - 32 (≤ 736px). The only sub-`lg` viewports that clear this are ~890px landscape
- * tablets, which already run the full desktop shell (AppRail is md:flex, BottomNav is md:hidden).
+ * tablets, which already run the full desktop shell (the sidebar is `hidden md:flex`, BottomNav is
+ * `md:hidden`, so the two never coexist).
  */
 const WIDE_MIN = 760;
 
@@ -181,7 +170,11 @@ export default function TodayHome() {
   const [fields, setFields] = useState<Field[] | null>(null);
   const [todays, setTodays] = useState<Record<string, FieldToday>>({});
   const [scores, setScores] = useState<Record<string, FieldScore>>({});
-  const [geoFields, setGeoFields] = useState<GeoFieldFull[]>([]);
+  // null, not [], until GET /api/fields/geo resolves — and it STAYS null when that request fails.
+  // The two used to be the same value, which made "this org has no drawn geometry" and "we could not
+  // ask" indistinguishable; the satellite tile has to tell them apart to choose between "0 ready"
+  // and a dash. Every other consumer reads it through `geoList` below.
+  const [geoFields, setGeoFields] = useState<GeoFieldFull[] | null>(null);
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [orgId, setOrgId] = useState<string>("");
   // null, not [], until the request resolves — and it stays null when the request FAILS, so the
@@ -233,7 +226,7 @@ export default function TodayHome() {
     setFields(null);
     setTodays({});
     setScores({});
-    setGeoFields([]);
+    setGeoFields(null);
     (async () => {
       try {
         const farms = await api.get<Farm[]>(`/api/farms?org_id=${orgId}`);
@@ -299,18 +292,77 @@ export default function TodayHome() {
   const locale = getLocale();
   const worst = worstOf(resolved, scores);
 
+  // Every consumer below reads the geometry through this, so a FAILED request behaves exactly like
+  // an empty one everywhere except the one place that has to tell them apart (the satellite tile).
+  const geoList = geoFields ?? [];
+
   // Weather bar placement: the field that needs attention, else the first field we have a point for.
   const geoById: Record<string, GeoFieldFull> = {};
-  for (const g of geoFields) geoById[g.id] = g;
+  for (const g of geoList) geoById[g.id] = g;
   const weatherField =
     (worst && pointOf(geoById[worst.field.id]) ? worst.field : null) ??
     fields.find((f) => pointOf(geoById[f.id]) != null) ??
     null;
   const weatherPoint = weatherField ? pointOf(geoById[weatherField.id]) : null;
 
-  // The strips show a slice; the tile counts the whole list. Both read the one stored array.
-  const shownAlerts = alertsAll ? alertsAll.slice(0, wide ? 3 : 4) : [];
-  const alertsMore = (alertsAll?.length ?? 0) - shownAlerts.length;
+  /** The same lookup for an arbitrary field — the dashboard's scope dropdown moves the weather bar
+   *  onto whichever field is selected, and pointOf must keep exactly one implementation. */
+  const weatherFor = (fieldId: string) => {
+    const g = geoById[fieldId];
+    const p = pointOf(g);
+    return p && g ? { lat: p.lat, lon: p.lon, label: g.name, fieldId } : null;
+  };
+
+  // ── the three roll-ups the new KPI tiles read ───────────────────────────────────────────────
+  // Satellite: counted from fields.data_status as /api/fields/geo returns it — the DB column, not
+  // FieldToday.status. The latter is `ins?.data_status ?? "none"`, so a field whose /insights call
+  // failed would be counted as "never processed" and the tile would report a network blip as an
+  // untouched farm. null propagates: a failed geo request means we cannot say anything at all.
+  const satellite: SatelliteSummary | null = geoFields
+    ? geoFields.reduce<SatelliteSummary>(
+        (acc, g) => {
+          const s = g?.data_status;
+          if (s === "ready") acc.ready += 1;
+          else if (s === "partial") acc.partial += 1;
+          else if (s === "queued" || s === "processing") acc.preparing += 1;
+          else if (s === "failed") acc.failed += 1;
+          else acc.notStarted += 1;
+          acc.total += 1;
+          return acc;
+        },
+        { ready: 0, partial: 0, preparing: 0, failed: 0, notStarted: 0, total: 0 },
+      )
+    : null;
+
+  // Irrigation: fetchFieldToday already keeps only a POSITIVE reco_mm from the latest FAO-56 day
+  // (lib/today.ts), so a non-null waterReco is a standing recommendation and nothing else — the
+  // count is exact in the upward direction.
+  //
+  // A NULL is ambiguous by construction: fetchFieldToday catches its /water-balance call, so "the
+  // balance was computed and asks for nothing" and "the request failed" arrive identically here, and
+  // no information downstream can separate them. That ambiguity is why the tile carries NO tone and
+  // why its zero-case wording is "no field HAS a recommendation" rather than "no field needs water".
+  // `covered` narrows it as far as it can go — see IrrigationSummary.
+  const irrigation: IrrigationSummary = {
+    count: resolved.filter((ft) => ft.waterReco != null).length,
+    covered: resolved.length,
+  };
+
+  // Newest scene across the org. verdict.date is the leading vegetation index's latest_date, an ISO
+  // calendar day, so a plain string comparison orders them correctly. Fields with no vegetation
+  // trend contribute no date and stay outside the fraction the tile discloses.
+  const sceneDates = resolved
+    .map((ft) => ft.verdict?.date)
+    .filter((d): d is string => typeof d === "string" && d.length > 0);
+  const lastScene: SceneSummary | null =
+    sceneDates.length > 0
+      ? { date: sceneDates.reduce((a, b) => (a > b ? a : b)), fields: sceneDates.length }
+      : null;
+
+  // The stacked strip shows a slice; the tile counts the whole list. Both read the one stored array.
+  // The wide dashboard is handed `alertsAll` instead and slices for itself — its feed has its own
+  // row budget, and its map has to colour from every unread row, not from the four on screen.
+  const shownAlerts = alertsAll ? alertsAll.slice(0, 4) : [];
   const alertSummary: AlertSummary | null =
     alertsAll == null
       ? null
@@ -397,7 +449,7 @@ export default function TodayHome() {
       </div>
 
       {wide ? (
-        // Four dashes over an empty map is not a control room, it is a broken one: with no fields
+        // Eight dashes over an empty map is not a control room, it is a broken one: with no fields
         // the screen goes straight to the empty card below.
         fields.length > 0 && (
           <>
@@ -407,9 +459,13 @@ export default function TodayHome() {
               alerts={alertSummary}
               attn={attn}
               evaluatedCount={evaluated}
+              satellite={satellite}
+              irrigation={irrigation}
+              lastScene={lastScene}
             />
             <TodayInstrument
-              geoFields={geoFields}
+              fields={fields}
+              geoFields={geoList}
               scores={scores}
               stageW={stageW}
               weather={
@@ -422,10 +478,12 @@ export default function TodayHome() {
                     }
                   : null
               }
+              weatherFor={weatherFor}
               worst={worst}
               worstScore={worst ? scores[worst.field.id] : undefined}
-              alerts={shownAlerts}
-              alertsMore={alertsMore}
+              alertsAll={alertsAll}
+              alertsCapped={alertsCapped}
+              satellite={satellite}
             />
           </>
         )
@@ -460,13 +518,13 @@ export default function TodayHome() {
           {/* D4.3 — desktop agronomist workspace: all fields on one map (click a polygon to open).
               Gated on real geometry, not on a non-empty array: a basemap with nothing drawn on it
               looks like a map of your farm and is a map of nothing. */}
-          {geoFields.some((g) => g?.geom != null) && (
+          {geoList.some((g) => g?.geom != null) && (
             <section className="hidden md:block">
               <SectionTitle>{t("today.fieldsOnMap")}</SectionTitle>
               <div className="h-[380px]">
                 {/* Pass the scores we already loaded so the map does not repeat the same org-wide
                     request; it repaints itself when they land. */}
-                <FieldsOverviewMap fields={geoFields} heightClass="h-full" scores={scores} />
+                <FieldsOverviewMap fields={geoList} heightClass="h-full" scores={scores} />
               </div>
             </section>
           )}

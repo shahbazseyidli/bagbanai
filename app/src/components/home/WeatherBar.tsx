@@ -77,11 +77,21 @@ export default function WeatherBar({
   lon,
   placeLabel,
   fieldId,
+  heading,
 }: {
   lat: number;
   lon: number;
   placeLabel: string;
   fieldId?: string;
+  /**
+   * Optional group heading, rendered INSIDE this component's own root.
+   *
+   * It lives here rather than in the caller because this component returns null whenever neither
+   * Open-Meteo nor the nowcast answers — a heading wrapped around it from outside would survive
+   * that and leave a labelled empty box. Callers that pass nothing (the phone home, where the bar
+   * stands alone) render exactly what they rendered before this prop existed.
+   */
+  heading?: string;
 }) {
   const [cur, setCur] = useState<Current | null>(null);
   const [now, setNow] = useState<Nowcast | null>(null);
@@ -123,7 +133,7 @@ export default function WeatherBar({
   if (!cur && !now) return null;
   const chip = now ? sprayChip(now) : null;
 
-  return (
+  const bar = (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl2 border border-sky-100 bg-gradient-to-r from-sky-50 to-white px-4 py-3">
       {cur && (
         <>
@@ -148,6 +158,14 @@ export default function WeatherBar({
           {chip.label}
         </span>
       )}
+    </div>
+  );
+
+  if (!heading) return bar;
+  return (
+    <div className="space-y-2">
+      <h3 className="text-[11px] font-bold uppercase tracking-wide text-ink-soft">{heading}</h3>
+      {bar}
     </div>
   );
 }

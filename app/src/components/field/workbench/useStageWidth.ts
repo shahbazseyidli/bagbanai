@@ -7,6 +7,31 @@
 // only honest answer is to measure the box we are actually going to lay out in.
 import { useCallback, useEffect, useRef, useState } from "react";
 
+// The stage width at which the field screen stops being a stack of cards and becomes a workbench:
+// a rail beside a map still worth looking at.
+//
+// This was 920, which sounded reasonable and meant the workbench never appeared: the real stage on
+// a 1440px laptop with the field list expanded — the single most common desktop setup — is 778px.
+// The feature shipped unreachable. 760 is the honest floor: it leaves the map ~420px next to a
+// 340px rail, which is a usable field map, and it is what the layout was actually being asked to
+// handle. The rail steps up again as soon as there is room (see FieldWorkbench).
+export const WORKBENCH_MIN = 760;
+
+/**
+ * What the measured stage can afford. THREE values, not a boolean, because "not measured yet" is a
+ * real state with its own answer: the first frame must build neither tree, or a MapLibre map is
+ * constructed in the narrow branch and torn straight down when the measurement lands one tick
+ * later. Everything on the field screen — the workbench, the persistent map card, the layer-picker
+ * variant, the satellite section's own two bodies — is derived from this ONE classification, so a
+ * shell change that moves the stage moves all of them together.
+ */
+export type FieldLayout = "unknown" | "narrow" | "wide";
+
+export function fieldLayout(stageW: number | null): FieldLayout {
+  if (stageW == null) return "unknown";
+  return stageW >= WORKBENCH_MIN ? "wide" : "narrow";
+}
+
 export function useStageWidth(): [(node: HTMLDivElement | null) => void, number | null] {
   // null means "not measured yet". Callers render a skeleton for that one frame rather than
   // guessing, because guessing wrong constructs a MapLibre map and tears it straight down again.

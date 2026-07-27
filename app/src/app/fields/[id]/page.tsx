@@ -16,7 +16,6 @@ import SatelliteTab from "@/components/field/SatelliteTab";
 import FieldMapSheet from "@/components/field/FieldMapSheet";
 import FieldMapCard from "@/components/field/FieldMapCard";
 import type { PickerVariant } from "@/components/field/layers/LayerPicker";
-import { useUiV2 } from "@/lib/uiFlag";
 import AiTab from "@/components/field/AiTab";
 import MetadataTab from "@/components/field/MetadataTab";
 import PhotoDiagnose from "@/components/field/PhotoDiagnose";
@@ -36,18 +35,8 @@ import BackfillCard from "@/components/field/BackfillCard";
 import RainNowcast from "@/components/field/RainNowcast";
 import FieldHeader from "@/components/field/FieldHeader";
 import FieldWorkbench from "@/components/field/workbench/FieldWorkbench";
-import { useStageWidth } from "@/components/field/workbench/useStageWidth";
+import { fieldLayout, useStageWidth } from "@/components/field/workbench/useStageWidth";
 import type { FieldDetail } from "@/lib/types";
-
-// The status section becomes the two-column workbench when the measured stage can afford a rail
-// plus a map still worth looking at.
-//
-// This was 920, which sounded reasonable and meant the workbench never appeared: the real stage on
-// a 1440px laptop with the field list expanded — the single most common desktop setup — is 778px.
-// The feature shipped unreachable. 760 is the honest floor: it leaves the map ~420px next to a
-// 340px rail, which is a usable field map, and it is what the layout was actually being asked to
-// handle. The rail steps up again as soon as there is room (see FieldWorkbench).
-const WORKBENCH_MIN = 760;
 
 // Sections that build their own MapLibre map, and therefore must NOT also get the persistent card
 // stacked above them. "zones" used to be the second entry; it left with the productivity-zones
@@ -69,7 +58,7 @@ function FieldDetailInner() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { user, loading } = useAuth();
-  const v2 = useUiV2(); // D2.3 map-first presentation behind ?ui=v2
+
 
   const [field, setField] = useState<FieldDetail | null>(null);
   const [error, setError] = useState("");
@@ -84,6 +73,7 @@ function FieldDetailInner() {
     // A section change always leaves fullscreen: the param must never survive one, or tapping
     // "Peyk görüntüsü" from inside the overlay would land on the satellite section still covered.
     sp.delete("map");
+    sp.delete("chart");
     router.push(`${pathname}?${sp.toString()}`, { scroll: false });
   }
 
@@ -97,6 +87,9 @@ function FieldDetailInner() {
   function openFullscreen() {
     const sp = new URLSearchParams(searchParams.toString());
     sp.set("map", "full");
+    // Two fullscreen surfaces, never both: the chart overlay and the map overlay are each fixed
+    // inset-0, so a URL carrying both would stack them with no way to see the lower one.
+    sp.delete("chart");
     pushedFullRef.current = true;
     router.push(`${pathname}?${sp.toString()}`, { scroll: false });
   }
@@ -108,6 +101,30 @@ function FieldDetailInner() {
     }
     const sp = new URLSearchParams(searchParams.toString());
     sp.delete("map");
+    const qs = sp.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }
+
+  // The index chart's own fullscreen, mirroring ?map=full for the same reason: the Android back
+  // gesture and the browser back button then close it for free, with no popstate listener and no
+  // history.pushState monkey-patching under the App Router (the D0.3 / 6.6 precedent).
+  const chartFullscreen = searchParams.get("chart") === "full";
+  const pushedChartRef = useRef(false);
+  function openChartFullscreen() {
+    const sp = new URLSearchParams(searchParams.toString());
+    sp.set("chart", "full");
+    sp.delete("map");
+    pushedChartRef.current = true;
+    router.push(`${pathname}?${sp.toString()}`, { scroll: false });
+  }
+  function closeChartFullscreen() {
+    if (pushedChartRef.current) {
+      pushedChartRef.current = false;
+      router.back();
+      return;
+    }
+    const sp = new URLSearchParams(searchParams.toString());
+    sp.delete("chart");
     const qs = sp.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   }
@@ -126,13 +143,16 @@ function FieldDetailInner() {
   // worse than not having it, and the desktop answer to "what am I looking at" is the workbench
   // plus the field list panel). Narrow → the card, except on the sections that build their own map.
   // stageW === null is the single unmeasured frame: build neither, exactly as before.
-  const wide = stageW !== null && stageW >= WORKBENCH_MIN;
+  // The classification itself lives with the measurement (workbench/useStageWidth), so the threshold
+  // exists once and every surface that derives from it moves together.
+  const layout = fieldLayout(stageW);
+  const wide = layout === "wide";
   // 6.5 — "scouting" is the one exception to the wide rule. Its notes ARE map data: pins with no
   // map is a feature with its output removed, and the workbench only renders on the status
   // section, so a wide stage would otherwise leave this section mapless. Everywhere else the wide
   // answer is still "the workbench owns the map".
   const showCard =
-    v2 && stageW !== null && !SECTION_OWNS_MAP.has(tab) && (!wide || tab === "scouting");
+    stageW !== null && !SECTION_OWNS_MAP.has(tab) && (!wide || tab === "scouting");
   // W4 — and the SAME number decides how the layer picker opens, for both surfaces that have one.
   // Neither of them may measure again: this is the measurement that already decided whether the
   // card is on screen at all, and a component that re-measures its own box can disagree with the
@@ -259,6 +279,11 @@ function FieldDetailInner() {
       fieldId={field.id}
       name={field.name}
       areaHa={field.area_ha}
+      // Both already on FieldDetail, so the breadcrumb and the previous/next walk cost no extra
+      // lookup for the field itself — only the org's list, cached for five minutes.
+      orgId={field.org_id}
+      farmId={field.farm_id}
+      layout={layout}
       actions={
         !editing ? (
           <button
@@ -383,7 +408,7 @@ function FieldDetailInner() {
       </h2>
       {tab === "status" && (
         <div>
-          {stageW === null ? (
+          {layout === "unknown" ? (
             // One frame. Rendering the stacked branch here would construct a MapLibre map on a wide
             // screen and tear it down again the moment the measurement lands.
             <div className="h-[460px] animate-pulse rounded-xl bg-paper-2" aria-hidden="true" />
@@ -410,7 +435,15 @@ function FieldDetailInner() {
         </div>
       )}
       {tab === "satellite" && (
-        <SatelliteTab field={field} sensor="S2" pickerVariant={pickerVariant} />
+        <SatelliteTab
+          field={field}
+          sensor="S2"
+          pickerVariant={pickerVariant}
+          layout={layout}
+          chartFullscreen={chartFullscreen}
+          onOpenChartFullscreen={openChartFullscreen}
+          onCloseChartFullscreen={closeChartFullscreen}
+        />
       )}
       {tab === "weather" && <WeatherHistoryTab fieldId={field.id} />}
       {tab === "analysis" && (
@@ -443,8 +476,7 @@ function FieldDetailInner() {
     </div>
   );
 
-  if (v2) {
-    return (
+  return (
       <>
         {undoBar}
         <FieldMapSheet
@@ -456,6 +488,7 @@ function FieldDetailInner() {
             const sp = new URLSearchParams(searchParams.toString());
             sp.set("tab", "analysis");
             sp.delete("map"); // same rule as setTab: a section change always leaves fullscreen
+            sp.delete("chart");
             router.push(`${pathname}?${sp.toString()}`, { scroll: false });
             setTimeout(
               () => document.getElementById("photo-diagnose")?.scrollIntoView({ behavior: "smooth", block: "start" }),
@@ -486,18 +519,5 @@ function FieldDetailInner() {
           {tabContent}
         </FieldMapSheet>
       </>
-    );
-  }
-
-  // ?ui=v1 — the classic stacked layout. No map card here (it is a v2 frame slot), but the stage
-  // still has to be measured: the status section's workbench/stacked choice reads the same number.
-  return (
-    <div ref={stageRef} className="space-y-6">
-      {undoBar}
-      {titleRow}
-      {editing && editPanel}
-      {tabNav}
-      {tabContent}
-    </div>
   );
 }

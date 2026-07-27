@@ -16,9 +16,11 @@
 // self-fetched when the caller cannot supply them.
 import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { api } from "@/lib/api";
-import { t } from "@/lib/i18n";
+import { t, tf } from "@/lib/i18n";
+import { useFieldNav } from "@/components/field/workbench/useFieldNav";
+import type { FieldLayout } from "@/components/field/workbench/useStageWidth";
 import { formatArea, useAreaUnit, type AreaUnit } from "@/lib/units";
 import { wellnessHeadline } from "@/lib/wellnessText";
 import StatusChip from "@/components/StatusChip";
@@ -58,6 +60,18 @@ interface Props {
   /** Right-hand slot of the bar (mockup: the "Redaktə" button). */
   actions?: ReactNode;
   className?: string;
+  /**
+   * Org + farm of THIS field (both on FieldDetail), for the desktop previous/next row and the
+   * breadcrumb. Taken from the field rather than from orgs[0]: a user in two organisations would
+   * otherwise walk the wrong org's field list.
+   */
+  orgId?: string | null;
+  farmId?: string | null;
+  /**
+   * The page's ONE stage measurement (workbench/useStageWidth). The second row exists only on a
+   * wide stage, and nothing is fetched for it otherwise — the phone header is untouched.
+   */
+  layout?: FieldLayout;
 }
 
 // --- tiny module-level request cache -------------------------------------------------------
@@ -134,11 +148,15 @@ export default function FieldHeader({
   onBack,
   actions,
   className = "",
+  orgId,
+  farmId,
+  layout = "narrow",
 }: Props) {
   const router = useRouter();
   const [score, setScore] = useState<Score | null>(null);
   const [meta, setMeta] = useState<FieldMetadata | null>(null);
   const areaUnit = useAreaUnit();
+  const nav = useFieldNav(fieldId, orgId, farmId, layout === "wide");
 
   // Caller-supplied crop/location win; we only pay for the metadata read when something is missing.
   const needMeta = !cropType || !location;
@@ -212,12 +230,45 @@ export default function FieldHeader({
         .join(" · ")
     : "";
 
+  // Walking to a sibling field KEEPS the open section (?tab=) and drops everything else — notably
+  // ?map=full / ?chart=full: arriving at another field already covered by an overlay is
+  // disorienting, and the overlay would be showing the previous field's picture for a frame anyway.
+  //
+  // The query is read from window.location at CLICK time rather than through useSearchParams(),
+  // which would make this component require a Suspense boundary of its own. It has one today (the
+  // field page wraps its whole inner tree), but that is the page's arrangement, not a promise to
+  // this file — and a click handler is browser-only, so window.location is both available and
+  // exactly as current.
+  function goField(id: string) {
+    const sp = new URLSearchParams();
+    const tab =
+      typeof window === "undefined"
+        ? null
+        : new URLSearchParams(window.location.search).get("tab");
+    if (tab) sp.set("tab", tab);
+    const qs = sp.toString();
+    router.push(qs ? `/fields/${id}?${qs}` : `/fields/${id}`);
+  }
+
+  const prevField = nav.pos > 0 ? nav.fields[nav.pos - 1] : null;
+  const nextField = nav.pos >= 0 && nav.pos < nav.fields.length - 1 ? nav.fields[nav.pos + 1] : null;
+  // The crumb names the org ONLY when there is more than one to tell apart: with a single org and a
+  // single farm a three-level trail is decoration, not orientation. Unknown crumbs drop out
+  // silently — the same "no —, no empty separators" rule the subtitle above follows.
+  const crumbs = [nav.orgCount > 1 ? nav.orgName : null, nav.farmName].filter(
+    (x): x is string => Boolean(x),
+  );
+  // Suppressed entirely when there is nothing to say: one field and no farm name is a row of two
+  // disabled arrows around a name the <h1> already carries.
+  const showNavRow = layout === "wide" && (nav.fields.length > 1 || crumbs.length > 0);
+
   return (
     // Full-bleed on mobile (both hosts — the page container and the v2 sheet — use px-4), inset on
     // desktop so it lines up with the content column.
     <header
-      className={`-mx-4 flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-line bg-paper/70 px-4 py-3 backdrop-blur md:mx-0 md:px-0 ${className}`}
+      className={`-mx-4 border-b border-line bg-paper/70 px-4 py-3 backdrop-blur md:mx-0 md:px-0 ${className}`}
     >
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
       <button
         type="button"
         onClick={handleBack}
@@ -245,6 +296,55 @@ export default function FieldHeader({
       )}
 
       {actions && <div className="ml-auto flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
+      </div>
+
+      {/* SECOND ROW — desktop only, and gated on the measured stage rather than on a breakpoint, so
+          it appears exactly where the workbench does. Row one above is untouched: the phone renders
+          precisely what it rendered before this row existed. */}
+      {showNavRow && (
+        <div className="mt-2 hidden grid-cols-[1fr_auto_1fr] items-center gap-3 border-t border-line pt-2 md:grid">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => prevField && goField(prevField.id)}
+              disabled={!prevField}
+              title={prevField?.name}
+              className="inline-flex min-h-[var(--tap)] items-center gap-1 rounded-lg border border-line bg-panel px-3 text-[12.5px] font-semibold text-ink-soft hover:border-mint hover:text-grass-deep disabled:opacity-40 disabled:hover:border-line disabled:hover:text-ink-soft"
+            >
+              <ChevronLeft className="h-4 w-4 shrink-0" aria-hidden="true" />
+              {t("app.field.nav.prevField")}
+            </button>
+            <button
+              type="button"
+              onClick={() => nextField && goField(nextField.id)}
+              disabled={!nextField}
+              title={nextField?.name}
+              className="inline-flex min-h-[var(--tap)] items-center gap-1 rounded-lg border border-line bg-panel px-3 text-[12.5px] font-semibold text-ink-soft hover:border-mint hover:text-grass-deep disabled:opacity-40 disabled:hover:border-line disabled:hover:text-ink-soft"
+            >
+              {t("app.field.nav.nextField")}
+              <ChevronRight className="h-4 w-4 shrink-0" aria-hidden="true" />
+            </button>
+          </div>
+
+          <nav
+            aria-label={t("app.field.nav.breadcrumbAria")}
+            className="min-w-0 truncate text-center text-[13px] text-ink-soft"
+          >
+            {crumbs.map((c) => (
+              <span key={c}>
+                {c}
+                <span className="mx-1.5 text-line-2" aria-hidden="true">·</span>
+              </span>
+            ))}
+            <b className="font-semibold text-ink">{name}</b>
+          </nav>
+
+          <p className="text-right text-[12.5px] tabular-nums text-ink-soft">
+            {nav.pos >= 0 &&
+              tf("app.field.nav.position", { n: nav.pos + 1, total: nav.fields.length })}
+          </p>
+        </div>
+      )}
     </header>
   );
 }

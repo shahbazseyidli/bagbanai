@@ -10,6 +10,13 @@
 // silently painting the other family: /scenes falls back across families on its own, and that
 // fallback is suppressed here on purpose — a 30m picture under a 10m promise is a wrong answer, not
 // a graceful one.
+//
+// ONE BRAIN, TWO BODIES. Every fetch, every guard and every piece of state lives in this file; the
+// only thing the layout decides is which body renders them. `narrow` is the stacked phone/tablet
+// tree this section has always had. `wide` is SatelliteWorkbench — map as a stage, the chart panel
+// under it. The pieces that both bodies show (the legend, the cloud filter, the date strip, the
+// compare view, the summary card) are built ONCE by the small functions below and handed to
+// whichever body is rendering, so the two can never drift apart.
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
@@ -35,8 +42,12 @@ import { scenePreviewUrl } from "./layers/previewUrl";
 import type { LayerPreview } from "./layers/useLayerPreviews";
 import { forecastMethodLabel } from "@/lib/wellnessText";
 import { useFieldDataStatus } from "@/lib/useFieldDataStatus";
+import SatelliteWorkbench from "./workbench/SatelliteWorkbench";
+import type { FieldLayout } from "./workbench/useStageWidth";
+import type { RangeKey } from "./chart/chartRange";
 import type {
-  FieldDetail, IndexPoint, IndexSeries, IndexBenchmark, RasterScene, RasterScenes,
+  FieldDetail, IndexPoint, IndexSeries, IndexBenchmark, IndexBenchmarkPoint,
+  RasterScene, RasterScenes,
 } from "@/lib/types";
 
 interface IndexSummaryEntry { index: string; latest: number | null; date: string | null; }
@@ -159,7 +170,15 @@ function IndexLegend({ index, range, auto }: {
   );
 }
 
-export default function SatelliteTab({ field, sensor, pickerVariant = "sheet" }: {
+export default function SatelliteTab({
+  field,
+  sensor,
+  pickerVariant = "sheet",
+  layout = "narrow",
+  chartFullscreen = false,
+  onOpenChartFullscreen,
+  onCloseChartFullscreen,
+}: {
   field: FieldDetail;
   sensor: Sensor;
   /**
@@ -169,12 +188,25 @@ export default function SatelliteTab({ field, sensor, pickerVariant = "sheet" }:
    * back up. Default "sheet" = the safe answer for any caller that has not measured.
    */
   pickerVariant?: PickerVariant;
+  /**
+   * Which body to render, from the SAME measurement that decided pickerVariant. Not a breakpoint,
+   * and not a second measurement of the same box — see workbench/useStageWidth. Default "narrow" is
+   * the safe answer: it is what this section has always rendered.
+   */
+  layout?: FieldLayout;
+  /** Driven by ?chart=full on the field URL, so the Android back gesture closes it for free. */
+  chartFullscreen?: boolean;
+  onOpenChartFullscreen?: () => void;
+  onCloseChartFullscreen?: () => void;
 }) {
   const firstIndex = SENSOR_INDICES[sensor][0] ?? "NDVI";
   const areaUnit = useAreaUnit();
   const [index, setIndex] = useState("NDVI");
   const [series, setSeries] = useState<IndexPoint[] | null>(null);
-  const [benchmark, setBenchmark] = useState<Record<string, { p50: number; p10?: number; p90?: number }>>({});
+  // The benchmark is kept as the API returned it (week Mondays) rather than only as the week-key
+  // map: the chart panel plots those Mondays on a real time axis, while the stacked chart below
+  // still joins them onto scene dates by ISO week. One state, two derivations, no second fetch.
+  const [benchSeries, setBenchSeries] = useState<IndexBenchmarkPoint[]>([]);
   const [forecast, setForecast] = useState<ForecastResponse | null>(null);
   const [scenes, setScenes] = useState<Scene[]>([]);
   // Which index the loaded `scenes` actually MEASURE. `index` is what the farmer just picked; until
@@ -193,11 +225,17 @@ export default function SatelliteTab({ field, sensor, pickerVariant = "sheet" }:
   const [summary, setSummary] = useState<IndexSummaryEntry[] | null>(null);
   const [norms, setNorms] = useState<IndexNorms | null>(null);
   const [normsCrop, setNormsCrop] = useState<{ crop_type: string | null; calibrated: boolean } | null>(null);
+  // Chart panel controls (wide body only). They live here rather than inside the panel because this
+  // file is the section's single source of state; the panel is presentation.
+  const [range, setRange] = useState<RangeKey>("3m");
+  const [axisLocked, setAxisLocked] = useState(true);
   // W4 — the layer picker replaces the <select>. Which surface it opens as is `pickerVariant`,
   // decided by the page (see the prop): in flow under its button on a desktop stage, a bottom sheet
-  // on a phone.
-  const [pickerOpen, setPickerOpen] = useState(false);
+  // on a phone. WHERE it is seated is this: the wide body has two triggers (one over the map, one in
+  // the chart header) and exactly ONE picker instance, so opening either closes the other.
+  const [openPicker, setOpenPicker] = useState<"map" | "chart" | null>(null);
   const layerTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const chartTriggerRef = useRef<HTMLButtonElement | null>(null);
   const pickerId = `satellite-layer-picker-${field.id}`;
 
   // Shared processing-status poller (D0.9) — drives the "preparing" note.
@@ -232,15 +270,13 @@ export default function SatelliteTab({ field, sensor, pickerVariant = "sheet" }:
         ]);
         if (!active) return;
         setSeries(ser?.series ?? []);
-        const bench: Record<string, { p50: number; p10?: number; p90?: number }> = {};
-        for (const p of bm?.series ?? []) bench[weekKey(p.date)] = { p50: p.mean, p10: p.p10, p90: p.p90 };
-        setBenchmark(bench);
+        setBenchSeries(bm?.series ?? []);
         // Only a NAMED method is kept. A projection whose provenance we cannot put on a chip is
         // not drawn at all — see forecastMethodLabel().
         setForecast(fc?.method ? fc : null);
       } catch {
         if (!active) return;
-        setSeries([]); setBenchmark({}); setForecast(null);
+        setSeries([]); setBenchSeries([]); setForecast(null);
       } finally { if (active) setLoading(false); }
     })();
     return () => { active = false; };
@@ -298,6 +334,13 @@ export default function SatelliteTab({ field, sensor, pickerVariant = "sheet" }:
     })();
     return () => { active = false; };
   }, [field.id]);
+
+  // The stacked chart joins the district median onto whichever scene falls in the same ISO week.
+  const benchmark = useMemo(() => {
+    const bench: Record<string, { p50: number; p10?: number; p90?: number }> = {};
+    for (const p of benchSeries) bench[weekKey(p.date)] = { p50: p.mean, p10: p.p10, p90: p.p90 };
+    return bench;
+  }, [benchSeries]);
 
   const summaryRows = useMemo(() => {
     const byIndex = new Map((summary ?? []).map((e) => [e.index, e]));
@@ -427,6 +470,15 @@ export default function SatelliteTab({ field, sensor, pickerVariant = "sheet" }:
     return rows;
   }, [series, benchmark, sensor, activeForecast]);
 
+  // The same measurements, as rows the time-axis chart can plot. Same filter, same family rule —
+  // the wide body must never be able to show a series the stacked one would not.
+  const measuredPoints = useMemo(
+    () => (series ?? [])
+      .filter((p) => sensorFamily(p.sensor) === sensor)
+      .map((p) => ({ date: p.date, mean: p.mean, p10: p.p10 ?? null, p90: p.p90 ?? null })),
+    [series, sensor],
+  );
+
   const hasBenchmark = Object.keys(benchmark).length > 0;
   // Measurements, not rows: chartData can contain projected rows, and a chart made of nothing but
   // a dotted line must still fall through to the "no data yet" placeholder.
@@ -459,6 +511,281 @@ export default function SatelliteTab({ field, sensor, pickerVariant = "sheet" }:
   const cmpRange = parseRescale(cmpRescale ?? fixedRescale);
   const meta = sensorMeta(sensor);
 
+  // Compare only renders when there are two scenes to render; both bodies ask the same question.
+  const compareReady = compare && sceneA != null && sceneB != null;
+  const canCompare = visibleScenes.length >= 2;
+  // The strip under the map (legend + cloud filter + dates) only exists once there is a picture.
+  const stripAvailable = !noData && scenes.length > 0;
+
+  // --- shared pieces ---------------------------------------------------------
+  // Plain functions and nodes, never components declared during render: a component declared inside
+  // a render is a NEW type on every render, so React would unmount and rebuild its subtree —
+  // including the MapLibre canvas.
+
+  // ONE picker element for the whole section, rendered in ONE seat at a time (never two — the id and
+  // the ten /scenes reads must not be duplicated). `sheet` portals to body, so where it sits in the
+  // tree is irrelevant; `panel` is in flow and belongs under the button that opened it.
+  const picker = (
+    <LayerPicker
+      fieldId={field.id}
+      indices={SENSOR_INDICES[sensor]}
+      index={index}
+      onSelect={setIndex}
+      open={openPicker !== null}
+      onClose={() => setOpenPicker(null)}
+      variant={pickerVariant}
+      seed={layerPreviewFresh ? {
+        index,
+        tileUrl: newestScene?.tile_url ?? null,
+        date: newestScene?.date ?? null,
+        value: newestScene?.value ?? null,
+      } : null}
+      // Contrast is a render MODE of the chosen layer, not a separate thing to find in the
+      // map header. `contrast` never touches the seed — the tiles stay on the fixed range.
+      mode={contrast ? "contrast" : "fixed"}
+      onModeChange={(m) => setContrast(m === "contrast")}
+      contrastAvailable={contrastAvailable}
+      // Focus returns to the control that was actually pressed, not to whichever ref was declared
+      // first: two triggers are live at once in the wide body.
+      triggerRef={openPicker === "chart" ? chartTriggerRef : layerTriggerRef}
+      id={pickerId}
+    />
+  );
+
+  function layerTrigger(seat: "map" | "chart", className = "") {
+    return (
+      <LayerButton
+        index={index}
+        mode={contrast ? "contrast" : "fixed"}
+        preview={layerPreviewFresh ? layerPreview : undefined}
+        open={openPicker === seat}
+        controlsId={pickerId}
+        onClick={() => setOpenPicker((o) => (o === seat ? null : seat))}
+        buttonRef={seat === "chart" ? chartTriggerRef : layerTriggerRef}
+        className={className}
+      />
+    );
+  }
+
+  function cloudRow() {
+    return (
+      <>
+        <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
+          <Cloud className="h-3.5 w-3.5 shrink-0" />
+          <span className="shrink-0">{t("app.field.satelliteTab.maxCloud")}{maxCloud}%</span>
+          <input type="range" min={10} max={100} step={5} value={maxCloud}
+            onChange={(e) => setMaxCloud(Number(e.target.value))} className="w-full accent-emerald-600" />
+        </div>
+        {/* No icon: the Cloud icon already opens the row above and this line sits directly
+            under it, so repeating it would be noise rather than a binding. */}
+        <p className="mt-1 text-[11px] leading-snug text-slate-500">{t("app.field.satelliteTab.cloudWhy")}</p>
+      </>
+    );
+  }
+
+  function sceneStrip() {
+    return (
+      <>
+        <p className="mt-2 text-xs text-slate-500">{t("app.field.satelliteTab.selectSceneDate")}</p>
+        {visibleScenes.length === 0 ? (
+          <p className="mt-1 text-xs text-amber-600">{t("app.field.satelliteTab.noCleanScene")}</p>
+        ) : (
+          <div className="mt-1 flex gap-2 overflow-x-auto pb-1">
+            {visibleScenes.map((s, i) => {
+              const d = sceneDeltas[i];
+              return (
+                <button key={s.scene_id} type="button"
+                  title={`${s.date}`
+                    + (s.value != null ? ` · ${indexLabel(index)}: ${s.value.toFixed(3)}` : "")
+                    + (d != null ? ` · ${t("app.field.satelliteTab.vsPrevDate")} ${fmtDelta(d)}` : "")
+                    + (s.cloud_pct != null ? ` · ${t("app.field.satelliteTab.cloud")} ${s.cloud_pct.toFixed(0)}%` : "")}
+                  onClick={() => setSceneIdx(i)}
+                  className={`flex min-h-[44px] shrink-0 flex-col items-start justify-center gap-0.5 rounded-md border px-2.5 py-1 text-xs leading-tight ${
+                    i === sceneIdx ? "border-emerald-600 bg-emerald-50 font-semibold text-emerald-700"
+                      : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
+                  <span className="flex items-center gap-1 whitespace-nowrap">
+                    {s.date.slice(5)}
+                    {s.cloud_pct != null && <span className="text-slate-400">☁{s.cloud_pct.toFixed(0)}%</span>}
+                  </span>
+                  <span className="flex items-center gap-1 whitespace-nowrap tabular-nums">
+                    <span>{s.value != null ? s.value.toFixed(2) : "—"}</span>
+                    {d != null && <span className={deltaClass(index, d)}>{fmtDelta(d)}</span>}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </>
+    );
+  }
+
+  // "This sensor is still preparing" / "nothing yet" — or, once scenes exist but none rendered,
+  // the quieter one-liner. Null when there is a picture to look at.
+  function emptyBlock() {
+    if (noData) {
+      return (
+        <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-center">
+          <p className="font-medium text-emerald-800">
+            {preparing ? `${meta.label} ${t("app.field.satelliteTab.preparing")}` : `${meta.label} ${t("app.field.satelliteTab.noDataYet")}`}
+          </p>
+          <p className="mt-1 text-xs text-emerald-700">
+            {t("app.field.glance.preparing")}
+          </p>
+        </div>
+      );
+    }
+    if (scenes.length === 0) {
+      return <p className="mt-3 text-xs text-slate-400">{t("app.field.satelliteTab.noRasterYet")}</p>;
+    }
+    return null;
+  }
+
+  // The two-date compare, at whichever height the body it lands in can afford. CompareMap builds
+  // itself once at that size, so the class is passed in rather than chosen here.
+  function compareBody(heightClass: string) {
+    if (!sceneA || !sceneB) return null;
+    return (
+      <>
+        <div className="mb-2 grid grid-cols-2 gap-2 text-xs">
+          <label className="flex flex-col gap-1">
+            <span className="text-slate-500">{t("app.field.satelliteTab.leftDate")}</span>
+            <select className="input" value={cmpA} onChange={(e) => setCmpA(Number(e.target.value))}>
+              {visibleScenes.map((s, i) => (
+                <option key={s.scene_id} value={i}>{sceneOptionLabel(s)}</option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-slate-500">{t("app.field.satelliteTab.rightDate")}</span>
+            <select className="input" value={cmpB} onChange={(e) => setCmpB(Number(e.target.value))}>
+              {visibleScenes.map((s, i) => (
+                <option key={s.scene_id} value={i}>{sceneOptionLabel(s)}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <CompareMap key={`${sceneA.scene_id}|${sceneB.scene_id}`} polygon={field.geom}
+          leftUrl={cmpRescale ? withRescale(sceneA.tile_url, cmpRescale) : sceneA.tile_url}
+          rightUrl={cmpRescale ? withRescale(sceneB.tile_url, cmpRescale) : sceneB.tile_url}
+          leftLabel={sceneA.date} rightLabel={sceneB.date} heightClass={heightClass} />
+        <IndexLegend index={index} range={cmpRange} auto={cmpRescale != null} />
+        <p className="mt-2 text-xs text-slate-400">{t("app.field.satelliteTab.compareHint")}</p>
+      </>
+    );
+  }
+
+  const summaryNode = summaryRows.length > 0 ? (
+    <div className="card">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h3 className="font-semibold text-slate-800">{t("app.field.satelliteTab.currentIndicators")}</h3>
+        <div className="flex shrink-0 items-center gap-1.5">
+          {normsCrop?.calibrated && (
+            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700"
+              title={t("app.field.satelliteTab.calibratedTitle")}>🎯 {t("app.field.satelliteTab.cropCalibrated")}</span>
+          )}
+          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">{meta.short}</span>
+        </div>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {summaryRows.map(({ entry, value, status: st, note, tone }) => (
+          <div key={entry.index} className="rounded-lg border border-slate-200 p-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="truncate text-sm font-medium text-slate-700">{indexLabel(entry.index)}</span>
+              <span className="shrink-0 font-mono text-sm text-slate-800">{value.toFixed(3)}</span>
+            </div>
+            <div className="mt-1.5">
+              <StatusChip tone={tone} label={st} />
+            </div>
+            <p className="mt-1 text-xs text-slate-500">{note}</p>
+            {entry.date && <p className="mt-1 text-[11px] text-slate-400">{entry.date}</p>}
+          </div>
+        ))}
+      </div>
+    </div>
+  ) : null;
+
+  const smallBannerNode = showSmallBanner ? (
+    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+      {smallField
+        ? `${t("app.field.satelliteTab.smallFieldPre")}${formatArea(field.area_ha, areaUnit)}${t("app.field.satelliteTab.smallFieldPost")}`
+        : `${t("app.field.satelliteTab.smallHlsPre")}${formatArea(field.area_ha, areaUnit)}${t("app.field.satelliteTab.smallHlsPost")}`}
+    </div>
+  ) : null;
+
+  // --- bodies ----------------------------------------------------------------
+
+  if (layout === "unknown") {
+    // ONE frame. Building the narrow tree here would construct a MapLibre map on a wide screen and
+    // tear it straight down the moment the measurement lands — see workbench/useStageWidth.
+    return <div className="h-[560px] animate-pulse rounded-xl bg-paper-2" aria-hidden="true" />;
+  }
+
+  if (layout === "wide") {
+    return (
+      <SatelliteWorkbench
+        meta={meta}
+        banner={smallBannerNode}
+        polygon={field.geom}
+        rasterUrl={rasterUrl}
+        index={index}
+        onIndex={setIndex}
+        layerIndices={SENSOR_INDICES[sensor]}
+        compare={compareReady}
+        canCompare={canCompare}
+        // Compare replaces the whole map stage, and the picker's "map" seat lives inside it — so the
+        // seat disappears while the state still says open, and the next press of the map trigger
+        // (which is also gone) is not available to close it. Close it here instead.
+        onToggleCompare={() => { setOpenPicker(null); setCompare((c) => !c); }}
+        compareNode={compareReady ? compareBody("h-[520px]") : null}
+        legendNode={
+          stripAvailable ? <IndexLegend index={index} range={activeRange} auto={contrastOnActive} /> : null
+        }
+        cloudNode={stripAvailable ? cloudRow() : null}
+        sceneStripNode={stripAvailable ? sceneStrip() : null}
+        emptyNode={emptyBlock()}
+        attribution={t("app.field.glance.attribution")}
+        mapLayerButton={layerTrigger("map")}
+        mapLayerPanel={openPicker === "map" ? picker : null}
+        chart={{
+          index,
+          measured: measuredPoints,
+          bench: benchSeries,
+          forecastPoints: activeForecast?.points ?? [],
+          forecastLabel: hasForecast ? forecastLabel : null,
+          scenes: visibleScenes,
+          sceneIdx,
+          onSelectScene: setSceneIdx,
+          // The FIXED family range, never the per-scene contrast stretch: a time series must have
+          // ONE colour domain across every date on it, or the same value changes colour as the
+          // reader steps through the season. The legend under the map still reports whichever
+          // stretch the pixels are actually on.
+          rampDomain: parseRescale(fixedRescale),
+          lineColor: meta.color,
+          range,
+          onRange: setRange,
+          axisLocked,
+          onToggleLock: () => setAxisLocked((v) => !v),
+          fullscreen: chartFullscreen,
+          // Close the picker on the way in. Its "map" seat is in flow under the map, which the
+          // fullscreen frame covers completely — leaving it open would strand an open disclosure
+          // behind an overlay, reachable only by guessing at Escape.
+          onOpenFullscreen: () => {
+            setOpenPicker(null);
+            onOpenChartFullscreen?.();
+          },
+          onCloseFullscreen: onCloseChartFullscreen ?? (() => {}),
+          layerControl: layerTrigger("chart"),
+          layerPanel: openPicker === "chart" ? picker : undefined,
+          loading,
+        }}
+        summaryNode={summaryNode}
+      />
+    );
+  }
+
+  // NARROW — the stacked tree this section has always rendered. Unchanged in structure and in
+  // behaviour; only the repeated blocks now come from the shared builders above.
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-2">
@@ -469,43 +796,9 @@ export default function SatelliteTab({ field, sensor, pickerVariant = "sheet" }:
         <span className="text-xs text-slate-500">{meta.note}</span>
       </div>
 
-      {showSmallBanner && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-          {smallField
-            ? `${t("app.field.satelliteTab.smallFieldPre")}${formatArea(field.area_ha, areaUnit)}${t("app.field.satelliteTab.smallFieldPost")}`
-            : `${t("app.field.satelliteTab.smallHlsPre")}${formatArea(field.area_ha, areaUnit)}${t("app.field.satelliteTab.smallHlsPost")}`}
-        </div>
-      )}
+      {smallBannerNode}
 
-      {summaryRows.length > 0 && (
-        <div className="card">
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <h3 className="font-semibold text-slate-800">{t("app.field.satelliteTab.currentIndicators")}</h3>
-            <div className="flex shrink-0 items-center gap-1.5">
-              {normsCrop?.calibrated && (
-                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700"
-                  title={t("app.field.satelliteTab.calibratedTitle")}>🎯 {t("app.field.satelliteTab.cropCalibrated")}</span>
-              )}
-              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">{meta.short}</span>
-            </div>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {summaryRows.map(({ entry, value, status: st, note, tone }) => (
-              <div key={entry.index} className="rounded-lg border border-slate-200 p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="truncate text-sm font-medium text-slate-700">{indexLabel(entry.index)}</span>
-                  <span className="shrink-0 font-mono text-sm text-slate-800">{value.toFixed(3)}</span>
-                </div>
-                <div className="mt-1.5">
-                  <StatusChip tone={tone} label={st} />
-                </div>
-                <p className="mt-1 text-xs text-slate-500">{note}</p>
-                {entry.date && <p className="mt-1 text-[11px] text-slate-400">{entry.date}</p>}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {summaryNode}
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Left — index selector + time series (this sensor) */}
@@ -516,42 +809,12 @@ export default function SatelliteTab({ field, sensor, pickerVariant = "sheet" }:
               field. */}
           <div className="mb-4">
             <p className="label">{t("idx.select")}</p>
-            <LayerButton
-              index={index}
-              mode={contrast ? "contrast" : "fixed"}
-              preview={layerPreviewFresh ? layerPreview : undefined}
-              open={pickerOpen}
-              controlsId={pickerId}
-              onClick={() => setPickerOpen((o) => !o)}
-              buttonRef={layerTriggerRef}
-              className="w-full"
-            />
-            <LayerPicker
-              fieldId={field.id}
-              indices={SENSOR_INDICES[sensor]}
-              index={index}
-              onSelect={setIndex}
-              open={pickerOpen}
-              onClose={() => setPickerOpen(false)}
-              variant={pickerVariant}
-              seed={layerPreviewFresh ? {
-                index,
-                tileUrl: newestScene?.tile_url ?? null,
-                date: newestScene?.date ?? null,
-                value: newestScene?.value ?? null,
-              } : null}
-              // Contrast is a render MODE of the chosen layer, not a separate thing to find in the
-              // map header. `contrast` never touches the seed — the tiles stay on the fixed range.
-              mode={contrast ? "contrast" : "fixed"}
-              onModeChange={(m) => setContrast(m === "contrast")}
-              contrastAvailable={contrastAvailable}
-              triggerRef={layerTriggerRef}
-              id={pickerId}
-            />
+            {layerTrigger("map", "w-full")}
+            {picker}
             {/* The explanation of the CURRENT choice stays on screen while the picker is closed —
                 every tile inside the picker carries its own copy, so repeating it there would be
                 the same sentence twice. */}
-            {!pickerOpen && indexInfo(index) && (
+            {openPicker === null && indexInfo(index) && (
               <p className="mt-2 text-xs text-slate-500">{indexInfo(index)}</p>
             )}
           </div>
@@ -656,7 +919,7 @@ export default function SatelliteTab({ field, sensor, pickerVariant = "sheet" }:
               {/* Contrast used to be a button here. It is now a render mode INSIDE the layer
                   picker, where the layer it re-stretches is chosen — and it is not hidden by the
                   move: LayerButton prints " · Kontrast" while it is on. */}
-              {visibleScenes.length >= 2 && (
+              {canCompare && (
                 <button type="button" onClick={() => setCompare((c) => !c)} title={t("app.field.satelliteTab.compareTitle")}
                   className={`inline-flex min-h-[44px] items-center gap-1 rounded-md border px-2.5 py-1 text-xs ${
                     compare ? "border-emerald-600 bg-emerald-50 font-semibold text-emerald-700"
@@ -676,98 +939,26 @@ export default function SatelliteTab({ field, sensor, pickerVariant = "sheet" }:
               stretched to — contrastOnHint / fixedRangeHint — is printed once, by IndexLegend,
               directly under the picture it describes. Printing both in both places put the same two
               sentences on screen twice whenever the picker was open beside the map. */}
-          {visibleScenes.length >= 2 && !compare && (
+          {canCompare && !compare && (
             <div className="mb-3 space-y-1">
               <ModeHint icon={<GitCompareArrows className="mt-0.5 h-3 w-3 shrink-0" />}
                 text={t("app.field.satelliteTab.compareWhy")} />
             </div>
           )}
 
-          {compare && sceneA && sceneB ? (
-            <>
-              <div className="mb-2 grid grid-cols-2 gap-2 text-xs">
-                <label className="flex flex-col gap-1">
-                  <span className="text-slate-500">{t("app.field.satelliteTab.leftDate")}</span>
-                  <select className="input" value={cmpA} onChange={(e) => setCmpA(Number(e.target.value))}>
-                    {visibleScenes.map((s, i) => (
-                      <option key={s.scene_id} value={i}>{sceneOptionLabel(s)}</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="flex flex-col gap-1">
-                  <span className="text-slate-500">{t("app.field.satelliteTab.rightDate")}</span>
-                  <select className="input" value={cmpB} onChange={(e) => setCmpB(Number(e.target.value))}>
-                    {visibleScenes.map((s, i) => (
-                      <option key={s.scene_id} value={i}>{sceneOptionLabel(s)}</option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <CompareMap key={`${sceneA.scene_id}|${sceneB.scene_id}`} polygon={field.geom}
-                leftUrl={cmpRescale ? withRescale(sceneA.tile_url, cmpRescale) : sceneA.tile_url}
-                rightUrl={cmpRescale ? withRescale(sceneB.tile_url, cmpRescale) : sceneB.tile_url}
-                leftLabel={sceneA.date} rightLabel={sceneB.date} />
-              <IndexLegend index={index} range={cmpRange} auto={cmpRescale != null} />
-              <p className="mt-2 text-xs text-slate-400">{t("app.field.satelliteTab.compareHint")}</p>
-            </>
+          {compareReady ? (
+            compareBody("h-72")
           ) : (
             <>
               <DisplayMap polygon={field.geom} rasterUrl={rasterUrl} />
 
-              {noData ? (
-                <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-center">
-                  <p className="font-medium text-emerald-800">
-                    {preparing ? `${meta.label} ${t("app.field.satelliteTab.preparing")}` : `${meta.label} ${t("app.field.satelliteTab.noDataYet")}`}
-                  </p>
-                  <p className="mt-1 text-xs text-emerald-700">
-                    {t("app.field.glance.preparing")}
-                  </p>
-                </div>
-              ) : scenes.length > 0 ? (
+              {emptyBlock()}
+              {stripAvailable && (
                 <>
                   <IndexLegend index={index} range={activeRange} auto={contrastOnActive} />
-                  <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
-                    <Cloud className="h-3.5 w-3.5 shrink-0" />
-                    <span className="shrink-0">{t("app.field.satelliteTab.maxCloud")}{maxCloud}%</span>
-                    <input type="range" min={10} max={100} step={5} value={maxCloud}
-                      onChange={(e) => setMaxCloud(Number(e.target.value))} className="w-full accent-emerald-600" />
-                  </div>
-                  {/* No icon: the Cloud icon already opens the row above and this line sits directly
-                      under it, so repeating it would be noise rather than a binding. */}
-                  <p className="mt-1 text-[11px] leading-snug text-slate-500">{t("app.field.satelliteTab.cloudWhy")}</p>
-                  <p className="mt-2 text-xs text-slate-500">{t("app.field.satelliteTab.selectSceneDate")}</p>
-                  {visibleScenes.length === 0 ? (
-                    <p className="mt-1 text-xs text-amber-600">{t("app.field.satelliteTab.noCleanScene")}</p>
-                  ) : (
-                    <div className="mt-1 flex gap-2 overflow-x-auto pb-1">
-                      {visibleScenes.map((s, i) => {
-                        const d = sceneDeltas[i];
-                        return (
-                          <button key={s.scene_id} type="button"
-                            title={`${s.date}`
-                              + (s.value != null ? ` · ${indexLabel(index)}: ${s.value.toFixed(3)}` : "")
-                              + (d != null ? ` · ${t("app.field.satelliteTab.vsPrevDate")} ${fmtDelta(d)}` : "")
-                              + (s.cloud_pct != null ? ` · ${t("app.field.satelliteTab.cloud")} ${s.cloud_pct.toFixed(0)}%` : "")}
-                            onClick={() => setSceneIdx(i)}
-                            className={`flex min-h-[44px] shrink-0 flex-col items-start justify-center gap-0.5 rounded-md border px-2.5 py-1 text-xs leading-tight ${
-                              i === sceneIdx ? "border-emerald-600 bg-emerald-50 font-semibold text-emerald-700"
-                                : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
-                            <span className="flex items-center gap-1 whitespace-nowrap">
-                              {s.date.slice(5)}
-                              {s.cloud_pct != null && <span className="text-slate-400">☁{s.cloud_pct.toFixed(0)}%</span>}
-                            </span>
-                            <span className="flex items-center gap-1 whitespace-nowrap tabular-nums">
-                              <span>{s.value != null ? s.value.toFixed(2) : "—"}</span>
-                              {d != null && <span className={deltaClass(index, d)}>{fmtDelta(d)}</span>}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
+                  {cloudRow()}
+                  {sceneStrip()}
                 </>
-              ) : (
-                <p className="mt-3 text-xs text-slate-400">{t("app.field.satelliteTab.noRasterYet")}</p>
               )}
             </>
           )}
