@@ -275,6 +275,12 @@ export default function RadarMap({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !drawn) return;
+    // An EXPLICITLY typed alias, not a second guard. `stop` and `finish` below are HOISTED function
+    // declarations — deliberately so, see the temporal-dead-zone note where they are defined — and
+    // TypeScript does not carry a control-flow narrowing into a hoisted function body, so `map`
+    // reads as `Map | null` inside them even though the early return above makes that impossible.
+    // Declaring the type once is honest; sprinkling `!` at each use would only hide the question.
+    const gl: maplibregl.Map = map;
     // The radar layers are inserted BEFORE the field fill, so boundaries stay legible through rain.
     // Until that layer exists the style is not drawn yet and there is nothing to insert before.
     if (!map.getLayer(FIELDS_FILL)) return;
@@ -352,7 +358,7 @@ export default function RadarMap({
       let settled = false;
       let timer: ReturnType<typeof setTimeout> | undefined;
       function stop() {
-        map.off("sourcedata", onData);
+        gl.off("sourcedata", onData);
         if (timer !== undefined) clearTimeout(timer);
       }
       function finish() {
@@ -363,15 +369,15 @@ export default function RadarMap({
         try {
           // Reveal the newly loaded buffer and hide the old one IN THAT ORDER — the reverse would
           // show one frame of bare basemap between the two.
-          map.setPaintProperty(toId, "raster-opacity", RADAR_OPACITY);
-          map.setPaintProperty(fromId, "raster-opacity", 0);
+          gl.setPaintProperty(toId, "raster-opacity", RADAR_OPACITY);
+          gl.setPaintProperty(fromId, "raster-opacity", 0);
           radarRef.current.shown = to;
         } catch {
           /* the map went away between the timer firing and here */
         }
       }
       const onData = (e: MapSourceDataEvent) => {
-        if (e.sourceId === toId && map.isSourceLoaded(toId)) finish();
+        if (e.sourceId === toId && gl.isSourceLoaded(toId)) finish();
       };
       map.on("sourcedata", onData);
       timer = setTimeout(finish, SWAP_TIMEOUT_MS);
