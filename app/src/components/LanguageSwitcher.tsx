@@ -25,6 +25,14 @@ export default function LanguageSwitcher({ className = "" }: { className?: strin
       // Scoped to the shared parent domain so the language chosen on agradex.com survives the jump
       // to app.agradex.com (a host-only cookie left the app falling back to browser detection).
       const dom = SHARED_COOKIE_DOMAIN ? `; domain=${SHARED_COOKIE_DOMAIN}` : "";
+      // Expire any HOST-ONLY bagban_locale first. A host-only cookie and a domain cookie of the same
+      // name are two DIFFERENT cookies, so the write below cannot replace one left over from before
+      // the panel split — it stacks. The browser then sends both, and the two servers disagree about
+      // which wins: Next's cookies.get() takes the first, Starlette's takes the last, so the
+      // interface can render one language while the API answers in another. Observed live with
+      // `bagban_locale=tr` and `bagban_locale=ru` set at once. Deleting needs the same path/domain
+      // scope it was written with, hence the bare (domain-less) expiry here.
+      document.cookie = "bagban_locale=; path=/; max-age=0; samesite=lax";
       document.cookie = `bagban_locale=${l}; path=/${dom}; max-age=31536000; samesite=lax`;
     } catch { /* private mode */ }
     // Persist it on the account too. The cookie only reaches code that runs inside a request;

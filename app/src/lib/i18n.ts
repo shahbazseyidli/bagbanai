@@ -250,6 +250,10 @@ export const az = {
   "bnav.more": "Daha çox",
   "bnav.mainNav": "Əsas naviqasiya",
   "bnav.addField": "Sahə əlavə et",
+  // Visible label under the centre nav button. Separate from bnav.addField (the full aria label)
+  // because a 56px-wide nav cell fits one word, and from common.add because that one is a verb
+  // on a form button ("Əlavə et"), not the name of a destination.
+  "bnav.add": "Əlavə",
 
   // "more" overflow page
   "more.title": "Daha çox",
@@ -1667,15 +1671,9 @@ export const az = {
   "app.home.todayHome.attentionNeeded": "Diqqət lazımdır",
   "app.home.todayHome.greeting": "Salam, ",
   "app.home.todayHome.myFields": "Sahələrim",
-  "app.home.todayHome.todaysTasks": "Bu günün işləri",
-  "app.home.todayTasks.autoBadge": "avto",
-  "app.home.todayTasks.daysLateSuffix": " gün gecikib",
-  "app.home.todayTasks.dueToday": "Bu gün",
-  "app.home.todayTasks.emptyBold": "İşlər",
-  "app.home.todayTasks.emptyPost": " bölməsindən əlavə edin.",
-  "app.home.todayTasks.emptyPre": "Bu gün üçün planlaşdırılmış iş yoxdur. Yeni işi sahənin ",
-  "app.home.todayTasks.loading": "İşlər yüklənir…",
-  "app.home.todayTasks.markDoneAriaSuffix": " işini tamamlandı kimi işarələ",
+  // "app.home.todayHome.todaysTasks" and the eight "app.home.todayTasks.*" keys were removed with
+  // components/home/TodayTasks.tsx: the tasks module left the product in the cut-down, the endpoints
+  // it called (GET /api/tasks, POST /api/tasks/{id}/status) are gone, and nothing rendered it.
   "app.home.weatherBar.hours": "saat",
   "app.home.weatherBar.minutes": "dəqiqə",
   "app.home.weatherBar.sprayDryPost": " yağışsız",
@@ -1890,30 +1888,19 @@ export const az = {
   "app.admin.fdOpenFull": "Tam səhifədə aç",
   "app.admin.scoreNone": "Bal yoxdur",
   "app.bulkActions.addOperation": "Əməliyyat əlavə et",
-  "app.bulkActions.addTask": "Tapşırıq əlavə et",
-  "app.bulkActions.addToFieldsSuffix": " sahəyə əlavə et",
   "app.bulkActions.close": "Bağla",
   "app.bulkActions.costInvalid": "Xərc düzgün deyil.",
   "app.bulkActions.costLabel": "Xərc (hər sahə üçün)",
   "app.bulkActions.currencyLabel": "Valyuta",
   "app.bulkActions.dateLabel": "Tarix",
   "app.bulkActions.dateRequired": "Tarixi seçin.",
-  "app.bulkActions.dueDateLabel": "Son tarix",
   "app.bulkActions.fieldsSelectedSuffix": " sahə seçildi",
-  "app.bulkActions.notSelected": "Seçilməyib",
   "app.bulkActions.note": "Qeyd",
   "app.bulkActions.opFormHeading": "Seçilmiş sahələrə əməliyyat",
   "app.bulkActions.opTypeRequired": "Əməliyyat növünü seçin.",
   "app.bulkActions.operationLabel": "Əməliyyat",
   "app.bulkActions.opsAddedSuffix": " sahəyə əməliyyat yazıldı.",
-  "app.bulkActions.priorityLabel": "Prioritet",
   "app.bulkActions.saving": "Yazılır…",
-  "app.bulkActions.taskFormHeading": "Seçilmiş sahələrə tapşırıq",
-  "app.bulkActions.taskTitleRequired": "Tapşırığın adını yazın.",
-  "app.bulkActions.tasksAddedSuffix": " sahəyə tapşırıq əlavə edildi.",
-  "app.bulkActions.titleLabel": "Başlıq",
-  "app.bulkActions.titlePlaceholder": "Məsələn: Suvarma yoxlaması",
-  "app.bulkActions.typeLabel": "Növ",
   "app.bulkActions.writeToFieldsSuffix": " sahəyə yaz",
   "app.catalog.contact": "Müraciət et",
   "app.catalog.empty": "Bu kateqoriyada hələ provayder yoxdur.",
@@ -2409,9 +2396,6 @@ export const az = {
   "app.meta.variety.Azərbaycan-2": "Azərbaycan-2",
   "app.meta.variety.Qruziya seleksiyası": "Qruziya seleksiyası",
   // app-interior wave 3 cleanup (api errors + missed data labels)
-  "app.bulkActions.priorityHigh": "Yüksək",
-  "app.bulkActions.priorityLow": "Aşağı",
-  "app.bulkActions.priorityMedium": "Orta",
   "app.chat.roleConsultant": "Aqronom",
   "app.chat.roleFarmer": "Fermer",
   "app.chat.roleLab": "Laboratoriya",
@@ -2608,6 +2592,40 @@ export const az = {
   "app.clarify.opt.stress": "Bitkidə problem var",
   "app.clarify.opt.young": "Bağın bir hissəsi cavan əvəzləmədir",
   "app.clarify.opt.unknown": "Bilmirəm",
+
+  // Today — summary metric strip. Each tile carries a second line that says what the number does
+  // NOT cover (unmeasured area, stale scores, capped alert count), because a bare figure over
+  // partial data reads as a fact about the whole farm.
+  "app.home.stats.regionAria": "Xülasə göstəriciləri",
+  "app.home.stats.fieldsLabel": "Sahələr",
+  "app.home.stats.fieldsAllGood": "Hamısı qaydasındadır",
+  "app.home.stats.fieldsAttn": "Diqqət tələb edir: {n}",
+  "app.home.stats.areaLabel": "Ümumi sahə",
+  "app.home.stats.areaUnknown": "Sahə ölçüsü qeyd edilməyib",
+  "app.home.stats.coverage": "{covered} / {total} sahə üzrə",
+  "app.home.stats.scoreLabel": "Orta sağlamlıq",
+  "app.home.stats.scoreNone": "Bal hələ hesablanmayıb",
+  "app.home.stats.scoreStale": "Bəzi ballar əvvəlki günlərə aiddir",
+  "app.home.stats.alertsLabel": "Açıq xəbərdarlıq",
+  "app.home.stats.alertsCritical": "Kritik: {n}",
+  "app.home.stats.alertsUnknown": "Bildirişlər yüklənmədi",
+  "app.home.stats.alertsCapped": "Yalnız son bildirişlər sayılıb",
+  "app.home.instrument.railAria": "Diqqət paneli",
+  "app.home.alerts.seeAll": "Bütün bildirişlərə bax",
+
+  // Field — map layer picker. Grouped by what the farmer is looking for, not by index family,
+  // and the previews are the farmer's own field so the choice is made by eye, not by acronym.
+  "app.field.layers.title": "Xəritə qatı",
+  "app.field.layers.hint": "Şəkillər sizin öz sahənizin son peyk görüntüsüdür — baxın, sonra seçin.",
+  "app.field.layers.triggerAria": "Xəritə qatı: {layer}. Dəyişmək üçün toxunun.",
+  "app.field.layers.noImage": "Görüntü hələ yoxdur",
+  "app.field.layers.showPictures": "Önizləmə şəkillərini göstər",
+  "app.field.layers.showPicturesHint": "Hər qat üçün bir kiçik şəkil (~1 KB) yüklənəcək.",
+  "app.field.layers.group.veg": "Bitki örtüyü",
+  "app.field.layers.group.water": "Su və nəmlik",
+  "app.field.layers.group.burn": "Quraqlıq və yanğın",
+  "app.field.layers.mode": "Rəng rejimi",
+  "app.field.layers.mode.fixed": "Sabit aralıq",
 } as const;
 
 export type I18nKey = keyof typeof az;

@@ -54,13 +54,20 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export const viewport: Viewport = {
-  themeColor: "#059669",
+  // W3 — was #059669, the pre-D1 green. The address bar and the installed PWA's chrome were
+  // painting a colour the product no longer contains anywhere else.
+  themeColor: "#15803D",
   // Without viewport-fit=cover every env(safe-area-inset-*) resolves to 0, so the bottom nav's
   // pb-[env(safe-area-inset-bottom)] was a no-op and its rows sat under the iPhone home indicator /
   // Android gesture bar. Opting in makes those insets real — every viewport-anchored element below
   // (top Nav, OfflineIndicator, BottomNav, the camera FAB, BulkActions, the undo bar) now pads
   // itself by the inset, which stays a no-op on devices that report 0.
   viewportFit: "cover",
+  // W3 — Android Chrome defaults to "resizes-visual": the LAYOUT viewport does not shrink when the
+  // on-screen keyboard opens, so anything position:fixed to the bottom (this nav, the AI-chat
+  // composer) ends up underneath the keyboard while the user types. resizes-content shrinks the
+  // layout viewport instead, so those elements ride above the keyboard.
+  interactiveWidget: "resizes-content",
 };
 
 export default async function RootLayout({
@@ -82,9 +89,12 @@ export default async function RootLayout({
             <PwaRegister />
             <OfflineIndicator />
             <Nav />
-            {/* pb clears the fixed BottomNav; the nav itself grew by the safe-area inset, so the
-                scroll padding has to grow with it or the last card hides behind the nav. */}
-            <main className="mx-auto max-w-6xl px-4 py-6 pb-[calc(env(safe-area-inset-bottom)_+_6rem)] md:pb-6">
+            {/* pb clears the fixed BottomNav. --nav-clear (globals.css) is the bar height plus the
+                safe-area inset, and it collapses to the inset alone at md+ where the bar is hidden,
+                so this padding and the nav's own height can no longer drift apart. Same 96px as the
+                literal it replaces — but the add button no longer overhangs the bar, so the extra
+                16px is honest breathing room rather than clearance for the raised FAB. */}
+            <main className="mx-auto max-w-6xl px-4 py-6 pb-[calc(var(--nav-clear)_+_1rem)] md:pb-6">
               <AppShell>{children}</AppShell>
             </main>
             <BottomNav />

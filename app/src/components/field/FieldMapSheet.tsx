@@ -52,15 +52,18 @@ export default function FieldMapSheet({
       <div>{tabNav}</div>
       <div>{children}</div>
 
-      {/* Camera FAB (D2.6) — jumps to photo diagnosis. Mobile only; sits above the bottom nav.
-          The 5rem offset clears that nav, which grew by the safe-area inset under viewport-fit=
-          cover — so this offset grows with it, or the FAB lands on top of the nav row. */}
+      {/* Camera FAB (D2.6) — jumps to photo diagnosis. Mobile only (md:hidden), so it needs no md:
+          reset; it sits above the bottom nav. The offset is --nav-clear (globals.css: the nav's real
+          border-box height plus the safe-area inset it carries under viewport-fit=cover) + 12px.
+          It used to hard-code `env(safe-area-inset-bottom) + 5rem` = 80px against an 81.5px bar, so
+          the bottom 1.5px of this 56px circle was clipped behind the nav and the FAB read as welded
+          to it. Take the height from the token, never from a literal. */}
       {onCamera && (
         <button
           type="button"
           onClick={() => onCamera()}
           aria-label={t("app.field.fieldMapSheet.photoDiagnosisAria")}
-          className="fixed bottom-[calc(env(safe-area-inset-bottom)_+_5rem)] right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg md:hidden"
+          className="fixed bottom-[calc(var(--nav-clear)_+_0.75rem)] right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg md:hidden"
         >
           <Camera className="h-6 w-6" aria-hidden="true" />
         </button>

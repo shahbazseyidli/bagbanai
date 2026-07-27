@@ -145,8 +145,8 @@ export default function ShareButton({
         onClick={() => setOpen(true)}
         // The label is hidden, not dropped, when compact — the button keeps its accessible name.
         aria-label={compactOnMobile ? t("app.field.shareButton.shareField") : undefined}
-        className={`inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-300 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 ${
-          compactOnMobile ? "w-11 justify-center px-0 sm:w-auto sm:px-3" : "px-3"
+        className={`inline-flex min-h-[var(--tap)] items-center gap-2 rounded-lg border border-slate-300 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 ${
+          compactOnMobile ? "w-[var(--tap)] justify-center px-0 sm:w-auto sm:px-3" : "px-3"
         }`}
       >
         <Share2 className="h-4 w-4 shrink-0" aria-hidden="true" />
@@ -189,7 +189,7 @@ export default function ShareButton({
                 key={o.label}
                 type="button"
                 onClick={() => setExpiryIdx(i)}
-                className={`min-h-11 rounded-lg border px-3 text-sm font-medium ${
+                className={`min-h-[var(--tap)] rounded-lg border px-3 text-sm font-medium ${
                   expiryIdx === i
                     ? "border-emerald-600 bg-emerald-600 text-white"
                     : "border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
@@ -200,7 +200,7 @@ export default function ShareButton({
             ))}
           </div>
         </div>
-        <label className="flex min-h-11 items-center gap-2 text-sm text-slate-700">
+        <label className="flex min-h-[var(--tap)] items-center gap-2 text-sm text-slate-700">
           <input
             type="checkbox"
             checked={includeNdvi}
@@ -213,7 +213,7 @@ export default function ShareButton({
           type="button"
           onClick={create}
           disabled={creating}
-          className="btn-primary flex min-h-11 w-full items-center justify-center gap-2 disabled:opacity-50"
+          className="btn-primary flex w-full items-center justify-center gap-2 disabled:opacity-50"
         >
           {creating ? (
             <>
@@ -265,7 +265,7 @@ export default function ShareButton({
                   <button
                     type="button"
                     onClick={() => copy(s)}
-                    className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-slate-300 px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                    className="inline-flex min-h-[var(--tap)] items-center gap-1.5 rounded-lg border border-slate-300 px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
                   >
                     {copiedId === s.id ? (
                       <>
@@ -282,7 +282,7 @@ export default function ShareButton({
                       href={waHref(s)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 text-sm font-medium text-emerald-800 hover:bg-emerald-100"
+                      className="inline-flex min-h-[var(--tap)] items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 text-sm font-medium text-emerald-800 hover:bg-emerald-100"
                     >
                       {t("app.field.shareButton.sendWhatsApp")}
                     </a>
@@ -292,7 +292,7 @@ export default function ShareButton({
                       type="button"
                       onClick={() => revoke(s)}
                       disabled={busyId === s.id}
-                      className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-red-200 px-3 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                      className="inline-flex min-h-[var(--tap)] items-center gap-1.5 rounded-lg border border-red-200 px-3 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
                     >
                       <Trash2 className="h-4 w-4" aria-hidden="true" />
                       {busyId === s.id ? t("app.field.shareButton.revoking") : t("app.field.shareButton.revoke")}

@@ -8,7 +8,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Bell,
-  FileText,
   Home,
   LayoutGrid,
   Leaf,
@@ -16,22 +15,23 @@ import {
   Settings,
   ShoppingBag,
   Sprout,
-  Tractor,
   type LucideIcon,
 } from "lucide-react";
 import { t } from "@/lib/i18n";
 import { SHOW_MARKETPLACE_NAV } from "@/lib/navFlags";
+import { stripLocale } from "@/lib/stripLocale";
 
 type RailItem = { href: string; label: string; Icon: LucideIcon };
 
-// The locale path prefix (/en, /tr, /de) is rewritten away by middleware but the browser URL —
-// and therefore usePathname() — still carries it. Strip it before matching. Links stay unprefixed
-// because the locale cookie carries the choice (same convention as BottomNav).
-function stripLocale(path: string): string {
-  const m = path.match(/^\/(en|tr|de)(\/.*)?$/);
-  return m ? m[2] || "/" : path;
-}
+// stripLocale used to be DEFINED here, and the comment above it claimed "one helper now, so locale
+// nine cannot repeat it" — while BottomNav kept a second, differently-built copy. It now lives in
+// lib/stripLocale.ts, which is where a path helper belongs. Re-exported only because
+// FieldListPanel still imports it from this module; when that import moves to "@/lib/stripLocale"
+// this line can go, and nothing else in src/ reads it from here.
+export { stripLocale };
 
+// Every href below is unprefixed — the locale cookie carries the language, so links never gain a
+// /ru; only the pathname we MATCH against has to be stripped (same convention as BottomNav).
 export function isRailActive(pathname: string, href: string): boolean {
   const p = stripLocale(pathname || "/");
   if (href === "/") return p === "/";
@@ -64,16 +64,22 @@ function RailLink({ item, active }: { item: RailItem; active: boolean }) {
 export default function AppRail() {
   const pathname = usePathname() || "/";
 
-  // Every href below is an existing route under app/src/app/. Labels are read on each render (t() is
-  // module-level state set by LocaleProvider) so a locale switch re-labels the rail.
+  // Every href below is an existing route under app/src/app/ — verified, not assumed. Labels are
+  // read on each render (t() is module-level state set by LocaleProvider) so a locale switch
+  // re-labels the rail.
   //
-  // Five destinations, down from eleven. What moved and why:
-  //   * Dəftər / Satış / Anbar / Texnika → the ONE "Təsərrüfat" entry (/farm), which renders them as
-  //     ?tab= sections. Four of eleven rail slots for weekly bookkeeping was a disproportionate
-  //     share of a rail the farmer reads on every visit;
-  //   * Kataloq / İcma → hidden behind SHOW_MARKETPLACE_NAV until they have suppliers/messages;
-  //   * Yerlər → /more, which already lists it.
-  // Everything removed is still reachable: /farm for the four modules, /more for the rest.
+  // FIVE destinations, and the list below IS all five: Bu gün (/) · Sahələr (/fields) ·
+  // Daha çox (/more) in PRIMARY, then Bildirişlər (/notifications) · Hesab (/account) pinned to the
+  // bottom in SECONDARY. The rail is deliberately this short: the product is satellite imagery, AI
+  // analysis, weather, scouting and the field record, and all of that hangs off /fields.
+  //
+  // This comment used to describe eleven destinations collapsing into a "Təsərrüfat" entry at
+  // /farm. That entry is GONE — the ERP strip deleted the route (there is no app/farm/page.tsx) and
+  // the four bookkeeping modules with it, so pointing a reader at /farm sent them looking for a
+  // 404. Do not restore the sentence without restoring the route.
+  //
+  // Kataloq / İcma are the only conditional entries: built and routable, hidden behind
+  // SHOW_MARKETPLACE_NAV until they have suppliers/messages (see lib/navFlags.ts).
   const PRIMARY: RailItem[] = [
     { href: "/", label: t("app.shell.appRail.today"), Icon: Home },
     { href: "/fields", label: t("app.shell.appRail.fields"), Icon: Sprout },
@@ -93,8 +99,22 @@ export default function AppRail() {
   ];
 
   return (
-    // z-30 keeps the rail above full-bleed page content that paints itself with `fixed inset-0`
-    // (the map-first field view does exactly that), so navigation never disappears under a map.
+    // z-30 keeps the rail above ordinary page content — a MapLibre canvas and its controls create
+    // their own stacking contexts, and without it the rail could be painted over by whatever sits
+    // next to it. It matches FieldListPanel's z-30 so the two never fight.
+    //
+    // It is NOT a defence against the fullscreen overlays, and must not be raised to try: both of
+    // them (FieldMapCard's ?map=full and the layer bottom sheet) portal to document.body at z-50 /
+    // z-60 and are SUPPOSED to cover the rail. The earlier claim here — that the map-first field
+    // view paints `fixed inset-0` under the rail — is not what FieldMapSheet does; its only fixed
+    // element is the md:hidden camera FAB, which never coexists with this md:flex rail.
+    //
+    // W1 deliberately left the rail's own geometry alone: it is still a 78px sticky rounded column
+    // that starts under the top bar. Flushing it to the window edge full-height with square corners
+    // (the Terra Oracle read) is a real option, but top-[76px] and max-h-[calc(100vh-92px)] both
+    // encode components/Nav.tsx's height — so it is a W2 visual decision that has to move Nav too,
+    // not a W1 layout one. The shell around the rail now widens with the window; the rail does not
+    // need to change for that, because it is shrink-0 and the stage takes every extra pixel.
     <nav
       aria-label={t("app.shell.appRail.mainNav")}
       className="sticky top-[76px] z-30 hidden max-h-[calc(100vh_-_92px)] w-[78px] shrink-0 flex-col items-center gap-[3px] overflow-y-auto rounded-xl2 bg-teal px-2.5 py-3 shadow-soft md:flex"

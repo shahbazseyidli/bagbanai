@@ -1,17 +1,21 @@
 "use client";
 
 // The satellite section. Only Sentinel-2 is exposed to the farmer (E14); HLS still feeds the
-// regional benchmark, A8 backfill and A6 zones in the data layer, invisibly.
-// each its OWN top-level tab (no in-tab sensor toggle anymore). Shows that sensor's raster map
-// + scene timeline + two-date compare + time series + current-indicator card. If the sensor has
-// no data yet it shows a focused "still preparing / see the other tab" note instead of silently
-// falling back to the other sensor (that fallback is suppressed here on purpose).
+// regional benchmark, A8 backfill and A6 zones in the data layer, invisibly. There is no sensor
+// toggle and no second tab to send anyone to — the `sensor` prop stays because every read below is
+// per-family and the data layer is still two sensors deep.
+//
+// Shows that sensor's raster map + scene timeline + two-date compare + time series + the
+// current-indicator card. When the sensor has no rasters yet it says "still preparing" rather than
+// silently painting the other family: /scenes falls back across families on its own, and that
+// fallback is suppressed here on purpose — a 30m picture under a 10m promise is a wrong answer, not
+// a graceful one.
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
-import { GitCompareArrows, Cloud, Contrast } from "lucide-react";
+import { GitCompareArrows, Cloud } from "lucide-react";
 import { api } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import { formatArea, useAreaUnit } from "@/lib/units";
@@ -26,6 +30,9 @@ import {
   type IndexNorms,
 } from "@/lib/indexStatus";
 import StatusChip from "@/components/StatusChip";
+import LayerPicker, { LayerButton, type PickerVariant } from "./layers/LayerPicker";
+import { scenePreviewUrl } from "./layers/previewUrl";
+import type { LayerPreview } from "./layers/useLayerPreviews";
 import { forecastMethodLabel } from "@/lib/wellnessText";
 import { useFieldDataStatus } from "@/lib/useFieldDataStatus";
 import type {
@@ -152,7 +159,17 @@ function IndexLegend({ index, range, auto }: {
   );
 }
 
-export default function SatelliteTab({ field, sensor }: { field: FieldDetail; sensor: Sensor }) {
+export default function SatelliteTab({ field, sensor, pickerVariant = "sheet" }: {
+  field: FieldDetail;
+  sensor: Sensor;
+  /**
+   * How the layer picker opens, decided by the PAGE from the stage width it already measures. This
+   * section must not answer it with a breakpoint: the panel variant is ~1250px of in-flow tiles,
+   * which on a phone shoves the time series off screen with no dismiss affordance but scrolling
+   * back up. Default "sheet" = the safe answer for any caller that has not measured.
+   */
+  pickerVariant?: PickerVariant;
+}) {
   const firstIndex = SENSOR_INDICES[sensor][0] ?? "NDVI";
   const areaUnit = useAreaUnit();
   const [index, setIndex] = useState("NDVI");
@@ -160,6 +177,10 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
   const [benchmark, setBenchmark] = useState<Record<string, { p50: number; p10?: number; p90?: number }>>({});
   const [forecast, setForecast] = useState<ForecastResponse | null>(null);
   const [scenes, setScenes] = useState<Scene[]>([]);
+  // Which index the loaded `scenes` actually MEASURE. `index` is what the farmer just picked; until
+  // the response lands the two differ, and attributing the previous index's picture to the new
+  // index's name would cache a wrong thumbnail for the rest of the session.
+  const [scenesIndex, setScenesIndex] = useState("NDVI");
   const [noData, setNoData] = useState(false); // this sensor has no rasters (ignoring fallback)
   const [sceneIdx, setSceneIdx] = useState(0);
   const [maxCloud, setMaxCloud] = useState(100);
@@ -172,6 +193,12 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
   const [summary, setSummary] = useState<IndexSummaryEntry[] | null>(null);
   const [norms, setNorms] = useState<IndexNorms | null>(null);
   const [normsCrop, setNormsCrop] = useState<{ crop_type: string | null; calibrated: boolean } | null>(null);
+  // W4 — the layer picker replaces the <select>. Which surface it opens as is `pickerVariant`,
+  // decided by the page (see the prop): in flow under its button on a desktop stage, a bottom sheet
+  // on a phone.
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const layerTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const pickerId = `satellite-layer-picker-${field.id}`;
 
   // Shared processing-status poller (D0.9) — drives the "preparing" note.
   const status = useFieldDataStatus(field.id);
@@ -233,10 +260,11 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
         setFixedRescale(sc?.rescale ?? null);
         if (returned && returned !== sensor) { setScenes([]); setNoData(true); }
         else { setScenes(sc?.scenes ?? []); setNoData((sc?.scenes ?? []).length === 0); }
+        setScenesIndex(index);
         setSceneIdx(0);
       } catch {
         if (!active) return;
-        setScenes([]); setNoData(true); setFixedRescale(null);
+        setScenes([]); setNoData(true); setFixedRescale(null); setScenesIndex(index);
       }
     })();
     return () => { active = false; };
@@ -299,6 +327,29 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
     contrast ? (activeScene?.rescale_auto ?? fixedRescale) : fixedRescale);
   const contrastOnActive = contrast && activeScene?.rescale_auto != null
     && activeScene?.rescale_auto !== fixedRescale;
+
+  // Same shape and same reason as the compare reset above: a mode whose CONTROL is no longer on
+  // screen must not stay engaged. contrastAvailable is computed from the CLOUD-FILTERED list, so
+  // dragging the cloud slider can take the mode block out of the picker while `contrast` is still
+  // true — and then the trigger kept printing " · Kontrast" over a map that is on the fixed range,
+  // with the legend six inches below correctly saying so, and no control left to turn it off.
+  useEffect(() => {
+    if (!contrastAvailable) setContrast(false);
+  }, [contrastAvailable]);
+
+  // W4 — the picker's free seed and the trigger's swatch. The UNFILTERED newest scene and
+  // `tile_url` (the fixed family rescale), never the cloud-filtered list and never tile_url_auto:
+  // the ten tiles in the grid are compared with EACH OTHER, so they must all sit on the same
+  // domain and all show their own layer's newest pass.
+  const newestScene: Scene | null = scenes[0] ?? null;
+  const layerPreview: LayerPreview = {
+    url: scenePreviewUrl(newestScene?.tile_url),
+    date: newestScene?.date ?? null,
+    value: newestScene?.value ?? null,
+    state: newestScene ? "ready" : "empty",
+  };
+  // Only once the loaded scenes belong to the index the button is naming.
+  const layerPreviewFresh = scenesIndex === index;
 
   // A2 — per-scene delta vs the previous (older) scene IN THE VISIBLE list, so the number
   // matches what the farmer actually sees after the cloud filter. Scenes are newest-first.
@@ -460,13 +511,50 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
         {/* Left — index selector + time series (this sensor) */}
         <div className="card">
           <h3 className="mb-3 font-semibold text-slate-800">{t("idx.title")}</h3>
-          <label className="label">{t("idx.select")}</label>
-          <select className="input" value={index} onChange={(e) => setIndex(e.target.value)}>
-            {SENSOR_INDICES[sensor].map((ix) => (
-              <option key={ix} value={ix}>{indexLabel(ix)}</option>
-            ))}
-          </select>
-          {indexInfo(index) && <p className="mb-4 mt-2 text-xs text-slate-500">{indexInfo(index)}</p>}
+          {/* W4 — a <select> of ten codes told a farmer nothing; the picker shows the field itself
+              in each layer. Not a <label>, because the control it opens is a button, not a form
+              field. */}
+          <div className="mb-4">
+            <p className="label">{t("idx.select")}</p>
+            <LayerButton
+              index={index}
+              mode={contrast ? "contrast" : "fixed"}
+              preview={layerPreviewFresh ? layerPreview : undefined}
+              open={pickerOpen}
+              controlsId={pickerId}
+              onClick={() => setPickerOpen((o) => !o)}
+              buttonRef={layerTriggerRef}
+              className="w-full"
+            />
+            <LayerPicker
+              fieldId={field.id}
+              indices={SENSOR_INDICES[sensor]}
+              index={index}
+              onSelect={setIndex}
+              open={pickerOpen}
+              onClose={() => setPickerOpen(false)}
+              variant={pickerVariant}
+              seed={layerPreviewFresh ? {
+                index,
+                tileUrl: newestScene?.tile_url ?? null,
+                date: newestScene?.date ?? null,
+                value: newestScene?.value ?? null,
+              } : null}
+              // Contrast is a render MODE of the chosen layer, not a separate thing to find in the
+              // map header. `contrast` never touches the seed — the tiles stay on the fixed range.
+              mode={contrast ? "contrast" : "fixed"}
+              onModeChange={(m) => setContrast(m === "contrast")}
+              contrastAvailable={contrastAvailable}
+              triggerRef={layerTriggerRef}
+              id={pickerId}
+            />
+            {/* The explanation of the CURRENT choice stays on screen while the picker is closed —
+                every tile inside the picker carries its own copy, so repeating it there would be
+                the same sentence twice. */}
+            {!pickerOpen && indexInfo(index) && (
+              <p className="mt-2 text-xs text-slate-500">{indexInfo(index)}</p>
+            )}
+          </div>
 
           {loading ? (
             <Spinner />
@@ -565,17 +653,9 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
                   {activeScene.cloud_pct != null && ` · ☁ ${activeScene.cloud_pct.toFixed(0)}%`}
                 </span>
               )}
-              {contrastAvailable && (
-                <button type="button" onClick={() => setContrast((c) => !c)}
-                  title={contrast
-                    ? t("app.field.satelliteTab.contrastResetTitle")
-                    : t("app.field.satelliteTab.contrastBoostTitle")}
-                  className={`inline-flex min-h-[44px] items-center gap-1 rounded-md border px-2.5 py-1 text-xs ${
-                    contrast ? "border-emerald-600 bg-emerald-50 font-semibold text-emerald-700"
-                      : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}>
-                  <Contrast className="h-3.5 w-3.5 shrink-0" /> {t("app.field.satelliteTab.contrastBtn")}
-                </button>
-              )}
+              {/* Contrast used to be a button here. It is now a render mode INSIDE the layer
+                  picker, where the layer it re-stretches is chosen — and it is not hidden by the
+                  move: LayerButton prints " · Kontrast" while it is on. */}
               {visibleScenes.length >= 2 && (
                 <button type="button" onClick={() => setCompare((c) => !c)} title={t("app.field.satelliteTab.compareTitle")}
                   className={`inline-flex min-h-[44px] items-center gap-1 rounded-md border px-2.5 py-1 text-xs ${
@@ -587,23 +667,19 @@ export default function SatelliteTab({ field, sensor }: { field: FieldDetail; se
             </div>
           </div>
 
-          {/* The buttons live in a wrapping justify-between row, so a line cannot sit under an
-              individual chip without wrecking that row; each line repeats its control's icon
-              instead, so the eye still binds line → button. Guards mirror the buttons' own render
-              guards exactly — a hint can never appear without the control it explains. Once
-              compare is engaged, compareHint below takes over and says how to USE it; never both. */}
-          {((contrastAvailable && !contrast) || (visibleScenes.length >= 2 && !compare)) && (
+          {/* Compare is the only mode left in this row, so the guard is now just its own render
+              guard — a hint can never appear without the control it explains. The line repeats the
+              button's icon so the eye binds line → button across the wrapping row. Once compare is
+              engaged, compareHint below takes over and says how to USE it; never both.
+              The contrast hint split when the control moved: contrastWhy (why you would turn it on)
+              sits under the mode buttons inside the layer picker, while what the map is ACTUALLY
+              stretched to — contrastOnHint / fixedRangeHint — is printed once, by IndexLegend,
+              directly under the picture it describes. Printing both in both places put the same two
+              sentences on screen twice whenever the picker was open beside the map. */}
+          {visibleScenes.length >= 2 && !compare && (
             <div className="mb-3 space-y-1">
-              {/* !contrast, like the compare line below: a hint that explains why to turn something
-                  on has nothing to say once it IS on. */}
-              {contrastAvailable && !contrast && (
-                <ModeHint icon={<Contrast className="mt-0.5 h-3 w-3 shrink-0" />}
-                  text={t("app.field.satelliteTab.contrastWhy")} />
-              )}
-              {visibleScenes.length >= 2 && !compare && (
-                <ModeHint icon={<GitCompareArrows className="mt-0.5 h-3 w-3 shrink-0" />}
-                  text={t("app.field.satelliteTab.compareWhy")} />
-              )}
+              <ModeHint icon={<GitCompareArrows className="mt-0.5 h-3 w-3 shrink-0" />}
+                text={t("app.field.satelliteTab.compareWhy")} />
             </div>
           )}
 

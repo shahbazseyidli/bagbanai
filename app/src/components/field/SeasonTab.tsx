@@ -1,7 +1,8 @@
 "use client";
 
 // B3 — mövsüm (əkin) kartoteksi. Hər əkinin öz ili, məhsulu, tarixləri və həyat dövrü statusu var
-// (public.field_seasons / 0034). Inline AZ copy (T18 sonra çıxarır).
+// (public.field_seasons / 0034). Bütün istifadəçi mətni t() ilə həll olunur — T18 çıxarışı bitib,
+// burada inline AZ sətir qalmayıb (statusLabel/cycleOptions render vaxtı, modul yüklənəndə yox).
 import { useEffect, useState } from "react";
 import { CalendarDays, ChevronDown, ChevronUp, Plus, Sprout, Star, Trash2 } from "lucide-react";
 import { api, azError } from "@/lib/api";
@@ -232,7 +233,7 @@ export default function SeasonTab({ fieldId }: { fieldId: string }) {
         <button
           type="button"
           onClick={() => setOpen(!open)}
-          className="btn-secondary min-h-11"
+          className="btn-secondary"
           aria-expanded={open}
         >
           {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -317,7 +318,7 @@ export default function SeasonTab({ fieldId }: { fieldId: string }) {
           <FormField label={t("app.field.seasonTab.notesLabel")}>
             <textarea className="input h-20" value={notes} onChange={(e) => setNotes(e.target.value)} />
           </FormField>
-          <label className="flex min-h-11 items-center gap-2 text-sm text-slate-700">
+          <label className="flex min-h-[var(--tap)] items-center gap-2 text-sm text-slate-700">
             <input
               type="checkbox"
               className="h-5 w-5 rounded border-slate-300"
@@ -375,7 +376,7 @@ export default function SeasonTab({ fieldId }: { fieldId: string }) {
                         type="button"
                         onClick={() => onMakeCurrent(s)}
                         disabled={rowBusy}
-                        className="min-h-11 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-50"
+                        className="min-h-[var(--tap)] rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-50"
                       >
                         {t("app.field.seasonTab.makeCurrentBtn")}
                       </button>
@@ -385,7 +386,7 @@ export default function SeasonTab({ fieldId }: { fieldId: string }) {
                       onClick={() => setConfirmId(confirmId === s.id ? "" : s.id)}
                       disabled={rowBusy}
                       aria-label={t("app.field.seasonTab.deleteAriaLabel")}
-                      className="min-h-11 rounded-lg px-3 py-1.5 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                      className="min-h-[var(--tap)] min-w-[var(--tap)] rounded-lg px-3 py-1.5 text-red-600 hover:bg-red-50 disabled:opacity-50"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -433,14 +434,14 @@ export default function SeasonTab({ fieldId }: { fieldId: string }) {
                       type="button"
                       onClick={() => onDelete(s)}
                       disabled={rowBusy}
-                      className="min-h-11 rounded bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                      className="min-h-[var(--tap)] rounded bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
                     >
                       {rowBusy ? t("app.field.seasonTab.deletingBtn") : t("app.field.seasonTab.confirmDeleteBtn")}
                     </button>
                     <button
                       type="button"
                       onClick={() => setConfirmId("")}
-                      className="min-h-11 rounded px-3 py-1.5 text-sm text-slate-600 hover:text-slate-800"
+                      className="min-h-[var(--tap)] rounded px-3 py-1.5 text-sm text-slate-600 hover:text-slate-800"
                     >
                       {t("app.field.seasonTab.cancelBtn")}
                     </button>
@@ -461,7 +462,7 @@ export default function SeasonTab({ fieldId }: { fieldId: string }) {
                             aria-pressed={on}
                             disabled={rowBusy}
                             onClick={() => onStatus(s, st)}
-                            className={`min-h-11 rounded-full border-[1.5px] px-3 py-1.5 text-sm font-medium disabled:opacity-50 ${
+                            className={`min-h-[var(--tap)] rounded-full border-[1.5px] px-3 py-1.5 text-sm font-medium disabled:opacity-50 ${
                               on ? m.active : "border-slate-300 bg-white text-slate-600 hover:border-emerald-300"
                             }`}
                           >

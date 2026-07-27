@@ -10,6 +10,7 @@ import {
 } from "react";
 import { api, ApiError } from "./api";
 import { clearAreaUnitCache } from "./units";
+import { LOCALES, getLocale } from "./i18n";
 import type { User } from "./types";
 
 interface AuthState {
@@ -21,6 +22,42 @@ interface AuthState {
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
+
+// Once per page load — reconciling is a repair, not a heartbeat.
+let localeSynced = false;
+
+/**
+ * Keep `users.locale` equal to the language the farmer is actually being shown.
+ *
+ * LanguageSwitcher is the ONLY writer of that column, but it is not the only way the UI language
+ * changes: the middleware sets the locale from a route prefix, so bookmarking /ru/fields — or
+ * following a Russian share link once — switches the interface permanently without the account ever
+ * hearing about it. Everything that renders inside a request survives that (api.ts sends X-Locale on
+ * every call), but the surfaces with NO request to read a header from go by `users.locale` alone:
+ * the advice generated after each satellite scene, and the weekly digest. Observed live on the
+ * owner account — interface Russian, `users.locale` still 'az', so every auto-generated advice was
+ * written in a language the reader had stopped using. That is the same defect 0049 was added to fix,
+ * arriving through a different door.
+ *
+ * ONLY reconciles from an EXPLICIT signal — a route prefix or a stored cookie. detectLocale() also
+ * falls back to `navigator.language`, and letting a browser guess overwrite a language the account
+ * deliberately chose would trade this bug for a worse one.
+ */
+function reconcileLocale(me: User) {
+  if (localeSynced || typeof window === "undefined") return;
+  localeSynced = true;
+  try {
+    const prefixed = /^\/([a-z]{2})(?=\/|$)/.exec(window.location.pathname)?.[1];
+    const explicit =
+      (prefixed && (LOCALES as readonly string[]).includes(prefixed)) ||
+      document.cookie.includes("bagban_locale=");
+    const shown = getLocale();
+    if (!explicit || me.locale === shown) return;
+    void api.post("/api/auth/locale", { locale: shown }).catch(() => {});
+  } catch {
+    // private mode / exotic URL — never let a preference repair break sign-in
+  }
+}
 
 // Last-known user, cached so a page RELOAD can paint the signed-in chrome (rail, account nav)
 // immediately instead of flashing the signed-out marketing chrome while /me is in flight — the
@@ -62,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const me = await api.get<User>("/api/auth/me");
       setUserState(me);
       writeCache(me);
+      void reconcileLocale(me);
     } catch (err) {
       // 401 = not logged in; any other error (incl. network) also resolves to logged out.
       if (!(err instanceof ApiError)) {

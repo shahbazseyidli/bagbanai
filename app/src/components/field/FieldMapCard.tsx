@@ -32,11 +32,22 @@ import { t, tf } from "@/lib/i18n";
 import { indexLabel, legendFor } from "@/lib/indexStatus";
 import { DisplayMap } from "@/components/FieldMap";
 import { useDataSaver } from "@/lib/dataSaver";
+import { lockScroll } from "@/lib/scrollLock";
+import { SENSOR_INDICES, sensorFamily } from "@/lib/sensors";
+import LayerPicker, { LayerButton, type PickerVariant } from "./layers/LayerPicker";
+import { scenePreviewUrl } from "./layers/previewUrl";
+import type { LayerPreview } from "./layers/useLayerPreviews";
 import type { FieldDetail, MapPin, RasterScene, RasterScenes } from "@/lib/types";
 
-// Cover, moisture, nitrogen — the three a farmer acts on. All nine live in the satellite section,
-// one tap away; offering nine here would rebuild the workbench this card exists to replace.
-const CARD_INDICES = ["NDVI", "NDMI", "NDRE"];
+// All ten Sentinel-2 layers, not the old NDVI/NDMI/NDRE chip row.
+//
+// That row carried a note saying offering nine here would rebuild the workbench this card exists
+// to replace. That constraint is SUPERSEDED, not ignored: a picker is nine choices hidden behind
+// ONE control, which is exactly what a chip row could never be. The trade is real and deliberate —
+// switching cover→moisture costs two taps now instead of one — and it buys the seven layers that
+// were previously unreachable without leaving the card, each shown as a picture of this field
+// rather than as a three-letter code.
+const CARD_INDICES = SENSOR_INDICES.S2;
 
 type Scene = RasterScene & { value?: number | null };
 type ScenesResponse = Omit<RasterScenes, "scenes"> & { scenes: Scene[] };
@@ -45,21 +56,8 @@ function fmt(v: number | null | undefined): string {
   return v == null ? "—" : v.toFixed(2);
 }
 
-// TiTiler serves the same COG either as a tile pyramid or as one finished PNG, so the chip picture
-// is a pure string transform of the tile template the map is already using — same COG, same
-// colormap, same rescale, therefore the same colours by construction. Derived rather than fetched
-// because the alternative is a second server read model for a ~1 KB image we already hold a URL
-// for. max_size mirrors indices.py::_THUMB_MAX_SIZE; a field COG is ~30x25px, so it is a ceiling,
-// not a resize. An unrecognised URL shape yields null → no picture, never a guessed URL.
-const CHIP_MAX_SIZE = 128;
-
-function scenePreview(tileUrl: string | null | undefined): string | null {
-  if (!tileUrl) return null;
-  const cut = tileUrl.indexOf("/cog/");
-  const q = tileUrl.indexOf("?");
-  if (cut < 0 || q < 0 || q < cut) return null;
-  return `${tileUrl.slice(0, cut)}/cog/preview.png${tileUrl.slice(q)}&max_size=${CHIP_MAX_SIZE}`;
-}
+// The COG→PNG transform that used to live here now sits in ./layers/previewUrl, because the layer
+// picker's tiles and this file's date-strip thumbs must be the same transform — see that file.
 
 function SceneThumb({ url, date }: { url: string | null; date: string }) {
   // Own broken state per chip, so one unrenderable scene does not blank the whole strip.
@@ -165,6 +163,7 @@ export default function FieldMapCard({
   reticle = false,
   onCenterChange,
   flyTo,
+  pickerVariant = "sheet",
 }: {
   field: FieldDetail;
   onOpenSatellite: () => void;
@@ -181,6 +180,13 @@ export default function FieldMapCard({
   reticle?: boolean;
   onCenterChange?: (lng: number, lat: number) => void;
   flyTo?: { lng: number; lat: number; seq: number } | null;
+  /**
+   * Which surface the layer picker opens as. Decided by the PAGE, from the stage width it already
+   * measures — this card must not measure a second time: the page's number is the one that decided
+   * the card is on screen at all (wide + scouting is the only wide case), and two measurements of
+   * the same box are two chances to disagree. Default "sheet" = the phone answer.
+   */
+  pickerVariant?: PickerVariant;
 }) {
   const [index, setIndex] = useState("NDVI");
   const [data, setData] = useState<ScenesResponse | null>(null);
@@ -198,6 +204,10 @@ export default function FieldMapCard({
   const [showRaster, setShowRaster] = useState(false);
   // document does not exist on the server, and the overlay is a portal into document.body.
   const [mounted, setMounted] = useState(false);
+  // W4 — one picker instance for BOTH frames (it portals to body), so there is no duplicate id and
+  // no second copy of the ten /scenes reads.
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => setMounted(true), []);
 
@@ -216,7 +226,15 @@ export default function FieldMapCard({
       .get<ScenesResponse>(`/api/fields/${field.id}/scenes?index=${index}&sensor=s2`)
       .then((r) => {
         if (!active) return;
-        setData(r ?? null);
+        // /scenes FALLS BACK to the other sensor family when the requested one has no rasters yet
+        // (routers/indices.py), and reports what it actually used in `sensor`. Taking the body at
+        // face value paints a 30m HLS pass under a card that says Sentinel-2 — and this card seeds
+        // the layer picker's cache, so one unchecked read would also install that HLS tile as a
+        // ready "Sentinel-2" preview for every other layer. The honest answer is the empty state:
+        // "no picture yet" is true, "here is the wrong satellite" is not. Same guard SatelliteTab
+        // applies to its own read (grep `const returned =` there).
+        const returned = r?.sensor ? sensorFamily(r.sensor) : null;
+        setData(returned && returned !== "S2" ? null : r ?? null);
         setSceneIdx(0);
         setShownIndex(index);
       })
@@ -233,7 +251,7 @@ export default function FieldMapCard({
 
   // The page rebuilds its close handler every render (it reads searchParams), so the effect below
   // holds it through a ref. Depending on the handler itself would reinstall the key listener — and
-  // re-run the body-overflow save/restore — on every keystroke elsewhere on the page.
+  // re-run the scroll lock — on every keystroke elsewhere on the page.
   const closeRef = useRef(onCloseFullscreen);
   closeRef.current = onCloseFullscreen;
 
@@ -243,17 +261,13 @@ export default function FieldMapCard({
       if (e.key === "Escape") closeRef.current();
     };
     window.addEventListener("keydown", onKey);
-    // Restore the PREVIOUS inline value, not "": another overlay (the undo bar's page, a modal)
-    // may already have locked the body, and blanking it would silently unlock theirs.
-    // documentElement, NOT body. globals.css sets `html, body { overflow-x: hidden }`, which makes
-    // html's computed overflow-y `auto` — and body's overflow only propagates to the viewport while
-    // html's is `visible`. Locking body here clipped nothing and the page scrolled behind the
-    // overlay.
-    const prevOverflow = document.documentElement.style.overflow;
-    document.documentElement.style.overflow = "hidden";
+    // The SHARED ref-counted lock, never a local save/restore of documentElement.style.overflow.
+    // This overlay and the layer sheet can be open at once, and the back gesture can pop THIS one
+    // first — a private save/restore then leaves the page locked forever. See lib/scrollLock.ts.
+    const release = lockScroll();
     return () => {
       window.removeEventListener("keydown", onKey);
-      document.documentElement.style.overflow = prevOverflow;
+      release();
     };
   }, [fullscreen]);
 
@@ -297,33 +311,52 @@ export default function FieldMapCard({
   const mapShown = !emptyState && rasterVisible && scenes.length > 0;
   const vGrad = verticalGrad(legend.grad);
 
+  // A fixed inset-0 overlay is the PHONE answer, and this card is also on screen at 1440px (the
+  // scouting section keeps it on a wide stage). There, the picker opens in flow under its button —
+  // except inside the fullscreen frame, which covers the card: a panel rendered into a card nobody
+  // can see is a control that does not exist, so that frame gets the sheet at every width.
+  const variant: PickerVariant = fullscreen ? "sheet" : pickerVariant;
+
+  // W4 — the newest scene of the CURRENT layer: the trigger's swatch, and the picker's free seed.
+  // scenes[0] (newest), NOT `active`, so every tile in the grid shows its own layer's newest pass
+  // and the ten pictures stay comparable with each other even while the map is parked on an older
+  // date. shownIndex, not `index`, for the same reason the metrics use it: until the response
+  // lands, the picture we hold belongs to the previous layer.
+  const newest: Scene | null = scenes[0] ?? null;
+  const layerPreview: LayerPreview = {
+    url: scenePreviewUrl(newest?.tile_url),
+    date: newest?.date ?? null,
+    value: newest?.value ?? null,
+    state: newest ? "ready" : "empty",
+  };
+  const pickerId = `field-layer-picker-${field.id}`;
+
   // --- shared pieces ---------------------------------------------------------
   // Plain functions, not nested components: a component declared inside a render is a NEW type on
   // every render, so React would unmount and rebuild its subtree — including the MapLibre canvas.
 
-  function indexChips() {
+  // The picker's trigger. `frame` decides which of the two copies holds the ref that focus returns
+  // to on close: both control rows are in the DOM while the overlay is open, and one ref object
+  // cannot be attached to two live buttons.
+  function layerTrigger(frame: "card" | "full") {
+    const owns = frame === (fullscreen ? "full" : "card");
     return (
-      <div
-        role="group"
-        aria-label={t("app.field.workbench.indexGroupAria")}
-        className="flex gap-1"
-      >
-        {CARD_INDICES.map((ix) => (
-          <button
-            key={ix}
-            type="button"
-            onClick={() => setIndex(ix)}
-            aria-pressed={index === ix}
-            className={`min-h-9 rounded-full border-[1.5px] px-3 text-[12.5px] font-semibold ${
-              index === ix
-                ? "border-grass bg-mint-soft text-grass-deep"
-                : "border-line bg-panel text-ink-soft hover:border-mint"
-            }`}
-          >
-            {indexLabel(ix)}
-          </button>
-        ))}
-      </div>
+      <LayerButton
+        index={shownIndex}
+        preview={layerPreview}
+        // Same gate as the raster and the date-strip thumbs: while the farmer has declined the
+        // picture on a metered connection, the swatch is the layer's ramp instead.
+        showPicture={rasterVisible}
+        open={pickerOpen}
+        controlsId={pickerId}
+        // TOGGLE, not open. On a wide stage this card renders the picker's `panel` variant, which
+        // has no backdrop and no close button by design (desktop has the room for an inline
+        // disclosure) — so open-only left the trigger able to show it and nothing able to hide it
+        // again except Escape or picking a layer. SatelliteTab's trigger already toggles; the two
+        // callers of one component should not disagree about what pressing it does.
+        onClick={() => setPickerOpen((o) => !o)}
+        buttonRef={owns ? triggerRef : undefined}
+      />
     );
   }
 
@@ -484,7 +517,7 @@ export default function FieldMapCard({
                 <b className="block text-[11.5px] font-bold text-ink">{s.date.slice(5)}</b>
                 {/* Withheld together with the big raster: while the farmer has declined that one on
                     a metered connection, painting twelve small ones would be incoherent. */}
-                {rasterVisible && <SceneThumb url={scenePreview(s.tile_url)} date={s.date} />}
+                {rasterVisible && <SceneThumb url={scenePreviewUrl(s.tile_url)} date={s.date} />}
                 <span className="block text-[10.5px] tabular-nums text-ink-soft">{fmt(s.value)}</span>
                 {/* Same ramp, same domain as the bar above, so the ticks drifting across the chips
                     read as a small time series. */}
@@ -519,6 +552,34 @@ export default function FieldMapCard({
     );
   }
 
+  // ONE picker element, rendered in ONE of two positions (never both — the id and the ten /scenes
+  // reads must not be duplicated). Sheet portals to body, so where it sits in this tree is
+  // irrelevant; panel is in flow and belongs directly under the button that opened it.
+  //
+  // No mode props. This card paints `tile_url` only, so the ValueBar tick and the pixel colours
+  // share one domain (the invariant stated where `range` is parsed above). A contrast mode would
+  // have to switch the bar's domain too, and that machinery — together with compare — already
+  // lives in the satellite section that owns it.
+  const picker = (
+    <LayerPicker
+      fieldId={field.id}
+      indices={CARD_INDICES}
+      index={shownIndex}
+      onSelect={setIndex}
+      open={pickerOpen}
+      onClose={() => setPickerOpen(false)}
+      variant={variant}
+      seed={{
+        index: shownIndex,
+        tileUrl: newest?.tile_url ?? null,
+        date: newest?.date ?? null,
+        value: newest?.value ?? null,
+      }}
+      triggerRef={triggerRef}
+      id={pickerId}
+    />
+  );
+
   // --- frames ----------------------------------------------------------------
 
   const overlay =
@@ -528,8 +589,10 @@ export default function FieldMapCard({
           // / `filter` / `backdrop-filter` ancestor turns position:fixed into an ordinary containing
           // block, and inset-0 would then size to THAT ancestor — the map would be built at the
           // wrong size and never resized (DisplayMap exposes no resize()). The field page sits
-          // inside AppShell's flex row with its xl:-mx-14 full-bleed step, under a backdrop-blur
-          // header. z-50 clears BottomNav (z-40), Nav (z-30) and the rail/list panel (z-30).
+          // inside AppShell's flex row, on the SHELL_BLEED full-bleed track
+          // (`xl:mx-[calc(50%_-_50vw)]`, exported from AppShell.tsx — the old frozen "xl:-mx-14
+          // 2xl:-mx-44" pair is gone), under a backdrop-blur header. z-50 clears BottomNav (z-40),
+          // Nav (z-30) and the rail/list panel (z-30).
           //
           // The fixed root IS the sized frame the map hangs in — no sticky ancestor, and no
           // open/close animation: a map built during a size transition keeps the wrong size for
@@ -542,7 +605,7 @@ export default function FieldMapCard({
           >
             <div className="shrink-0 border-b border-line bg-panel pt-[env(safe-area-inset-top)]">
               <div className="flex h-14 items-center gap-2 px-2">
-                {indexChips()}
+                {layerTrigger("full")}
                 <span className="ml-auto hidden text-[11.5px] text-ink-soft sm:inline">
                   {t("app.field.card.escHint")}
                 </span>
@@ -579,10 +642,10 @@ export default function FieldMapCard({
         aria-label={t("app.field.card.aria")}
         className="overflow-hidden rounded-xl border-[1.5px] border-line bg-panel"
       >
-        {/* Control row — chips left, expand right. See the file header for why this is a row above
-            the map rather than chrome floated on its corners. */}
-        <div className="flex h-11 items-center gap-2 px-2">
-          {indexChips()}
+        {/* Control row — layer button left, expand right. See the file header for why this is a
+            row above the map rather than chrome floated on its corners. */}
+        <div className="flex min-h-[52px] items-center gap-2 px-2 py-1">
+          {layerTrigger("card")}
           <button
             type="button"
             onClick={onOpenFullscreen}
@@ -593,6 +656,11 @@ export default function FieldMapCard({
             <Maximize2 className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
+
+        {/* Desktop: the list opens in flow, directly under the button that opened it. The map box
+            below keeps its fixed height and is only pushed down, so no MapLibre canvas is
+            resized. */}
+        {variant === "panel" && <div className="px-2 pb-1">{picker}</div>}
 
         {/* Sized, relative, in normal flow — never under a sticky ancestor, which leaves the canvas
             blank until something forces a resize (see FieldMapSheet's history). The box keeps its
@@ -621,6 +689,8 @@ export default function FieldMapCard({
       </section>
 
       {overlay}
+
+      {variant === "sheet" && picker}
     </>
   );
 }

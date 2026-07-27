@@ -15,6 +15,7 @@ import SignalsActions from "@/components/field/overview/SignalsActions";
 import SatelliteTab from "@/components/field/SatelliteTab";
 import FieldMapSheet from "@/components/field/FieldMapSheet";
 import FieldMapCard from "@/components/field/FieldMapCard";
+import type { PickerVariant } from "@/components/field/layers/LayerPicker";
 import { useUiV2 } from "@/lib/uiFlag";
 import AiTab from "@/components/field/AiTab";
 import MetadataTab from "@/components/field/MetadataTab";
@@ -132,6 +133,14 @@ function FieldDetailInner() {
   // answer is still "the workbench owns the map".
   const showCard =
     v2 && stageW !== null && !SECTION_OWNS_MAP.has(tab) && (!wide || tab === "scouting");
+  // W4 — and the SAME number decides how the layer picker opens, for both surfaces that have one.
+  // Neither of them may measure again: this is the measurement that already decided whether the
+  // card is on screen at all, and a component that re-measures its own box can disagree with the
+  // page about which room it is in. Left to themselves they got it backwards — the card opened a
+  // fixed inset-0 overlay on a 1440px desktop (it survives there for the scouting section), while
+  // the satellite section pushed ~1250px of in-flow tiles between the button and the chart on a
+  // 375px phone, with no way out but scrolling back up.
+  const pickerVariant: PickerVariant = wide ? "panel" : "sheet";
   // The scouting section's pins have to reach a card mounted ABOVE the section, so the state that
   // joins them lives here, in their only common ancestor. Called unconditionally and before every
   // early return below — hook order has to be identical on every render.
@@ -194,13 +203,28 @@ function FieldDetailInner() {
   }, [loading, user, router]);
 
   useEffect(() => {
+    let active = true;
+    // Clear FIRST. This page is reused across field ids — the desktop field list and notification
+    // deep links change ?id without remounting it — and every child below reads `field`. Holding
+    // the previous field's object while the new one loads paints field A's satellite scenes, A's
+    // metrics and A's layer thumbnails under B's name, and the layer picker's session cache then
+    // stores A's picture under B's key for good. The spinner this causes is a second of honesty,
+    // not a regression.
+    setField(null);
+    setError("");
     (async () => {
       try {
-        setField(await api.get<FieldDetail>(`/api/fields/${params.id}`));
+        const f = await api.get<FieldDetail>(`/api/fields/${params.id}`);
+        // Two quick taps in the field list would otherwise let A's slower response land last and
+        // overwrite B.
+        if (active) setField(f);
       } catch (err) {
-        setError(azError(err));
+        if (active) setError(azError(err));
       }
     })();
+    return () => {
+      active = false;
+    };
   }, [params.id]);
 
   if (loading || !user) return <Spinner />;
@@ -209,10 +233,15 @@ function FieldDetailInner() {
 
   // Field detail is presented two ways from the SAME state/handlers: the classic stacked layout,
   // and (behind ?ui=v2) the D2.3 map-first sheet. Build each piece once, then compose per branch.
-  // The bottom offset carries the safe-area inset so the "Geri qaytar" button never lands in the
-  // home-indicator / gesture strip, where the swipe would eat the tap.
+  //
+  // The bottom offset is --nav-clear (globals.css), not a hand-rolled safe-area calc: the bar it
+  // must clear is BottomNav, whose border-box height plus home-indicator inset that token already
+  // states. env(safe-area-inset-bottom) + 1rem put this z-50 bar at inset+16..inset+84 — entirely
+  // inside the nav band (inset..inset+81.5) and above the nav's z-40, so "Geri qaytar" covered all
+  // four navigation slots for its six seconds. The token collapses to the inset alone at md+, where
+  // the bar is hidden and the rail takes over.
   const undoBar = undoDeleted ? (
-    <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)_+_1rem)] z-50 mx-auto flex max-w-md items-center justify-between gap-3 rounded-xl bg-ink px-4 py-3 text-white shadow-lg">
+    <div className="fixed inset-x-0 bottom-[calc(var(--nav-clear)_+_0.75rem)] z-50 mx-auto flex max-w-md items-center justify-between gap-3 rounded-xl bg-ink px-4 py-3 text-white shadow-lg">
       <span className="text-sm">“{field.name}” {t("app.fieldDetail.fieldDeleted")}</span>
       <button
         onClick={onUndoDelete}
@@ -380,7 +409,9 @@ function FieldDetailInner() {
           )}
         </div>
       )}
-      {tab === "satellite" && <SatelliteTab field={field} sensor="S2" />}
+      {tab === "satellite" && (
+        <SatelliteTab field={field} sensor="S2" pickerVariant={pickerVariant} />
+      )}
       {tab === "weather" && <WeatherHistoryTab fieldId={field.id} />}
       {tab === "analysis" && (
         <div className="space-y-6">
@@ -445,6 +476,7 @@ function FieldDetailInner() {
                 fullscreen={fullscreen}
                 onOpenFullscreen={openFullscreen}
                 onCloseFullscreen={closeFullscreen}
+                pickerVariant={pickerVariant}
                 {...scout.card}
               />
             ) : undefined

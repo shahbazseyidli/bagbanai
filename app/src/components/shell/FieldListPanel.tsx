@@ -2,8 +2,9 @@
 
 // MOCK-app-listpanel — the 336px field-list column of the approved redesign
 // (mockup: .listp / .lph / .search / .lscroll / .fcard / .scoredot). AppShell mounts it between
-// the icon rail and the page stage, on wide screens only and only on the routes where a field
-// list is contextually useful ("/", "/fields", "/fields/{id}").
+// the icon rail and the page stage, on wide screens only (xl+) and only on the routes where a field
+// list is contextually useful — the home "/" and an open field "/fields/{id}". NOT on "/fields"
+// itself, which already is the list (see AppShell.showsFieldList).
 //
 // Aligned to OneSoil's "My Fields" form (docs/ONESOIL_UX_SPEC.md): a header with an owner/role
 // subline + a collapse chevron, a season selector line (current year + Σ area), a search + sort
@@ -41,6 +42,7 @@ import { t, tf } from "@/lib/i18n";
 import { formatArea, useAreaUnit, type AreaUnit } from "@/lib/units";
 import { wellnessHeadline } from "@/lib/wellnessText";
 import { SupportCard } from "@/components/ui/SupportCard";
+import { stripLocale } from "@/components/shell/AppRail";
 import FieldSectionMenu from "@/components/shell/FieldSectionMenu";
 import type { Tone } from "@/lib/indexStatus";
 import type { Farm, Field, Org, Role } from "@/lib/types";
@@ -139,13 +141,11 @@ function toneOf(s: ScoreRow): Tone {
   return s.score >= 70 ? "good" : s.score >= 45 ? "warn" : "bad";
 }
 
-// Middleware rewrites the /en /tr /de prefix away but the browser URL — and usePathname() — still
-// carries it (same convention as AppRail/BottomNav).
-function stripLocale(path: string): string {
-  const m = path.match(/^\/(en|tr|de)(\/.*)?$/);
-  return m ? m[2] || "/" : path;
-}
-
+// Middleware rewrites the locale prefix away but the browser URL — and usePathname() — still
+// carries it. stripLocale now comes from AppRail and derives its prefix list from LOCALES; the local
+// copy this replaces still matched only /(en|tr|de), so on ru/hu/it/pl activeFieldId() returned null
+// for /ru/fields/{id} and the open field silently lost its selected card, its scroll-into-view and
+// its whole FieldSectionMenu.
 export function activeFieldId(pathname: string): string | null {
   const m = stripLocale(pathname || "/").match(/^\/fields\/([^/?#]+)/);
   return m ? m[1] : null;
@@ -441,8 +441,15 @@ export default function FieldListPanel() {
         : t("app.shell.fieldListPanel.yourFields");
 
   // Collapsed: a thin strip that only offers to re-open. The panel simply gets narrower, so the
-  // AppShell flex row hands the extra width to the map stage — no AppShell change is needed (the
-  // xl:-mx full-bleed step only adds room, it can never force a sideways scroll when we shrink).
+  // AppShell flex row hands the extra 288px to the map stage — no AppShell change is needed. That
+  // reasoning survives W1: the shell's full-bleed is now fluid (SHELL_BLEED) rather than two fixed
+  // -mx steps, but it still only ADDS room, so shrinking here can never force a sideways scroll.
+  //
+  // The panel renders at xl:flex — the same breakpoint the bleed is gated on — so it can never
+  // appear before the shell has widened to hold it. Its width stays 336px expanded / 48px collapsed
+  // at every size. Considered and rejected: a 2xl:w-[360px] step. A wider column buys nothing but
+  // whitespace per row, and it would cost the map — which is the object that actually benefits from
+  // a 1700px stage — those 24px.
   if (collapsed) {
     return (
       <nav

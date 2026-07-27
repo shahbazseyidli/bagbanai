@@ -134,7 +134,7 @@ export default function CloseAccount() {
         </button>
         <button
           type="button"
-          className="btn min-h-11 bg-red-600 text-white hover:bg-red-700"
+          className="btn bg-red-600 text-white hover:bg-red-700"
           onClick={() => void closeAccount()}
           disabled={busy || !matches}
         >

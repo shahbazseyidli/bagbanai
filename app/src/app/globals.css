@@ -36,12 +36,48 @@
   --sh: 0 1px 2px rgba(20,15,10,.05), 0 8px 26px rgba(20,15,10,.07);
   --sh-sm: 0 1px 2px rgba(20,15,10,.05), 0 2px 8px rgba(20,15,10,.05);
   --sh-lg: 0 20px 60px rgba(20,15,10,.14);
+
+  /* W3 — one number for "how big is a touch target". OneSoil uses 48dp for EVERY control with no
+     exceptions (ONESOIL_DESIGN_SYSTEM.md §2.3); this product is used outdoors, in gloves, on a
+     phone. Exposed as a variable so a control that cannot use .btn can still say
+     min-h-[var(--tap)] instead of inventing its own number. */
+  --tap: 48px;
+  /* Mobile bottom-nav geometry, so no bottom-anchored element has to re-guess it. --nav-clear is
+     what such an element must clear: the bar plus the device home-indicator inset.
+     81.5px is BottomNav.tsx's BORDER-BOX height, read off its markup: an 80px slot row (h-20) plus
+     its own border-t-[1.5px]. It used to say 80px — the slot alone — and that 1.5px shortfall was
+     not academic: a bar parked at exactly var(--nav-h) has its bottom edge INSIDE the nav, and the
+     nav (z-40) paints over it. The safe-area inset is added separately below because BottomNav
+     carries it as padding rather than height. Change this whenever BottomNav's row or border does. */
+  --nav-h: 81.5px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --nav-clear: calc(var(--nav-h) + var(--safe-b));
 }
 
+/* At md+ the bar is hidden and the left rail takes over, so the clearance collapses to the inset. */
+@media (min-width: 768px) {
+  :root { --nav-h: 0px; }
+}
+
+/* LOAD-BEARING — do not remove or weaken. AppShell (src/components/shell/AppShell.tsx) escapes the
+   centred `main` with `margin-inline: calc(50% - 50vw)`, which makes the shell box exactly 100vw.
+   `100vw` counts the classic scrollbar while documentElement.clientWidth does not, so on any
+   platform without overlay scrollbars the shell overhangs the document by ~S/2 per side — and this
+   clip is the only thing swallowing that overhang. Drop it and every app page grows a horizontal
+   scrollbar. If you arrived here via the "overflow-x: hidden on body breaks position: sticky"
+   folklore: that is the trade you would be making, so give AppShell a different bleed mechanism
+   FIRST and remove this second, never the other way round. */
 html,
 body {
   max-width: 100vw;
   overflow-x: hidden;
+}
+
+/* W3 — an in-page anchor used to land under the sticky header, and at the bottom of the page under
+   the fixed nav. Pad the scroll box by both so the target is actually readable when it arrives. */
+html {
+  scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 76px);
+  scroll-padding-bottom: var(--nav-clear);
 }
 
 body {
@@ -49,6 +85,9 @@ body {
   color: var(--foreground);
   font-size: 16px; /* D1.1 — 16px floor for farmer-facing body */
   -webkit-font-smoothing: antialiased;
+  /* Brand-tinted tap flash instead of the default blue-grey. Deliberately NOT transparent: outdoors
+     this flash is the only "I registered that" feedback before the screen repaints. */
+  -webkit-tap-highlight-color: rgba(21, 128, 61, 0.10);
 }
 
 /* D1.5 — visible keyboard focus on every interactive element. */
@@ -58,15 +97,34 @@ body {
   border-radius: 6px;
 }
 
+/* W3 — touch-action: manipulation removes the ~300ms double-tap-zoom wait on every control.
+   :where() = zero specificity, so any component can still opt out with a plain utility.
+   input[type="range"] is EXCLUDED on purpose. Zero specificity is not zero authority: this is still
+   an AUTHOR declaration, so it beats the UA stylesheet's own touch-action for the slider, and
+   `manipulation` suppresses only double-tap zoom — it keeps granting pan-x/pan-y, which is what lets
+   the compositor claim a thumb drag as a page scroll. The three sliders (field/info/NumberSlider,
+   field/info/PhPicker, field/SatelliteTab's cloud filter) need the UA default left in charge. */
+:where(a, button, [role="button"], summary, label, input:not([type="range"]), select, textarea) {
+  touch-action: manipulation;
+}
+
 /* mapbox-gl-draw uses mapbox class names; ensure controls are visible on maplibre */
 .maplibregl-map .mapboxgl-ctrl-group {
   background: #fff;
 }
 
 @layer components {
-  /* D0.6 — every tappable control clears a 44px+ target for gloved/outdoor use. */
+  /* D0.6 / W3 — every tappable control clears a 48px target for gloved/outdoor use. 48, not 44:
+     OneSoil uses 48dp for every control with no exceptions and we are the glove-and-sunlight app,
+     not them.
+     The floor rides in the utility min-h-[var(--tap)] only because everything else in this rule is
+     a utility too — NOT because a bare `min-height: var(--tap)` would fail to reach the variants.
+     `@apply btn` inlines EVERY declaration .btn carries, utility-derived or not; that is exactly
+     how .btn-primary/-secondary/-ghost picked up the old min-h-11. If you need a non-utility
+     declaration here (a container query, a nested selector's property, anything), write it plainly
+     — it will propagate to the three variants like the rest. */
   .btn {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex min-h-[var(--tap)] items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium touch-manipulation select-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-primary {
     @apply btn bg-emerald-600 text-white hover:bg-emerald-700;
@@ -77,13 +135,49 @@ body {
   .btn-ghost {
     @apply btn text-slate-600 hover:bg-slate-100;
   }
+  /* text-base stays deliberate: a <16px input makes iOS Safari zoom the page on focus. */
   .input {
-    @apply w-full min-h-11 rounded-lg border border-slate-300 px-3 py-2.5 text-base outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500;
+    @apply w-full min-h-[var(--tap)] rounded-lg border border-slate-300 px-3 py-2.5 text-base outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500;
   }
   .label {
     @apply block text-sm font-medium text-slate-700 mb-1;
   }
   .card {
     @apply rounded-xl border-[1.5px] border-slate-300 bg-white p-5;
+  }
+}
+
+/* W3 — honour the OS "reduce motion" setting: decorative motion stops, STATUS motion does not.
+   Zeroing durations globally is safe because nothing in app/src waits on a transitionend/
+   animationend event to advance state (checked), and MapLibre's camera animations are rAF-driven,
+   not CSS, so map behaviour is unchanged. What the blanket reset visibly does is settle the
+   animate-pulse skeletons instead of letting them throb. (No counts here on purpose: every wave
+   adds and removes call sites, and a number in a comment is wrong the moment one lands.)
+
+   animate-spin is deliberately EXEMPT, and that exemption is a bug fix, not a preference. The
+   reset's `animation-duration: 0.01ms` + `animation-iteration-count: 1` also hit every animate-spin
+   site, freezing each spinner after a single 0.01ms turn. Where the spinner is the only thing on
+   screen that changes — PhotosTab, overview/FieldPulse and WeatherHistoryTab all keep their label
+   fixed while loading — a reduce-motion user then cannot tell "working" from "idle", and the app
+   simply looks hung. A steady rotation in place carries no vestibular cost (no translation, no
+   parallax, no scale, no flashing), which is what the setting is actually about; it is slowed to
+   1.6s here rather than stopped. animation-name is left to Tailwind's own .animate-spin utility so
+   this rule can never drift from the keyframe Tailwind emits for it. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Class selector (0,1,0) beats the `*` reset (0,0,0), so these win even though both are
+     !important; !important is still required to beat the reset at all. */
+  .animate-spin {
+    animation-duration: 1.6s !important;
+    animation-timing-function: linear !important;
+    animation-iteration-count: infinite !important;
   }
 }

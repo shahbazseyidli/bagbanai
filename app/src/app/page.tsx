@@ -161,8 +161,13 @@ function Dashboard() {
 
   const current = orgs.find((o) => o.id === selectedOrg);
 
+  // 1040px, matching AppShell's DOC_STAGE. "/" is a WIDE stage now (the shell stops capping it) so
+  // that TodayHome can lay its map+rail instrument row across the whole desktop. This legacy console
+  // is the other thing "/" can render — `?ui=v1` sets a sticky opt-out — and it is a one-column
+  // stack of row lists, exactly the shape that must not stretch to 1800px. The shell cannot tell the
+  // two apart from a pathname, so the cap belongs here.
   return (
-    <div className="space-y-6">
+    <div className="max-w-[1040px] space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-slate-900">{t("dash.title")}</h1>
         <Link
