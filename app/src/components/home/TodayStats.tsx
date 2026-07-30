@@ -390,7 +390,12 @@ export default function TodayStats({
             ? t("app.home.stats.alertsUnknown")
             : alerts.critical > 0
               ? tf("app.home.stats.alertsCritical", { n: alerts.critical })
-              : null
+              // A bare "0" under a tile called "New alerts" reads as "nothing is wrong with your
+              // fields", which is a stronger claim than this number can make: the conditions may
+              // still hold, the farmer has simply already looked. Say which one it is.
+              : alerts.total === 0
+                ? t("app.home.stats.alertsSeen")
+                : null
         }
         href="/notifications"
         title={alerts?.capped ? t("app.home.stats.alertsCapped") : undefined}
