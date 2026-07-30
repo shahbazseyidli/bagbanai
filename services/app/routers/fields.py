@@ -116,8 +116,10 @@ async def _generate_field_name(conn, org_id: str, locale: str) -> str:
 async def create_field(body: FieldIn, request: Request,
                        user_id: str = Depends(get_current_user_id)):
     geojson = json.dumps(body.geometry)
-    # `or ""` covers both the empty string the wizard now sends and an omitted name, should
-    # schemas.FieldIn.name (declared `name: str`, i.e. still required) ever be relaxed to Optional.
+    # `or ""` covers BOTH shapes the clients send: the empty string from the wizard and an omitted
+    # key from anything posting JSON directly. schemas.FieldIn.name is `Optional[str] = None`, which
+    # is what makes the generated-name path below reachable — while it was `str` this handler was
+    # correct and unreachable, because Pydantic 422'd the request before it ran.
     name = (body.name or "").strip()
     async with connection(user_id) as conn:
         org_id = await _org_of_farm(conn, body.farm_id)

@@ -123,7 +123,12 @@ class FarmOut(BaseModel):
 # ---- fields ----
 class FieldIn(BaseModel):
     farm_id: str
-    name: str
+    # OPTIONAL, and this line is what makes the auto-naming in routers/fields.py reachable at all.
+    # That router already generates "Sahə 1", "Sahə 2", … under an advisory lock when the farmer
+    # leaves the box empty — but while this was `name: str` Pydantic rejected the request with 422
+    # before the handler ran, so the whole feature was dead behind a validator. A missing name and
+    # an empty string both mean "you name it"; the handler normalises with `(body.name or "").strip()`.
+    name: Optional[str] = None
     # GeoJSON polygon coordinates: [[[lon,lat], ...]] (single ring, first ring used)
     geometry: dict[str, Any]
 
