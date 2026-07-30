@@ -5,7 +5,7 @@ the geo deps to intersect the field with the Sentinel-2 tile grid. Field creatio
 computes area_ha/centroid/bbox and validates the polygon."""
 import json
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile
 
 from ..db import connection
 from ..deps import (ROLES_WORKER, ROLES_WRITE, get_current_user_id, require_member,
@@ -33,9 +33,92 @@ async def _org_of_field(conn, field_id: str) -> str:
     return str(org_id)
 
 
+# --- Automatic field names -------------------------------------------------------------------
+# A field ALWAYS has a name. If the farmer does not type one we write "Sahə 1", "Sahə 2", … in
+# their language.
+#
+# The name is STORED, not rendered per reader — so this is deliberately NOT the "backend proza =
+# CODE + PARAMS" pattern (CLAUDE.md / app/src/lib/wellnessText.ts). That rule governs prose the
+# reader is shown; a field name is an IDENTIFIER. It is quoted verbatim to readers whose locale we
+# do not know (routers/shares.py selects `f.name as field_name` for an ANONYMOUS visitor; the
+# weekly digest and the advice notification title do the same), and PUT /{field_id} lets the farmer
+# overwrite it with a literal. One string for everybody, chosen once, at creation.
+#
+# Because it is stored, the SERVER has to hold the eight words — it cannot call t(). Same reason
+# ai/emails/weekly.py keeps `_LABELS` server-side. These are the eight dictionary "field.name"
+# values minus the possessive/genitive (az "Sahənin adı" → Sahə, ru "Название поля" → Поле, …), and
+# they must stay in step with the "app.field.autoName.placeholder" key in app/src/lib/i18n.ts +
+# app/src/lib/locales/*.ts — that placeholder PROMISES the farmer this exact word before the field
+# exists.
+_FIELD_WORD: dict[str, str] = {
+    "az": "Sahə", "en": "Field", "ru": "Поле", "tr": "Tarla",
+    "de": "Feld", "hu": "Tábla", "it": "Campo", "pl": "Pole",
+}
+
+# Every word above is plain letters — no regex metacharacter — so joining them is safe. The digit
+# cap is deliberate: a hand-typed "Sahə 99999999999999" must not blow up the ::int cast below; a
+# name outside this pattern simply does not take part in the numbering.
+_AUTO_NAME_RE = "^(?:" + "|".join(_FIELD_WORD.values()) + ") ([0-9]{1,6})$"
+
+# Derived from the word map rather than declared: the locales we can NAME a field in are exactly
+# the ones we hold a word for, so the two can never drift. (It currently equals `_LOCALES` in
+# routers/advice.py — grep "_resolve_locale" — but that set answers a different question.)
+_NAME_LOCALES = frozenset(_FIELD_WORD)
+
+
+async def _creator_locale(conn, request: Request, user_id: str) -> str:
+    """The language to write a generated field name in: the X-Locale header the web client sends on
+    every request, then the cookie, then the account's own locale, then az.
+
+    Header before cookie for the reason written down in routers/advice.py::_resolve_locale — a
+    browser can hold TWO bagban_locale cookies (host-only + .agradex.com) and Next and Starlette
+    disagree on which one wins, while app/src/lib/api.ts sets X-Locale from the same getLocale()
+    that t() is about to render with. users.locale sits below the cookie so a non-browser caller
+    (an importer, a bot) still gets a real language instead of az-by-default.
+
+    A deliberate near-duplicate of that function, not an import: advice.py already does
+    `from .fields import _org_of_field`, so importing back would be circular. Same trade-off as
+    routers/auth.py::_effective_area_unit duplicating defaultAreaUnit() — if the ladder changes,
+    both move."""
+    header_locale = (request.headers.get("x-locale") or "").strip().lower()
+    for cand in (header_locale, request.cookies.get("bagban_locale")):
+        if cand and cand in _NAME_LOCALES:
+            return cand
+    row_locale = await conn.fetchval("select locale from public.users where id=$1::uuid", user_id)
+    if row_locale and row_locale in _NAME_LOCALES:
+        return row_locale
+    return "az"
+
+
+async def _generate_field_name(conn, org_id: str, locale: str) -> str:
+    """Next free "<word> <n>" for this org. Call inside the insert's transaction."""
+    # Two members of one org creating at the same moment would both read the same max() under READ
+    # COMMITTED and both write "Sahə 3". A transaction-scoped advisory lock serializes name
+    # generation and is released at COMMIT — db.connection() wraps the whole handler in one
+    # transaction. Keyed on the org, so a different org never waits.
+    await conn.execute(
+        "select pg_advisory_xact_lock(hashtextextended('agradex.field_autoname:' || $1::text, 0))",
+        org_id)
+    # No `deleted_at is null` filter, on purpose: fields are SOFT-deleted (0025) and can come back
+    # via POST /{field_id}/restore, so a deleted row still occupies its name — reusing its number
+    # would put two "Sahə 2" in one org. max()+1 rather than count(*) for the same reason: delete
+    # "Sahə 2" out of 1..4 and the next field is "Sahə 5", never a second "Sahə 4". One counter is
+    # shared across all eight words, so a farmer who switches language gets "Sahə 1" then "Field 2".
+    n = await conn.fetchval(
+        """select coalesce(max((regexp_match(name, $2::text))[1]::int), 0) + 1
+             from public.fields
+            where org_id = $1::uuid and name ~ $2::text""", org_id, _AUTO_NAME_RE)
+    # `n` is never None: max() over zero rows is NULL, coalesce makes it 0, +1 makes it 1.
+    return f"{_FIELD_WORD.get(locale, _FIELD_WORD['az'])} {n}"
+
+
 @router.post("", response_model=FieldOut)
-async def create_field(body: FieldIn, user_id: str = Depends(get_current_user_id)):
+async def create_field(body: FieldIn, request: Request,
+                       user_id: str = Depends(get_current_user_id)):
     geojson = json.dumps(body.geometry)
+    # `or ""` covers both the empty string the wizard now sends and an omitted name, should
+    # schemas.FieldIn.name (declared `name: str`, i.e. still required) ever be relaxed to Optional.
+    name = (body.name or "").strip()
     async with connection(user_id) as conn:
         org_id = await _org_of_farm(conn, body.farm_id)
         await require_role(conn, user_id, org_id, ROLES_WRITE)
@@ -65,6 +148,15 @@ async def create_field(body: FieldIn, user_id: str = Depends(get_current_user_id
         if chk["area_ha"] is not None and float(chk["area_ha"]) < 0.05:
             raise HTTPException(status_code=400, detail="field_too_small")
 
+        # Name last, after every rejection is behind us: a refused polygon must not burn a number,
+        # and the advisory lock inside the generator is then held for the shortest possible window.
+        # Done on the SERVER rather than in the wizard because POST /api/fields is the only writer
+        # of public.fields — the shapefile/KML import and tap-to-detect funnel through it too, so a
+        # client-side default would leave those paths writing an empty name.
+        if not name:
+            name = await _generate_field_name(
+                conn, org_id, await _creator_locale(conn, request, user_id))
+
         # Queue satellite processing (a cron worker picks it up within ~2 min). The UI
         # shows a "preparing…" banner with progress/ETA until data_status flips to ready.
         row = await conn.fetchrow(
@@ -75,7 +167,7 @@ async def create_field(body: FieldIn, user_id: str = Depends(get_current_user_id
                       st_envelope(g.geom), $5::uuid, 'queued', 600
                from (select st_setsrid(st_geomfromgeojson($4),4326) as geom) g
                returning id, farm_id, org_id, name, area_ha, mgrs_tiles""",
-            body.farm_id, org_id, body.name, geojson, user_id)
+            body.farm_id, org_id, name, geojson, user_id)
         # Kick off Phase-1 knowledge research (soil + zone; crop blocks fill in once the
         # profile is added). Debounced via research_jobs; the worker picks it up (M4).
         try:
@@ -146,14 +238,20 @@ async def get_field(field_id: str, user_id: str = Depends(get_current_user_id)):
 
 
 @router.put("/{field_id}")
-async def update_field(field_id: str, body: dict, user_id: str = Depends(get_current_user_id)):
+async def update_field(field_id: str, body: dict, request: Request,
+                       user_id: str = Depends(get_current_user_id)):
     """Rename a field (field-level edit). Agronomist+ (ROLES_WRITE)."""
     async with connection(user_id) as conn:
         org_id = await _org_of_field(conn, field_id)
         await require_role(conn, user_id, org_id, ROLES_WRITE)
         name = (str(body.get("name") or "")).strip()
+        # Clearing the name used to be a 400 `name_required` — a dead end that contradicts "a field
+        # always has a name". Regenerate instead, so every write site upholds the invariant rather
+        # than only the create path. Callers must read `name` off this response: it may differ from
+        # what they sent.
         if not name:
-            raise HTTPException(status_code=400, detail="name_required")
+            name = await _generate_field_name(
+                conn, org_id, await _creator_locale(conn, request, user_id))
         await conn.execute("update public.fields set name=$2 where id=$1::uuid", field_id, name)
     return {"ok": True, "name": name}
 

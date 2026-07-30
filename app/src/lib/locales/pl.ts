@@ -51,6 +51,31 @@ export const pl: Dict = {
   "auth.err.email_taken": "Ten adres e-mail jest już zarejestrowany",
   "auth.err.invalid_credentials": "Nieprawidłowy e-mail lub hasło",
 
+  "auth.magic.send": "Wyślij link do logowania",
+  "auth.magic.sending": "Wysyłanie…",
+  "auth.magic.sentTitle": "Sprawdź swoją skrzynkę",
+  "auth.magic.sentBody": "Wysłaliśmy link do logowania na adres {email}. Dotknij linku — hasło nie jest potrzebne.",
+  // „min” — skrót celowo: {minutes} może być dowolną liczbą, a „minuta/minuty/minut” wymagają
+  // trzech form. Skrót się nie odmienia.
+  "auth.magic.sentExpiry": "Link jest ważny {minutes} min i działa tylko raz.",
+  "auth.magic.notReceived": "Wiadomość nie dotarła? Sprawdź też folder ze spamem.",
+  "auth.magic.resend": "Wyślij link ponownie",
+  "auth.magic.resendWait": "Wyślij ponownie ({seconds})",
+  "auth.magic.resent": "Link wysłany ponownie.",
+  "auth.magic.tooSoon": "Link został wysłany przed chwilą. Odczekaj moment, zanim poprosisz o nowy.",
+  "auth.magic.changeEmail": "Wpisz inny adres",
+  "auth.magic.sendFailed": "Nie udało się wysłać linku. Spróbuj ponownie za chwilę.",
+  "auth.magic.signupSub": "Potrzebujemy tylko twojego adresu e-mail — nie musisz tworzyć hasła.",
+  "auth.magic.loginSub": "Wpisz swój adres e-mail, a wyślemy link do logowania.",
+  "auth.magic.usePassword": "Zaloguj się hasłem",
+  "auth.magic.useMagic": "Zaloguj się linkiem",
+  "auth.magic.verifyingTitle": "Logujemy cię…",
+  "auth.magic.verifyingBody": "To potrwa kilka sekund, nie zamykaj strony.",
+  "auth.magic.failedTitle": "Ten link nie działa",
+  "auth.magic.failedBody": "Link wygasł lub został już użyty. Poproś o nowy.",
+  "auth.magic.networkBody": "Nie udało się połączyć z serwerem. Link jest nadal ważny — spróbuj ponownie.",
+  "auth.magic.requestNew": "Wyślij nowy link",
+
   "landing.title": "Zarządzaj polami dzięki satelicie, pogodzie i sztucznej inteligencji",
   "landing.subtitle":
     "Agradex to platforma monitoringu upraw dla rolników: indeksy satelitarne, prognoza pogody i asystent AI.",
@@ -1390,6 +1415,11 @@ export const pl: Dict = {
   "app.field.aiTab.chipGrowthAsk": "Czy rozwój rośliny jest normalny jak na ten okres?",
   "app.field.aiTab.chipRiskLabel": "„{risk}” — co robić?",
   "app.field.aiTab.chipRiskAsk": "Co zrobić z ryzykiem „{risk}”?",
+  // Słowo musi być takie samo jak to, które zapisuje serwer — grep `_FIELD_WORD` w
+  // services/app/routers/fields.py.
+  "app.field.autoName.placeholder": "Pole 1, Pole 2 …",
+  "app.field.autoName.hint": "Jeśli zostawisz puste, nazwa zostanie nadana automatycznie. Później możesz ją zmienić w dowolnej chwili.",
+  "app.field.autoName.summary": "Nazwa zostanie nadana automatycznie",
   "app.shell.appRail.equipment": "Sprzęt",
   "app.field.overviewTab.readingArchive": "Odczyt z archiwum satelitarnego. ",
   "app.field.weatherHistoryTab.annualPrecipPrefix": " · średni roczny opad ",
@@ -2241,6 +2271,9 @@ export const pl: Dict = {
   "app.err.invalidOtp": "Nieprawidłowy kod.",
   "app.err.otpExpired": "Kod wygasł — wyślij ponownie.",
   "app.err.tooManyAttempts": "Zbyt wiele prób — spróbuj ponownie za chwilę.",
+  "app.err.magicLinkInvalid": "Ten link wygasł lub został już użyty. Poproś o nowy.",
+  "app.err.tooManyRequests": "Zbyt wiele żądań. Spróbuj ponownie za kilka minut.",
+  "app.err.emailNotConfigured": "W tej chwili nie można wysłać e-maila. Spróbuj ponownie za chwilę.",
   "app.err.wrongPassword": "Obecne hasło jest nieprawidłowe.",
   "app.err.passwordTooShort": "Hasło musi mieć co najmniej 8 znaków.",
   "app.err.passwordUnchanged": "Nowe hasło musi różnić się od obecnego.",

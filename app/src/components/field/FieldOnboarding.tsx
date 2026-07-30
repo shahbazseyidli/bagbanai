@@ -290,10 +290,6 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
   function next() {
     setError("");
     if (step === 1) {
-      if (!name.trim()) {
-        setError(t("app.field.fieldOnboarding.nameRequired"));
-        return;
-      }
       const poly = validateBoundary();
       if (!poly) return;
       if (areaHa != null && areaHa < 0.05) {
@@ -341,11 +337,6 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
       setStep(1);
       return;
     }
-    if (!name.trim()) {
-      setStep(1);
-      setError(t("field.err.noPolygon"));
-      return;
-    }
     if (!(data.crop_type && data.crop_type.trim())) {
       setStep(2);
       setError(t("meta.cropRequired"));
@@ -354,9 +345,12 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
 
     setBusy(true);
     try {
+      // A blank name is sent as "" on purpose: the server names the field and returns the stored
+      // value, so `onCreated(field)` already carries the real name — no second fetch, and the
+      // shapefile/tap-to-detect paths through the same endpoint get the same treatment.
       const field = await api.post<Field>("/api/fields", {
         farm_id: farmId,
-        name,
+        name: name.trim(),
         geometry: poly,
       });
 
@@ -431,8 +425,19 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
       {/* STEP 1 — boundary */}
       {step === 1 && (
         <div className="space-y-4">
-          <FormField label={t("field.name")} required>
-            <input className="input" value={name} onChange={(e) => setName(e.target.value)} />
+          {/* Optional: leave it blank and POST /api/fields names the field "Sahə 1", "Sahə 2", …
+              in this locale. The placeholder shows the exact word the server will store, so the
+              promise and the stored value cannot drift apart. */}
+          <FormField label={`${t("field.name")} ${t("common.optional")}`}>
+            <input
+              className="input"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={t("app.field.autoName.placeholder")}
+            />
+            <p className="mt-1.5 text-[11.5px] leading-snug text-slate-500">
+              {t("app.field.autoName.hint")}
+            </p>
           </FormField>
 
           <div className="flex gap-2">
@@ -783,7 +788,11 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
         <div className="space-y-4">
           <div className="rounded-xl border border-slate-200 p-4">
             <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
-              <SummaryItem label={t("field.name")} value={name || "—"} />
+              {/* "—" next to a name field reads like an error; say what will actually happen. */}
+              <SummaryItem
+                label={t("field.name")}
+                value={name.trim() || t("app.field.autoName.summary")}
+              />
               <SummaryItem
                 label={t("field.area")}
                 value={formatArea(areaHa, areaUnit)}

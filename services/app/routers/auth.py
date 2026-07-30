@@ -1,26 +1,42 @@
-"""Auth endpoints: signup / login / logout / me + OTP email verification (U3).
+"""Auth endpoints: magic link / signup / login / logout / me + OTP email verification (U3).
 
-Own JWT in an httpOnly cookie. Email verification degrades gracefully: OTP is only issued/enforced
-when an email transport (Resend/SMTP) is configured — otherwise signups auto-verify so production
-signup is never blocked by missing email config."""
+Own JWT in an httpOnly cookie. THREE ways in, and all three end at the same cookie:
+  * magic link (PRIMARY) — type an email, get a link, tap it. Signup and login are the same act.
+  * password — every account that has a hash keeps logging in exactly as before. Nothing about the
+    bcrypt path changed, and nothing here can strand an existing user.
+  * OTP — the six-digit code the signup route still issues when email is configured.
+
+Email verification degrades gracefully: OTP is only issued/enforced when an email transport
+(Resend/SMTP) is configured — otherwise signups auto-verify so production signup is never blocked
+by missing email config."""
+import hashlib
 import json
 import secrets
+import time
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 from .. import notify_prefs
 from ..ai import notify
 from ..config import settings
 from ..db import connection
 from ..deps import get_current_user_id
-from ..schemas import LoginIn, ResendOtpIn, SignupIn, UserOut, VerifyOtpIn
+from ..schemas import (LoginIn, MagicLinkIn, MagicLoginIn, ResendOtpIn, SignupIn, UserOut,
+                       UserRole, VerifyOtpIn)
 from ..security import create_token, hash_password, verify_password
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 COOKIE_MAX_AGE = 60 * 60 * 24 * 7  # 7 days
 _MAX_OTP_ATTEMPTS = 6
+MIN_PASSWORD_LEN = 8
+
+# users.password_hash is NOT NULL (0002) and a magic-link account has no password at all. '!' is not
+# a value bcrypt can ever produce, so bcrypt.checkpw raises ValueError on it and verify_password
+# returns False for EVERY input — the account simply cannot be entered with a password, including by
+# a future collision. The account-close path (0052) writes the same sentinel for the same reason.
+NO_PASSWORD = "!"
 
 
 def _set_cookie(resp: Response, token: str) -> None:
@@ -145,9 +161,24 @@ async def _send_welcome(conn, user_id: str, full_name) -> None:
 
 @router.post("/signup")
 async def signup(body: SignupIn, response: Response):
-    """Create the account. If email is configured, issue an OTP and return {needs_verification:true};
-    otherwise auto-verify and log the user in immediately."""
+    """Create the account from an EMAIL ALONE. If email is configured, issue an OTP and return
+    {needs_verification:true}; otherwise auto-verify and log the user in immediately.
+
+    Everything except the address is now optional (see SignupIn). What that costs, and why it is
+    still right:
+      * no password → the sentinel hash goes in and the account is reachable by magic link, or by
+        the OTP this very call issues (which signs the person in). It is not a dead end.
+      * no country → _effective_area_unit() below skips its `if c:` branch and falls through to the
+        interface language: tr → dönüm, everything else → ha. That is the documented degradation,
+        not a wrong unit, and defaultAreaUnit() in app/src/lib/units.ts already behaves the same.
+      * no full_name → _send_welcome resolves the greeting name to "" and the copy handles it.
+    Anything still worth knowing is asked later, in /account, where it is optional."""
     onb = _clean_onboarding(body.onboarding)
+    # Validated here rather than as a Field(min_length=...) on an Optional[str]: this raises the
+    # detail code the client already maps, instead of a 422 constraint array nothing renders.
+    if body.password is not None and len(body.password) < MIN_PASSWORD_LEN:
+        raise HTTPException(status_code=400, detail="password_too_short")
+    password_hash = hash_password(body.password) if body.password else NO_PASSWORD
     async with connection() as conn:
         exists = await conn.fetchval("select 1 from public.users where lower(email)=lower($1)", body.email)
         if exists:
@@ -158,7 +189,7 @@ async def signup(body: SignupIn, response: Response):
                   onboarding)
                values ($1,$2,$3,$4,$5::user_role,$6,$7,$8,$9::jsonb)
                returning id, email, full_name, locale, role, country, region""",
-            body.email, hash_password(body.password), body.full_name, body.locale,
+            body.email, password_hash, body.full_name, body.locale,
             body.role.value, body.country, body.region, body.name_public,
             json.dumps(onb) if onb else None)
         uid = str(row["id"])
@@ -247,13 +278,307 @@ async def logout(response: Response):
 
 
 # ---------------------------------------------------------------------------
+# MAGIC LINK — the primary way in. Type an email, get a link, tap it, you are signed in.
+#
+# One route is both signup and login on purpose: a farmer should not have to know whether they
+# already have an account, and the response is byte-identical either way so an unauthenticated
+# caller cannot use this to discover who is registered.
+#
+# The token: secrets.token_urlsafe(32) = 256 bits, because it travels in a URL where a six-digit
+# code would be brute-forceable. The DATABASE holds only sha256 of it (db/migrations/0055), so a
+# leak of that table yields nothing usable. 15 minutes, single use.
+#
+# The password path below is untouched. Every account that has a bcrypt hash keeps signing in with
+# it; this is an additional door, not a replacement lock.
+# ---------------------------------------------------------------------------
+
+# Its own constant, NOT settings.otp_ttl_min. An operator widening OTP_TTL_MIN (a code typed by
+# hand, from a mailbox the person is already reading) must not silently widen the window on a
+# credential that sits in a URL, in a forwarded email, in a shared screenshot.
+MAGIC_TTL_MIN = 15
+MAGIC_MAX_PER_EMAIL_15M = 3
+MAGIC_MAX_PER_EMAIL_24H = 10
+MAGIC_MAX_PER_IP_15M = 20
+MAGIC_IP_WINDOW_SEC = 15 * 60
+_MAGIC_IP_BUCKETS_MAX = 4096
+
+
+# Localized sign-in link email (subject, body). Body has {url} and {ttl}. Sent from the locale's
+# persona (notify.sender_for) exactly like the OTP mail above.
+#
+# WHY notify.send_email DIRECTLY AND NOT ai.emails.send_template: send_template's ledger is
+# idempotent per (user, template_id, dedup_key), so the SECOND link a farmer ever asks for would be
+# silently dropped — the mail that never arrives is the whole failure mode this feature has to
+# survive. Its lifecycle opt-out is also wrong here: nobody unsubscribes from being able to log in.
+# The URL sits on its own line so every mail client autolinks it.
+_MAGIC_EMAIL: dict[str, tuple[str, str]] = {
+    "az": ("Agradex — giriş keçidi",
+           "Agradex-ə daxil olmaq üçün keçid:\n\n{url}\n\n"
+           "Keçid {ttl} dəqiqə ərzində və yalnız bir dəfə etibarlıdır. "
+           "Bu sorğunu siz etməmisinizsə, məktubu nəzərə almayın."),
+    "en": ("Agradex — your sign-in link",
+           "Your link to sign in to Agradex:\n\n{url}\n\n"
+           "The link is valid for {ttl} minutes and can be used once. "
+           "If you didn't request this, please ignore this email."),
+    "tr": ("Agradex — giriş bağlantınız",
+           "Agradex'e giriş yapmak için bağlantınız:\n\n{url}\n\n"
+           "Bağlantı {ttl} dakika geçerlidir ve yalnızca bir kez kullanılabilir. "
+           "Bu isteği siz yapmadıysanız, bu e-postayı dikkate almayın."),
+    "de": ("Agradex — Ihr Anmeldelink",
+           "Ihr Link zur Anmeldung bei Agradex:\n\n{url}\n\n"
+           "Der Link ist {ttl} Minuten gültig und kann einmal verwendet werden. "
+           "Falls Sie dies nicht angefordert haben, ignorieren Sie diese E-Mail."),
+    "hu": ("Agradex — bejelentkezési link",
+           "Az Ön bejelentkezési linkje az Agradexhez:\n\n{url}\n\n"
+           "A link {ttl} percig érvényes, és egyszer használható fel. "
+           "Ha nem Ön kérte, hagyja figyelmen kívül ezt az e-mailt."),
+    "it": ("Agradex — il tuo link di accesso",
+           "Il tuo link per accedere ad Agradex:\n\n{url}\n\n"
+           "Il link è valido per {ttl} minuti e può essere usato una sola volta. "
+           "Se non l'hai richiesto, ignora questa email."),
+    "pl": ("Agradex — link do logowania",
+           "Twój link do logowania w Agradex:\n\n{url}\n\n"
+           "Link jest ważny {ttl} minut i może zostać użyty tylko raz. "
+           "Jeśli to nie Ty, zignoruj tę wiadomość."),
+    # "мин." (not "минут") keeps the line grammatical for every {ttl} value.
+    "ru": ("Agradex — ссылка для входа",
+           "Ваша ссылка для входа в Agradex:\n\n{url}\n\n"
+           "Ссылка действительна {ttl} мин. и может быть использована один раз. "
+           "Если вы не запрашивали её, просто проигнорируйте это письмо."),
+}
+
+
+def _token_hash(raw: str) -> str:
+    """sha256 hex. The raw token is never written to the database, a log line, or a response."""
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def _magic_locale(request: Request, body_locale) -> str | None:
+    """The language EXPLICITLY asked for: the body value, then the X-Locale header the web client
+    sends on every request (the convention routers/advice.py::_resolve_locale documents).
+
+    Returns None when neither is present, so the caller can fall back to the account's stored
+    locale — a guess must never overwrite the language the farmer actually chose. SUPPORTED_LOCALES
+    is defined further down this module; Python resolves it at call time."""
+    header = (request.headers.get("x-locale") or "").strip().lower()
+    for cand in (body_locale, header):
+        if isinstance(cand, str) and cand.strip().lower() in SUPPORTED_LOCALES:
+            return cand.strip().lower()
+    return None
+
+
+def _magic_url(token: str, locale: str) -> str:
+    """The link, on the MARKETING APEX — not the app host, and this is load-bearing.
+
+    app.agradex.com has no session cookie for a visitor who is signing in, so middleware.ts bounces
+    them to `<apex>/login` carrying only `next=<path>` — `search` is dropped (see
+    `u.searchParams.set("next", path)` there), and the token would die in that redirect. site_url()
+    is the same helper the share links and the unsubscribe link use.
+
+    az is the default locale and has no path prefix (middleware.ts routing); the other seven do.
+
+    THE TOKEN IS IN THE FRAGMENT, NOT THE QUERY, and that is a security control rather than a style
+    choice. A browser never transmits the part after `#`: it is absent from the request line, so it
+    cannot reach an access log, and absent from the Referer header, so the same-origin `_next/static`
+    fetches this page makes cannot carry it either. As a query parameter it was written to nginx's
+    combined log twice per sign-in. The path is `/auth/link` — the route that actually exists
+    (app/src/app/auth/link/page.tsx); an earlier version mailed `/magic`, which was never a route,
+    so every link 404'd and the whole feature was dead end to end."""
+    from ..ai.emails.send import site_url
+    prefix = f"/{locale}" if locale in SUPPORTED_LOCALES and locale != "az" else ""
+    return f"{site_url()}{prefix}/auth/link#token={token}"
+
+
+def _client_ip(request: Request) -> str:
+    """Best available client address. Read the honest limits in _ip_rate_ok before trusting it."""
+    for header in ("cf-connecting-ip", "x-forwarded-for", "x-real-ip"):
+        v = (request.headers.get(header) or "").split(",")[0].strip()
+        if v:
+            return v[:64]
+    return (request.client.host if request.client else "") or "?"
+
+
+# In-process sliding window, keyed by client address. WHAT THIS IS AND IS NOT:
+#
+# It is a REAL limiter, not decoration, for exactly one verified reason: services/Dockerfile runs
+# `uvicorn app.main:app` with no --workers, so there is one process in one api container and this
+# dict sees 100% of the traffic. It resets on every deploy/restart — acceptable for a burst brake.
+#
+# What it cannot do, stated plainly so nobody over-trusts it:
+#   * request.client.host alone is useless here — the peer is the docker bridge gateway, and
+#     uvicorn's proxy-header trust defaults to 127.0.0.1, which the gateway is not.
+#   * nginx sets X-Real-IP $remote_addr, but agradex.com is Cloudflare-PROXIED, so that address is
+#     a CF edge shared by many farmers. Hence CF-Connecting-IP first, and a deliberately generous
+#     cap — throttling a whole CF edge would be worse than the abuse it prevents.
+#   * CF-Connecting-IP is forgeable by anyone hitting the origin directly: neither nginx conf in
+#     deploy/ sets `set_real_ip_from <CF ranges>` + `real_ip_header CF-Connecting-IP`. Until that
+#     lands, this stops scripted abuse and does not stop a determined attacker. The per-EMAIL limit
+#     below is the durable one — it is in SQL, exact, and survives restarts.
+_MAGIC_IP_HITS: dict[str, list[float]] = {}
+
+
+def _ip_rate_ok(ip: str) -> bool:
+    now = time.monotonic()
+    cutoff = now - MAGIC_IP_WINDOW_SEC
+    hits = [t for t in _MAGIC_IP_HITS.get(ip, ()) if t > cutoff]
+    if len(hits) >= MAGIC_MAX_PER_IP_15M:
+        _MAGIC_IP_HITS[ip] = hits          # keep the pruned list; never stored empty (len >= cap)
+        return False
+    hits.append(now)
+    _MAGIC_IP_HITS[ip] = hits
+    if len(_MAGIC_IP_HITS) > _MAGIC_IP_BUCKETS_MAX:
+        # Bound the memory: drop the buckets whose last hit is oldest. Sorting a few thousand keys
+        # happens only at the cap, not per request.
+        stale = sorted(_MAGIC_IP_HITS, key=lambda k: (_MAGIC_IP_HITS[k] or [0.0])[-1])
+        for k in stale[: len(_MAGIC_IP_HITS) - _MAGIC_IP_BUCKETS_MAX]:
+            _MAGIC_IP_HITS.pop(k, None)
+    return True
+
+
+@router.post("/magic-link")
+async def magic_link(body: MagicLinkIn, request: Request):
+    """Email a sign-in link. Creates the account if there is none — signup and login are one act.
+
+    ALWAYS answers with the same body whether the account existed, was just created, has a password
+    or has none. Registration status is not something an unauthenticated caller gets to learn."""
+    # A 200 promising a mail that no transport can send is a lie. This branch depends only on server
+    # configuration, never on the address, so it discloses nothing about the account.
+    if not notify.email_configured():
+        raise HTTPException(status_code=503, detail="email_not_configured")
+    if not _ip_rate_ok(_client_ip(request)):
+        raise HTTPException(status_code=429, detail="too_many_requests")
+
+    email = str(body.email).strip().lower()
+    req_locale = _magic_locale(request, body.locale)
+
+    async with connection() as conn:
+        row = await conn.fetchrow(
+            "select id, email, locale from public.users "
+            "where lower(email)=lower($1) and deleted_at is null", email)
+        if not row:
+            # email_verified MUST be written explicitly: the 0024 column default is TRUE, and a
+            # brand-new passwordless account has proven nothing yet. Consuming the link is what
+            # verifies the address.
+            row = await conn.fetchrow(
+                """insert into public.users (email, password_hash, locale, role, email_verified)
+                   values ($1,$2,$3,$4::user_role,false)
+                   on conflict (email) do nothing
+                   returning id, email, locale""",
+                email, NO_PASSWORD, req_locale or "az", UserRole.farmer.value)
+            if not row:
+                # users.email is UNIQUE (0002), so an empty return means a concurrent double-submit
+                # inserted it first. Re-read rather than handle an exception — read-committed shows
+                # us the committed row. (A CLOSED account cannot land here: 0052 rewrites its email
+                # to a placeholder, which frees the real address for re-registration.)
+                row = await conn.fetchrow(
+                    "select id, email, locale from public.users "
+                    "where lower(email)=lower($1) and deleted_at is null", email)
+            if not row:
+                raise HTTPException(status_code=500, detail="magic_link_failed")
+        uid = str(row["id"])
+
+        # Durable per-email rate limit, exact and restart-proof, over login_tokens_user_idx (0055).
+        # Cannot trip on a first-ever request (both counts are 0), so it never blocks the
+        # create-on-first-use path this endpoint depends on.
+        counts = await conn.fetchrow(
+            """select count(*) filter (where created_at > now() - interval '15 minutes') as w15,
+                      count(*) filter (where created_at > now() - interval '24 hours')   as d24
+                 from public.login_tokens where user_id=$1::uuid""", uid)
+        if counts and (counts["w15"] >= MAGIC_MAX_PER_EMAIL_15M
+                       or counts["d24"] >= MAGIC_MAX_PER_EMAIL_24H):
+            raise HTTPException(status_code=429, detail="too_many_requests")
+
+        # No reaper cron exists for this table, so prune here: a week of spent/expired rows stays
+        # readable as an audit trail, growth stays bounded. Seq scan on a table that stays small.
+        await conn.execute(
+            "delete from public.login_tokens where expires_at < now() - interval '7 days'")
+
+        raw = secrets.token_urlsafe(32)
+        await conn.execute(
+            "insert into public.login_tokens (user_id, token_hash, expires_at) "
+            "values ($1::uuid, $2, now() + make_interval(mins => $3::int))",
+            uid, _token_hash(raw), MAGIC_TTL_MIN)
+
+    stored = row["locale"] if row["locale"] in SUPPORTED_LOCALES else None
+    locale = req_locale or stored or "az"
+    subject, tmpl = _MAGIC_EMAIL.get(locale, _MAGIC_EMAIL["az"])
+    # Sent only after the transaction above has COMMITTED — a rolled-back insert would otherwise
+    # produce a link that looks alive and matches no row. Delivered to the stored address (same
+    # mailbox, original casing); the response echoes the normalised one.
+    sent = await notify.send_email(
+        row["email"], subject, tmpl.format(url=_magic_url(raw, locale), ttl=MAGIC_TTL_MIN),
+        locale=locale)
+    # send_email RETURNS whether the transport accepted it, and discarding that told the farmer
+    # "check your inbox" for a message that does not exist. The upfront email_configured() guard
+    # only proves a key is SET — a rotated key, a suppressed or hard-bounced address, a 429 from
+    # Resend or a plain timeout all land here with ok=False.
+    #
+    # Leaks nothing: like the 503 above, this branch depends only on the transport, never on whether
+    # the address belongs to an account, so it cannot be used to enumerate users. The token row is
+    # already committed and stays valid — a farmer who retries after a transient failure gets a
+    # second link, and the first one still works if it did go out.
+    if not sent:
+        raise HTTPException(status_code=502, detail="email_send_failed")
+    return {"ok": True, "email": email}
+
+
+@router.post("/magic-login", response_model=UserOut)
+async def magic_login(body: MagicLoginIn, response: Response):
+    """Redeem a sign-in link. Same response shape as /login, same cookie, same token lifetime."""
+    async with connection() as conn:
+        # Spend it ATOMICALLY. A returned row means WE are the ones who spent it, so two clicks on
+        # the same link (the mail client's preview fetch and the farmer's tap) yield one session.
+        uid = await conn.fetchval(
+            """update public.login_tokens set used_at = now()
+                where token_hash = $1 and used_at is null and expires_at > now()
+                returning user_id""", _token_hash(body.token.strip()))
+    # Expired, already used, or never existed — one message for all three. Branching here would tell
+    # a guesser which of their guesses was a real token that had merely lapsed.
+    if not uid:
+        raise HTTPException(status_code=400, detail="magic_link_invalid")
+    uid = str(uid)
+
+    # Read, check, then write, each in its own committed transaction — raising inside
+    # db.connection() rolls its transaction back, which is why verify_otp above is written the same
+    # way. The spend is already committed by design: a link that reaches a disabled account is
+    # burnt, not left available to retry.
+    async with connection() as conn:
+        row = await conn.fetchrow(
+            "select id, email, full_name, locale, is_admin, is_active, role, country, region "
+            "from public.users where id=$1::uuid and deleted_at is null", uid)
+    if not row:
+        raise HTTPException(status_code=400, detail="magic_link_invalid")
+    if not row["is_active"]:
+        # The same code /login returns. Not an enumeration surface: holding a valid token already
+        # proves control of the mailbox.
+        raise HTTPException(status_code=403, detail="account_disabled")
+
+    async with connection() as conn:
+        # Consuming the link IS the verification — it proves the same thing the OTP proves. That is
+        # what lets /login keep its email_not_verified gate for the password path.
+        await conn.execute(
+            """update public.users set email_verified=true, otp_code=null, otp_expires_at=null,
+                      otp_attempts=0
+                where id=$1::uuid and email_verified is not true""", uid)
+        # Idempotent through email_sends, so this fires once per account ever — on the first link
+        # consumed, exactly as signup and verify-otp call it.
+        await _send_welcome(conn, uid, row["full_name"])
+
+    _set_cookie(response, create_token(uid))
+    return UserOut(id=uid, email=row["email"], full_name=row["full_name"],
+                   locale=row["locale"], is_admin=row["is_admin"],
+                   role=row["role"], country=row["country"], region=row["region"])
+
+
+# ---------------------------------------------------------------------------
 # Account self-service: change your password, edit your profile, close your account.
 #
 # None of this existed until now. A live product with real accounts had no way for anyone to change
 # their own password — someone whose password leaked could do nothing about it — and no way to leave.
+#
+# MIN_PASSWORD_LEN moved to the constants at the top of this file: signup now validates the password
+# itself (it became optional) and needs the same floor, so one definition serves both.
 # ---------------------------------------------------------------------------
-
-MIN_PASSWORD_LEN = 8
 
 
 @router.post("/change-password")

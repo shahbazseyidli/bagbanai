@@ -1,5 +1,15 @@
 "use client";
 
+// Sign in. TWO paths, and the second one is not optional to keep:
+//
+//   * the magic link is the PRIMARY path — type an email, tap the link in it, you are in;
+//   * the password form is UNCHANGED and still one tap away. Real accounts exist with a password
+//     hash (the owner's among them). Removing this form, or quietly degrading it, would lock those
+//     people out of their own farms. Nothing below the "Parolla daxil ol" toggle differs from what
+//     shipped before: same POST /api/auth/login, same mapAuthError, same email_not_verified →
+//     resend-otp → OtpVerify branch, same afterLogin.
+//
+// The typed address is ONE state shared by both views, so switching does not make anyone retype it.
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -8,7 +18,8 @@ import { useAuth } from "@/lib/auth";
 import { t } from "@/lib/i18n";
 import { ErrorNote } from "@/components/ui";
 import OtpVerify from "@/components/OtpVerify";
-import { clearAnswers, loadAnswers } from "@/lib/onboardingQuiz";
+import MagicLinkForm from "@/components/auth/MagicLinkForm";
+import { carryQuiz } from "@/components/auth/carryQuiz";
 import type { User } from "@/lib/types";
 
 function mapAuthError(detail: string): string {
@@ -26,28 +37,6 @@ function postLoginDest(): string {
   return "/";
 }
 
-// E13 — a visitor who took the landing quiz and then signed IN, not up, had their answers stranded:
-// only the signup body ever carried them, so they sat in localStorage until the next signup on this
-// browser silently inherited them.
-//
-// Bounded to this visit on purpose: on a shared device the answers may belong to whoever was
-// browsing rather than to the account being opened, and an hours-old quiz is the same person while a
-// week-old one is a coin flip. An unfinished quiz has no completed_at (only finish() stamps it), so
-// the same gate also refuses to apply a half-answered one.
-const QUIZ_CARRY_MS = 24 * 60 * 60 * 1000;
-
-async function carryQuiz() {
-  const q = loadAnswers();
-  if (!q) return;
-  const done = q.completed_at ? Date.parse(q.completed_at) : NaN;
-  if (Number.isFinite(done) && Date.now() - done < QUIZ_CARRY_MS) {
-    try {
-      await api.post("/api/auth/onboarding", { onboarding: q });
-    } catch { /* a nicety, never a reason to block the login */ }
-  }
-  clearAnswers(); // fresh or stale, it has had its chance — don't leak it into the next account
-}
-
 export default function LoginPage() {
   const router = useRouter();
   const { setUser } = useAuth();
@@ -55,10 +44,11 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [withPassword, setWithPassword] = useState(false); // false = the magic-link view
   const [otpEmail, setOtpEmail] = useState<string | null>(null); // set → account needs verification
 
-  // Both success paths (password and OTP) go through here, so an OTP-verified login carries the
-  // quiz exactly like a direct one.
+  // Both password-path successes (direct and OTP) go through here, so an OTP-verified login carries
+  // the quiz exactly like a direct one. The magic link has its own copy of this in /auth/link.
   async function afterLogin(user: User) {
     setUser(user);
     await carryQuiz();
@@ -95,7 +85,8 @@ export default function LoginPage() {
         {otpEmail ? (
           // onVerified is typed `(u: User) => void`, so the handler must not return the promise.
           <OtpVerify email={otpEmail} onVerified={(u) => { void afterLogin(u); }} />
-        ) : (
+        ) : withPassword ? (
+        <>
         <form onSubmit={onSubmit} className="space-y-3">
           <div>
             <label className="label">{t("auth.email")}</label>
@@ -122,6 +113,26 @@ export default function LoginPage() {
             {busy ? t("common.loading") : t("auth.loginCta")}
           </button>
         </form>
+        <button
+          type="button"
+          onClick={() => { setWithPassword(false); setError(""); }}
+          className="mt-3 block min-h-[var(--tap)] w-full text-center text-sm text-emerald-700 hover:underline"
+        >
+          {t("auth.magic.useMagic")}
+        </button>
+        </>
+        ) : (
+        <>
+        <MagicLinkForm mode="login" email={email} onEmailChange={setEmail} />
+        {/* The way back for every account that has a password hash. */}
+        <button
+          type="button"
+          onClick={() => { setWithPassword(true); setError(""); }}
+          className="mt-3 block min-h-[var(--tap)] w-full text-center text-sm text-emerald-700 hover:underline"
+        >
+          {t("auth.magic.usePassword")}
+        </button>
+        </>
         )}
         <Link href="/signup" className="mt-4 block text-center text-sm text-emerald-700 hover:underline">
           {t("auth.toSignup")}

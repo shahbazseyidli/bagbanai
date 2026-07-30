@@ -54,6 +54,42 @@ export const az = {
   "auth.err.email_taken": "Bu e-poçt artıq qeydiyyatdadır",
   "auth.err.invalid_credentials": "E-poçt və ya parol yanlışdır",
 
+  // auth — magic link (the primary path: e-poçt yaz → linkə toxun). Parol girişi silinmir,
+  // ona görə usePassword/useMagic cütü var: hash-i olan köhnə hesablar öz formasına qayıda bilir.
+  "auth.magic.send": "Giriş linki göndər",
+  // Not common.loading: "Yüklənir..." burada səhv feildir — heç nə yüklənmir, məktub gedir.
+  "auth.magic.sending": "Göndərilir…",
+  "auth.magic.sentTitle": "Poçtunuzu yoxlayın",
+  // tf() TEMPLATE — {email}. otp.promptPre/promptPost cütü ünvanı cümlənin ORTASINA salırdı;
+  // bir açar tərcüməçiyə söz sırasını öz dilinə görə qurmağa imkan verir.
+  "auth.magic.sentBody": "{email} ünvanına giriş linki göndərdik. Linkə toxunun — parol lazım deyil.",
+  // tf() TEMPLATE — {minutes} API-nin expires_in dəyəridir, TTL 8 lüğətdə təkrarlanmır.
+  "auth.magic.sentExpiry": "Link {minutes} dəqiqə etibarlıdır və yalnız bir dəfə işləyir.",
+  "auth.magic.notReceived": "Məktub gəlmədi? Spam qovluğunu da yoxlayın.",
+  "auth.magic.resend": "Linki yenidən göndər",
+  // tf() TEMPLATE — {seconds}. Rəqəmdən SONRA isim yoxdur: qoyulsaydı ru/pl one/few/many
+  // formaları tələb edərdi. Tərcümədə də rəqəmin ardınca isim yazma.
+  "auth.magic.resendWait": "Yenidən göndər ({seconds})",
+  // otp.resent "Kod" deyir — bu axında göndərilən link-dir, ona görə ayrı açar.
+  "auth.magic.resent": "Link yenidən göndərildi.",
+  // Backend retry_after/429 qaytaranda göstərilir, yəni HEÇ NƏ göndərilmədi —
+  // mətn məktubun getdiyini ima etməməlidir.
+  "auth.magic.tooSoon": "Link az əvvəl göndərilib. Yenisini istəməzdən əvvəl bir az gözləyin.",
+  "auth.magic.changeEmail": "Başqa ünvan yaz",
+  "auth.magic.sendFailed": "Link göndərilmədi. Bir azdan yenidən cəhd edin.",
+  "auth.magic.signupSub": "Yalnız e-poçt ünvanınız lazımdır — parol yaratmağa ehtiyac yoxdur.",
+  "auth.magic.loginSub": "E-poçt ünvanınızı yazın, giriş linkini göndərək.",
+  "auth.magic.usePassword": "Parolla daxil ol",
+  "auth.magic.useMagic": "Giriş linki ilə daxil ol",
+  "auth.magic.verifyingTitle": "Daxil olursunuz…",
+  "auth.magic.verifyingBody": "Bir neçə saniyə çəkir, səhifəni bağlamayın.",
+  "auth.magic.failedTitle": "Bu link işləmir",
+  // TƏK uğursuzluq mətni: vaxtı bitib / işlədilib / heç olmayıb — backend bunları qəsdən
+  // ayırmır (ayırsaq, link təxmin edən adama nəyin doğru olduğunu deyərdik). Tərcümə də ayırmır.
+  "auth.magic.failedBody": "Linkin vaxtı bitib və ya artıq istifadə olunub. Yeni link istəyin.",
+  "auth.magic.networkBody": "Serverə çatmaq olmadı. Link hələ də etibarlıdır — yenidən cəhd edin.",
+  "auth.magic.requestNew": "Yeni link göndər",
+
   // landing
   "landing.title": "Peyk, hava və süni intellekt ilə əkin sahələrinizi idarə edin",
   "landing.subtitle":
@@ -1083,6 +1119,15 @@ export const az = {
   "app.field.aiTab.chipGrowthAsk": "Bitki inkişafı bu dövr üçün normaldırmı?",
   "app.field.aiTab.chipRiskLabel": "«{risk}» — nə etməli?",
   "app.field.aiTab.chipRiskAsk": "«{risk}» riski üçün nə etməliyəm?",
+  // Sahə adı boş buraxılanda serverin verdiyi ad. SƏRT BAĞLILIQ: buradakı söz serverin
+  // saxladığı sözlə EYNİ olmalıdır — grep `_FIELD_WORD` (services/app/routers/fields.py).
+  // Nümunə nömrələr (1, 2) və üç nöqtə qalır: konkret nömrəni server seçir, biz vəd etmirik.
+  "app.field.autoName.placeholder": "Sahə 1, Sahə 2 …",
+  // İki fakt da yük daşıyır: boş buraxmaq olar, VƏ verilən ad sonradan dəyişdirilə bilər
+  // (o, həqiqi saxlanmış dəyərdir, placeholder deyil).
+  "app.field.autoName.hint": "Boş buraxsanız sistem avtomatik ad verəcək. Sonra istədiyiniz vaxt dəyişə bilərsiniz.",
+  // 4-cü addımın təsdiq xülasəsində tirenin yerinə. Gələcək zaman: ad sahə yaradılana qədər yoxdur.
+  "app.field.autoName.summary": "Avtomatik ad veriləcək",
   "app.field.backfillCard.archivePost": "-ci ilə qədər gedir. Keçmiş illəri yükləsəniz, mövsüm müqayisəsi işləyə bilər.",
   "app.field.backfillCard.archivePre": "Peyk arxivi ",
   "app.field.backfillCard.endYearLabel": "Son il",
@@ -2417,6 +2462,16 @@ export const az = {
   "app.err.serverError": "Server xətası — bir azdan yenidən cəhd edin.",
   "app.err.sessionExpired": "Sessiya bitib — yenidən daxil olun.",
   "app.err.tooManyAttempts": "Çox cəhd oldu — bir azdan yenidən yoxlayın.",
+  // Backend `magic_link_invalid` (400, POST /api/auth/magic-login). Üç səbəb üçün TƏK mətn —
+  // vaxtı bitib / işlədilib / heç olmayıb. Ayırmamaq təhlükəsizlik nəzarətidir, üslub deyil.
+  "app.err.magicLinkInvalid": "Bu keçidin vaxtı bitib və ya artıq istifadə olunub. Yeni keçid istəyin.",
+  // Backend `too_many_requests` (429, POST /api/auth/magic-link). Həm e-poçt üzrə SQL pəncərəsi,
+  // həm IP üzrə pəncərə bura düşür; hansının işə düşdüyünü demir — deməklə çağırana ünvanın
+  // qeydiyyatda olub-olmadığını bildirmiş olardıq.
+  "app.err.tooManyRequests": "Çox sayda sorğu. Bir neçə dəqiqədən sonra yenidən cəhd edin.",
+  // Backend `email_not_configured` (503) — Resend/SMTP nəqli yoxdur. İstehsalatda var, bu
+  // dev/səhv-konfiqurasiya halıdır; fermer heç vaxt xam kod görməməlidir.
+  "app.err.emailNotConfigured": "Hazırda e-poçt göndərilə bilmir. Bir azdan yenidən cəhd edin.",
   "app.err.wrongPassword": "Cari parol yanlışdır.",
   "app.err.passwordTooShort": "Parol ən azı 8 simvol olmalıdır.",
   "app.err.passwordUnchanged": "Yeni parol cari paroldan fərqlənməlidir.",

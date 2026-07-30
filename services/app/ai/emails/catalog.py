@@ -18,10 +18,24 @@ fields_label, alerts_label, trial_days, app_url, site_url, add_field_url, ...). 
 allowed in copy. WARNING: `_fmt` swallows KeyError, so a placeholder the caller forgot to supply
 ships to the farmer as the literal "{field}" — every key a template references must be defaulted by
 its caller.
+
+ONE PERSONA IN EVERY LANGUAGE. The copy used to be signed by whichever of eight personas matched
+the locale; all eight mailboxes were unreachable (agradex.com has no MX record), so the emails
+invited replies into a black hole. Every email is now from — and signed by — the one person with a
+real mailbox. The name is NOT written down here: it lives once in `ai/notify.py` as `SENDER_NAME`,
+next to the From header it has to agree with, and reaches this file through `SIGNOFF` below.
 """
 from __future__ import annotations
 
 from typing import Any
+
+from ..notify import SENDER_NAME
+
+# The single signoff, built from the same constant as the From header so the letter cannot be
+# signed by someone other than its sender. Import direction is safe: notify.py imports only
+# stdlib + httpx + ..config and never reaches back into this package, so there is no cycle — and
+# on the live path emails/__init__ → .send → ..notify loads notify first anyway.
+SIGNOFF = f"{SENDER_NAME} — Agradex"
 
 # Roles that get a bespoke welcome voice. Anything else → "farmer".
 ROLES = ("farmer", "consultant", "lab", "supplier")
@@ -58,7 +72,7 @@ _WELCOME_AZ = {
         ],
         "cta": {"label": "Sahəmi əlavə edim →", "url": "{add_field_url}"},
         "outro": ["Sualınız var? Bu məktuba cavab yazın — hər birini oxuyuram."],
-        "signoff": "Ülkər Nəsirova — Agradex",
+        "signoff": SIGNOFF,
     },
     "consultant": {
         "subject": "Agradex — aqronom iş sahəniz hazırdır",
@@ -73,7 +87,7 @@ _WELCOME_AZ = {
         ],
         "cta": {"label": "İş sahəsini aç →", "url": "{app_url}"},
         "outro": ["Sualınız olsa, birbaşa bu məktuba cavab yazın."],
-        "signoff": "Ülkər Nəsirova — Agradex",
+        "signoff": SIGNOFF,
     },
     "lab": {
         "subject": "Agradex — laboratoriya profiliniz hazırdır",
@@ -88,7 +102,7 @@ _WELCOME_AZ = {
         ],
         "cta": {"label": "Profilimi tamamlayım →", "url": "{app_url}"},
         "outro": ["Kömək lazımdırsa, bu məktuba cavab yazın."],
-        "signoff": "Ülkər Nəsirova — Agradex",
+        "signoff": SIGNOFF,
     },
     "supplier": {
         "subject": "Agradex — təchizatçı hesabınız hazırdır",
@@ -103,7 +117,7 @@ _WELCOME_AZ = {
         ],
         "cta": {"label": "Kataloqumu aç →", "url": "{app_url}"},
         "outro": ["Sualınız olsa, bu məktuba cavab yazın."],
-        "signoff": "Ülkər Nəsirova — Agradex",
+        "signoff": SIGNOFF,
     },
 }
 _WELCOME_EN = {
@@ -112,7 +126,7 @@ _WELCOME_EN = {
         "preheader": "See your fields from space — get started in 2 steps.",
         "heading": "Welcome, {name}! 🌱",
         "intro": [
-            "I'm Olivia from Agradex. Agradex is your <b>satellite + AI co-pilot</b> — see every field from space, catch stress early, and account for every manat.",
+            "I'm Ülkər from Agradex. Agradex is your <b>satellite + AI co-pilot</b> — see every field from space, catch stress early, and account for every manat.",
             "Let's get started in 2 steps:",
         ],
         "steps": [
@@ -121,7 +135,7 @@ _WELCOME_EN = {
         ],
         "cta": {"label": "Add my field →", "url": "{add_field_url}"},
         "outro": ["Questions? Just reply to this email — I read every one."],
-        "signoff": "Olivia Hayes — Agradex",
+        "signoff": SIGNOFF,
     },
     "consultant": {
         "subject": "Your Agradex agronomist workspace",
@@ -136,7 +150,7 @@ _WELCOME_EN = {
         ],
         "cta": {"label": "Open workspace →", "url": "{app_url}"},
         "outro": ["Any questions? Just reply to this email."],
-        "signoff": "Olivia Hayes — Agradex",
+        "signoff": SIGNOFF,
     },
     "lab": {
         "subject": "Your Agradex lab profile is ready",
@@ -151,7 +165,7 @@ _WELCOME_EN = {
         ],
         "cta": {"label": "Complete my profile →", "url": "{app_url}"},
         "outro": ["Need help? Just reply to this email."],
-        "signoff": "Olivia Hayes — Agradex",
+        "signoff": SIGNOFF,
     },
     "supplier": {
         "subject": "Your Agradex supplier account is ready",
@@ -166,7 +180,7 @@ _WELCOME_EN = {
         ],
         "cta": {"label": "Open my catalog →", "url": "{app_url}"},
         "outro": ["Any questions? Just reply to this email."],
-        "signoff": "Olivia Hayes — Agradex",
+        "signoff": SIGNOFF,
     },
 }
 
@@ -181,7 +195,7 @@ _SIMPLE_AZ: dict[str, dict] = {
         "intro": ["<b>“{field}”</b> ({area} ha) üçün peyk təhlili hazırdır. İlk NDVI xəritəsini və bitki sağlamlığı qiymətini indi görün."],
         "cta": {"label": "Sahəni aç →", "url": "{field_url}"},
         "outro": ["Növbəti peyk səhnəsi gələndə AI aqronom avtomatik məsləhət hazırlayacaq."],
-        "signoff": "Ülkər Nəsirova — Agradex",
+        "signoff": SIGNOFF,
     },
 }
 _SIMPLE_EN: dict[str, dict] = {
@@ -192,7 +206,7 @@ _SIMPLE_EN: dict[str, dict] = {
         "intro": ["Satellite analysis for <b>“{field}”</b> ({area} ha) is ready. See your first NDVI map and crop-health score now."],
         "cta": {"label": "Open field →", "url": "{field_url}"},
         "outro": ["When the next satellite scene arrives, the AI agronomist will prepare advice automatically."],
-        "signoff": "Olivia Hayes — Agradex",
+        "signoff": SIGNOFF,
     },
 }
 
@@ -217,7 +231,7 @@ _WEEKLY_AZ = {
         "intro": ["Salam{name_suffix}! Bu həftə sahələrinizdə təcili heç nə olmadı — budur qısa xülasə."],
         "outro": ["Təcili xəbərdarlıqlar dərhal tətbiqdə görünür; email həftədə bir dəfə, çərşənbə səhəri gəlir.",
                   "Sualınız var? Bu məktuba cavab yazın — hər birini oxuyuram."],
-        "signoff": "Ülkər Nəsirova — Agradex",
+        "signoff": SIGNOFF,
     },
     "alerts": {
         "subject": "⚠️ {alerts_label} — həftəlik xülasəniz",
@@ -227,7 +241,7 @@ _WEEKLY_AZ = {
                   "Hamısı aşağıdadır. Sahəyə çıxmazdan əvvəl bir dəqiqəlik oxuyun."],
         "outro": ["Təcili xəbərdarlıqlar dərhal tətbiqdə görünür; email həftədə bir dəfə, çərşənbə səhəri gəlir.",
                   "Sualınız var? Bu məktuba cavab yazın — hər birini oxuyuram."],
-        "signoff": "Ülkər Nəsirova — Agradex",
+        "signoff": SIGNOFF,
     },
     "no_crop": {
         "subject": "Bir addım qalıb: “{field}” üçün məhsulu seçin",
@@ -236,7 +250,7 @@ _WEEKLY_AZ = {
         "intro": ["Salam{name_suffix}! Sahələriniz peykdə görünür, amma hələ məhsul seçilməyib. Məhsulu seçən kimi Agradex <b>məhsula uyğun sağlamlıq həddləri</b>, gübrə normaları və daha dəqiq məsləhət verə bilir.",
                   "Bir dəqiqəlik işdir. Aşağıda bu həftənin xülasəsi də var."],
         "outro": ["Bu məktub həftədə bir dəfə, çərşənbə səhəri gəlir."],
-        "signoff": "Ülkər Nəsirova — Agradex",
+        "signoff": SIGNOFF,
     },
     "no_fields": {
         "subject": "İlk sahənizi 2 dəqiqəyə əlavə edin",
@@ -246,7 +260,7 @@ _WEEKLY_AZ = {
                   "Çəkmək istəmirsiniz? Xəritədə sahəyə <b>toxunun</b> — Agradex sərhədi özü aşkarlayır."],
         "outro": ["Nəyisə çətindirsə, bu məktuba bir cümlə ilə cavab yazın — kömək edərəm.",
                   "Sahə əlavə edən kimi bu məktubun yerinə həftəlik sahə xülasəniz gələcək."],
-        "signoff": "Ülkər Nəsirova — Agradex",
+        "signoff": SIGNOFF,
     },
 }
 _WEEKLY_EN = {
@@ -257,7 +271,7 @@ _WEEKLY_EN = {
         "intro": ["Hi{name_suffix}! Nothing urgent happened in your fields this week — here's the short version."],
         "outro": ["Urgent alerts show up in the app straight away; email comes once a week, on Wednesday morning.",
                   "Questions? Just reply to this email — I read every one."],
-        "signoff": "Olivia Hayes — Agradex",
+        "signoff": SIGNOFF,
     },
     "alerts": {
         "subject": "⚠️ {alerts_label} — your weekly summary",
@@ -267,7 +281,7 @@ _WEEKLY_EN = {
                   "They're all below. Worth a minute before you head out to the field."],
         "outro": ["Urgent alerts show up in the app straight away; email comes once a week, on Wednesday morning.",
                   "Questions? Just reply to this email — I read every one."],
-        "signoff": "Olivia Hayes — Agradex",
+        "signoff": SIGNOFF,
     },
     "no_crop": {
         "subject": "One step left: set the crop for “{field}”",
@@ -276,7 +290,7 @@ _WEEKLY_EN = {
         "intro": ["Hi{name_suffix}! Your fields are visible from space, but no crop is set yet. The moment you pick one, Agradex can apply <b>crop-specific health thresholds</b>, fertilizer norms and sharper advice.",
                   "It takes a minute. This week's summary is below as well."],
         "outro": ["This email comes once a week, on Wednesday morning."],
-        "signoff": "Olivia Hayes — Agradex",
+        "signoff": SIGNOFF,
     },
     "no_fields": {
         "subject": "Add your first field in 2 minutes",
@@ -286,7 +300,7 @@ _WEEKLY_EN = {
                   "Don't want to draw it? Just <b>tap</b> the field on the map — Agradex detects the boundary for you."],
         "outro": ["If anything got in the way, reply with one line and I'll help.",
                   "As soon as you add a field, this email becomes your weekly field summary instead."],
-        "signoff": "Olivia Hayes — Agradex",
+        "signoff": SIGNOFF,
     },
 }
 
@@ -338,9 +352,27 @@ def _payload(entry: dict, loc: str, role: str | None, variant: str | None) -> di
 def build(template_id: str, locale: str | None, role: str | None, ctx: dict,
           variant: str | None = None) -> dict | None:
     """Resolve a template to a formatted content dict. Falls back locale → en → az.
-    `variant` selects between framings of one template id (see the weekly digest above)."""
+    `variant` selects between framings of one template id (see the weekly digest above).
+
+    The signoff is force-normalized to SIGNOFF after formatting, which is what retires the old
+    personas everywhere at once. Three reasons it belongs here rather than in the copy tables:
+      1. catalog_i18n.py still carries ~90 signoff lines naming the six retired personas, and its
+         own header says "Do not hand-edit — regenerate". Editing them by hand would be undone by
+         the next regeneration; overriding at build time makes a stale regeneration harmless.
+      2. It covers locales and templates that do not exist yet — a new translation cannot ship
+         signed by the wrong person.
+      3. The key is REPLACED, never INTRODUCED, so a template that deliberately carries no signoff
+         (transactional one-liners) still renders without one.
+    Safe to write to `out`: `_fmt` rebuilds dicts via a comprehension, so this mutates a fresh
+    object, never the shared COPY tables.
+    """
     entry = COPY.get(template_id)
     if not entry:
         return None
     raw = _payload(entry, (locale or "az")[:2].lower(), role, variant)
-    return _fmt(raw, ctx) if raw else None
+    if not raw:
+        return None
+    out = _fmt(raw, ctx)
+    if isinstance(out, dict) and "signoff" in out:
+        out["signoff"] = SIGNOFF
+    return out
