@@ -111,7 +111,11 @@ async def drain_research(limit: int = 1):
                         await ai_usage.record_usage(
                             conn, kind="research", provider=usage["provider"], model=usage["model"],
                             input_tokens=usage["input_tokens"], output_tokens=usage["output_tokens"],
-                            org_id=result["org_id"], user_id=None, field_id=job["field_id"])
+                            org_id=result["org_id"], user_id=None, field_id=job["field_id"],
+                            # Always the queue worker (deploy/process-research.sh, every 3 min), so
+                            # nobody is ever waiting on this one — the clearest batch candidate we
+                            # have. user_id=None already hinted it; `source` states it.
+                            source="auto")
                     except Exception:
                         pass
                 await jobs.complete(conn, job["id"], bool(result.get("ok")),

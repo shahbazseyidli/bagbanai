@@ -93,7 +93,7 @@ def _signature(risks: list[dict], recs: list[dict]) -> str:
 
 
 async def generate_and_store(conn, field_id: str, force: bool = False,
-                             lang: str = "az") -> Optional[dict]:
+                             lang: str = "az", source: str = "auto") -> Optional[dict]:
     """Generate advice for a field, store it, and notify on material change.
     Returns the stored advice dict, or None if the LLM is not configured or the
     15-day throttle skips regeneration (unless force=True). `lang` decides the prose
@@ -172,7 +172,13 @@ async def generate_and_store(conn, field_id: str, force: bool = False,
         await ai_usage.record_usage(
             conn, kind="advice", provider=usage["provider"], model=usage["model"],
             input_tokens=usage["input_tokens"], output_tokens=usage["output_tokens"],
-            org_id=org_id, user_id=str(owner_id) if owner_id else None, field_id=field_id)
+            org_id=org_id, user_id=str(owner_id) if owner_id else None, field_id=field_id,
+            # Advice is the ONE kind generated both ways, and only the caller can tell them apart:
+            # the pipeline fires this after every satellite scene with nobody watching, while
+            # POST /fields/{id}/advice/generate has a farmer waiting on it. Defaulting to "auto" is
+            # the safe direction — mislabelling a waiting call as batchable would be the harmful
+            # mistake, and the manual route passes source="user" explicitly.
+            source=source)
     except Exception:
         pass
 

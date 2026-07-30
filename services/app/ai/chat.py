@@ -134,7 +134,9 @@ async def answer(conn, field_id: str, user_id: str, message: str, locale: str = 
         await ai_usage.record_usage(
             conn, kind="chat", provider=usage["provider"], model=usage["model"],
             input_tokens=usage["input_tokens"], output_tokens=usage["output_tokens"],
-            org_id=org_id, user_id=user_id, field_id=field_id)
+            org_id=org_id, user_id=user_id, field_id=field_id,
+            # A farmer typed this and is watching for the reply. Never batch it.
+            source="user")
     except Exception:
         pass
 

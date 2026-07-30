@@ -75,7 +75,7 @@ async def generate_advice(field_id: str, request: Request,
     async with connection(user_id) as conn:
         org_id = await _org_of_field(conn, field_id)
         await require_member(conn, user_id, org_id)
-        result = await advice_svc.generate_and_store(conn, field_id, force=True, lang=locale)
+        result = await advice_svc.generate_and_store(conn, field_id, force=True, lang=locale, source="user")
     if result is None:
         raise HTTPException(status_code=503, detail="ai_unavailable")
     # The quota branch used to come back as a 200 carrying {"quota_exceeded": true}, so every
