@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { t, tp } from "@/lib/i18n";
+import { cropName } from "@/lib/wellnessText";
 
 interface Peer { user_id: string; name?: string | null; crop?: string | null; region?: string | null; }
 
@@ -41,7 +42,7 @@ export default function PeerSuggest({ fieldId }: { fieldId: string }) {
         ))}
       </div>
       <p className="flex-1 text-sm text-emerald-900">
-        <b>{peers.length} {tp("app.plural.farmers", peers.length)}</b>{crop ? ` (${crop})` : ""}{t("app.field.peerSuggest.suggestBody")}
+        <b>{peers.length} {tp("app.plural.farmers", peers.length)}</b>{crop ? ` (${cropName(crop)})` : ""}{t("app.field.peerSuggest.suggestBody")}
       </p>
       <button className="btn-primary" onClick={() => talk(peers[0])}>{t("app.field.peerSuggest.consult")}</button>
     </div>

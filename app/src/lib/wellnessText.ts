@@ -92,7 +92,12 @@ export function wellnessLabel(key: string, fallback?: string | null, labelCode?:
  * An unrecognised key falls back to the RAW KEY, never to an empty string: a key the dictionaries
  * have not caught up with is ugly, but ", normaları üzrə" is a sentence about nothing.
  */
-function cropName(crop: unknown): string {
+/** Localized crop name from the crop_thresholds key, falling back to the raw key rather than an
+ *  empty string. Exported because the backend hands that key to more than one surface — the wellness
+ *  reason and the peer suggestion both had it, and the peer suggestion was still printing
+ *  "1 fermer (hazelnut)" to Azerbaijani readers after the wellness one was fixed. One mapping, one
+ *  fallback rule: a second copy is how the two drift apart. */
+export function cropName(crop: unknown): string {
   const key = String(crop ?? "").trim();
   if (!key) return "";
   const k = `app.meta.crop.${key}`;
