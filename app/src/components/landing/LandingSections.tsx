@@ -300,7 +300,9 @@ export function ModuleRows() {
         }
       />
 
-      {/* 3 — farm ledger */}
+      {/* 3 — fertilizer plan + field records (the farm-ledger module this slot used to sell was
+          removed from the product in 81660df; the dose suggestion and the operations/scouting log
+          are what actually ships) */}
       <ModRow
         text={
           <ModText
@@ -322,17 +324,11 @@ export function ModuleRows() {
                 {t("mkt.sections.fertCalloutPre")} <b>{t("mkt.sections.fertCalloutBold")}</b>{t("mkt.sections.fertCalloutPost")}
               </span>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-[14px] border border-line p-3.5">
-                <span className="lp-muted text-[12px]">{t("mkt.sections.mod3ProfitLabel")}</span>
-                <b className="mt-1 block font-display text-[22px] font-bold tabular-nums text-grass">
-                  580 ₼
-                </b>
-              </div>
-              <div className="rounded-[14px] border border-line p-3.5">
-                <span className="lp-muted text-[12px]">{t("mkt.sections.mod3NextFertLabel")}</span>
-                <b className="lp-ink mt-1 block font-display text-[15px] font-semibold">28 iyul</b>
-              </div>
+            {/* One tile, not two: the second used to be "Mənfəət/ha 580 ₼" and there is no ledger
+                behind it any more. A shorter honest card beats a padded one. */}
+            <div className="rounded-[14px] border border-line p-3.5">
+              <span className="lp-muted text-[12px]">{t("mkt.sections.mod3NextFertLabel")}</span>
+              <b className="lp-ink mt-1 block font-display text-[15px] font-semibold">28.07</b>
             </div>
           </Shot>
         }
@@ -414,10 +410,12 @@ function CmpCell({ v }: { v: string }) {
 export function WhyUs() {
   // The 2nd–4th tuple values ("yox"/"var"/"məhdud"/"qismən") are ENUM CODES; CmpCell compares the
   // code (v === "var") and localizes the DISPLAY, so the codes stay in the data unchanged.
+  // Three rows, not four: the "Təsərrüfat dəftəri (xərc/gəlir)" row was dropped with the ledger
+  // module (81660df). It was not replaced — every remaining row rests on published competitor
+  // information, and inventing a fourth comparison to keep the shape would not.
   const CMP: Array<[string, string, string, string]> = [
     [t("mkt.sections.cmpRow1"), "yox", "yox", "var"],
     [t("mkt.sections.cmpRow2"), "məhdud", "yox", "var"],
-    [t("mkt.sections.cmpRow3"), "yox", "var", "var"],
     [t("mkt.sections.cmpRow4"), "qismən", "yox", "var"],
   ];
 
@@ -556,7 +554,7 @@ export function Marquee() {
     { e: "🌱", b: "", t: t("mkt.sections.chipCalib") },
     { e: "🧪", b: t("mkt.sections.chipLabs"), t: "" },
     { e: "👨‍🌾", b: "", t: t("mkt.sections.chipCommunity") },
-    { e: "📊", b: "", t: t("mkt.sections.chipLedger") },
+    { e: "📝", b: "", t: t("mkt.sections.chipRecords") },
     { e: "🤖", b: "", t: t("mkt.sections.chipAi") },
     { e: "🌍", b: t("mkt.sections.chip4lang"), t: "" },
     { e: "📦", b: "", t: t("mkt.sections.chipSupplier") },

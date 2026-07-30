@@ -78,6 +78,29 @@ export function wellnessLabel(key: string, fallback?: string | null, labelCode?:
 }
 
 /**
+ * Localized crop name for a crop_thresholds.crop_type KEY.
+ *
+ * The key is snake_case English ("hazelnut", "peach_apricot") because that is what the seed, the
+ * field wizard and the norms table agree on. It is an identifier, not a word — the backend has no
+ * crop vocabulary and must not grow one (CLAUDE.md: backend prose is CODE + PARAMS), so it hands the
+ * key over and the name is chosen here. Rendering it raw is what put "NDVI 0.72, hazelnut normaları
+ * üzrə" in front of an Azerbaijani reader.
+ *
+ * The names are the field wizard's own list (app.meta.crop.*, 72 crops × 8 locales) — the same
+ * vocabulary that named the crop when the farmer picked it, so the two surfaces can never drift.
+ *
+ * An unrecognised key falls back to the RAW KEY, never to an empty string: a key the dictionaries
+ * have not caught up with is ugly, but ", normaları üzrə" is a sentence about nothing.
+ */
+function cropName(crop: unknown): string {
+  const key = String(crop ?? "").trim();
+  if (!key) return "";
+  const k = `app.meta.crop.${key}`;
+  const s = tf(k);
+  return s === k ? key : s;
+}
+
+/**
  * Render a component reason. `veg` is a COMPOSITE assembled from base + optional parts (crop
  * calibration, baseline position, trend direction derived from delta). All others map directly to
  * one key. `fallback` is the backend AZ prose used when there is no code.
@@ -91,9 +114,11 @@ export function wellnessReason(
   if (!code) return fallback ?? "";
 
   if (code === "veg") {
-    let s = tf("app.wl.veg.base", params ?? {});
-    if (extra?.calibrated && (params as Record<string, unknown> | null)?.crop) {
-      s += tf("app.wl.veg.calibrated", params ?? {});
+    const p = (params ?? {}) as Record<string, unknown>;
+    let s = tf("app.wl.veg.base", p);
+    if (extra?.calibrated && p.crop) {
+      // The crop arrives as the norms-table key; the reader gets a name (see cropName).
+      s += tf("app.wl.veg.calibrated", { ...p, crop: cropName(p.crop) });
     }
     const bl = extra?.baseline;
     if (bl === "below" || bl === "above" || bl === "within") {
@@ -143,6 +168,51 @@ export function wellnessHeadline(
     return tf(`app.wl.${code}`, { ...p, label });
   }
   return tf(`app.wl.${code}`, p);
+}
+
+/** 'YYYY-MM-DD' → '28 iyul' in the active locale, or null when the string is not a date. */
+function isoShortDate(iso: string): string | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  if (!m) return null;
+  const month = Number(m[2]);
+  const day = Number(m[3]);
+  if (month < 1 || month > 12) return null;
+  const months = tf("app.date.monthsShort").split(",");
+  return `${day} ${(months[month - 1] ?? "").trim()}`;
+}
+
+/**
+ * The visible date stamp for a wellness score, or null when the score is today's and may present
+ * itself as current.
+ *
+ * WHY THE SCORE HAS TO BE DATED. Two surfaces serve this number from different places: the field
+ * page computes it on demand, the field list and the dashboard read the last STORED row
+ * (GET /api/orgs/{id}/wellness never computes — one computation is ~8 queries). In production that
+ * showed the same field as 89 on the list and 70 on its own page at the same moment, the 89 being
+ * two days old. A daily sweep now keeps the stored row current, but when the sweep does not land the
+ * gap must be legible instead of silent: an old number that looks like today's number is worse than
+ * an old number that says so.
+ *
+ * DATED FROM AGE 1, not from `stale`. `stale` is the louder judgement (age > 1, i.e. a sweep
+ * genuinely missed); this stamp fires on the weaker fact that the row is simply not today's.
+ * Yesterday's row is a normal state — the sweep runs at 04:20 UTC, so every row reads as
+ * "yesterday" until then — but normal is not current, and the farmer decides what a day-old reading
+ * is worth, not us.
+ *
+ * Returns null when the server did not send `today` (an API build older than this field): silence
+ * is not evidence of staleness, and dating every score on a half-deployed stack would be its own
+ * lie.
+ */
+export function wellnessAgeLabel(
+  isToday: boolean | undefined | null,
+  ageDays: number | null | undefined,
+  computedOn: string | null | undefined,
+): string | null {
+  if (isToday !== false) return null;
+  if (ageDays === 1) return tf("app.wl.age.yesterday");
+  // Two days or more: the date itself, which is shorter to read and needs no plural rule.
+  if (computedOn) return isoShortDate(computedOn);
+  return null;
 }
 
 // ── Pest risk candidates ───────────────────────────────────────────────────────────────────────

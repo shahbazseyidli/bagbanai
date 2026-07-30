@@ -341,13 +341,20 @@ async def _alerts(conn, ids: list, prefs: Any) -> list[dict]:  # prefs is REQUIR
             if notify_prefs.allows_notification(prefs, r["source"], r["type"], "digest")]
 
 
-async def _advice(conn, ids: list) -> dict[str, dict]:
+async def _advice(conn, ids: list, locale: str | None) -> dict[str, dict]:
+    """Prefer the reader's language. The digest QUOTES this prose into the email body, and stored
+    prose is never translated on read, so "newest row wins" could put an Azerbaijani sentence inside
+    a Russian email — CLAUDE.md flagged exactly that gap. `distinct on` keeps one row per field, and
+    the language preference sits ahead of recency inside each field's group, so a reader whose
+    language exists gets it even when a foreign row is newer; a reader whose language does not exist
+    still gets something rather than an empty digest section."""
     rows = await conn.fetch(
-        """select distinct on (field_id) field_id, summary, findings, generated_at
+        """select distinct on (field_id) field_id, summary, findings, generated_at, lang
            from public.advice
            where field_id = any($1::uuid[])
              and generated_at >= now() - make_interval(days => $2::int)
-           order by field_id, generated_at desc""", ids, ADVICE_DAYS)
+           order by field_id, (lang = coalesce($3::text,'')) desc, generated_at desc""",
+        ids, ADVICE_DAYS, locale)
     return {str(r["field_id"]): dict(r) for r in rows}
 
 
@@ -442,7 +449,7 @@ async def build_weekly(conn, user: dict) -> dict | None:
     trends = await _trend(conn, ids)
     alerts = await _alerts(conn, ids, prefs)
     # "AI aqronom" muted for the digest → skip the query entirely; step 7 then renders nothing.
-    advice = await _advice(conn, ids) if notify_prefs.allows(prefs, "advice", "digest") else {}
+    advice = await _advice(conn, ids, loc) if notify_prefs.allows(prefs, "advice", "digest") else {}
     rasters = await _rasters(conn, ids)
 
     fields.sort(key=lambda f: _sort_key(f, wellness))

@@ -101,14 +101,20 @@ async def answer(conn, field_id: str, user_id: str, message: str, locale: str = 
         return _gate(_GATE_LIMIT, locale).format(n=chat_limit)
     tier_model = tiers.model_for(tier)
 
-    ctx = await build_field_context(conn, field_id)
+    ctx = await build_field_context(conn, field_id, locale)
+    # Same reason as context.py: this block is pasted verbatim into the system prompt, so a summary
+    # in another language both wastes the reader's context and pulls the reply toward that language.
+    # Prefer the newest row the farmer is being answered in; fall back to the newest of any language.
     latest = await conn.fetchrow(
-        "select summary, findings from public.advice where field_id=$1::uuid "
-        "order by generated_at desc limit 1", field_id)
+        "select summary, findings, lang from public.advice where field_id=$1::uuid "
+        "order by (lang = coalesce($2::text,'')) desc, generated_at desc limit 1", field_id, locale)
     ctx_block = {"field_context": ctx}
     if latest:
         f = latest["findings"] if isinstance(latest["findings"], dict) else json.loads(latest["findings"] or "{}")
         ctx_block["latest_advice"] = {"summary": latest["summary"], **f}
+        if latest["lang"] and locale and latest["lang"] != locale:
+            # Name the language rather than let the model infer it from the prose.
+            ctx_block["latest_advice"]["lang"] = latest["lang"]
 
     system = SYSTEM + _lang_directive(locale) + "\n\nKONTEKST (JSON):\n" + json.dumps(ctx_block, ensure_ascii=False)
     msgs = await _load_history(conn, field_id)

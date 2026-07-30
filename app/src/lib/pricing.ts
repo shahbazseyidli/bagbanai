@@ -50,6 +50,5 @@ export const FEATURES: FeatureRow[] = [
   { labelKey: "mkt.compare.rowPhoto", tiers: [OFF, OFF, { on: true, note: "mkt.compare.perMonth30" }], soon: true },
   { labelKey: "mkt.compare.rowFertilizer", tiers: [OFF, OFF, ON], soon: true },
   { labelKey: "mkt.compare.rowBenchmark", tiers: [OFF, OFF, ON], soon: true },
-  { labelKey: "mkt.compare.rowReports", tiers: [OFF, OFF, ON], soon: true },
   { labelKey: "mkt.compare.rowResearch", tiers: [{ on: true, note: "mkt.compare.noteResearchGlobalReg" }, { on: true, note: "mkt.compare.noteResearchGlobalReg" }, { on: true, note: "mkt.compare.noteResearchLocal" }] },
 ];

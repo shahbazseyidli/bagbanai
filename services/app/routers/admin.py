@@ -447,8 +447,11 @@ async def get_field_admin(field_id: str, user_id: str = Depends(get_current_user
                where f.id = $1::uuid and f.deleted_at is null""", field_id)
         if not row:
             raise HTTPException(status_code=404, detail="field_not_found")
+        # Deliberately still "newest wins, any language" — an admin investigating a complaint needs
+        # to see the row the farmer would have been served, not a friendlier one. `lang` is selected
+        # so the panel can SAY which language it is instead of silently showing foreign prose.
         advice = await conn.fetchrow(
-            """select summary, findings, generated_at
+            """select summary, findings, generated_at, lang
                from public.advice where field_id = $1::uuid
                order by generated_at desc limit 1""", field_id)
         indices = await conn.fetch(
@@ -482,6 +485,7 @@ async def get_field_admin(field_id: str, user_id: str = Depends(get_current_user
             "findings": (advice["findings"] if isinstance(advice["findings"], (dict, list))
                          else json.loads(advice["findings"] or "null")),
             "generated_at": advice["generated_at"].isoformat() if advice["generated_at"] else None,
+            "lang": advice["lang"],
         } if advice else None,
         "scene_count": int(scene_count or 0),
         "indices": [

@@ -7,7 +7,7 @@
 // score per field (never computed on read, see services/app/routers/analytics.py). A field with no
 // stored score renders an em-dash, NEVER an invented or back-filled number.
 import { t } from "@/lib/i18n";
-import { wellnessHeadline } from "@/lib/wellnessText";
+import { wellnessAgeLabel, wellnessHeadline } from "@/lib/wellnessText";
 import type { Tone } from "@/lib/indexStatus";
 
 /** One row of GET /api/orgs/{org_id}/wellness. Fields without a stored score are simply absent. */
@@ -19,7 +19,11 @@ export interface FieldScore {
   headline_code?: string | null;
   headline_params?: Record<string, unknown> | null;
   computed_on?: string | null;
+  /** age_days > _STALE_DAYS — a sweep genuinely missed, not merely "not today's". */
   stale?: boolean;
+  /** false when the stored row was not computed today. Optional: an older API build omits it. */
+  today?: boolean;
+  age_days?: number | null;
 }
 
 /** Trust the server's tone; fall back to the same cut-offs as services/app/ai/wellness.py. */
@@ -53,6 +57,25 @@ function detail(s?: FieldScore | null): string | undefined {
   return bits.length ? bits.join(" · ") : undefined;
 }
 
+/**
+ * The date stamp under a score that is not today's, or null when it is today's.
+ *
+ * VISIBLE, not a tooltip. The stored row is the only thing these tiles can show — the read model
+ * never recomputes — so when the daily sweep does not land they hand out an old number. A tooltip
+ * nobody opens (and that a phone has no way to open at all) is not a disclosure; a dated number is.
+ * See wellnessAgeLabel for why age 1 is dated as well.
+ */
+function ScoreAge({ score }: { score: FieldScore }) {
+  const label = wellnessAgeLabel(score.today, score.age_days, score.computed_on);
+  if (!label) return null;
+  return (
+    <span className="text-[10px] font-medium leading-none text-slate-500">
+      <span className="sr-only">{t("app.wl.age.sr")} </span>
+      {label}
+    </span>
+  );
+}
+
 /** The mockup's square .scoredot — the big number next to the field name in the attention hero. */
 export function ScoreDot({ score, className = "" }: { score?: FieldScore | null; className?: string }) {
   if (!score) {
@@ -66,7 +89,8 @@ export function ScoreDot({ score, className = "" }: { score?: FieldScore | null;
     );
   }
   const band = bandOf(score);
-  return (
+  const age = <ScoreAge score={score} />;
+  const dot = (
     <span
       title={detail(score)}
       aria-label={`${t("app.home.scoreBadge.fieldScoreLabel")}${score.score} / 100`}
@@ -75,6 +99,15 @@ export function ScoreDot({ score, className = "" }: { score?: FieldScore | null;
       } ${className}`}
     >
       {score.score}
+    </span>
+  );
+  // A fresh score renders EXACTLY what it did before — the stamp adds a row only when there is
+  // something to disclose, so the common case keeps its layout to the pixel.
+  if (!age) return dot;
+  return (
+    <span className="inline-flex shrink-0 flex-col items-center gap-0.5">
+      {dot}
+      {age}
     </span>
   );
 }
@@ -93,7 +126,8 @@ export function ScorePill({ score, className = "" }: { score?: FieldScore | null
     );
   }
   const band = bandOf(score);
-  return (
+  const age = <ScoreAge score={score} />;
+  const pill = (
     <span
       title={detail(score)}
       className={`shrink-0 rounded-full px-2.5 py-1 text-sm font-bold tabular-nums ${PILL[band]} ${
@@ -102,6 +136,13 @@ export function ScorePill({ score, className = "" }: { score?: FieldScore | null
     >
       <span className="sr-only">{t("app.home.scoreBadge.fieldScoreLabel")}</span>
       {score.score}
+    </span>
+  );
+  if (!age) return pill;
+  return (
+    <span className="inline-flex shrink-0 flex-col items-end gap-0.5">
+      {pill}
+      {age}
     </span>
   );
 }

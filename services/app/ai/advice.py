@@ -113,7 +113,7 @@ async def generate_and_store(conn, field_id: str, force: bool = False,
             if ref > now - timedelta(days=15):
                 return None
 
-    ctx = await build_field_context(conn, field_id)
+    ctx = await build_field_context(conn, field_id, lang)
     field_row = await conn.fetchrow(
         "select org_id, name from public.fields where id=$1::uuid", field_id)
     if not field_row:

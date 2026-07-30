@@ -13,6 +13,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { Bell, ChevronRight, MoreHorizontal, Plus, Sprout, X } from "lucide-react";
 import { t, tf } from "@/lib/i18n";
+import { wellnessAgeLabel } from "@/lib/wellnessText";
 import AlertList, { type TodayAlert } from "./AlertList";
 import AttentionHero from "./AttentionHero";
 import WeatherBar from "./WeatherBar";
@@ -164,6 +165,11 @@ export default function IntelligenceFeed({
               <ul className="space-y-1.5">
                 {scored.map(({ field, score }) => {
                   const band = bandOf(score);
+                  // Same disclosure as the field-list chip: a stored row that was not computed
+                  // today is DATED here, not silently drawn as the current reading. The number
+                  // column grows instead of clipping, which costs the (already truncating) field
+                  // name a few pixels on the rows that carry a stamp.
+                  const age = wellnessAgeLabel(score.today, score.age_days, score.computed_on);
                   return (
                     <li key={field.id}>
                       <Link
@@ -185,8 +191,16 @@ export default function IntelligenceFeed({
                             style={{ width: `${Math.max(0, Math.min(100, score.score))}%` }}
                           />
                         </span>
-                        <span className="w-8 shrink-0 text-right text-sm font-bold tabular-nums text-slate-800">
-                          {score.score}
+                        <span className="flex min-w-[2rem] shrink-0 flex-col items-end leading-tight">
+                          <span className="text-sm font-bold tabular-nums text-slate-800">
+                            {score.score}
+                          </span>
+                          {age && (
+                            <span className="text-[10px] font-medium leading-none text-slate-500">
+                              <span className="sr-only">{t("app.wl.age.sr")} </span>
+                              {age}
+                            </span>
+                          )}
                         </span>
                       </Link>
                     </li>

@@ -153,8 +153,13 @@ async def _vegetation(conn, field_id: str, crop_type: Optional[str]) -> Optional
     level = _band_score(latest, edges)
     score = level
     parts = [f"NDVI {latest:.2f}"]
-    if calibrated and crop_type:
-        parts.append(f"{crop_type} normaları üzrə")
+    # The crop clause is DELIBERATELY absent from this AZ fallback sentence. `crop_type` is a
+    # crop_thresholds key ("hazelnut", "peach_apricot"), not a word, and pasting it here is what put
+    # "NDVI 0.72, hazelnut normaları üzrə" in front of an Azerbaijani reader. The backend has no crop
+    # vocabulary and must not grow one: the key travels as `reason_params.crop` and the frontend
+    # names it (app/src/lib/wellnessText.ts::cropName, app.meta.crop.* in all 8 locales). The
+    # `calibrated` flag below still tells the renderer to add the clause, so nothing is lost — only
+    # this fallback string, which had no way to say it correctly, stays silent about the crop.
 
     base = await conn.fetchrow(
         """select p10, p50, p90, n from public.field_index_baseline

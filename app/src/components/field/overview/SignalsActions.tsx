@@ -12,7 +12,7 @@ import { api } from "@/lib/api";
 import { Placeholder, Spinner } from "@/components/ui";
 import { t } from "@/lib/i18n";
 import { severityLabel } from "@/lib/wellnessText";
-import AdviceLangNote from "@/components/field/AdviceLangNote";
+import AdviceLangNote, { staleFrom } from "@/components/field/AdviceLangNote";
 
 interface Risk { title: string; severity: string; detail: string }
 interface Rec { title: string; detail: string }
@@ -26,6 +26,11 @@ interface Advice {
   /** Language the prose was written in, and whether it differs from the reader's. */
   lang?: string;
   lang_mismatch?: boolean;
+  /** Whole days since this analysis was written. */
+  age_days?: number;
+  /** Set when a newer analysis exists in another language and the read path served this readable
+   * one instead. Null/absent means what is on screen is also the newest there is. */
+  newer_other?: { lang: string; generated_at: string } | null;
 }
 
 const MAX_RISKS = 3;
@@ -73,6 +78,9 @@ export default function SignalsActions({
       ).slice(0, MAX_ACTIONS)
     : [];
   const risks = (advice?.risks ?? []).slice(0, MAX_RISKS);
+  // Present only when the advice on screen is readable but something newer exists in another
+  // language — the two notes are mutually exclusive by construction in the API.
+  const staleNote = staleFrom(advice);
 
   return (
     <section className="card">
@@ -95,7 +103,11 @@ export default function SignalsActions({
         <Placeholder>{t("app.field.signals.empty")}</Placeholder>
       ) : (
         <>
-          {advice.lang_mismatch && <AdviceLangNote fieldId={fieldId} onDone={() => void load()} />}
+          {advice.lang_mismatch ? (
+            <AdviceLangNote fieldId={fieldId} onDone={() => void load()} />
+          ) : staleNote ? (
+            <AdviceLangNote fieldId={fieldId} onDone={() => void load()} stale={staleNote} />
+          ) : null}
 
           {advice.summary && (
             <p className="mb-3 text-[13.5px] leading-relaxed text-ink-soft">{advice.summary}</p>

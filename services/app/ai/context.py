@@ -79,7 +79,9 @@ async def index_trends(
     return out
 
 
-async def build_field_context(conn, field_id: str) -> dict[str, Any]:
+async def build_field_context(conn, field_id: str, lang: str | None = None) -> dict[str, Any]:
+    """`lang` is the language the caller is about to WRITE in, and it only affects which prior advice
+    is quoted back to the model — see the `prior` query below for why that matters."""
     field = await conn.fetchrow(
         """select f.name, round(f.area_ha::numeric,2) as area_ha,
                   m.crop_type, m.variety, m.planting_date, m.expected_harvest,
@@ -96,9 +98,20 @@ async def build_field_context(conn, field_id: str) -> dict[str, Any]:
         """select type, performed_on as date, notes
            from public.field_operations where field_id=$1::uuid
            order by performed_on desc limit 8""", field_id)
+    # The previous summary is fed back to the model, so its LANGUAGE is part of the input, not a
+    # display detail. "Newest row wins" put a Polish leftover from a locale test into the prompt of
+    # an Azerbaijani field — and a foreign summary in the context does not just read badly, it invites
+    # the model to answer in that language, which is how one field ended up with seven analyses in
+    # seven languages. Prefer the newest row in the language we are about to write in; fall back to
+    # the newest of any language rather than dropping the history entirely, but carry `lang` along so
+    # the prompt can name it instead of leaving the model to infer it.
+    # `coalesce($2,'')` keeps the comparison two-valued: `lang = NULL` is NULL, and NULL sorts FIRST
+    # under `desc`, which would have made a null caller prefer the WRONG row instead of any row.
     prior = await conn.fetchrow(
-        """select summary, generated_at::date as date from public.advice
-           where field_id=$1::uuid order by generated_at desc limit 1""", field_id)
+        """select summary, generated_at::date as date, lang from public.advice
+           where field_id=$1::uuid
+           order by (lang = coalesce($2::text,'')) desc, generated_at desc limit 1""",
+        field_id, lang)
 
     # Marketplace-era inputs (0031): latest soil analysis, AI-labeled photos, fertilizer plan. The AI
     # advice folds these in (req #4 soil, #6 photos). Defensive: if the tables are missing (migration
@@ -150,6 +163,12 @@ async def build_field_context(conn, field_id: str) -> dict[str, Any]:
         "fertilizer_plan": rows(fert),
         "spray_restriction": spray_restriction,
         "previous_advice_summary": prior["summary"] if prior else None,
+        # Only present when the previous summary is in a DIFFERENT language than the one being
+        # written now. Absent on the normal path, so the prompt stays quiet unless there is genuinely
+        # something to explain — and when it is there, the model is told the language rather than
+        # having to guess it from the prose.
+        "previous_advice_lang": (
+            prior["lang"] if prior and lang and prior["lang"] != lang else None),
         # Knowledge Passport (M6): zone + field research blocks the advice reasons over
         # (crop norms, phenology, pests, soil, resolved clarifications). Empty until the
         # research worker has run — advice degrades gracefully to satellite-only.

@@ -11,7 +11,7 @@ import { ChevronLeft, MapPin, Plus } from "lucide-react";
 import { api, azError } from "@/lib/api";
 import { t, tf, tp, type I18nKey } from "@/lib/i18n";
 import { useFormatArea } from "@/lib/units";
-import { wellnessHeadline } from "@/lib/wellnessText";
+import { wellnessAgeLabel, wellnessHeadline } from "@/lib/wellnessText";
 import { useAuth } from "@/lib/auth";
 import { ErrorNote } from "@/components/ui";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -33,7 +33,12 @@ interface FieldScore {
   headline_code?: string | null;
   headline_params?: Record<string, unknown> | null;
   computed_on: string | null;
+  /** age_days > _STALE_DAYS (analytics.py) — the daily sweep genuinely missed this field. */
   stale: boolean;
+  /** false when the stored row was not computed today. Optional: an API build older than the flag
+   *  omits it, and wellnessAgeLabel treats that silence as "say nothing", not as "stale". */
+  today?: boolean;
+  age_days?: number | null;
 }
 
 const CHIP: Record<Tone, string> = {
@@ -49,15 +54,22 @@ function bandOf(s: FieldScore): Tone {
   return s.score >= 70 ? "good" : s.score >= 45 ? "warn" : "bad";
 }
 
+// The date under a score that was not computed today. VISIBLE, not the title attribute the age used
+// to hide in: this row is a phone-first list, and a tooltip on a touch screen discloses nothing.
+// This is the chip the production mismatch was seen on — it read 89 while the field's own page read
+// 70, because this list serves the last STORED row and only the field page recomputes. The daily
+// sweep (deploy/refresh-wellness.sh) is what keeps the two together; the stamp is what makes the gap
+// legible on the mornings it does not.
 function ScoreChip({ s }: { s: FieldScore }) {
   const band = bandOf(s);
+  const age = wellnessAgeLabel(s.today, s.age_days, s.computed_on);
   const tip = [
     wellnessHeadline(s.headline_code, s.headline_params, s.headline),
     s.computed_on ? `${t("app.fieldsList.computedOnLabel")}${s.computed_on}` : null,
   ]
     .filter(Boolean)
     .join(" · ");
-  return (
+  const chip = (
     <span
       title={tip || undefined}
       className={`shrink-0 rounded-full border px-2.5 py-1 text-sm font-bold tabular-nums ${CHIP[band]} ${
@@ -67,6 +79,18 @@ function ScoreChip({ s }: { s: FieldScore }) {
       <span className="sr-only">{t("app.fieldsList.srScoreLabel")}</span>
       {s.score}
       <span className="text-[10px] font-normal opacity-70">/100</span>
+    </span>
+  );
+  // A score computed today renders EXACTLY what it did before — the stamp adds a line only when
+  // there is something to disclose, so the common row keeps its height.
+  if (!age) return chip;
+  return (
+    <span className="inline-flex shrink-0 flex-col items-end gap-0.5">
+      {chip}
+      <span className="text-[10px] font-medium leading-none text-slate-500">
+        <span className="sr-only">{t("app.wl.age.sr")} </span>
+        {age}
+      </span>
     </span>
   );
 }

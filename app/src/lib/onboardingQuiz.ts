@@ -47,7 +47,8 @@ export const QUIZ_CHALLENGES: { value: string; emoji: string; labelKey: I18nKey 
   { value: "fertilizer", emoji: "🧪", labelKey: "mkt.quiz.ch.fertilizer" },
   { value: "frost", emoji: "❄️", labelKey: "mkt.quiz.ch.frost" },
   { value: "yield", emoji: "📉", labelKey: "mkt.quiz.ch.yield" },
-  { value: "cost", emoji: "🧾", labelKey: "mkt.quiz.ch.cost" },
+  // "cost" ("Xərci izləyə bilmirəm") was dropped with the ledger module (81660df) — offering it
+  // would promise the visitor a problem the product no longer addresses.
   { value: "market", emoji: "🤝", labelKey: "mkt.quiz.ch.market" },
   { value: "unsure", emoji: "🤔", labelKey: "mkt.quiz.ch.unsure" },
 ];
@@ -56,11 +57,12 @@ export const QUIZ_NEEDS: { value: string; emoji: string; labelKey: I18nKey }[] =
   { value: "satellite", emoji: "🛰️", labelKey: "mkt.quiz.need.satellite" },
   { value: "ai", emoji: "🤖", labelKey: "mkt.quiz.need.ai" },
   { value: "weather", emoji: "🌦️", labelKey: "mkt.quiz.need.weather" },
-  { value: "ledger", emoji: "📊", labelKey: "mkt.quiz.need.ledger" },
   { value: "soil", emoji: "🧫", labelKey: "mkt.quiz.need.soil" },
   { value: "agronomist", emoji: "👨‍🌾", labelKey: "mkt.quiz.need.agronomist" },
   { value: "supplier", emoji: "📦", labelKey: "mkt.quiz.need.supplier" },
-  { value: "reports", emoji: "📄", labelKey: "mkt.quiz.need.reports" },
+  // "ledger" and "reports" were dropped with the modules behind them (81660df). Old answers stored
+  // in localStorage or users.onboarding may still carry those ids; nothing reads them back into a
+  // label, so a stale id is simply ignored rather than rendered.
 ];
 
 /** Countries the platform realistically serves today, plus the languages it speaks. Rendered with

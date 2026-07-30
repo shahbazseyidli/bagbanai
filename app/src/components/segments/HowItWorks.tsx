@@ -11,8 +11,10 @@
 //   * canopy NDVI / NDMI / NDRE over a perennial (peyk qatı)
 //   * regional frost dates — last-spring p90 / first-autumn p10 over a 20-year archive (frost.py, B18)
 //   * spray window + FAO-56 water balance + GDD heat accumulation (weather.py, field_gdd)
-//   * wellness score (wellness.py), multi-season productivity zones (A6), yield + ledger P&L
-//   * hazelnut-calibrated index norms + growth-stage thresholds (crop_thresholds crop_type='hazelnut')
+//   * wellness score (wellness.py), fertilizer dose suggestion, soil passport from a lab upload
+//   * crop-calibrated index norms + growth-stage thresholds (crop_thresholds)
+// The zones / yield / ledger P&L claims this list used to make were removed with those modules
+// (81660df) — feat8/feat10/feat11 and the third deep-dive block now describe what actually ships.
 // No invented statistics: the proof block is explicitly framed as an illustration ("nümunə").
 //
 // Self-contained (data + rendering here) so it lives entirely in the two files C6 owns. It mirrors
@@ -27,18 +29,19 @@ import {
   Camera,
   Check,
   Droplets,
+  FlaskConical,
   Gauge,
   Layers,
   Leaf,
   LineChart,
   Plus,
   Satellite,
+  Share2,
   Snowflake,
   Sparkles,
   Sprout,
   Sun,
   ThermometerSnowflake,
-  TrendingUp,
   Wallet,
   X,
 } from "lucide-react";
@@ -108,10 +111,10 @@ const FEATURES: Feature[] = [
   { icon: ThermometerSnowflake, title: "mkt.how.feat5Title", body: "mkt.how.feat5Body" },
   { icon: Brain, title: "mkt.how.feat6Title", body: "mkt.how.feat6Body" },
   { icon: Camera, title: "mkt.how.feat7Title", body: "mkt.how.feat7Body" },
-  { icon: Layers, title: "mkt.how.feat8Title", body: "mkt.how.feat8Body" },
+  { icon: Sprout, title: "mkt.how.feat8Title", body: "mkt.how.feat8Body" },
   { icon: Gauge, title: "mkt.how.feat9Title", body: "mkt.how.feat9Body" },
-  { icon: TrendingUp, title: "mkt.how.feat10Title", body: "mkt.how.feat10Body" },
-  { icon: Wallet, title: "mkt.how.feat11Title", body: "mkt.how.feat11Body" },
+  { icon: FlaskConical, title: "mkt.how.feat10Title", body: "mkt.how.feat10Body" },
+  { icon: Share2, title: "mkt.how.feat11Title", body: "mkt.how.feat11Body" },
   { icon: LineChart, title: "mkt.how.feat12Title", body: "mkt.how.feat12Body" },
 ];
 
@@ -157,7 +160,7 @@ const DEEP: DeepBlock[] = [
     ],
   },
   {
-    icon: Wallet,
+    icon: Brain,
     title: "mkt.how.deep3Title",
     body: "mkt.how.deep3Body",
     bullets: [

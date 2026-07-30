@@ -6,7 +6,7 @@ import { api } from "@/lib/api";
 import { getLocale, t, tf } from "@/lib/i18n";
 import { Spinner } from "@/components/ui";
 import KnowledgePassport from "@/components/field/KnowledgePassport";
-import AdviceLangNote from "@/components/field/AdviceLangNote";
+import AdviceLangNote, { staleFrom } from "@/components/field/AdviceLangNote";
 import SpeakButton from "@/components/SpeakButton";
 import { severityLabel } from "@/lib/wellnessText";
 import { track, markDone } from "@/lib/track";
@@ -23,6 +23,11 @@ interface Advice {
   /** Language the prose was written in, and whether it differs from the reader's. */
   lang?: string;
   lang_mismatch?: boolean;
+  /** Whole days since this analysis was written. */
+  age_days?: number;
+  /** Set when a newer analysis exists in another language and the read path served this readable
+   * one instead. Null/absent means what is on screen is also the newest there is. */
+  newer_other?: { lang: string; generated_at: string } | null;
 }
 interface ChatMsg { role: string; content: string; created_at?: string }
 /** A ready-made question: a short label to draw, a full question to send. */
@@ -135,6 +140,9 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
   // first chip quotes the worst risk of the advice already in state, so the follow-up is guaranteed
   // to be about something the model itself raised.
   const riskTitle = topRiskTitle(advice);
+  // Present only when the advice on screen is readable but something newer exists in another
+  // language — the two notes are mutually exclusive by construction in the API.
+  const staleNote = staleFrom(advice);
   const chips: Chip[] = [
     ...(riskTitle
       ? [{
@@ -192,7 +200,11 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
           </p>
         ) : (
           <div className="space-y-4 text-sm">
-            {advice.lang_mismatch && <AdviceLangNote fieldId={fieldId} onDone={() => void reloadAdvice()} />}
+            {advice.lang_mismatch ? (
+              <AdviceLangNote fieldId={fieldId} onDone={() => void reloadAdvice()} />
+            ) : staleNote ? (
+              <AdviceLangNote fieldId={fieldId} onDone={() => void reloadAdvice()} stale={staleNote} />
+            ) : null}
             <p className="text-slate-700">{advice.summary}</p>
 
             {advice.risks?.length > 0 && (

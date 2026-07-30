@@ -257,6 +257,11 @@ export default function TodayStats({
     if (s && typeof s.score === "number") {
       sumScore += s.score;
       covered += 1;
+      // `stale` (age >= 2, analytics.py _STALE_DAYS) and NOT the weaker `today === false` that
+      // dates an individual chip. The daily sweep writes in UTC at 04:20, so before then every row
+      // in the org is legitimately "not today's" — flagging the AVERAGE on that would put a warning
+      // under this tile every single morning, and a warning that is always on is not read. Two days
+      // means a sweep actually failed, which is worth the farmer's attention.
       if (s.stale) anyStale = true;
     }
   }

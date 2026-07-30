@@ -229,6 +229,61 @@ async def drain_weather(limit: int = 50):
     return {"refreshed": done, "considered": len(ids)}
 
 
+@router.post("/wellness/drain")
+async def drain_wellness(limit: int = 2000, force: bool = False):
+    """Recompute today's Field Wellness Score (B8) for every non-deleted field — the daily sweep.
+
+    WHY THIS EXISTS. Two endpoints serve the same number and only one of them could ever write it:
+    GET /api/fields/{id}/wellness computes on demand and stores the row, while
+    GET /api/orgs/{id}/wellness is read-only by design (one computation is ~8 queries, so a list
+    screen must never compute per field — see its docstring). Nothing else wrote the row, so in
+    production a field showed 89 on the list and 70 on its own page at the same moment: the list was
+    serving the score from two days earlier, and the 70 had only just been written by the page view
+    itself. This sweep is what gives the read model something current to serve.
+
+    DAILY, NOT SCENE-TRIGGERED. The water component follows the FAO-56 depletion and the GDD
+    component follows the temperature series, and both move every day the weather does. A field can
+    go a fortnight between usable scenes and still deserve a different score each morning, so tying
+    the refresh to new imagery would leave most fields stale most of the time.
+
+    Best-effort per field, like the weather drain: one unscorable field must not stall the batch.
+    Fields already computed today are skipped unless `force=1`, which makes a second call the same
+    day cheap — the script may safely be re-run by hand after a failed night.
+
+    A field with no inputs at all stores nothing (compute_wellness returns available=False rather
+    than inventing a number), so it is reported under `no_inputs` and reconsidered on every call."""
+    from ..ai import wellness as wellness_mod
+    async with connection(None) as conn:
+        # Same guard as routers/analytics.py::org_wellness: on a DB that has not run migration 0037
+        # the missing relation would abort the transaction and turn a cron tick into a 500.
+        if not await conn.fetchval("select to_regclass('public.field_wellness') is not null"):
+            return {"ok": False, "reason": "field_wellness_missing"}
+        rows = await conn.fetch(
+            """select f.id from public.fields f
+               where f.deleted_at is null
+                 and ($2::bool or not exists (
+                       select 1 from public.field_wellness w
+                       where w.field_id = f.id and w.computed_on = current_date))
+               order by (select max(w.computed_on) from public.field_wellness w
+                         where w.field_id = f.id) nulls first
+               limit $1""", limit, force)
+
+    computed = no_inputs = failed = 0
+    for r in rows:
+        try:
+            # One connection per field: connection() runs inside a transaction, so a single failing
+            # field would otherwise poison the rest of the batch's statements.
+            async with connection(None) as conn:
+                result = await wellness_mod.compute_wellness(conn, str(r["id"]))
+            if result.get("available"):
+                computed += 1
+            else:
+                no_inputs += 1
+        except Exception:  # noqa: BLE001 — one field must not stall the sweep
+            failed += 1
+    return {"considered": len(rows), "computed": computed, "no_inputs": no_inputs, "failed": failed}
+
+
 @router.post("/rules/run")
 async def run_rules_endpoint(field_id: str):
     """Evaluate all alert rules for a field and dispatch surviving alerts (T1). Called after a

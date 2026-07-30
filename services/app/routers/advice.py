@@ -1,6 +1,7 @@
 """AI advice + per-field chatbot + notifications (§AI advice/chat)."""
 import json
 
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -34,35 +35,75 @@ from .fields import _org_of_field
 
 router = APIRouter(prefix="/api", tags=["ai"])
 
+# The two ways the read path asks for an advice row. Same column list both times so the readable
+# row and the foreign-language fallback can never come back with different shapes.
+_ADVICE_SELECT = ("select summary, findings, disclaimer, model_name, generated_at, lang "
+                  "from public.advice where field_id=$1::uuid ")
+_ADVICE_NEWEST_SQL = _ADVICE_SELECT + "order by generated_at desc limit 1"
+_ADVICE_IN_LANG_SQL = _ADVICE_SELECT + "and lang=$2::text order by generated_at desc limit 1"
+
 
 class ChatIn(BaseModel):
     message: str
     locale: Optional[str] = None
 
 
+def _age_days(generated_at: datetime) -> int:
+    """Whole days since the row was written. generated_at is timestamptz, so asyncpg hands back an
+    aware datetime and there is no naive/aware mixing to get wrong. Clamped at zero because a row
+    written a few seconds ago by another node with a slightly fast clock is not "-1 days old"."""
+    return max(0, (datetime.now(timezone.utc) - generated_at).days)
+
+
 @router.get("/fields/{field_id}/advice")
 async def get_advice(field_id: str, request: Request,
                      user_id: str = Depends(get_current_user_id)):
-    """Newest advice for the field, plus the language it was written in.
+    """Advice for the field, preferring prose the reader can actually read.
 
-    The newest row wins even when it is in another language — a fresh analysis the reader can
-    have translated beats a stale one they can read. `lang_mismatch` tells the UI to offer a
-    one-tap regeneration in the reader's language instead of silently showing foreign prose."""
+    Stored prose is generated once, in one language, and is never translated on read (a deliberate
+    architecture decision). "Newest row wins" is therefore only correct while every row for a field
+    shares one language — and that is not what production looks like. One i18n test run left a real
+    field with seven analyses in seven languages written inside three minutes; the newest of them
+    was Polish, so its Azerbaijani owner opened the field and met an entirely Polish analysis. A
+    fresh analysis nobody can read is worth less than an older one they can.
+
+    So the newest row **in the reader's language** wins. Only when that language has no row at all
+    do we fall back to the newest foreign one and keep `lang_mismatch` set — foreign prose behind
+    the banner still beats an empty section.
+
+    Serving the readable-but-older row would otherwise hide something the farmer is entitled to
+    know, so the response says it out loud: `age_days` is the age of what we served and
+    `newer_other` carries the date and language of the newer analysis we chose not to show.
+    """
     locale = _resolve_locale(request, None)
     async with connection(user_id) as conn:
         org_id = await _org_of_field(conn, field_id)
         await require_member(conn, user_id, org_id)
-        row = await conn.fetchrow(
-            """select summary, findings, disclaimer, model_name, generated_at, lang
-               from public.advice where field_id=$1::uuid
-               order by generated_at desc limit 1""", field_id)
-    if not row:
+        newest = await conn.fetchrow(_ADVICE_NEWEST_SQL, field_id)
+        # Only go looking for a same-language row when the newest one is not already it. The normal
+        # field has every analysis in the owner's language, and that case must stay one query.
+        match = None
+        if newest is not None and (newest["lang"] or "az") != locale:
+            match = await conn.fetchrow(_ADVICE_IN_LANG_SQL, field_id, locale)
+    if newest is None:
         return {"advice": None, "configured": llm.is_configured()}
-    f = row["findings"] if isinstance(row["findings"], dict) else json.loads(row["findings"] or "{}")
+
+    row = match if match is not None else newest
     lang = row["lang"] or "az"
+    generated_at = row["generated_at"]
+    # Disclose the newer row only when it really is newer. Rows arrive in bursts (the auto-trigger
+    # fires per scene), so an exact timestamp tie is possible, and "a newer analysis exists" would
+    # then be a claim the data does not support.
+    newer_other = None
+    if match is not None and newest["generated_at"] > generated_at:
+        newer_other = {"lang": newest["lang"] or "az",
+                       "generated_at": newest["generated_at"].isoformat()}
+
+    f = row["findings"] if isinstance(row["findings"], dict) else json.loads(row["findings"] or "{}")
     return {"advice": {"summary": row["summary"], **f, "disclaimer": row["disclaimer"],
-                       "model": row["model_name"], "generated_at": row["generated_at"].isoformat(),
-                       "lang": lang, "lang_mismatch": lang != locale},
+                       "model": row["model_name"], "generated_at": generated_at.isoformat(),
+                       "lang": lang, "lang_mismatch": lang != locale,
+                       "age_days": _age_days(generated_at), "newer_other": newer_other},
             "configured": llm.is_configured()}
 
 

@@ -6,7 +6,9 @@
 //
 // Honesty rules baked in:
 //  * every step maps to something the product actually ships today (peyk overlay, AI advice,
-//    ledger, reports, share link, soil-analysis OCR). No invented buttons or fake numbers.
+//    operations + scouting log, fertilizer plan, share link, soil-analysis OCR). No invented
+//    buttons or fake numbers. The ledger and prepared-report guides were rewritten when those
+//    modules left the product (81660df) — do not reintroduce them from an old draft.
 //  * the "screen" field is a described mock — plain text the page renders in a faux-UI box; no
 //    external images are referenced (the CSP and offline-first PWA forbid remote assets).
 //
@@ -97,7 +99,7 @@ const saheElaveEt: Guide = {
   ],
   tips: [
     "Əlinizdə hazır sərhəd faylı (shapefile .zip) varsa, çəkmək əvəzinə onu yükləyə bilərsiniz.",
-    "Bir neçə tarlanız varsa, hər birini ayrıca sahə kimi qeyd edin — analiz və mənfəət sahə-sahə hesablanır.",
+    "Bir neçə tarlanız varsa, hər birini ayrıca sahə kimi qeyd edin — analiz sahə-sahə aparılır.",
     "Sərhədi sonradan da redaktə etmək olar; hektar avtomatik yenilənir.",
   ],
   related: ["peyk-melumatini-oxu", "ai-meslehetini-islet"],
@@ -113,12 +115,12 @@ const peykOxu: Guide = {
   meta: "6 addım · ~3 dəq",
   intro:
     "Peyk qatı sahənizin içindəki fərqi göz onu seçməzdən əvvəl açır. Görüntülər 10 metr piksellə emal olunur. Hər səhnədə bulud və kölgə pikselləri maskalanır, indekslər isə yalnız sizin sərhədiniz daxilində hesablanır. Aşağıda bu xəritəni necə oxumaq göstərilir.",
-  where: "Sahə → «Baxış» tab",
+  where: "Sahə → «Peyk görüntüsü»",
   steps: [
     {
       title: "Sahəni aç",
       body:
-        "Siyahıdan sahəyə toxunun və «Baxış» tabında qalın. Sahənizin üstündə rəngli peyk qatı görünür.",
+        "Siyahıdan sahəyə toxunun və «Peyk görüntüsü» bölməsinə keçin. Sahənizin üstündə rəngli peyk qatı görünür.",
     },
     {
       title: "İndeksi seç",
@@ -144,9 +146,9 @@ const peykOxu: Guide = {
       screen: "Ekran: tarix zolağı — «11 İyul · 4% bulud», «6 İyul · 22% bulud» nöqtələri.",
     },
     {
-      title: "Sensoru və kontrastı dəyiş",
+      title: "Kontrastı dəyiş, iki tarixi tutuşdur",
       body:
-        "«Kontrast» rejimi zəif fərqləri gözə görünən edir. Keçən illə müqayisə də buradadır.",
+        "«Kontrast» rejimi zəif fərqləri gözə görünən edir. İki tarixi yan-yana qoymaq və keçən illə müqayisə də buradadır.",
     },
   ],
   tips: [
@@ -167,12 +169,12 @@ const aiMeslehet: Guide = {
   meta: "5 addım · ~3 dəq",
   intro:
     "AI aqronom boş yerdən danışmır: sahənizin son peyk oxunuşları, hava tarixçəsi, torpaq profili, əkin tarixi, əməliyyat jurnalı və çəkdiyiniz şəkillər ona kontekst kimi verilir. Nəticə ümumi məsləhət deyil — məhz sizin sahənizin bu həftəki vəziyyəti üçün risklər, tövsiyələr və növbəti addımlardır. Qərar həmişə sizindir; hər cavabın altında bu barədə xəbərdarlıq var.",
-  where: "Sahə → «AI Məsləhət» tab",
+  where: "Sahə → «Sahə analizi»",
   steps: [
     {
-      title: "«AI Məsləhət» tabını aç",
+      title: "«Sahə analizi» bölməsini aç",
       body:
-        "Sahənin içində «AI Məsləhət» tabına keçin. Hər yeni peyk səhnəsindən sonra analiz avtomatik yenilənir, ona görə adətən hazır kart sizi gözləyir.",
+        "Sahənin içində «Sahə analizi» bölməsinə keçin. Hər yeni peyk səhnəsindən sonra analiz avtomatik yenilənir, ona görə adətən hazır kart sizi gözləyir.",
     },
     {
       title: "Məsləhət kartını oxu",
@@ -200,58 +202,52 @@ const aiMeslehet: Guide = {
   tips: [
     "AI diaqnoz qoymur və aqronomu əvəz etmir — o, sizin gördüyünüzü genişləndirir. Ciddi hallarda kataloqdakı laboratoriya və ya aqronomla əlaqə saxlayın.",
     "Model əmin olmayanda dəqiqləşdirici sual verir — cavablayın ki, tövsiyə dəqiqləşsin.",
-    "Dəftərə yazdığınız hər əməliyyat növbəti analizi daha dəqiq edir.",
+    "Qeyd etdiyiniz hər əməliyyat növbəti analizi daha dəqiq edir.",
   ],
   related: ["peyk-melumatini-oxu", "is-ve-emeliyyat-qeyd-et"],
 };
 
-/* ------------------------------------------------ 4. tapşırıq / əməliyyat */
+/* ---------------------------------------------- 4. əməliyyat / müşahidə */
 
 const isVeEmeliyyat: Guide = {
   slug: "is-ve-emeliyyat-qeyd-et",
-  title: "Tapşırıq və əməliyyat qeyd etmək",
-  summary: "İşi planla, çiləmə/gübrələməni yaz, yığım məhdudiyyətini izlə.",
+  title: "Əməliyyat və müşahidə qeyd etmək",
+  summary: "Çiləmə və gübrələməni yaz, müşahidəni xəritədə işarələ, gözləmə müddətini izlə.",
   icon: "clipboard",
-  meta: "5 addım · ~2 dəq",
+  meta: "4 addım · ~2 dəq",
   intro:
-    "Təsərrüfat dəftəri sahənin yaddaşıdır. Yazdığınız hər əməliyyat həm mövsüm hesabatına, həm də AI-nin növbəti cavabına daxil olur. «İşlər» bölməsi tapşırıqları (görüləcək), əməliyyatları (görülmüş) və yığımı bir yerə toplayır.",
-  where: "Sahə → «İşlər» tab",
+    "Sahə qeydləri sahənin yaddaşıdır. Yazdığınız hər əməliyyat AI-nin növbəti cavabına daxil olur — «10 gün əvvəl suvarma qeyd olunub, nəmlik hələ də düşür» cümləsi məhz buradan yaranır. «İşlər» qrupu gübrəni, fotonu, skautinqi və əməliyyatları bir yerə toplayır.",
+  where: "Sahə → İşlər → «Əməliyyatlar»",
   steps: [
     {
-      title: "«İşlər» tabını aç",
+      title: "«Əməliyyatlar» bölməsini aç",
       body:
-        "Sahənin içində «İşlər» tabına keçin. Yuxarıda «Tapşırıqlar · Əməliyyatlar · Yığım» çipləri var.",
-      screen: "Ekran: üç çip — «Tapşırıqlar», «Əməliyyatlar», «Yığım» və altında siyahı.",
-    },
-    {
-      title: "Tapşırıq əlavə et",
-      body:
-        "«Tapşırıqlar» çipində yeni iş yaradın: nə, hansı sahə, hansı tarix. Əkin tarixindən avtomatik tapşırıq zənciri də qurula bilər.",
+        "Sahəni açın və «İşlər» qrupundan «Əməliyyatlar»a keçin. Keçmiş qeydlər tarix sırası ilə görünür.",
+      screen: "Ekran: «Əməliyyat növü», «Preparat», «Doza», «Tarix» sahələri və altında qeydlərin siyahısı.",
     },
     {
       title: "Əməliyyatı qeyd et",
       body:
-        "İşi görəndə «Əməliyyatlar»a keçin: çiləmə, gübrələmə, suvarma, becərmə. Preparatı, dozanı və tarixi yazın — hamısı xərcə də düşür.",
-      screen: "Ekran: «Əməliyyat növü: Çiləmə», «Preparat», «Doza», «Tarix» sahələri.",
+        "Çiləmə, gübrələmə, suvarma və ya becərmə seçin; preparatı, dozanı və tarixi yazın. Qeyd sahəyə bağlanır və növbəti analizə daxil olur.",
     },
     {
-      title: "Yığım məhdudiyyətini izlə",
+      title: "Gözləmə müddətini (PHI) yaz",
       body:
-        "Çilədikdən sonra yığıma qədər gözləmə müddəti (PHI) sayğacı avtomatik başlayır. Müddət bitməmiş yığımdan çəkindirən xəbərdarlıq görünür.",
+        "Çiləmədə dərman etiketindəki yığıma qədər gün sayını daxil edin — sayğac avtomatik başlayır və müddət bitməmiş xəbərdarlıq görünür.",
       screen: "Ekran: «Yığıma icazə: 6 gün sonra» sarı xəbərdarlıq zolağı.",
     },
     {
-      title: "Yığımı qeyd et",
+      title: "Müşahidəni və şəkli əlavə et",
       body:
-        "Məhsul yığılanda «Yığım» çipində miqdarı, tarixi və (varsa) lot kodunu yazın. Bu, sahə-üzrə mənfəət hesabına gedir.",
+        "«Skautinq» bölməsində gördüyünüzü yazın və yerini xəritədə işarələyin; «Foto» bölməsində şəkli əlavə edin — AI xəstəlik və ya zərərverici izini oxuyur.",
     },
   ],
   tips: [
-    "Tapşırıqları təqvim faylı kimi ixrac edib aqronom və ya işçi ilə paylaşa bilərsiniz.",
-    "Qəbzin şəklini çəksəniz, sistem xərc qaralamasını özü doldurur.",
-    "Anbar qalığı əməliyyatdan avtomatik çıxılır və azalanda xəbərdarlıq gəlir.",
+    "Qeyd nə qədər dəqiq olsa, AI-nin növbəti analizi bir o qədər dəqiq olur.",
+    "Skautinq nöqtəsi xəritədə qalır — növbəti dəfə eyni yerə baxmaq asan olur.",
+    "Çiləmədən sonra gözləmə müddətini yazmağı unutmayın; sayğac yalnız o zaman işləyir.",
   ],
-  related: ["gubre-plani", "hesabat-al"],
+  related: ["gubre-plani", "sahe-paylas"],
 };
 
 /* ------------------------------------------------------------ 5. gübrə planı */
@@ -263,13 +259,13 @@ const gubrePlani: Guide = {
   icon: "sprout",
   meta: "4 addım · ~2 dəq",
   intro:
-    "Gübrə modulu tətbiq qrafikinizi saxlayır və hər tətbiqi həm dəftərə, həm də xərcə bağlayır. AI doza təklifi isə boş rəqəm deyil — NDVI trendi, məhsul normaları və (yükləmisinizsə) laboratoriya analizinə söykənir.",
-  where: "Daha çox → «Gübrə»",
+    "Gübrə bölməsi tətbiq qrafikinizi saxlayır və hər tətbiqi sahənin əməliyyat jurnalına bağlayır. AI doza təklifi isə boş rəqəm deyil — NDVI trendi, məhsul normaları və (yükləmisinizsə) laboratoriya analizinə söykənir.",
+  where: "Sahə → İşlər → «Gübrə»",
   steps: [
     {
-      title: "Gübrə modulunu aç",
+      title: "Gübrə bölməsini aç",
       body:
-        "Aşağı naviqasiyada «Daha çox»dan «Gübrə»yə keçin və sahəni seçin.",
+        "Sahəni açın və «İşlər» qrupundan «Gübrə»yə keçin.",
     },
     {
       title: "Cari qrafiki yaz",
@@ -286,56 +282,54 @@ const gubrePlani: Guide = {
     {
       title: "Tətbiqi qeyd et",
       body:
-        "Gübrəni tətbiq edəndə onu qeyd edin. Tətbiq həm əməliyyat jurnalına, həm də xərc dəftərinə düşür — mövsüm sonu hesabatda görünəcək.",
+        "Gübrəni tətbiq edəndə onu qeyd edin. Tətbiq əməliyyat jurnalına düşür və növbəti AI analizinə daxil olur.",
     },
   ],
   tips: [
     "Torpaq analizini yükləsəniz, doza təklifi sizin ölçülmüş göstəricilərinizə söykənir və daha dəqiq olur.",
-    "Gübrə xərci sahə-üzrə mənfəət hesabına avtomatik daxildir.",
+    "Tətbiqi qeyd etməsəniz, AI sahənin bu mövsüm nə aldığını bilmir — təklif də ona görə ümumi olur.",
     "NDRE/CIre indeksi azot vəziyyətini NDVI-dən daha həssas göstərir.",
   ],
   related: ["torpaq-analizi-yukle", "is-ve-emeliyyat-qeyd-et"],
 };
 
-/* ------------------------------------------------------------ 6. hesabat */
+/* ----------------------------------------------------------- 6. paylaşma */
 
-const hesabatAl: Guide = {
-  slug: "hesabat-al",
-  title: "Hesabat almaq və paylaşmaq",
-  summary: "Mövsüm, jurnal və xərc hesabatını çap et, tokenli linklə paylaş.",
+// Replaced the "Hesabat almaq" guide: the prepared-report library (season / journal / cost) left
+// the product with the ERP strip (81660df). The share link is what actually ships for showing a
+// field to someone outside the organisation, so the guide slug changed with it — /guide/hesabat-al
+// now 404s rather than describing buttons that are gone.
+const saheniPaylas: Guide = {
+  slug: "sahe-paylas",
+  title: "Sahəni paylaşmaq",
+  summary: "Sahənin qısa kartını tokenli linklə göndər, istənilən vaxt ləğv et.",
   icon: "file-text",
-  meta: "4 addım · ~2 dəq",
+  meta: "3 addım · ~1 dəq",
   intro:
-    "Mövsüm boyu yığdığınız məlumat mövsüm sonunda hazır sənədə çevrilir. Hesabatlar çap üçün hazır və CSV formatındadır; sahənin qısa kartını isə tokenli linklə alıcıya, banka və ya qonşuya göndərmək olar.",
-  where: "Daha çox → «Hesabatlar»",
+    "Aqronoma, banka və ya qonşuya sahənizi göstərmək üçün onları hesab açmağa məcbur etmək lazım deyil. Paylaşma linki sahənin yalnız qısa kartını — sərhəd, sahə və son indeks oxunuşu — açır və istənilən vaxt ləğv edilə bilər.",
+  where: "Sahə → «Paylaş» düyməsi",
   steps: [
     {
-      title: "Hesabatlar bölməsini aç",
+      title: "Sahəni aç və «Paylaş»a bas",
       body:
-        "«Daha çox»dan «Hesabatlar»a keçin. Hazır hesabat növləri siyahıda görünür.",
+        "Siyahıdan sahəyə toxunun; «Paylaş» düyməsi sahə ekranındadır. Link yalnız siz basanda yaranır.",
     },
     {
-      title: "Hesabat növünü seç",
+      title: "Linki kopyala və göndər",
       body:
-        "Mövsüm hesabatı, əməliyyat jurnalı və ya xərc hesabatı seçin. Hər biri sahə və ya bütün təsərrüfat üzrə qurula bilər.",
-      screen: "Ekran: «Mövsüm hesabatı · Əməliyyat jurnalı · Xərc hesabatı» kartları.",
-    },
-    {
-      title: "Çap et və ya CSV yüklə",
-      body:
-        "Hesabatı çap üçün açın və ya CSV kimi yükləyib Excel-də işləyin. Rəqəmlər dəftərə yazdıqlarınızdan gəlir.",
-    },
-    {
-      title: "Paylaşma linki yarat",
-      body:
-        "Sahənin qısa kartını (sərhəd, sahə, son indeks oxunuşu) tokenli linklə paylaşın. Link yalnız həmin kartı açır və istənilən vaxt ləğv edilə bilər.",
+        "Tokenli link hazır olanda onu kopyalayıb WhatsApp, e-poçt və ya istənilən yolla göndərin. Qarşı tərəfə hesab lazım deyil.",
       screen: "Ekran: «Paylaşma linki hazırdır» + «Kopyala» və «Ləğv et» düymələri.",
+    },
+    {
+      title: "Lazım olmayanda ləğv et",
+      body:
+        "«Ləğv et» düyməsinə basan kimi köhnə link işləməz olur. Sahənin qalan məlumatı — qeydlər, şəkillər, AI məsləhəti — heç vaxt həmin linkdə görünmür.",
     },
   ],
   tips: [
-    "Paylaşma linkini ləğv etsəniz, köhnə link dərhal işləməz olur.",
-    "CSV faylı mühasibat və ya subsidiya müraciəti üçün əlverişlidir.",
-    "Sahə-üzrə mənfəət hesabatı hansı tarlanın qazandırdığını, hansının zərər verdiyini göstərir.",
+    "Link yalnız qısa kartı açır; qeydləriniz, şəkilləriniz və AI məsləhətiniz paylaşılmır.",
+    "Aqronomun sahələrinizi davamlı izləməsini istəyirsinizsə, link yox — onu komandaya dəvət edin.",
+    "Linki ləğv etsəniz, köhnə link dərhal işləməz olur.",
   ],
   related: ["is-ve-emeliyyat-qeyd-et", "sahe-elave-et"],
 };
@@ -350,12 +344,12 @@ const torpaqAnalizi: Guide = {
   meta: "4 addım · ~2 dəq",
   intro:
     "Əlinizdə laboratoriya analizi varsa, onu kağızda saxlamayın. Sənədin şəklini çəkin və ya PDF-i yükləyin — sistem göstəriciləri (pH, NPK, üzvi maddə) oxuyub sahənin torpaq pasportuna yazır. Bundan sonra AI-nin gübrə və suvarma tövsiyələri məhz sizin ölçülmüş rəqəmlərinizə söykənir.",
-  where: "Daha çox → «Torpaq»",
+  where: "Sahə → Qeydlər → «Torpaq»",
   steps: [
     {
-      title: "Torpaq modulunu aç",
+      title: "Torpaq bölməsini aç",
       body:
-        "«Daha çox»dan «Torpaq»a keçin və sahəni seçin. Cari torpaq pasportu (varsa) burada görünür.",
+        "Sahəni açın və «Qeydlər» qrupundan «Torpaq»a keçin. Cari torpaq pasportu (varsa) burada görünür.",
     },
     {
       title: "Analiz sənədini yüklə",
@@ -377,7 +371,7 @@ const torpaqAnalizi: Guide = {
   ],
   tips: [
     "Laboratoriya axtarırsınızsa, provayder kataloqunda region üzrə tapıb birbaşa yaza bilərsiniz.",
-    "Zona xəritənizi laboratoriya ilə paylaşsanız, nümunə nöqtələrini zonalara görə planlaşdırmaq daha təmsilçi nəticə verir.",
+    "Sahənin qısa kartını paylaşma linki ilə laboratoriyaya göndərsəniz, onlar sahəyə hazırlıqlı gəlir.",
     "Analizi yenilədikcə köhnə göstəricilər tarixçədə qalır.",
   ],
   related: ["gubre-plani", "ai-meslehetini-islet"],
@@ -391,7 +385,7 @@ export const GUIDES: Record<string, Guide> = {
   "ai-meslehetini-islet": aiMeslehet,
   "is-ve-emeliyyat-qeyd-et": isVeEmeliyyat,
   "gubre-plani": gubrePlani,
-  "hesabat-al": hesabatAl,
+  "sahe-paylas": saheniPaylas,
   "torpaq-analizi-yukle": torpaqAnalizi,
 };
 
@@ -401,7 +395,7 @@ export const GUIDE_ORDER: string[] = [
   "ai-meslehetini-islet",
   "is-ve-emeliyyat-qeyd-et",
   "gubre-plani",
-  "hesabat-al",
+  "sahe-paylas",
   "torpaq-analizi-yukle",
 ];
 
@@ -427,5 +421,5 @@ export const GUIDE_INDEX_COPY = {
   eyebrow: "necə başlamalı",
   title: "Agradex ilə addım-addım",
   lead:
-    "Yeni başlayırsınız? Bu qısa bələdçilər sahəni qeyd etməkdən mövsüm hesabatına qədər bütün əsas addımları göstərir. Hər biri 2–3 dəqiqəlik oxunuşdur və real ekranları təsvir edir — nə vaxt hansı düyməyə basacağınızı bilirsiniz.",
+    "Yeni başlayırsınız? Bu qısa bələdçilər sahəni qeyd etməkdən onu paylaşmağa qədər bütün əsas addımları göstərir. Hər biri 2–3 dəqiqəlik oxunuşdur və real ekranları təsvir edir — nə vaxt hansı düyməyə basacağınızı bilirsiniz.",
 } as const;

@@ -86,7 +86,6 @@ export default function PricingCompare() {
     { label: t("mkt.compare.rowPest"), cells: [NO, NO, YES], soon: true }, // pest_risk
     { label: t("mkt.compare.rowFertilizer"), cells: [NO, NO, YES], soon: true }, // fertilizer
     { label: t("mkt.compare.rowBenchmark"), cells: [NO, NO, YES], soon: true }, // benchmark
-    { label: t("mkt.compare.rowReports"), cells: [NO, NO, YES], soon: true }, // reports
     {
       label: t("mkt.compare.rowResearch"), // research_depth regional / regional / local
       cells: [{ on: true, note: t("mkt.compare.noteResearchGlobalReg") }, { on: true, note: t("mkt.compare.noteResearchGlobalReg") }, { on: true, note: t("mkt.compare.noteResearchLocal") }],

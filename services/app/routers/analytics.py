@@ -32,7 +32,21 @@ _MAX_YEARS = 10  # upper bound on ?years= — validated by Query(ge/le), never t
 
 # A stored score older than this is still returned (an old reading beats no reading) but is flagged
 # so the UI can date it instead of implying it is today's.
-_STALE_DAYS = 7
+#
+# WAS 7 — far too loose for a number a farmer acts on. The read model this feeds is served on the
+# field list and the dashboard, and 7 days meant a whole week of missed refreshes could pass for
+# today's reading. In production the same field showed 89 in the list and 70 on its own page at the
+# same moment: the 89 was two days old, and at `> 7` it carried no staleness signal whatsoever.
+#
+# 1, and not 0, because age 1 is a legitimate state of a healthy system rather than a fault. The
+# sweep that keeps these rows current (deploy/refresh-wellness.sh) runs at 04:20 UTC and
+# `computed_on` is a UTC calendar day, so every row reads as "yesterday" between 00:00 and 04:20 UTC
+# without anything having gone wrong. Age >= 2 means a sweep genuinely did not land.
+#
+# Age 1 is not silently passed off as current either — that is what `today` below is for. The two
+# flags make different claims on purpose: `stale` says "this reading is behind", `today` says only
+# "this is not today's reading", and the UI dates the score on the second, weaker one.
+_STALE_DAYS = 1
 
 
 # ---------------------------------------------------------------- B8 wellness
@@ -62,7 +76,14 @@ async def org_wellness(org_id: str, user_id: str = Depends(get_current_user_id))
     would turn opening a screen into a query stampede. A field with no stored row simply has no entry
     here and the UI shows no chip — an absent score is never faked or back-filled on read.
 
-    One request per org, not per field."""
+    One request per org, not per field.
+
+    FRESHNESS COMES FROM THE SWEEP, NOT FROM THIS READ: POST /api/internal/wellness/drain recomputes
+    every field once a day (deploy/refresh-wellness.sh). That is what makes the stored row something
+    worth serving — without it this endpoint kept handing out a two-day-old score while the field
+    page, which computes on demand, showed a different number for the same field at the same moment.
+    When the sweep does not land, `stale`/`today` below say so rather than the gap being papered over
+    by computing here."""
     org_id = safe_uuid(org_id, "org_not_found")
     today = date.today()
     async with connection(user_id) as conn:
@@ -111,6 +132,11 @@ async def org_wellness(org_id: str, user_id: str = Depends(get_current_user_id))
             "computed_on": computed_on.isoformat() if computed_on is not None else None,
             "age_days": age,
             "stale": bool(age is not None and age > _STALE_DAYS),
+            # The plain fact, separate from the `stale` judgement: was this row computed today?
+            # A row with no computed_on has an unknown age, so it is not claimed as today's.
+            # `age <= 0` rather than `== 0` so a row dated ahead of the server clock (skew after a
+            # restore) is not reported as older than today, which it is not.
+            "today": bool(age is not None and age <= 0),
         })
     return {"org_id": org_id, "as_of": today.isoformat(), "fields": out}
 
