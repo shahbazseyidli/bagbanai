@@ -1,88 +1,77 @@
-# Bağban AI — Session Handoff (davam etmək üçün / continuation brief)
+# Agradex — Handoff
 
-> Bu fayl bir developer sessiyasının davamı üçündür (Mac → Mac Mini M4 keçidi). Yeni agent bunu +
-> `CLAUDE.md` + `docs/` oxusun və buradan davam etsin. UI Azərbaycanca, kod/SQL/commit İngiliscə.
+**Vəziyyət (2026-07-30, `git` ilə yoxlanıb): heç nə iş üstündə deyil. `main` = məhsulun vəziyyətidir.**
+
+`main` HEAD = **`decbdb2`** (2026-07-30, `fix(bakeoff): measure Anthropic the way production actually calls it`).
+Başqa branch-da mənimsənilməmiş iş **yoxdur** — aşağıdakı cədvəl bunu sübutu ilə göstərir.
+
+Bu fayl qəsdən qısadır. Davam etmək üçün lazım olan hər şey artıq üç yerdədir və bu fayl onları
+təkrarlamır (təkrarlanan sənəd birincidən əvvəl köhnəlir):
+
+| Nə lazımdır | Hara bax |
+|---|---|
+| İş konteksti, qərarlar, tələlər (deploy loop, miqrasiya sırası, xəritə qaydası, i18n tələsi) | `CLAUDE.md` |
+| Açıq tasklar + status (⬜🔨🚀✅⏳❌), risklər, tövsiyə olunan növbə | `docs/ROADMAP.md` |
+| Nə vaxt nə buraxılıb (və nəyin deploy statusu **sübut olunmayıb**) | `CHANGELOG.md` |
+| Memarlıq / API / əməliyyat / qərar tarixçəsi | `docs/ARCHITECTURE.md` · `docs/API_REFERENCE.md` · `docs/OPERATIONS.md` · `docs/DECISIONS.md` |
+| Gün-gün jurnal (ən tam mənbə) | `docs/SESSION_2026-07-25.md` · `docs/SESSION_2026-07-26.md` |
 
 ---
 
-## 0. ƏN ƏVVƏL — hansı qovluq + setup
+## Branch-lar — hamısı `main`-ə düşüb (`git` ilə yoxlanıb 2026-07-30)
 
-- **Bu layihənin qovluğu: `~/Desktop/bagbanai`** — Mac Mini-nin Desktop-unda da var. **`~/Desktop/agradex` İLƏ QARIŞDIRMA** — o, ayrı layihədir (findix.az). Bütün işlər `~/Desktop/bagbanai`-də.
-- Başlamazdan əvvəl:
-  ```bash
-  cd ~/Desktop/bagbanai
-  git fetch origin
-  git checkout main && git pull --ff-only origin main   # bütün deploy olunmuş işi çək
-  ```
-- **GitHub:** `shahbazseyidli/bagbanai`. `git origin` = **SSH** (`git@github.com:shahbazseyidli/bagbanai.git`) — HTTPS push ilişir. Mac Mini-nin SSH açarı GitHub-da authorized olmalıdır, yoxsa push işləməz.
-- Oxu: `CLAUDE.md`, `docs/README.md` → `docs/{ARCHITECTURE,ROADMAP,OPERATIONS,API_REFERENCE,DECISIONS}.md`.
+`git branch --merged main` + hər biri üçün `git rev-list --count main..<branch>`:
 
----
+| Branch | `main..<branch>` | Remote | Silmək təhlükəsizdirmi |
+|---|---|---|---|
+| `wip/onboarding-refine` | **0** | `origin/wip/onboarding-refine` var | ✅ bəli (local + remote) |
+| `feat/ai-knowledge-layer` | **0** | `origin/feat/ai-knowledge-layer` var | ✅ bəli (local + remote) |
+| `feat/sentinel2-sensor` | **0** | `origin/feat/sentinel2-sensor` var | ✅ bəli (local + remote) |
+| `fix/qa-findings` | **0** | `origin/fix/qa-findings` var | ✅ bəli (local + remote) |
+| `feat/hybrid-marketplace` | **0** | remote yoxdur (yalnız local) | ✅ bəli (local) |
+| `claude/elated-pasteur-ac2cd7` | 1 (`143a548`) | remote yoxdur | ✅ bəli — **aşağıya bax** |
+| `claude/wizardly-elbakyan-effab2` | 1 (`752bf91`) | remote yoxdur | ✅ bəli — **aşağıya bax** |
 
-## 1. Layihə nədir
-**Bağban AI** — NASA HLS peyk + hava (Open-Meteo) + AI əkin monitorinqi & təsərrüfat idarəetməsi (Azərbaycan fermerləri). **CANLI: https://agradex.com.**
+⚠️ **İki `claude/*` branch-ı `--merged` siyahısında görünmür, amma məzmunca `main`-dədir.** Onların
+commit-ləri `main`-ə **cherry-pick/rebase** ilə düşüb, yəni hash fərqlidir. `git patch-id --stable` ilə
+yoxlanıb — patch-lər **bayt-bayt eynidir**:
 
-## 2. Stack + server + deploy
-- **Frontend:** Next.js 15 (App Router, TS) — `app/`. **Backend:** FastAPI (Python 3.11, asyncpg) — `services/app/`. **Geo pipeline:** `services/geo_pipeline/`. **DB:** Postgres 16 + PostGIS. **Tiles:** TiTiler. **Avtomatlaşdırma:** n8n.
-- **Server:** Hetzner CPX22 "bagban-ai", IP **95.216.208.82**, root, `/opt/bagbanai` = origin/main git checkout. Mac (və Mac Mini) SSH açarı root-da authorized olmalıdır.
-- **Deploy loop:**
-  ```bash
-  # local: commit + push origin/main (deploy mexanizmi budur)
-  # server:
-  cd /opt/bagbanai && git pull --ff-only origin main
-  # YENİ migration varsa (db/migrations/00XX) və api onun sütunlarını oxuyursa — ƏVVƏL migration:
-  docker compose -f deploy/docker-compose.prod.yml exec -T db psql -U bagban -d bagban -v ON_ERROR_STOP=1 --single-transaction < db/migrations/00XX_*.sql
-  docker compose -f deploy/docker-compose.prod.yml exec -T db psql -U bagban -d bagban -c "insert into public.schema_migrations(filename) values ('00XX_*.sql') on conflict do nothing;"
-  # sonra build (MÜTLƏQ .env source et, yoxsa api DB-yə 'root' kimi qoşulub crash-loop olur):
-  set -a; . ./.env; set +a
-  docker compose -f deploy/docker-compose.prod.yml up -d --build api web
-  ```
-- **Build qapısı:** local `tsc --noEmit` (app/) + serverdəki Docker `next build` = əsl gate. **Verify:** brauzerdə agradex.com (istifadəçinin Chrome-u owner kimi login-dir; claude-in-chrome MCP ilə).
-
-## 3. Cari CANLI vəziyyət (deploy olunub, `origin/main` = commit `f475ea8`)
-Faza 1 + infra Sprint 1-2 + AI məsləhət/chatbot (**AKTİV** — LLM açarı serverin `.env`-ində; user rotate edəcək) + admin panel/billing (v1.0.8) + **sahə onboarding sihirbazı (v1.0.9)** + metadata date-cast fix (`f475ea8`). Hamısı canlı və brauzerdə yoxlanılıb.
-- **Onboarding sihirbazı:** `app/src/components/field/FieldOnboarding.tsx` (4 addım: xəritə→adaptiv "Sahə haqqında məlumat"→ətraflı→təsdiq). Backend `GET /api/geo/site?lat=&lon=` (Open-Meteo relyef + Nominatim rayon → `subsidy_regions.name_az` → economic_region). Migration `0012` = `crop_cycle/region/economic_region`.
-- Fındıq bağı **"fındıq bağım"** (`4a5012b3-2baa-4714-b1d2-1ddc2454dd82`): tam metadata + terrain backfill (Xaçmaz rayonu / Quba-Xaçmaz / 46 m / 0.5° / 315° / perennial), AI məsləhət işləyir.
-
-## 4. QALAN İŞ (bu handoff-un əsas səbəbi) — items 1/2/3/5/6
-
-> **İstifadəçinin son 6 istəyi.** **Item 4 (metadata boş görünürdü) BİTDİ** — kök səbəb: `planting_date` string kimi asyncpg `$4::date`-ə gedirdi → `toordinal` xətası → **bütün PUT uğursuz**. `$4::text::date` cast ilə düzəldildi (`f475ea8`). test2 sahəsi düzəlişdən 1 dəq əvvəl yaradıldığı üçün boş qaldı (yenidən daxil edilə/yaradıla bilər).
-
-**Qalan 5 item ARTIQ QURULUB, amma UN-REVIEWED / deploy OLUNMAYIB** — `wip/onboarding-refine` branch-ında (commit `c4d11ec`, push olunub). Dayandırılan workflow-un build fazası bitmişdi; review + fix + deploy işləmədi.
-
-**Mac Mini-də ən tez yol:**
-```bash
-git checkout wip/onboarding-refine
-cd app && npx tsc --noEmit          # frontend typecheck
-cd .. && python3 -m py_compile services/app/ai/advice.py services/app/routers/indices.py
-# adversarial review et (2 minor buq ola bilər), düzəlt, sonra:
-git checkout main && git merge wip/onboarding-refine   # (və ya cherry-pick düzəlişlərlə)
-# push origin main → serverdə deploy (YENİ migration YOXDUR bu branch-da) → brauzerdə yoxla
+```
+143a548  perf(field): drop dead raster plumbing…        = 0ec417a (main)   patch-id 26b8ff77…
+752bf91  fix(mobile): opt into viewport-fit=cover…      = 27821a2 (main)   patch-id 7f8d8c6f…
 ```
 
-**Item-lərin spesifikasiyası (əgər sıfırdan qurmaq lazım olsa):**
-1. **Onboarding-də bitki + sort ƏLİFBA sırası.** `metadataOptions.ts`-də `CROP_OPTIONS` və hər `VARIETY_OPTIONS_BY_CROP[crop]` `localeCompare("az")` ilə sırala; generik "Digər*"/other_crops/windbreak sonda qalsın. (CropGrid/VarietyChips mənbədən oxuyur → həm onboarding həm tab əlifba sırası olur.)
-2. **Bitki siyahısını GENİŞLƏNDİR** (agro.gov.az subsidiya siyahısı: https://www.agro.gov.az/az/news/010920254 + ADAU bitkiçilik). Əlavə (value=label, cycle): ANNUAL — rye=Çovdar, oats=Vələmir, buckwheat=Qarabaşaq, chickpea=Noxud, bean=Lobya, lentil=Mərci, broad_bean=Paxla, flax=Kətan, sesame=Küncüt, rapeseed=Raps, tomato=Pomidor, cucumber=Xiyar, onion=Soğan, garlic=Sarımsaq, cabbage=Kələm, eggplant=Badımcan, pepper=Bibər, carrot=Kök, pumpkin=Balqabaq, greens=Göyərti; PERENNIAL — nectarine=Nektarin, quince=Heyva, mulberry=Tut, feijoa=Feyxoa, strawberry=Çiyələk, plum=Gavalı. Mövcud dəyərləri saxla; `CROP_CYCLE` map-ı hər yeni bitki üçün yenilə.
-3. **"Sahə haqqında məlumat" tabı** (`MetadataTab.tsx`): default **READ-ONLY** (yalnız başlıq + seçilmiş dəyərlər, "—" boşdursa; canonical→AZ label lookup) + **"Redaktə et"** düyməsi → edit rejimi **`<select>` dropdown-larla** (crop_cycle/crop/variety/soil/irrigation/growth_stage/tillage/previous_crop; hər select-də "Bilmirəm"→null + "Digər" free-text unknown-ları qorusun); tarixlər ClickDate, pH PhPicker, rəqəmlər NumberSlider, relyef AutoField (aspect readOnly), massivlər RepeatableRows. "Yadda saxla" (mövcud onSave normalizasiyası qalsın) + "Ləğv et". crop_type məcburidir. Relyef (region/elevation/slope/aspect) GET select * ilə gəlir — read-only view-da göstər.
-5. **AI məsləhət:** `AiTab.tsx`-dən **"Yenidən analiz et" düyməsini sil** (+ generate call/state). Backend `advice.py generate_and_store`-a `force=False` param əlavə et: son advice `generated_at` < 15 gün isə və force deyilsə → LLM çağırmadan `return None` (yəni yeni səhnədən sonra ən çox **15 gündə 1** yenilənir, son peyk əsasında). `internal.py` çağırışı default (force=False) qalır.
-6. **İcmalda indeks-dəyər açıqlaması:** yeni `GET /api/fields/{id}/indices/summary` (`indices.py`, mövcud auth/gating pattern-i) → `{ indices: [{ index, latest:float|null, date:iso|null }] }` (NDVI, NDMI, NDWI, EVI, SAVI, NBR üçün ən son `index_stats.mean`/`acquired_at`, `distinct on (index_name)`). Frontend `OverviewTab.tsx`-də "Cari göstəricilər" bloku: hər indeks üçün AZ label (INDEX_LABELS) + latest (3 onluq) + `interpret(index,value)` ilə AZ status/izah + rəngli badge (good=emerald/warn=amber/bad=red). Hədlər: NDVI/EVI/SAVI <0.2 Çox zəif, 0.2-0.4 Zəif, 0.4-0.6 Orta, 0.6-0.8 Sağlam, >0.8 Çox sağlam; NDMI <0 Çox quru, 0-0.2 Quraqlıq riski, 0.2-0.4 Orta nəmlik, >0.4 Yaxşı nəmlik; NDWI <0 Quru, >=0 Nəm/su; NBR <0.1 Quru/yanıq riski, >=0.1 Normal.
+**Mən heç bir branch silmirəm** — siyahı sahibin qərar verməsi üçündür. Silmək istəsən:
+`git branch -d <local>` (merged olanlar üçün işləyəcək; iki `claude/*` üçün `-D` lazım olacaq, çünki
+git onları hash-ə görə merged saymır) və `git push origin --delete <branch>` (yalnız remote-u olan 4-ü).
 
-## 5. Kritik faktlar / tələlər (gotchas)
-- **Metadata PUT tarixləri:** `$N::text::date` cast (asyncpg date encoding — yoxsa `toordinal` xətası). (`f475ea8`)
-- **`geo/site`:** Open-Meteo elevation (5 nöqtə, d=90m) + Nominatim reverse (`User-Agent: BagbanAI/1.0`) → `subsidy_regions.name_az ilike` → economic_region. Hamısı best-effort (heç vaxt 500 yox).
-- **Server DB `bagban` = superuser** (RLS bypass) → admin/cross-tenant sorğular birbaşa işləyir. **Deploy-da `.env` MÜTLƏQ source olunmalı.**
-- **HLS pipeline:** Earthdata bearer token `EARTHDATA_TOKEN` (**bitir 2026-08-30 — yenilə**). TiTiler tile URL WebMercatorQuad TMS tələb edir.
-- **AI:** provider-agnostik `services/app/ai/` (Claude, `claude-opus-4-8`, `messages.parse`). Advice hər səhnədən sonra `POST /api/internal/advice/run` (X-Internal-Token) ilə auto (item 5-dən sonra 15-gün throttle).
+---
 
-## 6. TƏHLÜKƏSİZLİK (yeni agent MÜTLƏQ əməl etsin)
-- **API açarlarını/parolları fayla YAZMA** — istifadəçi özü əlavə edir (sərt qayda). LLM açarı serverin `.env`-ində.
-- **Repoları qarışdırma:** `~/Desktop/bagbanai` = Bağban AI; `~/Desktop/agradex` = findix.az.
-- **main-ə push = deploy** — istifadəçidən təsdiq al (onların iş axını belədir). `wip/*` branch-lara push sərbəst.
+## Deploy — bir sətir
 
-## 7. İstinad datası
-- **Reference sahə:** "fındıq bağım" `4a5012b3-2baa-4714-b1d2-1ddc2454dd82` (tam işlənmiş, AI məsləhət işləyir). Digərləri: "test lecet" `860891bd-912c-4ec3-9235-b7d4d0193190`.
-- **Login:** demo — `demo@agradex.com` / `AgradexDemo2026`; owner — `seyidlimirshahbaz@gmail.com` (parol istifadəçidə). Admin panel `/admin` (owner `is_admin=true`).
-- **User-account TODO:** Cloudflare SSL→Full(Strict); Earthdata token yenilə (<2026-08-30); LLM açarını rotate et (chat-da açıq mətnlə görünmüşdü).
+Push et, sonra serverdə **yalnız** `cd /opt/bagbanai && bash deploy/update.sh`.
+İki şey burada tez-tez unudulur və hər ikisi `CLAUDE.md`-də açıq yazılıb:
 
-## 8. Bu sessiyada nə edildi (xülasə)
-AI aktivləşdirmə + canlı test; admin panel + billing (v1.0.8); sahə onboarding sihirbazı (v1.0.9) + `geo/site` + migration 0012; metadata date-cast buq düzəlişi (`f475ea8`) + fındıq bağı terrain backfill; refinement item 1/2/3/5/6 → `wip/onboarding-refine` (un-reviewed). CHANGELOG.md-də tam tarixçə.
+1. **`update.sh` miqrasiya İŞLƏTMİR** — miqrasiya həmişə ayrıca, əl ilə və **düzgün sıra ilə**
+   (əlavəedici sütunlar image-dən **əvvəl**; sütun DROP edən miqrasiya isə image ilə **birlikdə/sonra**).
+   Ən yeni tətbiq olunmalı miqrasiyalar: **0055** (`login_tokens`) və **0056** (`ai_usage.source`),
+   hər ikisi əlavəedicidir → **image-dən əvvəl**.
+2. **Uğursuz build heç bir konteyner əvəz etmədən dayanır** (`set -euo pipefail`), yəni **yaşıl görünən sayt
+   deploy-un düşdüyünə sübut deyil**. Çıxış statusunu / tail-i oxu. Bu Mac-da **node yoxdur** → yeganə TS
+   gate serverin `docker build web`-idir.
+
+## Bilinməyən (ilk növbədə bunu yoxla)
+
+`CHANGELOG.md` [1.15.0]–[1.17.0] üçün qeyd olunub: **27–30 iyul işinin bir hissəsinin canlıda olduğu
+repodan sübut edilə bilmir.** `81660df` + `a1b362e` dalğası canlı doğrulanıb (`31b6e58` ölçmələri qeyd
+edir); `8f25630` (Terra Oracle) və `03eb081` (OneSoil mobil) dalğalarından sonra uğurlu build/deploy qeydi
+yoxdur — hər ikisinin ardınca **build düzəlişi** commit-i gəlir, yəni o an `update.sh` dayanmışdı.
+`decbdb2`-yə qədər olan son dalğa (magic link, 0055/0056) da təsdiqsizdir.
+
+**Serverdə üç sorğu bunu bağlayır:**
+```bash
+docker compose -f deploy/docker-compose.prod.yml exec -T db psql -U bagban -d bagban \
+  -c "select filename from public.schema_migrations order by 1 desc limit 6;"
+docker compose -f deploy/docker-compose.prod.yml ps          # image tarixləri
+curl -s https://app.agradex.com/api/health
+```

@@ -3,6 +3,267 @@
 Bütün əhəmiyyətli dəyişikliklər burada qeyd olunur. Format [Keep a Changelog](https://keepachangelog.com/),
 versiyalar [SemVer](https://semver.org/).
 
+## [1.17.0] — 2026-07-30 — Email-only qeydiyyat + magic link + avtomatik sahə adı + AI xərcinin ölçülməsi
+
+> Mənbə: `786bb4d`, `4f350c2`, `7021a66`, `18113e3`, `decbdb2`. Miqrasiyalar **0055**, **0056**.
+> ⚠️ **Deploy statusu repodan sübut olunmur.** `7021a66` və `18113e3` **prod DB-sini oxuyub** ölçü aparır
+> (`ai_usage` ledger-i, `zone_knowledge` sətirləri) — bu, kodun canlıya vurulduğunu göstərmir. Miqrasiya sırası:
+> **0055 və 0056 yeni api image-dən ƏVVƏL** (hər ikisi əlavəedici və köhnə image işləyərkən təhlükəsizdir;
+> yeni kod isə onlara SELECT/INSERT edir). `update.sh` miqrasiya işlətmir — ayrıca əl addımıdır.
+
+### Added
+- **Magic link ilə giriş (`786bb4d`, migration 0055 `login_tokens`):** `secrets.token_urlsafe(32)`, DB-də
+  yalnız **sha256** saxlanılır, 15 dəqiqə, tək istifadə (atomik şərtli `UPDATE`). Endpoint həm qeydiyyat,
+  həm giriş üçündür və **hər iki halda eyni cavabı verir** — hesab sadalamağa (enumeration) yaramır;
+  bitmiş/xərclənmiş/etibarsız üçün **tək fərqlənməyən xəta** eyni səbəbdən. **Parol girişi toxunulmayıb**
+  (hash-ı olan hesablar əvvəlki kimi girir).
+  Token **URL fraqmentində** (`#`) gedir, query-də yox: brauzer `#`-dən sonrasını ötürmür, ona görə nə nginx
+  access log-una, nə landing-in çəkdiyi asset-lərin `Referer` başlığına düşür (`?token=` ilə hər girişdə
+  loga **iki dəfə** yazılırdı).
+- **Sahənin adı həmişə var (`786bb4d` + `4f350c2`):** ad server tərəfdə, advisory lock altında, **org
+  daxilində** və mövcud adlardan törədilir (`count(*)` yox) — soft-delete olunmuş «Sahə 2» adını növbəti
+  sahəyə vermir.
+- **`ai_usage.source` (migration 0056, `18113e3`):** çağırışı **kim başladı** — `auto` (pipeline/cron/research
+  drain) vs `user` (chat, əl ilə yenidən-generasiya). Batch API qərarı (50% endirim ↔ «24 saat içində»)
+  məhz bu ayrımı tələb edir. **Tarixi sətirlər NULL qalır** — qəsdən backfill edilmir, çünki təxmin edilmiş
+  dəyər `GROUP BY`-da ölçülmüşdən seçilməz olur.
+- **`tools/bakeoff.py`** — provayder müqayisə qoşqusu (`decbdb2`).
+
+### Changed
+- **Qeydiyyat tək sahədir (`786bb4d`):** yalnız email + bir düymə. Ad, soyad, parol, ölkə, rayon çıxdı —
+  hamısı istəyə bağlıdır və `/account`-dadır.
+- **Tək göndərən:** 8 dil personası → hər dildə **Ülkər Nəsirova `<ulkar@agradex.com>`**. Sahibin qərarı ilə
+  azərbaycanca ad seçildi (əsas auditoriya). ⚠️ `notify.py` başlığı açıq yazır ki, ünvan indi **təkdir, amma
+  hələ çatılan deyil** — agradex.com MX dərc etmir, cavablar bounce olur (poçt qutusu + MX qalır).
+- **nginx `set_real_ip_from` Cloudflare aralıqları** (hər iki konfiqdə): `CF-Connecting-IP` nginx tərəfindən
+  olduğu kimi ötürülürdü, ona görə per-IP limit **saxta başlıqla keçilirdi** — istifadəçi yaradan və məktub
+  göndərən auth-suz endpoint üzərindəki yeganə qlobal əyləc.
+- **AI qiymət cədvəli tarixləndi (`18113e3`, `ai/pricing.py`):** sabitlər → `(effective_from, input, output)`,
+  çağırış günündə qüvvədə olan sətir qalib gəlir. Səbəb konkretdir: Claude Sonnet 5-in $2/$10 tarifi
+  **2026-08-31-də bitir** və $3/$15 olur — sabit qalsaydı hər sonnet çağırışı **50% əskik** hesablanacaqdı,
+  həm də admin panelin və «keçmək sərfəlidirmi» müzakirəsinin oxuduğu cədvəldə. Sentyabr dəyişikliyi
+  **əvvəlcədən yazılıb**. Əlavə: `claude-opus-5` (GET /v1/models ilə təsdiqlənib), Anthropic keş
+  multiplikatorları, müqayisəyə düşən qeyri-Anthropic modellər (yoxsa `DEFAULT`-a düşüb Opus qiymətinə
+  hesablanırdılar).
+- **Web axtarış artıq hesablanır:** Anthropic 1 000 server-tərəfli axtarışa $10 alır; `ai/research.py`
+  `max_uses=4` ilə işləyir, yəni hər research işi ledger-də **olmayan** $0.04-a qədər alət haqqı daşıyırdı.
+- **Bake-off Anthropic-i prodakşnın çağırdığı yolla ölçür (`decbdb2`):** qoşqu məcburi **tool** çağırışı
+  (`input_schema` — «ən yaxşı səy», `required` zəmanəti yox) işlədirdi; prodakşn isə
+  `messages.parse(output_format=…)` (structured outputs, sxemə qarşı validasiya). Yəni qoşqu **məhsulun heç
+  vaxt icra etmədiyi** kod yolunu qiymətləndirirdi. SDK ilə yenidən ölçüldü: 3 model × 3 prompt = **9/9,
+  sıfır müqavilə pozuntusu** (əvvəl təxminən hər 3 promptdan biri). Çıxış tokenləri də düşdü (Opus eyni
+  promptda 2146 → 1565) — tool sxemi modeli cavabın içində formanı təkrarlamağa itələyir. Digər üç
+  provayder **qəsdən** xam HTTP-də qalır: OpenAI `strict json_schema`, Gemini `responseSchema`, DeepSeek
+  sxemsiz `json_object` — onların **əsl** mexanizmi budur.
+
+### Fixed
+- **Magic link uçdan-uca ölü idi:** məktubdakı link `/magic`-ə gedirdi, marşrut isə `/auth/link` —
+  hər link 404 verirdi. İki yarım fərqli dillərdə olduğu üçün heç bir kompilyator tuta bilməzdi.
+- **`POST /magic-link` `send_email`-in boolean cavabını atırdı** → rotate olunmuş açar, bounce və ya timeout
+  halında da fermerə «poçtunuza baxın» deyirdi. İndi **502** (heç nə sızdırmır — yanındakı 503 kimi, budaq
+  yalnız nəqldən asılıdır).
+- **Keçici şəbəkə xətası etibarlı, XƏRCLƏNMƏMİŞ linki məhv edirdi** — token URL-dən təmizlənmişdi və yalnız
+  closure-da yaşayırdı, catch-all isə «yeni link istəyin» deyirdi. İndi `ApiError` (server rədd etdi) və
+  şəbəkə xətası ayrı nəticələrdir, ikincisi **təkrar cəhd** təklif edir.
+- **`schemas.FieldIn.name: str` avtomatik adı bloklayırdı (`4f350c2`):** `routers/fields.py` adı onsuz da
+  generasiya edirdi, amma Pydantic adsız sorğunu handler işə düşməmişdən **422** ilə rədd edirdi — funksiya
+  tam qurulmuş və **əlçatmaz** idi.
+- **Bilik keşi heç vaxt oxunmurdu (`7021a66`):** prod `ai_usage` ledger-indən ölçüldü — `research` bütün AI
+  xərcinin **58%-i** idi (6 iş, ~$0.38/iş; müqayisə üçün advice ~$0.055). Səbəb model və ya prompt deyildi:
+  `zone_knowledge` (crop_type + zone_id üzrə açarlanır, org-lar arasında **paylaşılan**) və `kb.read_zone_blocks()`
+  mövcud idi, amma orkestrator hər dəfə birbaşa `_synthesize_zone`-a gedirdi. Yəni hər yeni sahə 4-axtarışlı
+  web_research sintezi işlədib cədvəldə **onsuz da təzə** duran məzmunu üstünə yazırdı — israf sahə sayına
+  yox, **QEYDİYYAT sayına** görə böyüyürdü (`routers/fields.py` hər sahə yaradılışında `blocks=["ALL"]`
+  enqueue edir). `index_norms` bir blok aşağıda eyni formada idi: **məhsul başına** data, sahə başına yenidən
+  törədilirdi, 0026-nın `norms_source`/`norms_updated_at` provenans sütunları oxunmadan qalırdı; `seed` sətri
+  isə nüfuzludur və `_writeback_norms` onun üstünə yazmır — yəni model pulu **atılacaq cavab** alırdı.
+  İndi: yalnız **tam** blok dəsti hit sayılır (`_synthesize_zone` beşini bir çağırışda verir), araşdırılmış
+  norms 180 günlük TTL ilə təzələnir, keş hitləri `zone:cached` / `index_norms:cached` kimi qeyd olunur ki,
+  **heç nə etməyən iş** uğursuz işdən seçilsin. Model/prompt/provayder **qəsdən toxunulmadı**.
+
+## [1.16.0] — 2026-07-28 — OneSoil mobil: xəritə ana səhifədir
+
+> Mənbə: `03eb081` (+ build fix `05c3870`). Ölçü mənbəyi `docs/ONESOIL_MOBILE_TEARDOWN.md` —
+> real OneSoil Android tətbiqinin adb + uiautomator ilə piksel-ölçülmüş teardown-u, təxmin deyil.
+> ⚠️ **Deploy statusu repodan sübut olunmur** — `05c3870` uğursuz `next build`-i düzəldir (o vaxta qədər
+> `update.sh` heç bir konteyner əvəz etmədən dayanmışdı); ondan sonra canlı doğrulama qeydi yoxdur.
+
+### Added
+- **Telefonda `/` = təsərrüfatın tam-bleed xəritəsi** (`home/MapHome.tsx`), altında günün diqqət materialı.
+  Yığılmış «salam + kartlar» ana səhifəsi getdi. **Heç nə atılmadı, yeri dəyişdi:** poliqon rəngi + diqqət
+  zolağı «hansı sahə məni istəyir»i daşıyır, alertlər üst-panel zəngində qalır, «Sahələrim» = `/fields` tabı,
+  `/more` isə `/account`-da bir sətirdir.
+- **Beş həqiqi tab:** Xəritə · Sahələr · Hava · Qeydlər · Hesab. Mərkəzdəki **«+» menyudan çıxdı** — OneSoil
+  sahə-əlavəni xəritənin üstündə 48×48 kontrol kimi verir (teardown §2).
+- **Yağış radarı (`weather/RadarMap` + `RadarScrubber` + `useRadarFrames`):** RainViewer, **açarsız və
+  krediti ilə**. Keçmiş kadrlar **müşahidə**, nowcast kadrları **proqnoz** — ikisi heç vaxt eyni şey kimi
+  təqdim olunmur.
+- **`/notes` — təsərrüfat üzrə skautinq jurnalı.** Backend lazım idi: `GET /api/scouting` `field_id` tələb
+  edirdi, yəni bir təsərrüfatın qeydlərini siyahılamağın yolu **yox idi**. Org-səviyyəli oxu yenidir;
+  sahə-səviyyəli yol **bayt-bayt eynidir**.
+- **Sahə ekranı telefonda tabsızdır:** tək skroll — xəritə kartı → səhnə tarixçəsi → sağlamlıq → AI məsləhət →
+  hava → çiləmə; qalan altı bölmə «Daha çox» siyahısında. **Hər `?tab=` dərin linki hələ də həll olunur**
+  (bildiriş/paylaşma linkləri sınmır), desktop isə bölmə menyusunu saxlayır — ikisi də `fieldSections.ts`-dəki
+  **tək taksonomiyanı** oxuyur.
+
+### Fixed
+- **Çiləmə bloku hər fermerə pəncərənin «hava datası hazır olanda» görünəcəyini deyirdi.** Bilik Pasportu
+  Pro/Business-dir, billing təxirə salınıb, yəni **hər org pulsuzdur** və hər org **yalan səbəb** alırdı.
+  İndi `gated` oxunur və heç nə demir — billing qaydasına görə havanı günahlandırmır.
+- **Uğursuz `/api/fields/geo` telefon ana səhifəsini sessiya boyu fırlanan skeleton-da qoyurdu** — «yoldadır»
+  və «uğursuz oldu» eyni `null` idi. İndi ayrıdır.
+- **Sahə-əlavə kontrolu xəritə budağının içində idi**, yəni fermerin ona ən çox ehtiyacı olan üç vəziyyət
+  (yüklənir, uğursuz, hələ heç nə çəkilməyib) məhz onsuz qalırdı — üstəlik aşağı menyudakı «+» artıq
+  «sahə-əlavə xəritədə yaşayır» əsasıyla silinmişdi.
+- **Qeydlər başlığı «Hamısı: 100» yazırdı**, altındakı footer isə siyahının kəsildiyini deyirdi. Endpoint indi
+  limitdən **bir sətir artıq** oxuyub `has_more` qaytarır — kəsilmə **müşahidə olunur**, ehtimal edilmir.
+- Bir uğursuz qeydlər oxuması xəta bannerini bütün sonrakı uğurlu oxumaların üstündə saxlayırdı.
+- Telefon geri-zolağı **dərinlik** lazım olan yerdə boolean işlədirdi → bölmə → bölmə → geri, adını çəkdiyi
+  ekrandan başqa yerə düşürdü.
+- **`/weather` və `/notes` middleware-in app-path siyahısında yox idi** → marketinq apex-i onları çılpaq
+  verirdi; `/weather`-in ümumiyyətlə desktop girişi yox idi.
+- `RadarMap`-də hoisted closure-ların tutduğu `map` üçün açıq tipli alias (`05c3870`) — `const map = …; if (!map) return;`
+  effekt gövdəsində daraldır, amma `stop`/`finish` **hoisted funksiya bəyanlarıdır** (qəsdən — `.on()`
+  zamanı gələn `sourcedata` hadisəsi const-ı temporal dead zone-da tutmasın deyə), TypeScript isə
+  control-flow daralmasını hoisted gövdəyə daşımır.
+
+## [1.15.0] — 2026-07-27 — Sadələşdirmə (ERP yarısı çıxdı) + Terra Oracle iş masası + OneSoil mobil komfort
+
+> Mənbə: `3f5f9ce`, `81660df`, `a1b362e`, `31b6e58`, `8f25630`, `c13ba8f` (+ sənəd `4c7e9dd`, `e4a7c13`).
+> **Deploy statusu iki hissədə fərqlidir:** `81660df` + `a1b362e` dalğası **canlı doğrulanıb** — `31b6e58`
+> commit mətni 614px-də ölçmələri və sahib hesabının deploy-dan sonra `ru`-ya uyğunlaşmasını qeyd edir.
+> `8f25630` (Terra Oracle) dalğası üçün repoda uğurlu build/deploy qeydi **yoxdur** — `c13ba8f` məhz uğursuz
+> `next build`-i düzəldir, ondan sonrakı yeganə commit sənəddir. Serverdə təsdiqlə.
+
+### Removed
+- **ERP yarısı məhsuldan çıxdı (`81660df`) — sahibin qərarı, 12 funksiya.** Qalan məhsul: **peyk təsviri və
+  indekslər, onları oxuyan AI analiz və tövsiyə, ətrafdakı hava, hər ikisini qidalandıran sahə qeydi.**
+  - **Sahə bölmələri:** `tasks` · `yields` · `zones` (məhsuldarlıq zonaları) · `harvest`. Sahə səhifəsi
+    **16 → 12 bölmə**.
+  - **Təsərrüfat modulları:** dəftər · satış · anbar · texnika · yığım sifarişi · yerlər — **və onları
+    saxlayan `/farm` konteyneri**. `farmSections.ts`, `farmRedirect.ts` və `/ledger` `/sales` `/inventory`
+    `/equipment` redirect-ləri də getdi; hamısı indi **404**.
+  - **Hesabatlar** (`reports`, 1027 sətir) — indicə getmiş dəftər/satış/tapşırıq/məhsuldarlıqdan oxuyurdu;
+    saxlamaq **boş hesabat göndərmək** olardı.
+  - **Marketinq səhifələri:** `/whats-new` (+`/yenilikler`) · `/status` · `/finduq`.
+  - **8 backend router silindi** (`equipment`, `harvest_order`, `inventory`, `ledger`, `places`, `reports`,
+    `sales`, `zones`); rail 11 → **5 istiqamət**; **445 i18n açarı** 8 lüğətdən çıxdı.
+  - **`deploy/process-zones.sh`** repodan və **serverin crontab-ından** silindi (girişi olmayan funksiya üçün
+    hər 5 dəqiqədə işləməyə davam edərdi).
+  - ⚠️ **DB CƏDVƏLLƏRİ DROP EDİLMƏYİB** — subsidiya kalkulyatoru ilə eyni naxış: data yatmış və geri-qaytarıla
+    bilən qalır. Bu **məhsul qərarıdır, sökülmə deyil**.
+  - **Mühakimə tələb edən üç yer:** (1) `mgmt.py` tasks + operations + yields-i birlikdə saxlayırdı —
+    **operations QALDI**, çünki onlar mühasibat yox, **AI girişidir** (`ai/context.py` oxuyur ki, məsləhət
+    «10 gün əvvəl suvarma qeyd olunub, NDMI hələ düşür» deyə bilsin); tasks/yields oradan kəsildi, əməliyyat
+    jurnalının tetiklədiyi anbar çıxımı ilə birlikdə. (2) `ai/context.py` tasks/yields oxumağı dayandırdı —
+    yoxsa modelə həmişə **boş iki siyahı** gedərdi. (3) `BackfillCard` yalnız `zones` bölməsindən əlçatan idi
+    və keçmiş mövsümləri istəməyin **YEGANƏ** yoludur (mövsüm müqayisəsini və proqnozun `own_history` pilləsini
+    qidalandırır) → `season` bölməsinə köçdü, artıq heç kimin istehlak etmədiyi piksel-başına COG-ları yazan
+    `for_zones` bayrağı olmadan.
+  - `notify_prefs` texnika/anbar ilə gedən `service_due` və `low_stock` xəritələmələrini atdı.
+- **`?ui=v1` köhnə konsol Dashboard-u və `lib/uiFlag.ts` (`8f25630`)** — `TodayHome` həftələrdir default idi,
+  yəni qaçış lyukunun auditoriyası yox idi, amma `/`-a hər layout dəyişikliyi **iki dəfə** düşünülməli olurdu
+  (geniş-səhnə işi məhz buna ilişmişdi). Sahə səhifəsinin paralel v1 budağı da getdi; **13 yetim `dash.*`
+  açarı** 8 lüğətdən çıxdı.
+
+### Added
+- **Sahə səhifəsində davamlı xəritə kartı (`3f5f9ce`)** — E14-ün sildiyi hero **qəsdən** geri gətirilmədi:
+  normal axında məhdud, yuvarlaq **KART**, bölmə naviqasiyasının **üstündə** mount olunur ki, bölmə
+  dəyişikliyindən sağ çıxsın. Sol-üstdə indeks çipləri, sağ-üstdə tam ekran, kənarda şaquli leqenda, altda
+  tarix zolağı (struktur `docs/ONESOIL_MOBILE_TEARDOWN.md` §4.8/§5.4-dən ölçülüb). Tam ekran tarix zolağını
+  sabit saxlayır və **URL-də yaşayır** (`?map=full`) — Android geri jesti onu pulsuz bağlayır.
+  **Heç vaxt ikiləşmir:** geniş səhnədə xəritə iş masasınındır, `satellite` və `zones` bölmələri özününküsünü
+  qurur — kart onların heç birində render olunmur. **Skautinq yeganə geniş-ekran istisnasıdır**: xəritəsiz
+  pinlər = çıxışı silinmiş funksiya.
+- **Skautinq qeydləri xəritə datasına çevrildi (`3f5f9ce`):** pinlər həmin kartda render olunur, birinə
+  toxunmaq qeydi açır, qeyd artıq **redaktə, silinə və HƏLL OLUNA** bilir — həll olunmuş **silinmiş deyil**,
+  tarixçədə tarixi ilə qalır; skautinqi to-do siyahısı yox, **qeyd** edən budur. Yerləşdirmə sabit mərkəz
+  retikulu + altdan sürüşən xəritə ilə olur: barmaq toxunduğu nöqtəni örtür, ona görə telefonda nöqtəni
+  dəqiq qoymağın yeganə yolu budur. (Miqrasiya **0054** koordinatları onsuz da 2026-07-26-da əlavə etmişdi.)
+- **Terra Oracle iş masası (`8f25630`) — üç səth.** Sahibin tələbi: portal.terraoracle.ai-ın ciddiliyi
+  (proporsiyalar, menyu yeri, qrafiklər, tarix filtrləri) — **bizim funksiyalarla**.
+  - **Shell:** 78px yuvarlaq üzən rail → həqiqi **sidebar** (fixed, tam pəncərə hündürlüyü, sol kənara yapışıq,
+    kvadrat künc, üstdə wordmark, ikon+etiket sətirləri). `Nav` üst panel oldu: sidebar toggle + marşrutdan
+    törənən qalın səhifə başlığı + zəng/kömək/avatar. **Yeddi istiqamət:** Bu gün · Sahələr · Kataloq · İcma ·
+    Daha çox, aşağıda Bildirişlər və Hesab.
+  - **Dashboard:** 8 KPI plitəsi, scope dropdown, xəritənin **rəngləmə mənbəyini** seçən seqment
+    (sağlamlıq / xəbərdarlıqlar / hava), əsas obyekt kimi çox-sahə xəritəsi, yanında Məlumat lenti.
+  - **Sahə qrafik paneli (`field/chart/`):** seçilmiş tarix, `1H 1A 3A 6A 1İ Hamısı` aralıq kontrolu,
+    ←/Bu gün/→ addımlayıcısı, həll olunmuş aralıq, **hansı indeksin çizildiyini** seçən Layers dropdown-u,
+    kilid və tam ekran. Dəyər-rəngli xətt, hər real səhnəyə bir nöqtə, zolağı ilə kəsik proqnoz davamı,
+    Bu gün markeri, hover tooltip.
+  - **QURULMAYAN (qəsdən):** *MARKET INTELLIGENCE* və *VRA* — məhsulda nə bazar datası, nə dəyişkən-doza var,
+    ona görə o referans plitələrinin **dürüst mənbəyi yoxdur**. Yerinə API-nin onsuz da verdiyi dörd şey:
+    peyk emalı vəziyyəti, qüvvədə olan suvarma tövsiyələri, diqqət tələb edən sahələr, ən yeni səhnə tarixi.
+    Naməlum = özünü izah edən tire.
+- **`/catalog` və `/chat` naviqasiyada göründü** (`SHOW_MARKETPLACE_NAV = true`); `/provider` `/more`-dadır,
+  **yalnız provider rollu hesablara** — o, fermerdə olmayan profili redaktə edir.
+
+### Changed
+- **Desktop tam-bleed iş sahəsi (`a1b362e`):** app host 1152px oxu konteynerindən çıxır — axıcı bleed track
+  (rail / sahə siyahısı / səhnə), maksimum 2200px, səhnə **marşruta görə** siniflənir ki, proza məhdud qalsın,
+  xəritə-əsaslı səthlər isə pəncərəni alsın. Ölçülən səhnə 1440px-də **778 → 938px**.
+  **Marketinq konstruksiyaya görə toxunulmazdır** — bleed `AppShell`-in app-host erkən return-undan SONRA yaşayır.
+- **«Bu gün» instrument paneli:** ölçülmüş 760px səhnənin üstündə 4 stat plitəsi, çox-sahə xəritəsi əsas
+  obyekt kimi, xəbərdarlıqlar yan reyd kimi.
+- **Mobil komfort (OneSoil):** həmişə görünən etiketli **80px** aşağı menyu + 64×32 aktiv pill, **48px toxunma
+  döşəməsi**, və `--nav-h` / `--nav-clear` — aşağıya bağlanan heç nə bir daha zolağın hündürlüyünü **təxmin
+  etməsin** deyə.
+- **Qat seçici (`field/layers/`):** on indeks akronimi saymaq əvəzinə **sahənin özünü hər indeksdə render
+  edilmiş şəkli** + hər qata bir sadə cümlə; sayğaclı (ref-counted) `lib/scrollLock.ts` ilə — iç-içə sheet
+  `<html>`-i `overflow:hidden`-də qoya bilmir.
+
+### Fixed
+- **`h-[min(360px,46dvh)]` — dəstəklənməyən vahid daşıyan `min()` PARSE anında etibarsızdır**, ona görə bütün
+  hündürlük atılır, kart yığılır və MapLibre **0×0** ölçüdə qurulur. `dvh` Chrome 108 / Safari 15.4-dür, yəni
+  məhz bu məhsulun hədəflədiyi büdcə Android. İndi px hündürlük + dvh tavanı.
+- Yükləmə pərdəsində `pointer-events-none` yox idi → hər `/scenes` gedişi boyu xəritə **sürüşdürülə bilmirdi**,
+  yerləşdirmə rejimində isə retikulun **üstündə** dururdu.
+- **Tam ekran skroll kilidi no-op idi:** `globals.css` `html,body`-yə `overflow-x:hidden` verir, ona görə
+  body-nin overflow-u artıq viewport-a yayılmır. İndi `documentElement` kilidlənir.
+- «Xəritədə yerləşdir» ekrandan kənarda başlayırdı; `flyTo` `ready`-yə gate olunmamışdı (konstruksiyadan əvvəlki
+  «xəritədə göstər» atılır və təkrarlanmırdı); `sectionHref` `?map=full`-u növbəti bölməyə kopyalayırdı.
+- **`Nav` shell-in track-ını import etmirdi**, ona görə ≥1280px-də hər app marşrutunda loqo rail-dən ~380px
+  sağda dururdu.
+- **Toplu (bulk) zolaq hələ `/api/bulk/tasks`-ə POST edirdi** — `81660df`-də silinmişdi, yəni düzgün görünən
+  formanın arxasında **zəmanətli 404**. Task yarısı çıxarıldı, 14 ölü açar 8 lüğətdən düşdü.
+- **`FieldMapCard` `/scenes`-i olduğu kimi qəbul edirdi**, ona görə HLS fallback-ı **Sentinel-2 kimi** render
+  olunur və həmin tile seçicinin keşinə **hazır S2 preview** kimi düşürdü.
+- **«Hər şey qaydasındadır» heç kimin qiymətləndirmədiyi sahənin üzərinə yazıla bilirdi:** `fetchFieldToday`
+  öz sorğularını tutur, ona görə 404 verən sahə də `null` verdiktlə **həll olunmuş** sayılırdı. Qapı indi
+  **qiymətləndirmədir**, həll olunma deyil.
+- **Reduced-motion sıfırlaması 14 spinnerin hamısını** bir 0.01ms dönüşdən sonra dondururdu — spinner çox yerdə
+  yeganə «işləyir» siqnalıdır.
+- **Bildiriş zəngi 36px idi (`31b6e58`).** Bu, sadəcə 12px deyil: aşağı menyu beşinci slotunu **məhz** header-in
+  bu zəngi daşıdığına görə `/account`-a verir, yəni telefonda bildirişlərin giriş nöqtəsi odur və həmin
+  zolaqla eyni hədəfi ödəməlidir. Badge indi düymədən yox, **ikondan** asılır (yoxsa 48-ə böyüyən hit sahəsi
+  nöqtəni zəngdən ~14px uzağa üzdürərdi). Telefon ana səhifəsindəki «sahə əlavə et» və «bütün xəbərdarlıqlar»
+  20px idi → hit sahəsi **pseudo-element** ilə böyüyür (padding sətrin ritmini sürüşdürərdi).
+- **`users.locale` yalnız `LanguageSwitcher` tərəfindən yazılırdı**, halbuki middleware interfeys dilini
+  **marşrut prefiksindən** qurur — `/ru/fields`-i bookmark etmək interfeysi həmişəlik dəyişir, hesab isə `az`
+  qalırdı. Sorğu daxilində işləyən hər şey `X-Locale` ilə xilas olurdu; **sorğusu olmayan** iki səth
+  (səhnədən sonrakı avtomatik məsləhət, həftəlik digest) oxucunun tərk etdiyi dildə yazırdı. İndi hesab
+  yükləmə başına **bir dəfə**, **yalnız açıq siqnaldan** uyğunlaşdırılır. Eyni yerdə panel-split-dən əvvəlki
+  **host-only** `bagban_locale` cookie-si də silinir (domain-scoped yazı onu əvəz edə bilmir).
+  ⚠️ Canlı doğrulanmış: sahib hesabı `bagban_locale`-i **iki dəfə** (tr və ru) daşıyırdı, `users.locale` isə
+  üçüncü dəyərdə (`az`) idi; deploy-dan sonra hesab interfeysin həqiqətən render etdiyi `ru`-ya uyğunlaşdı.
+- **`Intelligence Feed`-i açıb-bağlamaq eyni mövqedə div-i Fragment-lə əvəz edirdi**, ona görə React MapLibre-i
+  **məhv edib yenidən qururdu** — fermerin pan/zoom-u itirdi və yağış nowcast fan-out-u yenidən atəşləndi.
+- **Xəbərdarlıq xəritəsi `/api/notifications` UĞURSUZ olanda hər sahə üçün «açıq xəbərdarlıq yoxdur»** iddia
+  edirdi. Leqenda bu oxunuşu onsuz da rədd edirdi, hover popup isə yox.
+- **Sidebar-ın 256px vəziyyəti və `FieldListPanel` hər ikisi `xl`-də gəlirdi**, ona görə 1280px pəncərə ikisini
+  birdən ödəyir və sahə səhnəsi `WORKBENCH_MIN`-dən aşağı, **740px**-ə düşürdü. Sidebar `2xl`-ə keçdi; panel
+  **tərpənə bilməz**, çünki onun `xl:flex`-i sahə səhifəsinin `xl:hidden` çip sətri ilə cütdür.
+- `dotRender` `: ReactElement` kimi annotasiya olunmuşdu — `@types/react` 19-da (`ReactElement<P = unknown>`)
+  recharts-ın `LineDot`-una **assign oluna bilmir**; bu Mac-da node olmadığı üçün yalnız **oxumaqla** tutuldu.
+- **Hər qrafik aralığı son PROQNOZ nöqtəsindən geri sayılırdı**, ona görə ekranda proqnoz olanda «1H» tamamilə
+  gələcəyi əhatə edir, içində **heç bir ölçmə olmur** və düymə özünü söndürürdü. Aralıqlar indi son **real
+  müşahidəyə** bağlanır və span-ın ən çoxu **dörddə birini** proqnoza xərcləyir.
+- `stageW` çağırış yerində `number | null` qalırdı, `FieldWorkbench` isə `number` elan edir (`c13ba8f`) —
+  `next build` tip-yoxlamasında düşürdü və `update.sh` **heç bir konteyner əvəz etmədən** dayanırdı.
+  `stageW ?? 0` yerinə **açıq null testi**: fallback kompilyasiya olunub iş masasının 1000/1280 pillə
+  nərdivanına sıfır ötürərdi.
+
 ## [1.14.0] — 2026-07-26 — Sahə səhifəsi yenidən (E14) + tək həftəlik email (E15) + rus dili + hesab öz-xidməti
 
 > Detallı sessiya jurnalı: `docs/SESSION_2026-07-26.md`. **37 commit, 211 fayl.**
