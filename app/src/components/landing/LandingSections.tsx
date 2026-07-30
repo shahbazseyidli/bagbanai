@@ -134,7 +134,9 @@ export function StatsStrip() {
   const STATS = [
     { n: "2", l: t("mkt.sections.statSatellites") },
     { n: "10m", l: t("mkt.sections.statResolution") },
-    { n: "9", l: t("mkt.sections.statIndices") },
+    // 10 = sensors.ts SENSOR_INDICES.S2 (ALL_INDICES − TVI + NDRE + CIre). S2 is the only
+    // sensor the UI exposes, so this is the count a farmer can actually open.
+    { n: "10", l: t("mkt.sections.statIndices") },
     { n: "4", l: t("mkt.sections.statRolesLangs") },
     { n: t("mkt.sections.statRefreshDays"), l: t("mkt.sections.statRefresh") },
   ];
