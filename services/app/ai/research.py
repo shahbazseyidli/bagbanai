@@ -22,6 +22,12 @@ from . import llm
 # Zone blocks the LLM synthesizes (structured-API blocks are handled separately).
 _SYNTH_BLOCKS = ["crop_profile", "phenology", "water_requirements", "pest_disease", "agro_practice"]
 
+# How long a RESEARCHED index_norms row is trusted before it is worth paying to refresh. Agronomic
+# index bands for a crop move with cultivars and practice, not with weeks — a season is the honest
+# unit. Curated ('seed') rows ignore this entirely: they are authoritative and _writeback_norms
+# refuses to overwrite them, so re-researching one could only ever produce a discarded answer.
+_NORMS_TTL_DAYS = 180
+
 
 def _season(d: date) -> str:
     m = d.month
@@ -233,27 +239,70 @@ async def research_field(conn, field_id: str, blocks: Optional[list[str]] = None
                 degraded.append(f"eppo:{exc}")
 
     # --- ZONE LLM synthesis (best-effort; skipped without a key) ---
+    #
+    # THE CACHE IS READ FIRST, and it did not used to be. `zone_knowledge` is keyed on
+    # (crop_type, zone_id) and is SHARED across orgs by design — two farmers growing the same crop
+    # in the same rayon are meant to answer one research job between them, and kb.read_zone_blocks()
+    # already returns only rows still inside `expires_at`, with a docstring saying the stale ones
+    # are omitted "so the orchestrator re-researches them". That orchestrator is this function, and
+    # it never called it: every new field ran a full four-search web_research synthesis and then
+    # upserted content that was already sitting fresh in the table.
+    #
+    # Measured before the fix: research was 58% of all recorded AI spend from six jobs, ~$0.38 each,
+    # against a table that already held fresh rows for the same (crop, zone) pairs. The waste scaled
+    # with SIGNUPS, not with fields worth researching.
+    #
+    # Only a COMPLETE set counts as a hit. A partial one still goes to the model, because
+    # _synthesize_zone answers all five blocks in a single call — asking it for the missing two
+    # costs the same as asking for five, so there is nothing to gain by splitting it.
     if crop_type and (want is None or want & set(_SYNTH_BLOCKS)):
-        try:
-            season = _season(date.today())
-            syn_blocks, citations, usage = await _synthesize_zone(crop_type, zone_label)
-            total_usage = usage
-            for b in syn_blocks:
-                if not wants(b["block_type"]):
-                    continue
-                sc = season if b["block_type"] in ("phenology", "pest_disease") else "any"
-                await kb.upsert_zone_block(
-                    conn, crop_type, zone_id, b["block_type"],
-                    {"summary": b["summary"], "details": b["details"]},
-                    citations, season_context=sc, confidence=b.get("confidence"))
-                written.append(f"zone:{b['block_type']}")
-        except llm.LLMUnavailable:
-            degraded.append("synthesis:llm_not_configured")
-        except Exception as exc:  # noqa: BLE001
-            degraded.append(f"synthesis:{exc}")
+        needed = set(_SYNTH_BLOCKS) if want is None else (want & set(_SYNTH_BLOCKS))
+        cached = await kb.read_zone_blocks(conn, crop_type, zone_id)
+        if needed and needed.issubset(cached.keys()):
+            # Nothing to write: the rows are already there, already fresh, already what an upsert
+            # would produce. Report them so the caller can see the job did resolve these blocks.
+            written.extend(sorted(needed))
+            degraded.append("zone:cached")
+        else:
+            try:
+                season = _season(date.today())
+                syn_blocks, citations, usage = await _synthesize_zone(crop_type, zone_label)
+                total_usage = usage
+                for b in syn_blocks:
+                    if not wants(b["block_type"]):
+                        continue
+                    sc = season if b["block_type"] in ("phenology", "pest_disease") else "any"
+                    await kb.upsert_zone_block(
+                        conn, crop_type, zone_id, b["block_type"],
+                        {"summary": b["summary"], "details": b["details"]},
+                        citations, season_context=sc, confidence=b.get("confidence"))
+                    written.append(f"zone:{b['block_type']}")
+            except llm.LLMUnavailable:
+                degraded.append("synthesis:llm_not_configured")
+            except Exception as exc:  # noqa: BLE001
+                degraded.append(f"synthesis:{exc}")
 
     # --- Per-crop vegetation-index calibration → crop_thresholds.index_norms write-back (T17) ---
+    #
+    # SAME CACHE RULE AS THE ZONE BLOCKS ABOVE, for the same reason. index_norms are per CROP, not
+    # per field and not even per zone, so re-researching them for every new field of a crop we have
+    # already calibrated buys nothing at all. 0026 added norms_source/norms_updated_at precisely to
+    # record where a row came from; this reads that provenance instead of ignoring it.
+    #
+    # A 'seed' (curated) row is authoritative and is never overwritten by research anyway — see
+    # _writeback_norms' WHERE clause — so paying a model to produce a value that will be discarded
+    # is pure loss. A 'research' row is refreshed only once it is older than the TTL below.
     if crop_type and wants("index_norms") and llm.is_configured():
+        norms_fresh = await conn.fetchval(
+            """select bool_or(index_norms is not null
+                              and (norms_source is distinct from 'research'
+                                   or norms_updated_at > now() - make_interval(days => $2::int)))
+               from public.crop_thresholds where crop_type=$1""",
+            crop_type, _NORMS_TTL_DAYS)
+    else:
+        norms_fresh = True  # the branch below is skipped anyway; keeps the name always bound
+
+    if crop_type and wants("index_norms") and llm.is_configured() and not norms_fresh:
         try:
             norms, norms_usage = await _synthesize_index_norms(crop_type, zone_label)
             if norms:
