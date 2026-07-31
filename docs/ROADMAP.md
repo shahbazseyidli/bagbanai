@@ -165,7 +165,7 @@ SELECT/INSERT edir. `update.sh` miqrasiya işlətmir.
 | **T4** | GDD toplama modeli (field_gdd_daily, Open-Meteo archive) | Faza2 | backend/model | M | 🔴 | yox | ✅ be360ac |
 | **T5** | Foto diaqnoz (Claude vision → scouting) | **E7** / C1 | ai/vision | M | 🔴 | yox (LLM aktiv) | ✅ 84c4065 |
 | **T6** | Baseline/anomaliya aşkarı (fenologiya-avto təxirə) | Faza2 | geo/analytics | M | 🟡 | T4 | ✅ 5c10517 |
-| **T7** | ~~PDF/Excel hesabatlar~~ | §17 | backend/reports | L | — | — | ❌ **sadələşdirmə ləğv etdi** (`81660df`) — `routers/reports.py` (1027 sətir) və `/reports` səhifəsi silindi, çünki mənbələri (dəftər/satış/tapşırıq/məhsuldarlıq) getdi. `public.reports` cədvəli **dormant** qalır. Yenidən açmaq = əvvəl hesabatın nəyi oxuyacağına qərar vermək |
+| **T7** | PDF/çap hesabatı | §17 | backend/reports | L | — | — | ✅ **QAYITDI** (`b5b9cec`, 2026-07-31) — ERP yarısı olmadan. Aşağıdakı köhnə qeyd `81660df` dövrünə aiddir: ❌ **sadələşdirmə ləğv etmişdi** (`81660df`) — `routers/reports.py` (1027 sətir) və `/reports` səhifəsi silindi, çünki mənbələri (dəftər/satış/tapşırıq/məhsuldarlıq) getdi. `public.reports` cədvəli **dormant** qalır. Yenidən açmaq = əvvəl hesabatın nəyi oxuyacağına qərar vermək |
 | **T8** | Tam FAO-56 suvarma cədvəli | **E5** / B2 | ai/weather | L | 🟡 | T4, E1 | ✅ a1d4476 |
 | **T9** | Pest-risk engine (GDD + leaf-wetness) | **E4** / B1 | ai/model | L | 🟡 | T4, T1 (data U6) | ✅ 0d760c5 |
 | **T10** | D2 benchmark hardening (p10/50/90 + k-anon n≥5 + consent) | **E10** / D2 | analytics | M | 🟡 | yox | ✅ eba27c6 |
@@ -203,7 +203,7 @@ SELECT/INSERT edir. `update.sh` miqrasiya işlətmir.
 - **T4** — `gdd_base_c` crop_thresholds-də seed + load olunur, amma heç yerdə Σ yox. Fenologiya/yield/pest/FAO-56 üçün paylaşılan asılılıq. Open-Meteo ARCHIVE (pulsuz, açarsız).
 - **T5** — `ai/`-də vision kodu yoxdur (grep təmiz); `uploads.py` yalnız fayl saxlayır. `llm.complete_vision` + `ai/diagnose.py` + endpoint → `scouting_observations.diagnosis`. **Qayda 7** (problem tipi + qeydiyyatlı-siyahı göstərici + aqronom referral, pestisid dozası YOX). Ən güclü kiçik-fermer cəlbetmə qarmağı.
 - **T6** — `geo_pipeline/README.md` açıq "Phase 2" deyir; fenologiya yalnız LLM mətnidir, growth_stage əl ilə. Temporal baseline (p10/median/p90) + z-score + Savitzky-Golay → avto growth_stage.
-- **T7** — ❌ **Çıxarılıb.** `81660df` `routers/reports.py`-ı (1027 sətir) və `/reports` səhifəsini sildi: onlar dəftər/satış/tapşırıq/məhsuldarlıqdan oxuyurdu, o dördü isə eyni commit-də getdi — saxlamaq **boş hesabat göndərmək** olardı. `public.reports` (0005) və business-tier flag **dormant** qalır. Yenidən açmaq üçün əvvəl sual: hesabat indi **nəyi** oxuyacaq (peyk trendləri + AI məsləhət + əməliyyat jurnalı?).
+- **T7** — ✅ **QAYITDI 2026-07-31** (`b5b9cec` + `60761bf`). Aşağıdakı sual ("hesabat indi nəyi oxuyacaq?") cavablandı: sahə pasportu + son 10 mövsüm + 60 əməliyyat + 60 skautinq qeydi + S2 NDVI/NDMI seriyası + sağlamlıq balı + ən son AI rəyi (risklər/tövsiyələr/addımlar). Köhnə qeyd tarixi kontekst üçün saxlanılır: ❌ **Çıxarılmışdı.** `81660df` `routers/reports.py`-ı (1027 sətir) və `/reports` səhifəsini sildi: onlar dəftər/satış/tapşırıq/məhsuldarlıqdan oxuyurdu, o dördü isə eyni commit-də getdi — saxlamaq **boş hesabat göndərmək** olardı. `public.reports` (0005) və business-tier flag **dormant** qalır. Yenidən açmaq üçün əvvəl sual: hesabat indi **nəyi** oxuyacaq (peyk trendləri + AI məsləhət + əməliyyat jurnalı?).
 - **T8** — `weather.py` yalnız kobud 7-günlük net-need (ΣET0·Kc−yağış). Günlük depletion balans + mm+tarix + NDMI cross-check clarification + "Hesablamanı gör" panel.
 - **T9** — yalnız tiers.py flag; pest_risk_models/field_gdd_daily/pest_risk_events/field_pest_mutes yox. Engine (scoring/cooldown/hysteresis/"yoxdur" mute) indi qurulur, model datası U6 EPPO gözləyir. **Qayda 7.**
 - **T10** — `index_benchmark` (0010) yalnız orta qaytarır; p10/p50/p90 yox, HAVING n≥5 yox, consent yox, fenologiya kohortu yox. k-anon **HARD-CODED** olmalı. Endpoint-i tier-ə gate et.
@@ -322,27 +322,37 @@ Tam plan və sübutlar: sessiya jurnalı. Aşağıda yalnız **status**.
   Keş (təkrar toxunuş 56 s → 0.1 s) və ucuz probe **canlıdır**.
 
 **Böyük, ayrıca sessiya tələb edən:**
-- ⬜ **Per-sahə paylaşma (L)** — yeni `field_grants` + `deps.py`-də `require_field_access` +
-  **~60 gate çağırışının** org-fərziyyəsini sındırmaq. Bu, **giriş nəzarəti** dəyişikliyidir;
-  tələsik edilməsi ən təhlükəli sinifdir. Ayrıca sessiya + review istəyir.
-- ⬜ **PDF/çap hesabatı (M)** — **60%-i `81660df`-də hazır yazılıb** (A4 print CSS, `_doc()`,
-  UTF-8 BOM-lu CSV, RFC 5987 fayl adı). PDF kitabxanası lazım deyil, brauzer print edir.
-  `public.reports` cədvəli `payload jsonb` ilə hələ də yerindədir — miqrasiya lazım deyil.
-- ⬜ **Növbəti peyk keçidi + uğursuz cəhd jurnalı (M-L)** — orbit datası yoxdur; yeni cədvəl
-  (`scene_attempts`) + `pipeline.py:263`-də `else` budağı lazımdır (hazırda buludlu granul **heç
-  bir iz qoymur**).
-- ⬜ **Ferma CRUD + sahə qruplaşdırma (S→M)** — `farms` DB-də var, UI-da yaradıla/adlandırıla bilmir.
+- ✅ **Per-sahə paylaşma (L)** — `9fb4fce`, migration **0061**. `field_grants` +
+  `public.has_field_access(uid,fid)` + `deps.require_field_read()`. ⚠️ **~60 gate çağırışı
+  sındırılmadı** — bu qəsdən belədir: qrant sahibi **CƏMİ BİR route-a** çatır,
+  `GET /api/fields/{id}/report`. Hesabat onsuz da tam, oxu-üçün, tək-sahə sənədidir, ona görə
+  84 sahə-scoped route-dan hansının təhlükəsiz olduğuna dair ikinci mühakimə lazım gəlmir.
+  Yazı yolları toxunulmayıb (`require_field_write()` YOXDUR). 10 uçdan-uca ACL testi canlıda
+  keçdi; ən vacibi **qonşu sahə yenə 403**.
+- ✅ **PDF/çap hesabatı (M)** — `b5b9cec` + `60761bf`. `GET /api/fields/{id}/report?format=html|csv`.
+  81660df-dən stil/escape/qurucular/RFC 5987/BOM **eynilə** bərpa olundu; ledger/tasks/yields oxumaları
+  atıldı. Miqrasiya lazım olmadı. `report_labels.py` frontend lüğətindən **çıxarılıb** (111 söz).
+  ⚠️ Hesabat hələ azərbaycancadır — endpoint-də TODO kimi yazılıb.
+- ✅ **Növbəti peyk keçidi + uğursuz cəhd jurnalı (M-L)** — `eaf7290` + `bee6a38` + `7eff57f`,
+  migration **0060**. `scene_attempts` (written/no_valid_pixels/read_error/too_cloudy) +
+  `GET /api/fields/{id}/coverage` + `CoverageNote`. Keçid təqvimi **orbit datasından deyil, öz
+  müşahidələrimizdən** törəyir: `(tarix mod 5)` qrupları, 86 boşluğun hamısı 5-in qatı.
+  ⚠️ STAC axtarışı buludluları serverdə süzdüyü üçün ayrıca metadata-only axtarış lazım oldu —
+  onsuz siyahı boş qalırdı.
+- ⬜ **Ferma CRUD + sahə qruplaşdırma (S→M)** — `PATCH /api/farms/{id}` **var** (`e89147c`);
+  qalan hissə **yaratma UI-si** və sahələrin fermalar arasında köçürülməsidir.
 
 **Xəbərdarlıqların ÇIXAN kanalları:**
-- ⬜ Telegram / web push / həftəlik digest hələ **server tərəfdə** mətn göndərir. Zəng və bildiriş
-  səhifəsi artıq oxucunun dilindədir (`49f979c`); çıxan kanallar oxucunu bilmədiyi üçün
-  `emails/catalog.py` üslubunda server-tərəfli locale cədvəli istəyir.
+- ✅ Telegram / web push / həftəlik digest **oxucunun dilindədir** (`e48b8fa`, migration 0057 —
+  bildirişlərə də `title_code`/`params`). ⚠️ Qalan borc: `weekly.py::_LABELS` yalnız **az/en/ru**
+  yazılıb, ona görə **tr/de/hu/it/pl digest-i ingiliscə alır** (fallback locale→en→az).
 
 **Kiçik qalıqlar:**
-- ⬜ PWA install təsviri AZ (`manifest.ts` — `middleware` matcher-i manifest-i istisna edir,
-  struktur düzəliş lazımdır) · dil seçicinin öz etiketi «Language» · sortlar yalnız AZ reyestrindən ·
-  alman/polyak landing-də AZN qiymətlər · `robots.txt` direktivsiz + `sitemap.xml` 404 ·
-  `/az` 404 (hreflang `az` → məzmun-neqotiasiyalı `/`).
+- ✅ `robots.txt` + `sitemap.xml` + `/az` — `0efac3b`. 104 URL tam hreflang dəsti ilə;
+  `PUBLIC_ROUTES` **tək siyahıdır** (sitemap və robots ondan oxuyur); `/az` artıq 307 ilə `/`-ə;
+  manifest oxucunun dilində.
+- ⬜ Qalan kiçiklər: dil seçicinin öz etiketi «Language» · sortlar yalnız AZ reyestrindən ·
+  alman/polyak landing-də AZN qiymətlər.
 
 **Yoxlanmamış (gizli-tab artefaktı — açıq tabda baxılmalıdır):**
 - ⬜ Dashboard xəritəsinin sahələrə yaxınlaşması (kodda `fitBounds` **var**) · hava radarı.

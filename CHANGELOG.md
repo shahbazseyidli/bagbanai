@@ -3,6 +3,99 @@
 Bütün əhəmiyyətli dəyişikliklər burada qeyd olunur. Format [Keep a Changelog](https://keepachangelog.com/),
 versiyalar [SemVer](https://semver.org/).
 
+## [1.18.0] — 2026-07-31 — OneSoil korpus analizi: peyk OOM-i, çap hesabatı, keçid təqvimi, sahə-səviyyəli paylaşım
+
+> Mənbə: `becc1f1..7eff57f` (33 commit, 129 fayl, +7279/−2331). Miqrasiyalar **0057–0061**.
+> Bu dalğanın girişi 8 illik OneSoil icma mesajlarından çıxarılmış tələb sənədidir
+> (`Agradex_Fermer_Ehtiyaclari_Analizi.docx`) — hər maddə oradakı konkret şikayətə cavabdır.
+> ⚠️ **Miqrasiya sırası:** `0057`, `0059`, `0060`, `0061` **əlavəedicidir və api image-dən ƏVVƏL** tətbiq
+> olunmalıdır (yeni kod onlara SELECT/INSERT edir). **`0058` TƏRSİNƏDİR** — `org_is_paid()`-i oxu
+> siyasətlərindən çıxarır, ona görə kodla birlikdə və ya ondan SONRA. `update.sh` miqrasiya İŞLƏTMİR.
+> ⚠️ **`db/migrate.sh`-i `tools` konteyneri ilə çağıranda əmr TƏK sətir olmalıdır** —
+> `run --rm -T tools "bash db/migrate.sh"`. Entrypoint `bash -lc` olduğu üçün ayrı arqumentlər
+> **səssizcə heç nə etmir və 0 qaytarır** (bu sessiyada bir dəfə aldatdı).
+
+### Fixed — kritik
+- **Peyk yeniləməsi hər gecə OOM-dan ölürdü (`a25aece`).** `run-s2.sh` «S2 run complete» yazıb 0 ilə
+  çıxırdı, halbuki kernel log-u hər sahə üçün ~2.0 GB anon-rss OOM göstərirdi. Kök səbəb:
+  `rioxarray.open_rasterio(...).rio.clip(...)` **bütün rasteri yaddaşa açır**, sonra kəsir. Yeni
+  `read.open_clipped()` həqiqi **pəncərəli `rasterio` oxuması** edir: bant başına **482 MB → 170 MB**
+  pik, **8× sürətli**, və statistikalar **bayt-bayt eynidir** (10/10 indeks, valid_pixels 361=361).
+  Əlavə: `geo` servisinə `mem_limit: 1g` + `GDAL_CACHEMAX` (yalnız `geoapi`-də limit vardı), və
+  `run-s2.sh`/`run-hls.sh` artıq uğursuzluğu sayır və **`exit 1`** edir — yaşıl log yalan deyirdi.
+- **Qeydiyyatdan əvvəl çəkilən sahə HƏR DƏFƏ itirdi (`769ebfb`).** localStorage origin başınadır
+  (agradex.com ≠ app.agradex.com), amma üç kod şərhi işlədiyini iddia edirdi. Poliqon artıq quiz-in
+  mövcud server dövrəsi ilə gedir (`saveDraftField()` + `_clean_draft_field()`, 10 vahid test halı).
+- **Modul səviyyəsində `t()` dili dondururdu (`769ebfb`).** Kodda süpürüldü: 3 həqiqi hal (catalog,
+  ShareButton, repeatableRows), 5 oxşar hal təmizə çıxdı.
+- **Bir ünvana bir hesab (`97e3f75`, migration 0059).** `unique index on lower(email)` — əvvəl
+  `Ali@x.az` və `ali@x.az` iki ayrı hesab idi və ikincisi «təsərrüfatım silinib» kimi görünürdü.
+  13 istifadəçi, 0 dublikat — əvvəlcə ölçüldü, sonra qoyuldu.
+- **Çatdırılmış tarix geri alınmırdı (`a36786c`, migration 0058).** `advice_read`/`ai_chat_read`/
+  `notifications_read` siyasətlərindən `org_is_paid()` çıxarıldı: abunə bitəndə fermerin **artıq
+  aldığı** məsləhət və bildirişlər yox olurdu.
+
+### Added
+- **Çap edilə bilən sahə hesabatı (`b5b9cec`, `60761bf`).** `GET /api/fields/{id}/report?format=html|csv`.
+  81660df-də silinmiş 1027 sətirlik moduldan **ERP yarısı olmadan** bərpa edildi (ledger/sales/tasks/
+  yields getdi; qalanı canlı cədvəllərdən oxuyur). **PDF kitabxanası YOXDUR** — sənəd öz A4 çap
+  stilini və «Çap et / PDF kimi saxla» düyməsini daşıyır, brauzer PDF mühərrikidir. Stil, HTML escape,
+  kv/table/bullet qurucuları, RFC 5987 fayl adı və BOM-lu CSV **eynilə** bərpa olundu, yenidən
+  yazılmadı. İki sxem düzəlişi lazım oldu: `index_stats`-də `sensor` sütunu YOXDUR (o, `scenes`-dədir →
+  join), və `field_wellness` (field_id, computed_on) açarlıdır → açıq `order by`.
+  `report_labels.py` **`app/src/lib/i18n.ts`-dən çıxarılıb** (111 söz) — Python-da ikinci azərbaycanca
+  lüğət yazmaq yazıldığı gün sürüşməyə başlayardı.
+- **Növbəti peyk keçidi + boş keçidlərin jurnalı (`eaf7290`, `bee6a38`, `7eff57f`, migration 0060).**
+  «Sahəm niyə 3 həftədir yenilənmir?» sualı **öz bazamızdan cavablana bilmirdi**: `scenes` yalnız
+  UĞURU yazır, ona görə buludlu keçidlər silsiləsi ilə peykin uçmaması eyni görünür — yoxluq.
+  `scene_attempts` rədd cavablarını da saxlayır (`written` / `no_valid_pixels` / `read_error` /
+  `too_cloudy`). Keçid tarixi **datasheet-dən deyil, ÖLÇÜLÜB**: hər çəkiliş tarixini `(tarix mod 5)`
+  ilə qruplaşdıranda qrup daxilindəki **hər** boşluq tam 5-in qatıdır (7 sahə × 120 gün = 86 boşluq,
+  istisnasız). Geriyə-test edildi və **uğursuzluqlar ən maraqlı hissədir**: 07-21→07-23 və 07-23→07-26
+  dəqiq düşür, 07-06→07-08, 07-11→07-13, 07-16→07-18 isə 3 gün tezdir — bunlar peyk haqqında səhv
+  deyil (o tarixlər real keçiddir), **görüntü** haqqında səhvdir, çünki üçü də buludlu idi.
+  ⚠️ STAC axtarışı `eo:cloud_cover <= max_cloud`-u serverə göndərir, ona görə 95% buludlu granule
+  **heç vaxt gəlmir** — ayrıca metadata-only axtarış (`search_passes_s2`) onları `too_cloudy` kimi
+  yazır. Onsuz siyahı demək olar hər sahədə boş qalırdı (canlı ölçüldü: 12 günlük run → 4 yazı, 0 boş).
+  UI **heç vaxt şəkil vəd etmir**: «növbəti **keçid**», altında buludun görüntünü ləğv etdiyi qeydi.
+- **Sahə-səviyyəli paylaşım (`9fb4fce`, migration 0061).** `field_grants` + `public.has_field_access()`.
+  «Aqronomum bu sahəyə baxsın» üçün əvvəl iki cavab vardı, ikisi də yanlış: token linki (anonim →
+  bir adamdan geri alına bilmir, audit olunmur) və org üzvlüyü (bir bağı göstərmək üçün bütün sahələri,
+  təsərrüfatı, komandanı və xərcləri verir). ⚠️ **Qranti olan adam CƏMİ BİR route-a çata bilir:**
+  `GET /api/fields/{id}/report`. Bu **qərardır, ilk mərhələ deyil** — hesabat onsuz da tam, oxu-üçün,
+  tək-sahə sənədidir, ona görə 84 sahə-scoped route-dan hansının təhlükəsiz olduğuna dair ikinci
+  mühakimə lazım deyil. Yazı yolları **toxunulmayıb**: `require_field_write()` yoxdur və olmamalıdır.
+  10 uçdan-uca ACL testi canlıda keçdi (qrantdan əvvəl 403, sonra 200, **qonşu sahə yenə 403**, ləğvdən
+  sonra 403, qrant sahibi özü ləğv edə bilir, yad adam qrant verə bilmir).
+- **Ferma obyekti redaktə oluna bilir + `hectare_cap` işləyir (`e89147c`).** `PATCH /api/farms/{id}`;
+  org **sətirdən** oxunur, body-dən yox. Limit həndəsə ölçüldükdən sonra tətbiq olunur.
+- **Sitemap + həqiqi robots.txt (`0efac3b`).** 104 URL, hər biri tam hreflang dəsti ilə; `/sitemap.xml`
+  404 verirdi, `robots.txt` isə Cloudflare-in **sıfır direktivli** placeholder-i idi. `/az` artıq
+  307 ilə `/`-ə yönləndirilir (əvvəl 404). `PUBLIC_ROUTES` **tək siyahıdır** — sitemap və robots
+  ondan oxuyur ki, «nə publikdir» sualına iki fərqli cavab verə bilməsinlər.
+- **Sərhədin eksportu (`50b8b75`).** GeoJSON/KML — serializatorlar aylardır yazılmış və **çatılmaz**
+  idi, məxfilik siyasəti isə 8 dildə yükləməyin mümkün olduğunu deyirdi. Pulsuz (sahibin qərarı).
+- **Log rotasiyası (`deploy/logrotate-agradex`).** 9 cron `/var/log/bagban-*.log`-a əbədi yazırdı.
+
+### Changed
+- **Bildiriş mətnləri artıq oxucunun dilindədir (`49f979c`, `e48b8fa`, migration 0057).** Xəbərdarlıq,
+  Telegram, web push və həftəlik digest — hamısı `title_code`/`params` müqaviləsinə keçdi
+  (`rules/alert_copy.py` **frontend lüğətindən çıxarılıb**, yenidən tərcümə edilməyib).
+- **Türkcə və macarca sahəyə «sahə» deyir (`71f27c0`).** 46 tr açarı + 94 hu dəyəri; 8 macar
+  sait-harmoniyası səhvi əl ilə düzəldildi (`tábláimet→tábláimat`, `Táblákártya→Táblakártya`, …).
+  **Çiləmə pəncərəsi pulsuz oldu** (sahibin qərarı).
+- **Ölkə kilidi açıldı (`6bd02ed`).** Məhsul 8 dildə buraxılır, amma bir ölkədə işləyirdi.
+- **Bağ (çoxillik) öz çətirinə görə qiymətləndirilir (`a35452e`).** Çoxillik üçün `p90`, birillik üçün
+  `mean` — `ai/analytics.py::_field_stat()` baseline və anomaliya tərəfindən paylaşılır.
+- **Qeydiyyatda ad-soyad məcburi deyil; sahə adı istəyə bağlı** (əvvəlki buraxılışdan davam).
+
+### Bilinən açıq işlər
+- **Toxun-və-tap 45–60 s** (`ce464ee`): kök səbəb kodda sənədləşdirilib; **iki «düzəliş» ölçüldükdən
+  sonra GERİ QAYTARILDI** (granule limiti 6/12 → 17 s/13 s, amma hər iki nöqtə `no_readable_scene`
+  qaytardı — «sürətli və səhv təkmilləşmə deyil»). Real toxunuşlarla çöl testi gözləyir.
+- **Digest tərcümə borcu** qalır: `weekly.py::_LABELS` yalnız az/en/ru — tr/de/hu/it/pl digest-i
+  ingiliscə alır.
+
 ## [1.17.0] — 2026-07-30 — Email-only qeydiyyat + magic link + avtomatik sahə adı + AI xərcinin ölçülməsi
 
 > Mənbə: `786bb4d`, `4f350c2`, `7021a66`, `18113e3`, `decbdb2`. Miqrasiyalar **0055**, **0056**.
