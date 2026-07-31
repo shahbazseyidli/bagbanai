@@ -26,9 +26,16 @@ export async function getServerLocale(): Promise<Locale> {
   return "az";
 }
 
-/** A t() bound to the request's locale, for Server Components. Missing keys fall back to az. */
-export async function getT(): Promise<(key: I18nKey) => string> {
-  const locale = await getServerLocale();
+/** A t() bound to the request's locale, for Server Components. Missing keys fall back to az.
+ *
+ *  `override` exists for the one route that cannot see the x-locale header: app/manifest.ts.
+ *  middleware.ts's matcher deliberately excludes manifest.webmanifest, so that route resolves the
+ *  locale from the cookie itself and passes it in rather than widening the matcher to run the whole
+ *  auth/host pipeline for a static asset. */
+export async function getT(override?: string): Promise<(key: I18nKey) => string> {
+  const locale = LOCALES.includes(override as Locale)
+    ? (override as Locale)
+    : await getServerLocale();
   const d = DICTS[locale];
   return (key: I18nKey) => (d && d[key]) || az[key] || (key as string);
 }

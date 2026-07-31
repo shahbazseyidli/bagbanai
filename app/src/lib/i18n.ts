@@ -1816,6 +1816,7 @@ export const az = {
   "app.account.downloadValue": "Sahə və sərhədlər",
   "app.account.emailTitle": "E-poçt",
   "app.account.languageTitle": "Dil",
+  "app.languageSwitcher.label": "Dil",
   "app.account.logout": "Çıxış",
   "app.account.notSet": "Təyin olunmayıb",
   "app.account.passwordTitle": "Parol",

@@ -1735,6 +1735,7 @@ export const en: Dict = {
   "app.account.passwordValue": "Protect your account",
   "app.account.change": "Change",
   "app.account.languageTitle": "Language",
+  "app.languageSwitcher.label": "Language",
   "app.account.unitsTitle": "Unit system",
   "app.account.unitsValue": "Metric (ha, mm, °C)",
   "app.account.pw.title": "Change password",

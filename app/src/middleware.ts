@@ -31,6 +31,23 @@ export function middleware(req: NextRequest) {
   let locale = req.cookies.get(LOCALE_COOKIE)?.value || "";
   // Built from PREFIXED so adding a locale needs one edit, not two (this regex used to be a
   // hardcoded en|tr|de and silently ignored hu/it/pl).
+  // "az" is matched here too even though it is the UNPREFIXED default, so /az/... resolves instead
+  // of 404ing. It has to exist for two reasons: the hreflang we emit for `az` points at the bare
+  // apex, which content-negotiates — Google explicitly warns against an alternate URL that
+  // redirects by Accept-Language — and a farmer whose cookie is stuck on another language had NO
+  // URL that would give them Azerbaijani. It redirects to the canonical unprefixed path rather
+  // than rendering, so the two never compete as duplicate content.
+  const az = path.match(/^\/az(\/.*)?$/);
+  if (az) {
+    const rest = az[1] || "/";
+    const res = NextResponse.redirect(new URL(`${rest}${search}`, req.url));
+    // Same scoping as the write further down: a host-only cookie makes the app host fall back to
+    // browser detection on the very next request.
+    const azDomain = PANEL_HOST ? `.${PANEL_HOST.replace(/^(app|panel)\./, "")}` : undefined;
+    res.cookies.set(LOCALE_COOKIE, "az",
+      { path: "/", maxAge: 31536000, sameSite: "lax", domain: azDomain });
+    return res;
+  }
   const m = path.match(new RegExp(`^/(${PREFIXED.join("|")})(/.*)?$`));
   if (m) {
     locale = m[1];

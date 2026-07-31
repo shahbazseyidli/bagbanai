@@ -1708,6 +1708,7 @@ export const ru: Dict = {
   "app.account.downloadValue": "Поля и границы",
   "app.account.emailTitle": "Эл. почта",
   "app.account.languageTitle": "Язык",
+  "app.languageSwitcher.label": "Язык",
   "app.account.logout": "Выйти",
   "app.account.notSet": "Не задано",
   "app.account.passwordTitle": "Пароль",

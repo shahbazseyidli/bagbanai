@@ -1709,6 +1709,7 @@ export const tr: Dict = {
   "app.account.passwordValue": "Hesabınızı koruyun",
   "app.account.change": "Değiştir",
   "app.account.languageTitle": "Dil",
+  "app.languageSwitcher.label": "Dil",
   "app.account.unitsTitle": "Ölçü sistemi",
   "app.account.unitsValue": "Metrik (ha, mm, °C)",
   "app.account.pw.title": "Şifreyi değiştir",

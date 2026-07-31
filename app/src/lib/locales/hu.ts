@@ -1710,6 +1710,7 @@ export const hu: Dict = {
   "app.account.passwordValue": "Védje a fiókját",
   "app.account.change": "Módosítás",
   "app.account.languageTitle": "Nyelv",
+  "app.languageSwitcher.label": "Nyelv",
   "app.account.unitsTitle": "Mértékegységrendszer",
   "app.account.unitsValue": "Metrikus (ha, mm, °C)",
   "app.account.pw.title": "Jelszó módosítása",

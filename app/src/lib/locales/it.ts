@@ -1710,6 +1710,7 @@ export const it: Dict = {
   "app.account.passwordValue": "Proteggi il tuo account",
   "app.account.change": "Modifica",
   "app.account.languageTitle": "Lingua",
+  "app.languageSwitcher.label": "Lingua",
   "app.account.unitsTitle": "Sistema di misura",
   "app.account.unitsValue": "Metrico (ha, mm, °C)",
   "app.account.pw.title": "Cambia password",

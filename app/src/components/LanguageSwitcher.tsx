@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Globe } from "lucide-react";
 import { SHARED_COOKIE_DOMAIN } from "@/lib/host";
-import { LOCALES, LOCALE_NAMES, getLocale, type Locale } from "@/lib/i18n";
+import { LOCALES, LOCALE_NAMES, getLocale, t, type Locale } from "@/lib/i18n";
 
 // Strip ANY existing locale prefix (all of en/ru/tr/de/hu/it/pl — az has none) so switching between
 // two prefixed locales replaces the prefix instead of stacking it (which produced /pl/it → 404).
@@ -54,11 +54,11 @@ export default function LanguageSwitcher({ className = "" }: { className?: strin
   return (
     <label className={`inline-flex items-center gap-1.5 ${className}`}>
       <Globe className="h-4 w-4 shrink-0 text-slate-500" aria-hidden="true" />
-      <span className="sr-only">Language</span>
+      <span className="sr-only">{t("app.languageSwitcher.label")}</span>
       <select
         value={cur}
         onChange={(e) => switchTo(e.target.value as Locale)}
-        aria-label="Dil / Language"
+        aria-label={t("app.languageSwitcher.label")}
         className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm font-medium text-slate-700"
       >
         {LOCALES.map((l) => (
