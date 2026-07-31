@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, azError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { t } from "@/lib/i18n";
 import { ErrorNote, Spinner } from "@/components/ui";
@@ -33,7 +33,7 @@ export default function InviteAcceptPage() {
       setOrg(result);
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("common.error"));
+      setError(azError(err));
     } finally {
       setBusy(false);
     }

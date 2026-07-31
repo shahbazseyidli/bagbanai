@@ -129,6 +129,20 @@ export const api = {
 // follows the user's locale — t() must NOT be evaluated at module load, where only the az dict
 // is registered. Keeps raw "HTTP 500"/snake_case off the screen.
 const ERR_KEYS: Record<string, I18nKey> = {
+  file_too_large: "app.err.file_too_large",
+  empty_file: "app.err.empty_file",
+  file_required: "app.err.file_required",
+  unsupported_media_type: "app.err.unsupported_media_type",
+  unknown_format: "app.err.unknown_format",
+  invite_expired: "app.err.invite_expired",
+  invite_used: "app.err.invite_used",
+  invite_not_found: "app.err.invite_not_found",
+  season_exists: "app.err.season_exists",
+  magic_link_invalid: "app.err.magic_link_invalid",
+  magic_link_failed: "app.err.magic_link_failed",
+  too_many_requests: "app.err.too_many_requests",
+  ai_unavailable: "app.err.ai_unavailable",
+  no_fields_selected: "app.err.no_fields_selected",
   email_taken: "app.err.emailTaken",
   invalid_credentials: "app.err.invalidCredentials",
   email_not_verified: "app.err.emailNotVerified",

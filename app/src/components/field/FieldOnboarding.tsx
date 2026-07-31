@@ -7,7 +7,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Upload, MapPin, Mountain, Compass, TriangleRight, Sparkles } from "lucide-react";
-import { api } from "@/lib/api";
+import { api, azError } from "@/lib/api";
 import { t, tf } from "@/lib/i18n";
 import { formatArea, useAreaUnit } from "@/lib/units";
 import { DrawMap } from "@/components/FieldMap";
@@ -412,7 +412,7 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
       if (payload.crop_type) track("crop_set");
       onCreated(field);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : t("common.error");
+      const msg = azError(err);
       if (msg === "field_limit_reached") {
         // Free-tier cap: replace the raw error with a marketing upgrade nudge.
         setLimitReached(true);

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Plus, Trash2, ShieldAlert, ShieldCheck } from "lucide-react";
-import { api } from "@/lib/api";
+import { api, azError } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import { ErrorNote, Field as FormField, Placeholder } from "@/components/ui";
 import ChoiceChips from "@/components/field/ChoiceChips";
@@ -42,7 +42,7 @@ export default function OperationsTab({ fieldId }: { fieldId: string }) {
     try {
       setItems(await api.get<Operation[]>(`/api/operations?field_id=${fieldId}`));
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("common.error"));
+      setError(azError(err));
     }
     try {
       setSafety(await api.get<SpraySafety>(`/api/fields/${fieldId}/spray-safety`));
@@ -82,7 +82,7 @@ export default function OperationsTab({ fieldId }: { fieldId: string }) {
       setInputs([]);
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("common.error"));
+      setError(azError(err));
     } finally {
       setBusy(false);
     }

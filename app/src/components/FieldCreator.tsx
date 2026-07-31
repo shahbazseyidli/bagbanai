@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { Upload, Download } from "lucide-react";
-import { api } from "@/lib/api";
+import { api, azError } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import { formatArea, useAreaUnit } from "@/lib/units";
 import { DrawMap } from "@/components/FieldMap";
@@ -100,7 +100,7 @@ export default function FieldCreator({ farmId, onCreated }: Props) {
       });
       onCreated(field);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("common.error"));
+      setError(azError(err));
     } finally {
       setBusy(false);
     }

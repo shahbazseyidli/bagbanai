@@ -134,6 +134,8 @@ _LABELS: dict[str, dict[str, str]] = {
     # 1 / 2-4 / 5+ pattern: `_count` only has one/many, so "many" takes the genitive plural
     # ("полей", "оповещений"), which is correct for 5+ and for every count we actually cap at.
     "ru": {
+        "field_few": "{n} поля",
+        "alert_few": "{n} оповещения",
         "stat_fields": "полей",
         "stat_alerts": "оповещений",
         "stat_score": "ср. здоровье",
@@ -160,6 +162,143 @@ _LABELS: dict[str, dict[str, str]] = {
         "crop_missing_lead": "Культура не указана на полях: {fields}.",
         "months": "янв фев мар апр май июн июл авг сен окт ноя дек",
     },
+    "tr": {
+        "stat_fields": "tarla",
+        "stat_alerts": "uyarı",
+        "stat_score": "ort. sağlık",
+        "sec_fields": "Tarlalarınız",
+        "sec_alerts": "Bu haftaki uyarılar",
+        "sec_advice": "AI agronomdan",
+        "cta_app": "Panele git →",
+        "cta_add": "İlk tarlanızı ekleyin →",
+        "cta_crop": "Ürünü belirleyin →",
+        "cta_pricing": "Paketlere bakın →",
+        "img_alt": "“{field}” tarlasının uydu görüntüsü (NDVI)",
+        "img_caption": "“{field}” · {date} · uydu görüntüsü (NDVI): koyu yeşil = güçlü örtü, sarı-kırmızı = zayıf.",
+        "score_caption": "“{field}” — bu hafta en çok ilgi isteyen tarla.",
+        "preparing": "uydu verisi hazırlanıyor",
+        "no_data": "henüz uydu verisi yok",
+        "no_crop_tag": "ürün belirlenmemiş",
+        "trial_label": "Pro deneme",
+        "trial_text": "{days} gün kaldı. Paket seçilmezse hesabınız otomatik olarak Ücretsiz’e geçer — tarlalarınız ve verileriniz kalır.",
+        "more_alerts": "ve {n} uyarı daha — hepsini panelde görün.",
+        "field_one": "{n} tarla",
+        "field_many": "{n} tarla",
+        "alert_one": "{n} uyarı",
+        "alert_many": "{n} uyarı",
+        "crop_missing_lead": "Şu tarlalarda ürün belirlenmemiş: {fields}.",
+        "months": "Oca Şub Mar Nis May Haz Tem Ağu Eyl Eki Kas Ara",
+    },
+    "de": {
+        "stat_fields": "Felder",
+        "stat_alerts": "Warnungen",
+        "stat_score": "Ø Gesundheit",
+        "sec_fields": "Ihre Felder",
+        "sec_alerts": "Warnungen diese Woche",
+        "sec_advice": "Vom KI-Agronomen",
+        "cta_app": "Zum Dashboard →",
+        "cta_add": "Erstes Feld anlegen →",
+        "cta_crop": "Kultur festlegen →",
+        "cta_pricing": "Tarife ansehen →",
+        "img_alt": "Satellitenbild (NDVI) von „{field}“",
+        "img_caption": "„{field}“ · {date} · Satellitenbild (NDVI): dunkelgrün = kräftiger Bestand, gelb-rot = schwach.",
+        "score_caption": "„{field}“ — das Feld, das Sie diese Woche am dringendsten braucht.",
+        "preparing": "Satellitendaten werden aufbereitet",
+        "no_data": "noch keine Satellitendaten",
+        "no_crop_tag": "keine Kultur festgelegt",
+        "trial_label": "Pro-Test",
+        "trial_text": "Noch {days} Tage. Ohne Tarif wechselt Ihr Konto automatisch zu Kostenlos — Ihre Felder und Daten bleiben.",
+        "more_alerts": "und {n} weitere Warnungen — alle im Dashboard.",
+        "field_one": "{n} Feld",
+        "field_many": "{n} Felder",
+        "alert_one": "{n} Warnung",
+        "alert_many": "{n} Warnungen",
+        "crop_missing_lead": "Für diese Felder ist keine Kultur festgelegt: {fields}.",
+        "months": "Jan Feb Mär Apr Mai Jun Jul Aug Sep Okt Nov Dez",
+    },
+    "hu": {
+        "stat_fields": "tábla",
+        "stat_alerts": "riasztás",
+        "stat_score": "átl. egészség",
+        "sec_fields": "Az Ön táblái",
+        "sec_alerts": "E heti riasztások",
+        "sec_advice": "Az AI agronómustól",
+        "cta_app": "Irány az irányítópult →",
+        "cta_add": "Adja hozzá az első tábláját →",
+        "cta_crop": "Állítsa be a növényt →",
+        "cta_pricing": "Csomagok megtekintése →",
+        "img_alt": "A(z) „{field}” tábla műholdképe (NDVI)",
+        "img_caption": "„{field}” · {date} · műholdkép (NDVI): sötétzöld = erős állomány, sárga-piros = gyenge.",
+        "score_caption": "„{field}” — ez a tábla igényli a legtöbb figyelmet a héten.",
+        "preparing": "a műholdas adatok készülnek",
+        "no_data": "még nincs műholdas adat",
+        "no_crop_tag": "nincs beállítva növény",
+        "trial_label": "Pro próba",
+        "trial_text": "{days} nap maradt. Csomag nélkül a fiók automatikusan Ingyenesre vált — a táblái és adatai megmaradnak.",
+        "more_alerts": "és további {n} riasztás — mind az irányítópulton.",
+        "field_one": "{n} tábla",
+        "field_many": "{n} tábla",
+        "alert_one": "{n} riasztás",
+        "alert_many": "{n} riasztás",
+        "crop_missing_lead": "Ezeken a táblákon nincs beállítva növény: {fields}.",
+        "months": "jan feb már ápr máj jún júl aug szep okt nov dec",
+    },
+    "it": {
+        "stat_fields": "campi",
+        "stat_alerts": "avvisi",
+        "stat_score": "salute media",
+        "sec_fields": "I tuoi campi",
+        "sec_alerts": "Avvisi di questa settimana",
+        "sec_advice": "Dall'agronomo AI",
+        "cta_app": "Vai alla dashboard →",
+        "cta_add": "Aggiungi il primo campo →",
+        "cta_crop": "Imposta la coltura →",
+        "cta_pricing": "Vedi i piani →",
+        "img_alt": "Immagine satellitare (NDVI) di “{field}”",
+        "img_caption": "“{field}” · {date} · immagine satellitare (NDVI): verde scuro = chioma vigorosa, giallo-rosso = debole.",
+        "score_caption": "“{field}” — il campo che ha più bisogno di te questa settimana.",
+        "preparing": "i dati satellitari sono in preparazione",
+        "no_data": "ancora nessun dato satellitare",
+        "no_crop_tag": "coltura non impostata",
+        "trial_label": "Prova Pro",
+        "trial_text": "Restano {days} giorni. Senza un piano l'account passa automaticamente a Gratuito — campi e dati restano.",
+        "more_alerts": "e altri {n} avvisi — li trovi tutti nella dashboard.",
+        "field_one": "{n} campo",
+        "field_many": "{n} campi",
+        "alert_one": "{n} avviso",
+        "alert_many": "{n} avvisi",
+        "crop_missing_lead": "Nessuna coltura impostata su: {fields}.",
+        "months": "gen feb mar apr mag giu lug ago set ott nov dic",
+    },
+    "pl": {
+        "field_few": "{n} pola",
+        "alert_few": "{n} ostrzeżenia",
+        "stat_fields": "pola",
+        "stat_alerts": "ostrzeżenia",
+        "stat_score": "śr. kondycja",
+        "sec_fields": "Twoje pola",
+        "sec_alerts": "Ostrzeżenia w tym tygodniu",
+        "sec_advice": "Od agronoma AI",
+        "cta_app": "Przejdź do panelu →",
+        "cta_add": "Dodaj pierwsze pole →",
+        "cta_crop": "Ustaw uprawę →",
+        "cta_pricing": "Zobacz plany →",
+        "img_alt": "Zdjęcie satelitarne (NDVI) pola „{field}”",
+        "img_caption": "„{field}” · {date} · zdjęcie satelitarne (NDVI): ciemna zieleń = mocny łan, żółto-czerwony = słaby.",
+        "score_caption": "„{field}” — pole, które w tym tygodniu najbardziej Cię potrzebuje.",
+        "preparing": "dane satelitarne są przygotowywane",
+        "no_data": "brak jeszcze danych satelitarnych",
+        "no_crop_tag": "nie ustawiono uprawy",
+        "trial_label": "Próba Pro",
+        "trial_text": "Zostało {days} dni. Bez planu konto przejdzie automatycznie na Bezpłatne — pola i dane zostają.",
+        "more_alerts": "i jeszcze {n} ostrzeżeń — wszystkie w panelu.",
+        "field_one": "{n} pole",
+        "field_many": "{n} pola",
+        "alert_one": "{n} ostrzeżenie",
+        "alert_many": "{n} ostrzeżenia",
+        "crop_missing_lead": "Uprawa nie jest ustawiona na: {fields}.",
+        "months": "sty lut mar kwi maj cze lip sie wrz paź lis gru",
+    },
 }
 
 
@@ -179,9 +318,31 @@ def _name_suffix(locale: str | None, name: str) -> str:
     return f" {name}" if (locale or "az")[:2].lower() == "en" else f", {name}"
 
 
+# Russian and Polish need THREE forms, not two. `one if n == 1 else many` gave a Russian reader
+# "Сводка за неделю: 3 полей" and "⚠️ 2 оповещений" — genitive plural where the paucal is required.
+# 2-4 (and 22-24, 32-34, …) take their own form, which is exactly the bug lib/i18n.ts's tp() was
+# built to prevent on the frontend and which was then reintroduced here in Python.
+_SLAVIC = {"ru", "pl"}
+
+
+def _plural_form(locale: str, n: int) -> str:
+    """one | few | many, CLDR-style, for the two Slavic locales; one|many elsewhere."""
+    if (locale or "")[:2].lower() not in _SLAVIC:
+        return "one" if n == 1 else "many"
+    n = abs(n)
+    if n % 10 == 1 and n % 100 != 11:
+        return "one"
+    if 2 <= n % 10 <= 4 and not 12 <= n % 100 <= 14:
+        return "few"
+    return "many"
+
+
 def _count(locale: str | None, n: int, kind: str) -> str:
     d = _L(locale)
-    return d[f"{kind}_{'one' if n == 1 else 'many'}"].format(n=n)
+    form = _plural_form(locale or "", n)
+    # `few` falls back to `many` for a locale that does not declare it, so adding the key later is
+    # the only change needed — never a KeyError in a send.
+    return (d.get(f"{kind}_{form}") or d[f"{kind}_{'one' if n == 1 else 'many'}"]).format(n=n)
 
 
 def _date(d: Any, locale: str | None) -> str:

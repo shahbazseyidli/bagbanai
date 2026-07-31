@@ -11,7 +11,7 @@
 // values are preserved on load and round-trip through both modes.
 
 import { useRef, useState, useEffect } from "react";
-import { api } from "@/lib/api";
+import { api, azError } from "@/lib/api";
 import { t } from "@/lib/i18n";
 import { ErrorNote, Field as FormField } from "@/components/ui";
 import type { FieldMetadata } from "@/lib/types";
@@ -158,7 +158,7 @@ export default function MetadataTab({ fieldId }: { fieldId: string }) {
         }
         setRowsMap(rm);
       } catch (err) {
-        setError(err instanceof Error ? err.message : t("common.error"));
+        setError(azError(err));
         setLoadFailed(true);
         setMeta({ crop_type: "" } as FieldMetadata);
       }
@@ -225,7 +225,7 @@ export default function MetadataTab({ fieldId }: { fieldId: string }) {
       setSaved(true);
       setEditing(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("common.error"));
+      setError(azError(err));
     } finally {
       setBusy(false);
     }

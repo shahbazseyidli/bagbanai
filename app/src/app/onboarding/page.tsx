@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, azError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { t } from "@/lib/i18n";
 import FieldOnboarding from "@/components/field/FieldOnboarding";
@@ -33,7 +33,7 @@ export default function OnboardingPage() {
         const f = farms[0] ?? (await api.post<Farm>("/api/farms", { org_id: org.id, name: "Əsas ferma" }));
         setFarm(f);
       } catch (err) {
-        setError(err instanceof Error ? err.message : t("common.error"));
+        setError(azError(err));
       }
     })();
   }, [loading, user, router]);

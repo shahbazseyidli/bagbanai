@@ -188,7 +188,7 @@ export default function DocumentsTab({ fieldId }: { fieldId: string }) {
       if (fileRef.current) fileRef.current.value = "";
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("app.field.documentsTab.errUploadFailed"));
+      setError(azError(err));
     } finally {
       setBusy(false);
     }
@@ -217,7 +217,7 @@ export default function DocumentsTab({ fieldId }: { fieldId: string }) {
       setReceipt(res);
       await load();
     } catch (err) {
-      setReceiptError(err instanceof Error ? err.message : t("app.field.documentsTab.errReceiptReadFailed"));
+      setReceiptError(azError(err));
     } finally {
       setReceiptBusy(false);
     }

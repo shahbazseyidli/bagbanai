@@ -12,7 +12,7 @@
 // largest and least necessary part of this change.
 import { useEffect, useRef, useState } from "react";
 import { MapPin, Plus } from "lucide-react";
-import { api, apiAsset } from "@/lib/api";
+import { api, apiAsset, azError } from "@/lib/api";
 import { t, tf, type I18nKey } from "@/lib/i18n";
 import { ErrorNote, Field as FormField, Placeholder } from "@/components/ui";
 import PhotoInput from "@/components/field/PhotoInput";
@@ -56,7 +56,7 @@ export default function ScoutingTab({ fieldId, map }: { fieldId: string; map?: S
     try {
       setItems(await api.get<Scouting[]>(`/api/scouting?field_id=${fieldId}`));
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("common.error"));
+      setError(azError(err));
     }
   }
 
@@ -184,7 +184,7 @@ export default function ScoutingTab({ fieldId, map }: { fieldId: string; map?: S
         setOfflineMsg(t("app.field.scoutingTab.offlineQueued"));
         resetForm();
       } else {
-        setError(err instanceof Error ? err.message : t("common.error"));
+        setError(azError(err));
       }
     } finally {
       setBusy(false);

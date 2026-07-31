@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Copy } from "lucide-react";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, azError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { publicUrl } from "@/lib/host";
 import { t, type I18nKey } from "@/lib/i18n";
@@ -41,7 +41,7 @@ export default function TeamPage() {
       setMembers(await api.get<Member[]>(`/api/orgs/${orgId}/members`));
     } catch (err) {
       if (err instanceof ApiError && err.status === 403) setForbidden(true);
-      else setError(err instanceof Error ? err.message : t("common.error"));
+      else setError(azError(err));
     }
   }, []);
 
@@ -56,7 +56,7 @@ export default function TeamPage() {
           await loadMembers(list[0].id);
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : t("common.error"));
+        setError(azError(err));
       }
     })();
   }, [user, loadMembers]);
@@ -85,7 +85,7 @@ export default function TeamPage() {
       setInviteEmail("");
     } catch (err) {
       if (err instanceof ApiError && err.status === 403) setForbidden(true);
-      else setError(err instanceof Error ? err.message : t("common.error"));
+      else setError(azError(err));
     }
   }
 
@@ -96,7 +96,7 @@ export default function TeamPage() {
       setMembers((prev) => prev.map((m) => (m.user_id === userId ? { ...m, role: role as Role } : m)));
     } catch (err) {
       if (err instanceof ApiError && err.status === 403) setError(t("team.forbidden"));
-      else setError(err instanceof Error ? err.message : t("common.error"));
+      else setError(azError(err));
     }
   }
 

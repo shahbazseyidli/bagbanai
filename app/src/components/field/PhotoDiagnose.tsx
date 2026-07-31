@@ -5,7 +5,7 @@
 
 import { useState } from "react";
 import { Camera, Sparkles, AlertTriangle } from "lucide-react";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, azError } from "@/lib/api";
 import UpgradeCta from "@/components/UpgradeCta";
 import { t } from "@/lib/i18n";
 import PhotoInput from "@/components/field/PhotoInput";
@@ -52,7 +52,7 @@ export default function PhotoDiagnose({ fieldId }: { fieldId: string }) {
     } catch (err) {
       if (err instanceof ApiError && err.status === 402) setGated(true);
       else if (err instanceof ApiError && err.status === 503) setError(t("app.field.photoDiagnose.aiUnavailable"));
-      else setError(err instanceof Error ? err.message : t("app.field.photoDiagnose.diagnoseFailed"));
+      else setError(azError(err));
     } finally {
       setBusy(false);
     }

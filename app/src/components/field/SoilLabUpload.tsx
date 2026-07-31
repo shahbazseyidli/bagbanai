@@ -5,7 +5,7 @@
 // Business-tier; a 402 renders the upgrade CTA instead of a raw error.
 import { useState } from "react";
 import { FlaskConical, Sparkles } from "lucide-react";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, azError } from "@/lib/api";
 import UpgradeCta from "@/components/UpgradeCta";
 import { t } from "@/lib/i18n";
 
@@ -53,7 +53,7 @@ export default function SoilLabUpload({ fieldId }: { fieldId: string }) {
     } catch (err) {
       if (err instanceof ApiError && err.status === 402) setGated(true);
       else if (err instanceof ApiError && err.status === 503) setError(t("app.field.soilLabUpload.errUnavailable"));
-      else setError(err instanceof Error ? err.message : t("app.field.soilLabUpload.errFailed"));
+      else setError(azError(err));
     } finally {
       setBusy(false);
     }

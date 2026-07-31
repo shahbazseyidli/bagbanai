@@ -203,7 +203,7 @@ function OverviewSection() {
     api
       .get<AdminOverview>("/api/admin/overview")
       .then(setData)
-      .catch((err) => setError(err instanceof Error ? err.message : t("app.admin.error")));
+      .catch((err) => setError(azError(err)));
   }, []);
 
   if (error) return <ErrorNote message={error} />;
@@ -425,7 +425,7 @@ function ActivitySection() {
     api
       .get<{ activity: AdminActivityItem[] }>("/api/admin/activity?limit=60")
       .then((r) => setItems(r.activity))
-      .catch((err) => setError(err instanceof Error ? err.message : t("app.admin.error")));
+      .catch((err) => setError(azError(err)));
   }, []);
 
   if (error) return <ErrorNote message={error} />;
@@ -481,7 +481,7 @@ function BillingSection() {
         setDaily(d.rows);
         setByModel(m.rows);
       } catch (err) {
-        setError(err instanceof Error ? err.message : t("app.admin.error"));
+        setError(azError(err));
       }
     })();
   }, []);
@@ -899,7 +899,7 @@ function SubscriptionsSection() {
       const r = await api.get<{ subscriptions: AdminSub[] }>("/api/admin/subscriptions");
       setSubs(r?.subscriptions ?? []);
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("app.admin.errorLower"));
+      setError(azError(e));
     }
   }, []);
   useEffect(() => {
@@ -912,7 +912,7 @@ function SubscriptionsSection() {
       await api.put(`/api/admin/subscriptions/${orgId}`, { tier });
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("app.admin.errorLower"));
+      setError(azError(e));
     } finally {
       setSaving(null);
     }
