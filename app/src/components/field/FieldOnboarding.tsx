@@ -103,6 +103,10 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
   const [detect, setDetect] = useState(false);       // C3 tap-to-detect mode
   const [detecting, setDetecting] = useState(false);
   const [detectMsg, setDetectMsg] = useState("");
+  // Success is TRACKED, not inferred from the text. The colour used to be chosen with
+  // detectMsg.includes("tapıldı") — so translating the message would silently have turned
+  // every success amber. A flag cannot be broken by a translator.
+  const [detectOk, setDetectOk] = useState(false);
   const [brush, setBrush] = useState(false);         // freehand brush/lasso mode
   // Which country's vocabulary the region field should offer. LOCAL state on purpose:
   // field_metadata has no country column, so the old disabled <select value="AZ"> was never
@@ -191,6 +195,7 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
 
   async function handleDetect(lng: number, lat: number) {
     setDetecting(true);
+    setDetectOk(false);
     setDetectMsg(t("app.field.fieldOnboarding.detectSearching"));
     try {
       const d = await api.post<{ ok: boolean; polygon?: Polygon; area_ha?: number; reason?: string }>(
@@ -200,9 +205,10 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
         setImportedPolygon(d.polygon);
         setImportSeq((s) => s + 1);
         setDetect(false);
+        setDetectOk(true);
         setDetectMsg(
-          `~${formatArea(d.area_ha, areaUnit)} tapıldı — düzəldə və ya təsdiqləyə bilərsiniz.` +
-            (d.reason === "capped" ? " (Sərhəd tam aydın deyil, yoxlayın.)" : ""),
+          tf("app.field.fieldOnboarding.detectFound", { area: formatArea(d.area_ha, areaUnit) }) +
+            (d.reason === "capped" ? ` ${t("app.field.fieldOnboarding.detectCapped")}` : ""),
         );
       } else {
         setDetectMsg(t("app.field.fieldOnboarding.detectNotFound"));
@@ -534,7 +540,7 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
                 </div>
               </div>
               {detectMsg && (
-                <p className={`text-xs ${detectMsg.includes("tapıldı") ? "text-emerald-700" : "text-amber-700"}`}>
+                <p className={`text-xs ${detectOk ? "text-emerald-700" : "text-amber-700"}`}>
                   {detectMsg}
                 </p>
               )}

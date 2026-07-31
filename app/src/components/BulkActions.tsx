@@ -11,12 +11,12 @@
 // Operations stayed because they are an AI input, not bookkeeping: ai/context.py reads them so the
 // advice can say "irrigation was logged 10 days ago and NDMI is still falling".
 //
-// The chrome is fully translated; what is still inline AZ is exactly OP_TYPES below, which renders
-// as <option> labels — extracting it needs new keys in i18n.ts + all 7 locale files.
+// The chrome and the operation labels are now fully translated (app.op.*); the stored VALUE
+// stays Azerbaijani so existing field_operations rows keep matching.
 import { useState } from "react";
 import { CalendarCheck, Sprout, X } from "lucide-react";
 import { api, azError } from "@/lib/api";
-import { t } from "@/lib/i18n";
+import { t, type I18nKey } from "@/lib/i18n";
 import { ErrorNote, Field as FormField, Spinner } from "@/components/ui";
 import CropGrid from "@/components/field/info/CropGrid";
 import { CROP_CYCLE } from "@/lib/metadataOptions";
@@ -33,7 +33,17 @@ interface BulkResult {
   ids: string[];
 }
 
-const OP_TYPES = ["Suvarma", "Gübrələmə", "Çiləmə", "Şumlama", "Əkin", "Yığım", "Budama", "Alaqotu"];
+// The VALUE stays the Azerbaijani word — it is what public.field_operations.type already holds for
+// every row ever written, so changing it would orphan the history. Only the LABEL is translated,
+// and opTypes() is a function so t() runs at render rather than at import.
+const OP_KEYS: [string, I18nKey][] = [
+  ["Suvarma", "app.op.irrigation"], ["Gübrələmə", "app.op.fertilizing"],
+  ["Çiləmə", "app.op.spraying"], ["Şumlama", "app.op.tillage"],
+  ["Əkin", "app.op.sowing"], ["Yığım", "app.op.harvest"],
+  ["Budama", "app.op.pruning"], ["Alaqotu", "app.op.weeding"],
+];
+const OP_VALUES = OP_KEYS.map(([v]) => v);
+const opTypes = () => OP_KEYS.map(([value, key]) => ({ value, label: t(key) }));
 const CURRENCIES = ["AZN", "USD", "EUR"];
 
 function today(): string {
@@ -48,7 +58,7 @@ export default function BulkActions({ orgId, fieldIds, onDone }: BulkActionsProp
   const [done, setDone] = useState("");
 
   // operation form
-  const [opType, setOpType] = useState(OP_TYPES[0]);
+  const [opType, setOpType] = useState(OP_VALUES[0]);
   const [performedOn, setPerformedOn] = useState(today());
   const [cost, setCost] = useState("");
   const [currency, setCurrency] = useState("AZN");
@@ -63,7 +73,7 @@ export default function BulkActions({ orgId, fieldIds, onDone }: BulkActionsProp
   }
 
   function resetOp() {
-    setOpType(OP_TYPES[0]);
+    setOpType(OP_VALUES[0]);
     setPerformedOn(today());
     setCost("");
     setCurrency("AZN");
@@ -208,9 +218,9 @@ export default function BulkActions({ orgId, fieldIds, onDone }: BulkActionsProp
                       value={opType}
                       onChange={(e) => setOpType(e.target.value)}
                     >
-                      {OP_TYPES.map((v) => (
-                        <option key={v} value={v}>
-                          {v}
+                      {opTypes().map((o) => (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
                         </option>
                       ))}
                     </select>

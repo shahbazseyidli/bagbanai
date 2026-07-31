@@ -28,9 +28,9 @@ export default function OnboardingPage() {
     (async () => {
       try {
         const orgs = await api.get<Org[]>("/api/orgs");
-        const org = orgs[0] ?? (await api.post<Org>("/api/orgs", { name: "Mənim təsərrüfatım", country: "AZ" }));
+        const org = orgs[0] ?? (await api.post<Org>("/api/orgs", { name: t("app.onboarding.defaultOrgName"), country: "AZ" }));
         const farms = await api.get<Farm[]>(`/api/farms?org_id=${org.id}`);
-        const f = farms[0] ?? (await api.post<Farm>("/api/farms", { org_id: org.id, name: "Əsas ferma" }));
+        const f = farms[0] ?? (await api.post<Farm>("/api/farms", { org_id: org.id, name: t("app.onboarding.defaultFarmName") }));
         setFarm(f);
       } catch (err) {
         setError(azError(err));

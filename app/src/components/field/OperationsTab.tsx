@@ -3,15 +3,22 @@
 import { useEffect, useState } from "react";
 import { Plus, Trash2, ShieldAlert, ShieldCheck } from "lucide-react";
 import { api, azError } from "@/lib/api";
-import { t } from "@/lib/i18n";
+import { t, type I18nKey } from "@/lib/i18n";
 import { ErrorNote, Field as FormField, Placeholder } from "@/components/ui";
 import ChoiceChips from "@/components/field/ChoiceChips";
 import type { Operation, SpraySafety } from "@/lib/types";
 
 // D5.4 — click-first: the common field operations + currencies as tap chips.
-const OP_TYPES = ["Suvarma", "Gübrələmə", "Çiləmə", "Şumlama", "Əkin", "Yığım", "Budama", "Alaqotu"].map(
-  (v) => ({ value: v, label: v }),
-);
+// The VALUE stays the Azerbaijani word, because it is what public.field_operations.type already
+// holds for every row ever written — changing it would orphan the history. Only the LABEL is
+// translated, and it is a function so t() runs at render rather than at import.
+const OP_KEYS: [string, I18nKey][] = [
+  ["Suvarma", "app.op.irrigation"], ["Gübrələmə", "app.op.fertilizing"],
+  ["Çiləmə", "app.op.spraying"], ["Şumlama", "app.op.tillage"],
+  ["Əkin", "app.op.sowing"], ["Yığım", "app.op.harvest"],
+  ["Budama", "app.op.pruning"], ["Alaqotu", "app.op.weeding"],
+];
+const opTypes = () => OP_KEYS.map(([value, key]) => ({ value, label: t(key) }));
 const CURRENCIES = ["AZN", "USD", "EUR"].map((v) => ({ value: v, label: v }));
 
 // B6 — spray operations (pesticide) carry a pre-harvest interval; show a PHI field for these.
@@ -117,7 +124,7 @@ export default function OperationsTab({ fieldId }: { fieldId: string }) {
         <h3 className="font-semibold text-slate-800">{t("op.add")}</h3>
         <div className="grid gap-3 sm:grid-cols-2">
           <FormField label={t("op.type")}>
-            <ChoiceChips value={type} onChange={setType} options={OP_TYPES} other={{ placeholder: t("app.field.operationsTab.otherOpPlaceholder") }} />
+            <ChoiceChips value={type} onChange={setType} options={opTypes()} other={{ placeholder: t("app.field.operationsTab.otherOpPlaceholder") }} />
           </FormField>
           <FormField label={t("op.performed_on")}>
             <input className="input" type="date" value={performedOn} required onChange={(e) => setPerformedOn(e.target.value)} />

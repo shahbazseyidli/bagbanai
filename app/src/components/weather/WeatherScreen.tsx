@@ -166,6 +166,9 @@ function WeatherScreenInner() {
     return () => {
       active = false;
     };
+    // `orgs` is read above but deliberately NOT a dependency: it is set BY this effect, so listing
+    // it would re-run the loader on its own result. orgId is the input that should re-fetch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, user, router, orgId]);
 
   // A refreshed index is a different list of frames: the same ordinal now points at a different
