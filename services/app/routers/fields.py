@@ -134,6 +134,14 @@ async def create_field(body: FieldIn, request: Request,
         if current >= max_fields:
             raise HTTPException(status_code=402, detail="field_limit_reached")
 
+        # HECTARE CAP — stored since 0006 and, until now, never enforced anywhere. The usage bar
+        # showed it, the admin panel set it, and a free org could sail straight past it, which is
+        # the worst of both: a limit visible enough to look real and toothless enough to be
+        # meaningless. It is NULL for every org unless an admin sets one deliberately, and no tier
+        # implies one — so this can only ever bite an org someone chose to cap.
+        ha_cap = await conn.fetchval(
+            "select hectare_cap from public.org_subscriptions where org_id=$1::uuid", org_id)
+
         # Validate geometry server-side (turf validates client-side too).
         chk = await conn.fetchrow(
             """select st_isvalid(g) as valid, geometrytype(g) as gtype, st_npoints(g) as npts,
@@ -147,6 +155,16 @@ async def create_field(body: FieldIn, request: Request,
             raise HTTPException(status_code=400, detail="need_at_least_3_vertices")
         # Reject absurdly small fields: below ~0.05 ha (500 m²) no satellite pixel analysis is
         # possible (even Sentinel-2 10m gives ~5 pixels) and it is almost always a drawing error.
+        # Checked here rather than above because the new field's own area is only known once the
+        # geometry has been measured — capping on the existing total alone would let one enormous
+        # field through and then block a small one.
+        if ha_cap is not None and chk["area_ha"] is not None:
+            used = await conn.fetchval(
+                """select coalesce(sum(area_ha), 0) from public.fields
+                   where org_id=$1::uuid and deleted_at is null""", org_id)
+            if float(used or 0) + float(chk["area_ha"]) > float(ha_cap):
+                raise HTTPException(status_code=402, detail="hectare_cap_reached")
+
         if chk["area_ha"] is not None and float(chk["area_ha"]) < 0.05:
             raise HTTPException(status_code=400, detail="field_too_small")
 

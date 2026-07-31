@@ -1,0 +1,25 @@
+# Log rotation for the Agradex cron logs.
+#
+# Install (once, as root):
+#   cp deploy/logrotate-agradex /etc/logrotate.d/agradex
+#
+# WHY. Nine crons append to /var/log/bagban-*.log forever and nothing has ever truncated them.
+# Today they are ~1 MB, so this is not urgent — but they only grow, the disk is shared with the
+# Postgres volume and the clipped index COGs, and the failure mode is the whole box, not the logs:
+# a full disk stops the database, not just the appending.
+#
+# `daily` + 14 rotations keeps roughly two weeks, which is the window an incident is actually
+# investigated in — the S2 out-of-memory failures that ran for days were diagnosed from exactly
+# this kind of history, so the retention has to outlive a weekend.
+/var/log/bagban-*.log {
+    daily
+    rotate 14
+    compress
+    delaycompress
+    missingok
+    notifempty
+    # The cron scripts append with >> and hold no file handle between runs, so there is nothing to
+    # signal after rotation — copytruncate would be belt-and-braces at the cost of a race where a
+    # line written mid-rotate is lost. Plain rotation is correct here.
+    create 0640 root root
+}

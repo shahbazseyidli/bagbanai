@@ -209,6 +209,8 @@ export default function FieldsListPage() {
   // /, /notes and /team already had a switcher; this one and /weather were pinned to orgs[0], so
   // switching client on the home map and then opening "Fields" silently showed client #1 again.
   const [orgs, setOrgs] = useState<Org[]>([]);
+  const [farms, setFarms] = useState<Farm[]>([]);
+  const [farmOf, setFarmOf] = useState<Record<string, string>>({});
   const [selected, setSelected] = useState<string[]>([]);
   // A3 — field_id → latest stored wellness score (may stay empty; the chips are optional garnish).
   const [scores, setScores] = useState<Record<string, FieldScore>>({});
@@ -243,6 +245,13 @@ export default function FieldsListPage() {
         const lists = await Promise.all(
           farms.map((f) => api.get<Field[]>(`/api/fields?farm_id=${f.id}`).catch(() => [])),
         );
+        // The fan-out already knows which farm each list came from and used to throw it away with
+        // .flat(). An agronomist's whole workaround is one farm (or org) per client, so two farms
+        // called "Əliyev" and "Məmmədov" rendered as one undifferentiated list.
+        setFarms(farms);
+        setFarmOf(Object.fromEntries(
+          farms.flatMap((f, i) => (lists[i] ?? []).map((fl) => [fl.id, f.id] as const)),
+        ));
         const flat = lists.flat();
         setFields(flat);
         if (flat.length > 0) {
@@ -333,6 +342,30 @@ export default function FieldsListPage() {
       ) : (
         <div className="max-w-3xl">
           <div className="space-y-3">
+            {/* A farm header appears ONLY when there is more than one farm — a single-farm org
+                would just get a redundant band above its own list. Renaming is inline because the
+                name is otherwise unreachable: onboarding auto-creates it and nothing else edits it. */}
+            {farms.length > 1 && (
+              <div className="flex flex-wrap gap-2">
+                {farms.map((fm) => (
+                  <button
+                    key={fm.id}
+                    type="button"
+                    onClick={async () => {
+                      const next = window.prompt(t("app.fieldsList.renameFarm"), fm.name);
+                      if (!next || next.trim() === fm.name) return;
+                      try {
+                        const updated = await api.patch<Farm>(`/api/farms/${fm.id}`, { name: next.trim() });
+                        setFarms((cur) => cur.map((x) => (x.id === fm.id ? updated : x)));
+                      } catch (e) { setError(azError(e)); }
+                    }}
+                    className="rounded-full border border-line px-3 py-1 text-xs font-medium text-ink-soft hover:border-emerald-300 hover:text-emerald-700"
+                  >
+                    {fm.name} · {fields.filter((f) => farmOf[f.id] === fm.id).length}
+                  </button>
+                ))}
+              </div>
+            )}
             <ul className="space-y-2">
               {fields.map((f) => {
                 const s = scores[f.id];

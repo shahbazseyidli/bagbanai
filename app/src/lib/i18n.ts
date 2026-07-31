@@ -2023,6 +2023,7 @@ export const az = {
   "app.fieldsList.emptyBody": "Peyk monitorinqi, hava proqnozu və AI aqronom məsləhəti üçün ilk sahənizi xəritədə çəkin — bir neçə dəqiqə çəkir.",
   "app.fieldsList.emptyTitle": "Sahələrinizi əlavə edin",
   "app.fieldsList.heading": "Sahələr",
+  "app.fieldsList.renameFarm": "Fermanın adı",
   // Plural forms picked by tp() via Intl.PluralRules. Azerbaijani keeps the singular after any
   // numeral, so `other` alone is the complete set here; ru/pl carry three forms in their own files.
   "app.plural.fields.other": "sahə",
@@ -2490,6 +2491,7 @@ export const az = {
   "app.err.fieldTooSmall": "Sahə çox kiçikdir (minimum ~0.05 ha). Sərhədi yenidən çəkin.",
   "app.err.forbidden": "Bu əməliyyata icazəniz yoxdur.",
   "app.err.generic": "Xəta baş verdi. Yenidən cəhd edin.",
+  "app.err.hectare_cap_reached": "Hektar limitiniz doldu — paketi yüksəldin və ya bizimlə əlaqə saxlayın.",
   "app.err.file_too_large": "Fayl çox böyükdür.",
   "app.err.empty_file": "Fayl boşdur.",
   "app.err.file_required": "Fayl seçin.",

@@ -129,6 +129,7 @@ export const api = {
 // follows the user's locale — t() must NOT be evaluated at module load, where only the az dict
 // is registered. Keeps raw "HTTP 500"/snake_case off the screen.
 const ERR_KEYS: Record<string, I18nKey> = {
+  hectare_cap_reached: "app.err.hectare_cap_reached",
   file_too_large: "app.err.file_too_large",
   empty_file: "app.err.empty_file",
   file_required: "app.err.file_required",
