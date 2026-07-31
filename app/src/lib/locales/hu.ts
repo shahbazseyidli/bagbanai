@@ -756,6 +756,7 @@ export const hu: Dict = {
   "mkt.sections.mod3ShotTitle": "Trágya · AI javaslat",
   "mkt.sections.mod3Title": "A helyes adag — és a tábla emlékezete",
   "mkt.sections.mod4CatalogLink": "Katalógus megtekintése",
+  "mkt.sections.mod4Onboarding": "Éppen most vesszük fel a laborokat, agronómusokat és beszállítókat. Ha van megbízható beszállítója, mondja el, kicsoda — ő lehet az elsők között meghívottak egyike.",
   "mkt.sections.mod4Eyebrow": "marketplace · közösség",
   "mkt.sections.mod4Lead": "Válassz szolgáltatót a katalógusból, írj neki közvetlenül. A gazdálkodói közösségben kérj tanácsot azoktól, akik ugyanazt a növényt termesztik.",
   "mkt.sections.mod4Point1": "Szolgáltatói katalógus (ország/régió/szakterület szűrő)",

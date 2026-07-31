@@ -755,6 +755,7 @@ export const tr: Dict = {
   "mkt.sections.mod3ShotTitle": "Gübre · AI öneri",
   "mkt.sections.mod3Title": "Doğru doz — ve tarlanın hafızası",
   "mkt.sections.mod4CatalogLink": "Kataloğa bak",
+  "mkt.sections.mod4Onboarding": "Laboratuvarları, agronomları ve tedarikçileri şu anda platforma alıyoruz. Düzenli çalıştığınız bir tedarikçi varsa adını bize söyleyin — ilk davet edilenlerden olsun.",
   "mkt.sections.mod4Eyebrow": "marketplace · topluluk",
   "mkt.sections.mod4Lead": "Katalogdan bir hizmet sağlayıcısı seç, doğrudan yaz. Çiftçi topluluğunda aynı ürünü ekenlerle danış.",
   "mkt.sections.mod4Point1": "Sağlayıcı kataloğu (ülke/bölge/uzmanlık filtresi)",

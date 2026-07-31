@@ -757,6 +757,7 @@ export const pl: Dict = {
   "mkt.sections.mod3ShotTitle": "Nawóz · propozycja AI",
   "mkt.sections.mod3Title": "Właściwa dawka — i pamięć pola",
   "mkt.sections.mod4CatalogLink": "Zobacz katalog",
+  "mkt.sections.mod4Onboarding": "Właśnie wdrażamy laboratoria, agronomów i dostawców. Jeśli masz już zaufanego dostawcę, powiedz nam, kto to — może być wśród pierwszych zaproszonych.",
   "mkt.sections.mod4Eyebrow": "marketplace · społeczność",
   "mkt.sections.mod4Lead": "Wybierz dostawcę usług z katalogu, napisz bezpośrednio. W społeczności rolników skonsultuj się z tymi, którzy uprawiają tę samą roślinę.",
   "mkt.sections.mod4Point1": "Katalog dostawców (filtr kraj/region/specjalizacja)",

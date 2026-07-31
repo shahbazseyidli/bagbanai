@@ -352,32 +352,26 @@ export function ModuleRows() {
           />
         }
         shot={
+          // WHAT WAS HERE: two invented suppliers — "AqroTest Laboratoriya ★ 4.8 · Xaçmaz" and
+          // "GübrəMarket ★ 4.6 · Quba" — rendered as static JSX inside a card titled "Katalog",
+          // with star ratings nobody had earned, above a link into a catalogue that returns
+          // "no providers in this category yet". A visitor read two named companies with scores,
+          // clicked through, hit a login wall and then an empty page. That is the most
+          // credibility-damaging path on the public site, and it was on the home page.
+          //
+          // The section still SELLS the marketplace, because the marketplace is real and the
+          // providers are being onboarded — it just no longer illustrates it with fictional
+          // businesses. What replaces them is the honest version: the roles that can join, and
+          // an invitation to the reader to name their own supplier.
           <Shot title={t("mkt.sections.mod4ShotTitle")}>
-            <div className="flex gap-3.5">
-              <span className="lp-logo" style={{ background: "#2f6ca8" }}>AT</span>
-              <div>
-                <h4 className="lp-ink flex items-center gap-2 font-display text-[16px] font-semibold">
-                  AqroTest Laboratoriya <span className="text-[13px] text-[#e0a83b]">★ 4.8</span>
-                </h4>
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  <span className="lp-tag">{t("mkt.sections.tagSoilTest")}</span>
-                  <span className="lp-tag">Xaçmaz</span>
-                </div>
-              </div>
+            <div className="flex flex-wrap gap-2">
+              <span className="lp-tag">{t("mkt.sections.tagSoilTest")}</span>
+              <span className="lp-tag">{t("mkt.sections.tagFertilizer")}</span>
+              <span className="lp-tag">{t("mkt.sections.tagSeed")}</span>
             </div>
-            <div className="mt-4 flex gap-3.5">
-              <span className="lp-logo" style={{ background: "#c07a1f" }}>GM</span>
-              <div>
-                <h4 className="lp-ink flex items-center gap-2 font-display text-[16px] font-semibold">
-                  GübrəMarket <span className="text-[13px] text-[#e0a83b]">★ 4.6</span>
-                </h4>
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  <span className="lp-tag">{t("mkt.sections.tagFertilizer")}</span>
-                  <span className="lp-tag">{t("mkt.sections.tagSeed")}</span>
-                  <span className="lp-tag">Quba</span>
-                </div>
-              </div>
-            </div>
+            <p className="lp-muted mt-4 text-[13.5px] leading-relaxed">
+              {t("mkt.sections.mod4Onboarding")}
+            </p>
             <Link
               href="/catalog"
               className="lp-link mt-4 inline-flex min-h-11 items-center gap-1.5 text-[13.5px] font-semibold"

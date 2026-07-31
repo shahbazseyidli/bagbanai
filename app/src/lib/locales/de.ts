@@ -758,6 +758,7 @@ export const de: Dict = {
   "mkt.sections.mod3ShotTitle": "Dünger · KI-Vorschlag",
   "mkt.sections.mod3Title": "Die richtige Dosis — und das Gedächtnis des Feldes",
   "mkt.sections.mod4CatalogLink": "Katalog ansehen",
+  "mkt.sections.mod4Onboarding": "Wir nehmen gerade Labore, Agronomen und Lieferanten auf. Wenn Sie bereits einen Lieferanten haben, dem Sie vertrauen, nennen Sie ihn uns — er kann zu den Ersten gehören.",
   "mkt.sections.mod4Eyebrow": "marktplatz · community",
   "mkt.sections.mod4Lead": "Wählen Sie einen Dienstleister aus dem Katalog und schreiben Sie direkt. Tauschen Sie sich in der Landwirte-Community mit denen aus, die dieselbe Kultur anbauen.",
   "mkt.sections.mod4Point1": "Anbieterkatalog (Filter nach Land/Region/Fachgebiet)",

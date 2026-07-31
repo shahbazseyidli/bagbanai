@@ -756,6 +756,7 @@ export const it: Dict = {
   "mkt.sections.mod3ShotTitle": "Concime · proposta AI",
   "mkt.sections.mod3Title": "La dose giusta — e la memoria del campo",
   "mkt.sections.mod4CatalogLink": "Vedi il catalogo",
+  "mkt.sections.mod4Onboarding": "Stiamo inserendo laboratori, agronomi e fornitori proprio ora. Se ha già un fornitore di fiducia, ci dica chi è: può essere tra i primi invitati.",
   "mkt.sections.mod4Eyebrow": "marketplace · comunità",
   "mkt.sections.mod4Lead": "Scegli un provider di servizi dal catalogo e scrivigli direttamente. Nella comunità di agricoltori confrontati con chi coltiva la stessa coltura.",
   "mkt.sections.mod4Point1": "Catalogo provider (filtro per paese/regione/specializzazione)",

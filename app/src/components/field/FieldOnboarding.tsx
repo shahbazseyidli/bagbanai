@@ -39,7 +39,7 @@ import AutoField from "./info/AutoField";
 import { COUNTRIES, AZ_RAYONS } from "@/lib/regions";
 import { META_GAPS, topMetaGaps, type GapKey } from "./overview/completeness";
 import YesNo from "./info/YesNo";
-import { ARRAY_DEFS, RepeatableRows, type Row, fromRows } from "./repeatableRows";
+import { arrayDefs, RepeatableRows, type Row, fromRows } from "./repeatableRows";
 
 interface Props {
   farmId: string;
@@ -105,21 +105,47 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
 
   // D3.1 — if the visitor drew a field on the public landing map before signing up, prefill it here
   // so onboarding starts from their real boundary instead of a blank map.
+  //
+  // localStorage is checked FIRST but is only ever a hit in single-origin local dev. In production
+  // the landing is agradex.com and this wizard is app.agradex.com, so the key written over there is
+  // invisible here — which is why this prefill silently never fired for a real user. The server
+  // copy (users.onboarding.draft_field, carried by carryQuiz at sign-in) is the one that works.
   useEffect(() => {
+    let active = true;
+    const apply = (polygon: Polygon) => {
+      if (!active) return;
+      setMode("draw");
+      setDrawnPolygon(polygon);
+      setImportedPolygon(polygon);
+      setImportSeq((s) => s + 1);
+    };
     try {
       const raw = localStorage.getItem("bagban_draft_field");
-      if (!raw) return;
-      localStorage.removeItem("bagban_draft_field");
-      const draft = JSON.parse(raw) as { polygon?: Polygon };
-      if (draft?.polygon) {
-        setMode("draw");
-        setDrawnPolygon(draft.polygon);
-        setImportedPolygon(draft.polygon);
-        setImportSeq((s) => s + 1);
+      if (raw) {
+        localStorage.removeItem("bagban_draft_field");
+        const draft = JSON.parse(raw) as { polygon?: Polygon };
+        if (draft?.polygon) {
+          apply(draft.polygon);
+          return;
+        }
       }
     } catch {
-      /* ignore malformed draft */
+      /* ignore malformed draft and fall through to the server copy */
     }
+    (async () => {
+      try {
+        const r = await api.get<{ onboarding?: { draft_field?: { polygon?: Polygon } } }>(
+          "/api/auth/onboarding",
+        );
+        const polygon = r?.onboarding?.draft_field?.polygon;
+        if (polygon) apply(polygon);
+      } catch {
+        /* a blank map is a working map — never block the wizard on this */
+      }
+    })();
+    return () => {
+      active = false;
+    };
   }, []);
 
   // E13 — the landing quiz already asked what they grow and where. Seed the wizard with it so the
@@ -356,7 +382,7 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
 
       // Build the metadata payload: base state + repeatable arrays + folded extras.
       const payload = toPayload();
-      for (const def of ARRAY_DEFS) {
+      for (const def of arrayDefs()) {
         payload[def.key as string] = fromRows(rowsMap[def.key as string] ?? [], def);
       }
       let notes = (data.notes ?? "").trim();
@@ -759,7 +785,7 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
               )}
 
               <div className="space-y-4 border-t border-slate-100 pt-4">
-                {ARRAY_DEFS.map((def) => (
+                {arrayDefs().map((def) => (
                   <RepeatableRows
                     key={def.key as string}
                     def={def}

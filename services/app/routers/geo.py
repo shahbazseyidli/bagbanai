@@ -6,12 +6,21 @@ never a 500. No org gating — this only touches keyless public geo services.
 from math import atan, atan2, cos, degrees, radians, sqrt
 
 import httpx
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 
+from .. import ratelimit
 from ..db import connection
 from ..deps import get_current_user_id
 
 router = APIRouter(prefix="/api/geo", tags=["geo"])
+
+# The two public geo routes are the only unauthenticated endpoints in the product that do real
+# work: each one is a windowed COG read against a remote bucket, up to ~45 s of it. No LLM and no
+# writes, so this is not a billing vector — it is a CPU/egress one, and it can burn the shared
+# EARTHDATA quota. The cap is deliberately loose because a Cloudflare edge is shared by many
+# farmers (see app/ratelimit.py); it stops a script, not a determined attacker.
+_PUBLIC_MAX_PER_10M = 30
+_PUBLIC_WINDOW_SEC = 10 * 60
 
 # Tap-to-detect boundary (v2.1 C3). Proxies to the geoapi microservice (heavy geo deps live
 # there, not in this image). Auth-gated: any logged-in user creating a field. The result
@@ -36,11 +45,14 @@ async def segment_boundary(body: dict, user_id: str = Depends(get_current_user_i
 
 
 @router.post("/segment-public")
-async def segment_boundary_public(body: dict):
+async def segment_boundary_public(body: dict, request: Request):
     """Anonymous tap-to-detect for the public landing (D3.1) — same read-only NDVI segmentation as
     /segment, but no auth and NOTHING is written. Lets a visitor see their own field boundary before
     creating an account (value-before-account). Area-capped inside the geoapi microservice; degrades
     to manual draw on any failure."""
+    if not ratelimit.allow("geo_public", ratelimit.client_ip(request),
+                           limit=_PUBLIC_MAX_PER_10M, window_sec=_PUBLIC_WINDOW_SEC):
+        return {"ok": False, "reason": "rate_limited", "polygon": None}
     try:
         lon = float(body.get("lon"))
         lat = float(body.get("lat"))
@@ -56,12 +68,15 @@ async def segment_boundary_public(body: dict):
 
 
 @router.post("/ndvi-public")
-async def ndvi_public(body: dict):
+async def ndvi_public(body: dict, request: Request):
     """A11 — anonymous NDVI reading for a polygon drawn on the public landing page.
 
     The visitor sees a REAL satellite number for their own field before signing up. No auth and
     nothing is written; the geoapi microservice area-caps the request and does a single windowed
     read. Degrades quietly (ok=False + reason) so the landing page never breaks."""
+    if not ratelimit.allow("geo_public", ratelimit.client_ip(request),
+                           limit=_PUBLIC_MAX_PER_10M, window_sec=_PUBLIC_WINDOW_SEC):
+        return {"ok": False, "reason": "rate_limited"}
     polygon = body.get("polygon")
     if not isinstance(polygon, dict) or not polygon.get("type"):
         return {"ok": False, "reason": "bad_polygon"}

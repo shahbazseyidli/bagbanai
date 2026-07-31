@@ -19,6 +19,7 @@ import { ArrowRight, Hand, Layers, Leaf, Loader2, Sparkles, Thermometer } from "
 import { area as turfArea } from "@turf/turf";
 import { api } from "@/lib/api";
 import { t } from "@/lib/i18n";
+import { saveDraftField } from "@/lib/onboardingQuiz";
 import { areaUnitLabel, formatAreaNumber, useAreaUnit } from "@/lib/units";
 import type { Polygon } from "@/lib/types";
 
@@ -144,6 +145,10 @@ export default function LandingHeroMap() {
 
   function startTracking() {
     if (polygon) {
+      // Into the QUIZ blob, which takes a server round-trip after sign-in. The localStorage write
+      // below is kept only because it still works in single-origin local dev; in production the
+      // wizard lives on a different origin and can never read it. See saveDraftField().
+      saveDraftField(polygon, areaHa);
       try {
         localStorage.setItem(DRAFT_KEY, JSON.stringify({ polygon, area_ha: areaHa }));
       } catch {

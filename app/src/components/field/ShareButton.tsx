@@ -25,7 +25,9 @@ interface ShareLink {
   created_at: string;
 }
 
-const EXPIRY_OPTIONS: { label: string; days: number | null }[] = [
+// A FUNCTION, not a const: as a module-level const this called t() at import time and froze the
+// dropdown to whichever locale loaded first (same trap as catalog/page.tsx and sensorMeta()).
+const expiryOptions = (): { label: string; days: number | null }[] => [
   { label: t("app.field.shareButton.expiry7Days"), days: 7 },
   { label: t("app.field.shareButton.expiry30Days"), days: 30 },
   { label: t("app.field.shareButton.expiryNever"), days: null },
@@ -95,7 +97,7 @@ export default function ShareButton({
       const created = await api.post<ShareLink>(`/api/fields/${fieldId}/shares`, {
         scope: "card",
         include_ndvi: includeNdvi,
-        expires_days: EXPIRY_OPTIONS[expiryIdx].days,
+        expires_days: expiryOptions()[expiryIdx].days,
       });
       setItems((prev) => [created, ...prev]);
       await copy(created);
@@ -184,7 +186,7 @@ export default function ShareButton({
         <div>
           <span className="label">{t("app.field.shareButton.linkDuration")}</span>
           <div className="mt-1 flex flex-wrap gap-2">
-            {EXPIRY_OPTIONS.map((o, i) => (
+            {expiryOptions().map((o, i) => (
               <button
                 key={o.label}
                 type="button"

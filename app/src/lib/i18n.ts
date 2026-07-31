@@ -820,6 +820,7 @@ export const az = {
   "mkt.sections.mod3ShotTitle": "Gübrə · AI təklif",
   "mkt.sections.mod3Title": "Doğru doza — və sahənin yaddaşı",
   "mkt.sections.mod4CatalogLink": "Kataloqa bax",
+  "mkt.sections.mod4Onboarding": "Laboratoriya, aqronom və təchizatçıları platformaya indi qeydiyyata alırıq. Daimi işlədiyiniz təchizatçı varsa, adını bizə deyin — ilk dəvət olunanlardan olsun.",
   "mkt.sections.mod4Eyebrow": "marketplace · icma",
   "mkt.sections.mod4Lead": "Kataloqdan xidmət provayderi seç, birbaşa yaz. Fermer icmasında eyni məhsulu əkənlərlə məsləhətləş.",
   "mkt.sections.mod4Point1": "Provayder kataloqu (ölkə/region/ixtisas filtri)",

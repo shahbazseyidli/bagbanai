@@ -17,7 +17,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
-from .. import notify_prefs
+from .. import notify_prefs, ratelimit
 from ..ai import notify
 from ..config import settings
 from ..db import connection
@@ -93,6 +93,54 @@ async def _issue_otp(conn, user_id: str, email: str, locale: str | None = None) 
 # E13 — the landing quiz is anonymous input, so it is whitelisted before it touches the database.
 _ONB_STR = ("crop", "country", "region", "challenge", "completed_at")
 
+# A traced boundary is a handful of vertices. This cap is not a UX limit — the landing simplifies to
+# ~24 points and a freehand lasso to a few hundred — it is the bound that stops an anonymous caller
+# from parking a megabyte of float in users.onboarding.
+_DRAFT_MAX_RINGS = 1
+_DRAFT_MAX_POINTS = 2000
+
+
+def _clean_draft_field(raw) -> dict | None:
+    """Validate the polygon a signed-out visitor traced on the landing map.
+
+    This is UNAUTHENTICATED input that gets stored, so it is parsed rather than trusted: shape,
+    ring count, vertex count and every coordinate's range are checked, and anything else in the
+    object is dropped. A malformed draft is discarded silently — losing it costs the visitor one
+    re-trace, while accepting it would put visitor-controlled JSON into a jsonb column.
+    """
+    if not isinstance(raw, dict):
+        return None
+    poly = raw.get("polygon")
+    if not isinstance(poly, dict) or poly.get("type") != "Polygon":
+        return None
+    rings = poly.get("coordinates")
+    if not isinstance(rings, list) or not 1 <= len(rings) <= _DRAFT_MAX_RINGS:
+        return None
+    clean_rings = []
+    for ring in rings:
+        if not isinstance(ring, list) or not 4 <= len(ring) <= _DRAFT_MAX_POINTS:
+            return None
+        pts = []
+        for pt in ring:
+            if not isinstance(pt, (list, tuple)) or len(pt) < 2:
+                return None
+            try:
+                lon, lat = float(pt[0]), float(pt[1])
+            except (TypeError, ValueError):
+                return None
+            if not (-180.0 <= lon <= 180.0 and -90.0 <= lat <= 90.0):
+                return None
+            pts.append([lon, lat])
+        clean_rings.append(pts)
+    out: dict = {"polygon": {"type": "Polygon", "coordinates": clean_rings}}
+    try:
+        area = float(raw.get("area_ha"))
+    except (TypeError, ValueError):
+        area = None
+    if area is not None and 0.0 < area < 1_000_000.0:
+        out["area_ha"] = area
+    return out
+
 
 def _clean_onboarding(raw) -> dict | None:
     """Keep only the known keys, as short strings — never store an arbitrary visitor-supplied blob."""
@@ -106,6 +154,9 @@ def _clean_onboarding(raw) -> dict | None:
     needs = raw.get("needs")
     if isinstance(needs, list):
         out["needs"] = [n.strip()[:40] for n in needs if isinstance(n, str) and n.strip()][:12]
+    draft = _clean_draft_field(raw.get("draft_field"))
+    if draft:
+        out["draft_field"] = draft
     return out or None
 
 
@@ -300,7 +351,6 @@ MAGIC_MAX_PER_EMAIL_15M = 3
 MAGIC_MAX_PER_EMAIL_24H = 10
 MAGIC_MAX_PER_IP_15M = 20
 MAGIC_IP_WINDOW_SEC = 15 * 60
-_MAGIC_IP_BUCKETS_MAX = 4096
 
 
 # Localized sign-in link email (subject, body). Body has {url} and {ttl}. Sent from the locale's
@@ -389,50 +439,17 @@ def _magic_url(token: str, locale: str) -> str:
     return f"{site_url()}{prefix}/auth/link#token={token}"
 
 
+# The limiter itself now lives in app/ratelimit.py so routers/geo.py can use the same one instead
+# of hand-rolling a second copy — the honest account of what it can and cannot stop moved with it.
+# The per-EMAIL limit further down is still the durable one: it is in SQL, exact, and survives
+# restarts, whereas this is a burst brake that resets on deploy.
 def _client_ip(request: Request) -> str:
-    """Best available client address. Read the honest limits in _ip_rate_ok before trusting it."""
-    for header in ("cf-connecting-ip", "x-forwarded-for", "x-real-ip"):
-        v = (request.headers.get(header) or "").split(",")[0].strip()
-        if v:
-            return v[:64]
-    return (request.client.host if request.client else "") or "?"
-
-
-# In-process sliding window, keyed by client address. WHAT THIS IS AND IS NOT:
-#
-# It is a REAL limiter, not decoration, for exactly one verified reason: services/Dockerfile runs
-# `uvicorn app.main:app` with no --workers, so there is one process in one api container and this
-# dict sees 100% of the traffic. It resets on every deploy/restart — acceptable for a burst brake.
-#
-# What it cannot do, stated plainly so nobody over-trusts it:
-#   * request.client.host alone is useless here — the peer is the docker bridge gateway, and
-#     uvicorn's proxy-header trust defaults to 127.0.0.1, which the gateway is not.
-#   * nginx sets X-Real-IP $remote_addr, but agradex.com is Cloudflare-PROXIED, so that address is
-#     a CF edge shared by many farmers. Hence CF-Connecting-IP first, and a deliberately generous
-#     cap — throttling a whole CF edge would be worse than the abuse it prevents.
-#   * CF-Connecting-IP is forgeable by anyone hitting the origin directly: neither nginx conf in
-#     deploy/ sets `set_real_ip_from <CF ranges>` + `real_ip_header CF-Connecting-IP`. Until that
-#     lands, this stops scripted abuse and does not stop a determined attacker. The per-EMAIL limit
-#     below is the durable one — it is in SQL, exact, and survives restarts.
-_MAGIC_IP_HITS: dict[str, list[float]] = {}
+    return ratelimit.client_ip(request)
 
 
 def _ip_rate_ok(ip: str) -> bool:
-    now = time.monotonic()
-    cutoff = now - MAGIC_IP_WINDOW_SEC
-    hits = [t for t in _MAGIC_IP_HITS.get(ip, ()) if t > cutoff]
-    if len(hits) >= MAGIC_MAX_PER_IP_15M:
-        _MAGIC_IP_HITS[ip] = hits          # keep the pruned list; never stored empty (len >= cap)
-        return False
-    hits.append(now)
-    _MAGIC_IP_HITS[ip] = hits
-    if len(_MAGIC_IP_HITS) > _MAGIC_IP_BUCKETS_MAX:
-        # Bound the memory: drop the buckets whose last hit is oldest. Sorting a few thousand keys
-        # happens only at the cap, not per request.
-        stale = sorted(_MAGIC_IP_HITS, key=lambda k: (_MAGIC_IP_HITS[k] or [0.0])[-1])
-        for k in stale[: len(_MAGIC_IP_HITS) - _MAGIC_IP_BUCKETS_MAX]:
-            _MAGIC_IP_HITS.pop(k, None)
-    return True
+    return ratelimit.allow("magic_link", ip,
+                           limit=MAGIC_MAX_PER_IP_15M, window_sec=MAGIC_IP_WINDOW_SEC)
 
 
 @router.post("/magic-link")

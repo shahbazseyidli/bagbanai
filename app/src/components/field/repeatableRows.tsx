@@ -52,7 +52,10 @@ export interface ArrayDef {
   cols: { name: string; label: string; type?: "text" | "number"; options?: Opt[] }[];
 }
 
-export const ARRAY_DEFS: ArrayDef[] = [
+// A FUNCTION, not a const. These labels come from t(), and a module-level const resolves them at
+// IMPORT time — freezing every repeatable sub-form to whichever locale happened to load first.
+// Same trap as catalog/page.tsx, ShareButton and sensorMeta(); see CLAUDE.md.
+export const arrayDefs = (): ArrayDef[] => [
   {
     key: "difficulties",
     label: t("meta.difficulties"),

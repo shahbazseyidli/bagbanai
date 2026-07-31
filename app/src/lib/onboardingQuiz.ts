@@ -20,6 +20,13 @@ export interface QuizAnswers {
   challenge: string;
   needs: string[];
   completed_at?: string;
+  /** The boundary the visitor traced on the landing map before they had an account.
+   *  It rides in THIS blob, not in its own localStorage key, for one reason: this blob is carried
+   *  to the server by carryQuiz() the moment a session exists, and localStorage is per-ORIGIN.
+   *  The landing runs on agradex.com and the field wizard on app.agradex.com, so anything left in
+   *  localStorage by the landing is unreadable by the wizard in production — see the comment on
+   *  saveDraftField below. */
+  draft_field?: { polygon: unknown; area_ha?: number | null };
 }
 
 export const EMPTY_ANSWERS: QuizAnswers = { crop: "", country: "", region: "", challenge: "", needs: [] };
@@ -106,4 +113,31 @@ export function clearAnswers(): void {
   } catch {
     /* noop */
   }
+}
+
+/**
+ * Remember the boundary a signed-out visitor traced on the landing map.
+ *
+ * THE BUG THIS FIXES. The landing used to stash the polygon under its own localStorage key and the
+ * field wizard read that key back. In local dev everything is one origin, so it worked and was
+ * documented as working in three separate comments. In PRODUCTION the landing is agradex.com and
+ * the wizard is app.agradex.com — different origins, therefore different localStorage — so the
+ * read was `null` on EVERY real signup. The visitor traced their field, signed up, and was handed
+ * a blank map to trace it again. That is the single worst onboarding loss in the OneSoil corpus,
+ * and we had it.
+ *
+ * The quiz answers already survived that hop, because they take a server round-trip
+ * (carryQuiz → POST /api/auth/onboarding → users.onboarding). The polygon now travels in the same
+ * blob rather than inventing a second mechanism.
+ *
+ * `completed_at` is stamped here as well as by the quiz's finish(). carryQuiz() refuses to carry a
+ * blob without it (an unfinished quiz is not an answer), and tracing a field is every bit as
+ * deliberate an act as finishing the quiz — without this stamp, a visitor who drew a field but
+ * skipped the quiz would still lose it.
+ */
+export function saveDraftField(polygon: unknown, areaHa: number | null): void {
+  const a = loadAnswers() ?? { ...EMPTY_ANSWERS };
+  a.draft_field = { polygon, area_ha: areaHa };
+  a.completed_at = a.completed_at || new Date().toISOString();
+  saveAnswers(a);
 }

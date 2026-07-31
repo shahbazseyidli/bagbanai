@@ -32,7 +32,7 @@ import NumberSlider from "./info/NumberSlider";
 import AutoField from "./info/AutoField";
 import { AZ_RAYONS } from "@/lib/regions";
 import YesNo from "./info/YesNo";
-import { ARRAY_DEFS, RepeatableRows, type Row, toRows, fromRows } from "./repeatableRows";
+import { arrayDefs, RepeatableRows, type Row, toRows, fromRows, type ArrayDef } from "./repeatableRows";
 
 /** Coerce a stored numeric-or-string metadata value into a number|null. */
 function toNum(v: number | string | null | undefined): number | null {
@@ -153,7 +153,7 @@ export default function MetadataTab({ fieldId }: { fieldId: string }) {
         const m = data ?? ({ crop_type: "" } as FieldMetadata);
         setMeta(m);
         const rm: Record<string, Row[]> = {};
-        for (const def of ARRAY_DEFS) {
+        for (const def of arrayDefs()) {
           rm[def.key as string] = toRows(m[def.key] as Array<Record<string, unknown>> | undefined);
         }
         setRowsMap(rm);
@@ -202,7 +202,7 @@ export default function MetadataTab({ fieldId }: { fieldId: string }) {
     setBusy(true);
     try {
       const payload: Record<string, unknown> = { ...meta };
-      for (const def of ARRAY_DEFS) {
+      for (const def of arrayDefs()) {
         payload[def.key as string] = fromRows(rowsMap[def.key as string] ?? [], def);
       }
       // Normalize before PUT: blank strings → null; numeric fields → number|null
@@ -249,7 +249,7 @@ export default function MetadataTab({ fieldId }: { fieldId: string }) {
       const n = toNum(v);
       return n == null ? null : `${n}°`;
     };
-    const count = (def: (typeof ARRAY_DEFS)[number]): string =>
+    const count = (def: ArrayDef): string =>
       String(fromRows(rowsMap[def.key as string] ?? [], def).length);
 
     return (
@@ -307,7 +307,7 @@ export default function MetadataTab({ fieldId }: { fieldId: string }) {
           </DisplayGroup>
 
           <DisplayGroup title={t("app.field.metadataTab.groupHistory")}>
-            {ARRAY_DEFS.map((def) => (
+            {arrayDefs().map((def) => (
               <DisplayRow key={def.key as string} label={def.label} value={count(def)} />
             ))}
           </DisplayGroup>
@@ -492,7 +492,7 @@ export default function MetadataTab({ fieldId }: { fieldId: string }) {
         </FormField>
 
         <div className="space-y-4 border-t border-slate-100 pt-4">
-          {ARRAY_DEFS.map((def) => (
+          {arrayDefs().map((def) => (
             <RepeatableRows
               key={def.key as string}
               def={def}
