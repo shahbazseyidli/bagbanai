@@ -1,7 +1,23 @@
 // Country + Azerbaijan district (rayon) dropdown vocabularies (v2.1 onboarding UX).
 // Rayon is stored in field_metadata.region (free text before); the dropdown normalizes it.
 
-export const COUNTRIES = [{ code: "AZ", name: "Azərbaycan" }];
+/**
+ * THE COUNTRY LIST IS NO LONGER A LIST OF ONE.
+ *
+ * This held a single entry and the wizard rendered it as a `disabled` <select>, so the product was
+ * hard-locked to Azerbaijan while the landing quiz cheerfully offered 23 countries and the app
+ * shipped in 8 languages. A Turkish visitor picked Türkiye on the home page, signed up, reached
+ * the field wizard and was told — in a greyed-out box — that they farm in Azerbaijan. That is a
+ * worse answer than saying nothing, because we asked the question first.
+ *
+ * Codes come from QUIZ_COUNTRY_CODES so the two surfaces cannot drift, and the NAME is resolved
+ * at render through Intl.DisplayNames in the reader's own language — which is also why the
+ * hardcoded "Azərbaycan" string is gone: it was Azerbaijani on every locale's screen.
+ */
+export { QUIZ_COUNTRY_CODES as COUNTRY_CODES } from "@/lib/onboardingQuiz";
+
+/** Districts are an AZ vocabulary. Outside Azerbaijan the region becomes free text — see below. */
+export const AZ_COUNTRY_CODE = "AZ";
 
 // 66 administrative districts + republic cities (official AZ list).
 export const AZ_RAYONS: string[] = [

@@ -5,7 +5,7 @@ import maplibregl from "maplibre-gl";
 import { Layers, Search, Ruler, Mountain, X } from "lucide-react";
 import { length as turfLength, area as turfArea, simplify as turfSimplify } from "@turf/turf";
 import type { MapPin, Polygon } from "@/lib/types";
-import { t } from "@/lib/i18n";
+import { t, getLocale } from "@/lib/i18n";
 import { formatArea, useAreaUnit } from "@/lib/units";
 import { useMapReady } from "@/lib/useMapReady";
 import {
@@ -120,8 +120,14 @@ function SearchControl({ onPick }: { onPick: (lng: number, lat: number, bbox?: [
     if (!term) return;
     setBusy(true);
     try {
-      const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&countrycodes=az&q=${encodeURIComponent(term)}`;
-      const res = await fetch(url, { headers: { "Accept-Language": "az" } });
+      // NO countrycodes FILTER. This used to pin the search to `countrycodes=az` with
+      // `Accept-Language: az`, which meant a Turkish, German or Polish farmer could not find
+      // their own village on the map — in a product that ships in eight languages and whose
+      // satellite and weather pipelines are global. The lock was here, in one query string.
+      // Results now come back in the reader's language too, so a Polish farmer reads Polish
+      // place names instead of transliterated Azerbaijani ones.
+      const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&q=${encodeURIComponent(term)}`;
+      const res = await fetch(url, { headers: { "Accept-Language": getLocale() } });
       const data: Array<Record<string, unknown>> = res.ok ? await res.json() : [];
       setResults(
         data.map((r) => {
@@ -254,9 +260,30 @@ export function DrawMap({ onPolygon, importedPolygon, importSeq = 0, detectMode 
     });
     mapRef.current = map;
     map.addControl(new maplibregl.NavigationControl(), "top-right");
-    map.addControl(new maplibregl.GeolocateControl({ trackUserLocation: false }), "top-right");
+    const geo = new maplibregl.GeolocateControl({ trackUserLocation: false });
+    map.addControl(geo, "top-right");
     map.addControl(new maplibregl.ScaleControl({ maxWidth: 120, unit: "metric" }), "bottom-left"); // T19
     map.doubleClickZoom.disable();
+
+    // START WHERE THE FARMER IS, not where we assumed they were.
+    //
+    // The drawing map opened on the centre of Azerbaijan at zoom 7 for everyone, in a product
+    // that ships in eight languages. A Turkish or Polish farmer's first act was to pan across a
+    // country they do not farm in. The permission is ASKED FOR, never assumed: MapLibre's own
+    // geolocate control does the asking, so the browser's normal prompt appears and a refusal
+    // costs nothing — the map simply stays where it was and the search box still works.
+    //
+    // Fired once, and only while the map is still at its default view: if the caller has already
+    // flown to an imported boundary or a detected field, moving the camera out from under them
+    // would be worse than a wrong starting country.
+    map.once("load", () => {
+      if (map.getZoom() > 7.5) return;      // someone already positioned this map
+      try {
+        geo.trigger();
+      } catch {
+        /* no permission, no secure context, no geolocation — all fine, keep the default view */
+      }
+    });
     map.on("mousemove", (e) =>
       setCoord(`${e.lngLat.lng.toFixed(5)}, ${e.lngLat.lat.toFixed(5)}`),
     );

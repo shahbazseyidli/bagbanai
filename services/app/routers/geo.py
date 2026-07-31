@@ -136,14 +136,20 @@ async def _terrain(lat: float, lon: float) -> dict:
     return out
 
 
-async def _region(lat: float, lon: float, user_id: str) -> dict:
+async def _region(lat: float, lon: float, user_id: str, locale: str = "az") -> dict:
     """Nominatim reverse (keyless) → rayon; map rayon → economic_region via subsidy_regions."""
     out = {"region": None, "economic_region": None}
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.get(
                 "https://nominatim.openstreetmap.org/reverse",
-                params={"lat": lat, "lon": lon, "format": "jsonv2", "accept-language": "az"},
+                # The READER's language, not "az". Reverse-geocoding was pinned to Azerbaijani, so a German
+                # farmer's auto-filled region came back in Azerbaijani. The subsidy_regions match
+                # below still only knows AZ names — that is fine and unchanged for an AZ field on an
+                # AZ locale (the common case), and elsewhere it simply finds nothing, which the code
+                # already handles. economic_region is a display label; nothing computes from it since
+                # the subsidy module was removed.
+                params={"lat": lat, "lon": lon, "format": "jsonv2", "accept-language": locale},
                 headers={"User-Agent": "Agradex/1.0 (agradex.com)"},
             )
         resp.raise_for_status()
@@ -170,10 +176,11 @@ async def _region(lat: float, lon: float, user_id: str) -> dict:
 
 
 @router.get("/site")
-async def get_site(lat: float = Query(...), lon: float = Query(...),
+async def get_site(request: Request, lat: float = Query(...), lon: float = Query(...),
                    user_id: str = Depends(get_current_user_id)):
     terrain = await _terrain(lat, lon)
-    region = await _region(lat, lon, user_id)
+    locale = (request.headers.get("x-locale") or "az").strip().lower()[:5] or "az"
+    region = await _region(lat, lon, user_id, locale)
     return {
         "elevation_m": terrain["elevation_m"],
         "slope_deg": terrain["slope_deg"],

@@ -36,7 +36,9 @@ import ClickDate from "./info/ClickDate";
 import PhPicker from "./info/PhPicker";
 import NumberSlider from "./info/NumberSlider";
 import AutoField from "./info/AutoField";
-import { COUNTRIES, AZ_RAYONS } from "@/lib/regions";
+import { COUNTRY_CODES, AZ_COUNTRY_CODE, AZ_RAYONS } from "@/lib/regions";
+import { countryName } from "@/lib/onboardingQuiz";
+import { getLocale } from "@/lib/i18n";
 import { META_GAPS, topMetaGaps, type GapKey } from "./overview/completeness";
 import YesNo from "./info/YesNo";
 import { arrayDefs, RepeatableRows, type Row, fromRows } from "./repeatableRows";
@@ -102,6 +104,11 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
   const [detecting, setDetecting] = useState(false);
   const [detectMsg, setDetectMsg] = useState("");
   const [brush, setBrush] = useState(false);         // freehand brush/lasso mode
+  // Which country's vocabulary the region field should offer. LOCAL state on purpose:
+  // field_metadata has no country column, so the old disabled <select value="AZ"> was never
+  // stored — it was decoration that happened to also be a wall. What actually gets saved is
+  // `region`, and this only decides whether that is a rayon dropdown or free text.
+  const [country, setCountry] = useState<string>(AZ_COUNTRY_CODE);
 
   // D3.1 — if the visitor drew a field on the public landing map before signing up, prefill it here
   // so onboarding starts from their real boundary instead of a blank map.
@@ -154,11 +161,14 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
     let active = true;
     (async () => {
       try {
-        const r = await api.get<{ onboarding?: { crop?: string; region?: string } }>(
+        const r = await api.get<{ onboarding?: { crop?: string; region?: string; country?: string } }>(
           "/api/auth/onboarding",
         );
         const onb = r?.onboarding;
         if (!active || !onb) return;
+        // The visitor already told us where they farm, on the landing page. Honouring it here is
+        // the whole point: asking the question and then ignoring the answer was the old behaviour.
+        if (onb.country && COUNTRY_CODES.includes(onb.country)) setCountry(onb.country);
         const patch: Partial<FieldMetadata> = {};
         if (onb.crop && onb.crop !== "other" && !data.crop_type) {
           patch.crop_type = onb.crop;
@@ -626,24 +636,44 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
           </FormField>
 
           <div className="grid gap-4 rounded-xl border border-slate-100 bg-slate-50/60 p-4 sm:grid-cols-2">
+            {/* NOT `disabled` any more, and not a list of one. The landing quiz offers 23
+                countries; this box used to answer "Azərbaycan" in a greyed-out select regardless
+                of what the visitor had just told us. Satellite, weather and the whole pipeline are
+                global — the lock was only ever in this vocabulary. */}
             <FormField label={t("app.field.fieldOnboarding.country")}>
-              <select className="input" value="AZ" disabled>
-                {COUNTRIES.map((c) => (
-                  <option key={c.code} value={c.code}>{c.name}</option>
+              <select
+                className="input"
+                value={country}
+                onChange={(e) => setCountry(e.target.value || AZ_COUNTRY_CODE)}
+              >
+                {COUNTRY_CODES.map((code) => (
+                  <option key={code} value={code}>{countryName(code, getLocale())}</option>
                 ))}
               </select>
             </FormField>
             <FormField label={t("app.field.fieldOnboarding.region")}>
-              <select
-                className="input"
-                value={AZ_RAYONS.find((r) => (data.region ?? "").includes(r)) ?? ""}
-                onChange={(e) => set("region", e.target.value || undefined)}
-              >
-                <option value="">{geoLoading ? t("app.field.fieldOnboarding.searching") : t("app.field.fieldOnboarding.selectRegion")}</option>
-                {AZ_RAYONS.map((r) => (
-                  <option key={r} value={r}>{r}</option>
-                ))}
-              </select>
+              {/* The 66-rayon list is an AZERBAIJANI vocabulary, so it is offered only when the
+                  field is in Azerbaijan. Everywhere else the region degrades to free text rather
+                  than to a dropdown that cannot contain the farmer's own province. */}
+              {country === AZ_COUNTRY_CODE ? (
+                <select
+                  className="input"
+                  value={AZ_RAYONS.find((r) => (data.region ?? "").includes(r)) ?? ""}
+                  onChange={(e) => set("region", e.target.value || undefined)}
+                >
+                  <option value="">{geoLoading ? t("app.field.fieldOnboarding.searching") : t("app.field.fieldOnboarding.selectRegion")}</option>
+                  {AZ_RAYONS.map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  className="input"
+                  value={data.region ?? ""}
+                  onChange={(e) => set("region", e.target.value || undefined)}
+                  placeholder={t("app.field.fieldOnboarding.selectRegion")}
+                />
+              )}
               <Why gapKey="region" />
             </FormField>
             <AutoField
