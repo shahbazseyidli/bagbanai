@@ -82,40 +82,92 @@ def detect_boundary(lon: float, lat: float, *, max_ha: float = MAX_HA,
 
     km = BANDS["S2"]
 
-    def _read_window(href, crs, win):
-        """Windowed COG read → float32 reflectance array (only the window loads)."""
-        with rasterio.open(href) as src:
-            arr = src.read(1, window=win, boundless=True, fill_value=0).astype("float32")
-        return arr * S2_SR_SCALE
+    from rasterio.windows import Window
+
+    def _ndvi(nir_a, red_a):
+        d = nir_a + red_a
+        return np.where(d > 0, (nir_a - red_a) / d, np.nan).astype("float32")
 
     # Freshest granule first; skip bare/harvested scenes (flat NDVI, no edges) to find a
     # vegetated one where the field boundary is actually visible.
+    #
+    # WHY THE SEED IS PROBED BEFORE THE WINDOW IS READ. This loop used to read the FULL ~130x130
+    # window of NIR and RED — two remote COG reads over the network — and only then look at the
+    # 3x3 mean around the tap to decide whether the scene was bare. Every scene skipped as bare
+    # therefore cost two full reads that were thrown away. The decision needs a handful of pixels,
+    # so it now reads a handful: a 5x5 probe at the tap decides, and the full window is only read
+    # for a granule that passes. Verified to return byte-identical answers on two probe points.
+    #
+    # ⚠️ THIS DOES NOT FIX THE 45-60 s WORST CASE, and measurement says so plainly. Instrumenting
+    # two real taps on 2026-07-31 (48.8025,41.4520 and 48.6820,41.6290) showed the loop walking
+    # 32+ granules at ~1.7 s each, and they were NOT being rejected as bare — they passed the bare
+    # test, paid for the full window, and were rejected further down at `lbl[row, col] == 0`,
+    # i.e. the tapped pixel fell inside the edge mask. That is a property of WHERE THE FARMER
+    # TAPPED, so it repeats on every granule, and the answer that eventually comes back arrives
+    # from a four-month-old scene. Both timings are unchanged by this probe: 64 s and 58 s.
+    #
+    # Two fixes were tried against those points and BOTH were reverted because they changed the
+    # answers rather than the timing:
+    #   * forcing candidate[row, col] = True — binary_opening(iterations=1) erases an isolated
+    #     pixel, so the granule is rejected one step later anyway;
+    #   * capping the granules examined (6, then 12) — 17 s and 13 s, but both points then
+    #     returned no_readable_scene where they had returned boundary_unclear and a real 0.46 ha
+    #     boundary. Faster and wrong is not an improvement.
+    # The real fix is in what happens when the seed lands on an edge, and it needs field testing
+    # against real taps before it can be trusted. Left open deliberately.
     skipped_bare = 0
     for g in granules:
         red_h, nir_h = g.assets.get(km["red"]), g.assets.get(km["nir"])
         if not red_h or not nir_h:
             continue
         try:
-            with rasterio.open(nir_h) as src:
-                crs = src.crs
+            with rasterio.open(nir_h) as src_nir, rasterio.open(red_h) as src_red:
+                crs = src_nir.crs
                 l, b, r_, t = transform_bounds("EPSG:4326", crs, *win_bbox)
-                win = from_bounds(l, b, r_, t, src.transform)
-                transform = src.window_transform(win)
-            nir = _read_window(nir_h, crs, win)
-            red = _read_window(red_h, crs, win)
+                win = from_bounds(l, b, r_, t, src_nir.transform)
+                transform = src_nir.window_transform(win)
+
+                # --- cheap probe: is this scene green AT THE TAP? ---
+                # The probe must land on EXACTLY the pixels the old full-window path averaged,
+                # because seed_val is not only the bare/green test — it also centres the region
+                # -growing tolerance band further down. So row/col are derived from the WINDOW
+                # transform exactly as before, then offset back into full-raster coordinates.
+                # (from_bounds can return fractional offsets, so int(r_f) and win.row_off + row
+                # are not interchangeable; this way there is nothing to get wrong.)
+                to_utm = Transformer.from_crs("EPSG:4326", crs, always_xy=True)
+                sx, sy = to_utm.transform(lon, lat)
+                col = int((sx - transform.c) / transform.a)
+                row = int((sy - transform.f) / transform.e)
+                probe = Window(win.col_off + col - 2, win.row_off + row - 2, 5, 5)
+                p_nir = src_nir.read(1, window=probe, boundless=True,
+                                     fill_value=0).astype("float32") * S2_SR_SCALE
+                p_red = src_red.read(1, window=probe, boundless=True,
+                                     fill_value=0).astype("float32") * S2_SR_SCALE
+                p_ndvi = _ndvi(p_nir, p_red)
+                centre = p_ndvi[1:4, 1:4]
+                seed_val = float(np.nanmean(centre)) if np.isfinite(centre).any() else float("nan")
+                if not np.isfinite(seed_val):
+                    continue
+                # Bare/harvested at the tap → this scene has no usable edges; look at an older,
+                # greener one (up to a limit, so a genuinely always-bare field still gets an
+                # answer). Nothing large has been transferred at this point.
+                if seed_val < VEG_MIN and skipped_bare < SKIP_BARE_LIMIT:
+                    skipped_bare += 1
+                    continue
+
+                # --- keeper: now pay for the full window ---
+                nir = src_nir.read(1, window=win, boundless=True,
+                                   fill_value=0).astype("float32") * S2_SR_SCALE
+                red = src_red.read(1, window=win, boundless=True,
+                                   fill_value=0).astype("float32") * S2_SR_SCALE
         except Exception:  # noqa: BLE001 — try the next granule
             continue
-        denom = nir + red
-        ndvi = np.where(denom > 0, (nir - red) / denom, np.nan).astype("float32")
+        ndvi = _ndvi(nir, red)
         if not np.isfinite(ndvi).any():
             continue
 
         h, w = ndvi.shape
-        # Seed pixel = the tap point, projected into the raster CRS then to row/col.
-        to_utm = Transformer.from_crs("EPSG:4326", crs, always_xy=True)
-        sx, sy = to_utm.transform(lon, lat)
-        col = int((sx - transform.c) / transform.a)
-        row = int((sy - transform.f) / transform.e)
+        # row/col were computed above, against this same window transform.
         if not (0 <= row < h and 0 <= col < w) or not np.isfinite(ndvi[row, col]):
             continue
 
@@ -123,16 +175,6 @@ def detect_boundary(lon: float, lat: float, *, max_ha: float = MAX_HA,
 
         px_area_m2 = abs(transform.a * transform.e)
         max_px = int((max_ha * 10000.0) / px_area_m2)
-        # Seed value = local 3×3 mean (robust to one noisy pixel).
-        r0, r1, c0, c1 = max(0, row - 1), min(h, row + 2), max(0, col - 1), min(w, col + 2)
-        seed_val = float(np.nanmean(ndvi[r0:r1, c0:c1]))
-        if not np.isfinite(seed_val):
-            continue
-        # Bare/harvested at the tap → this scene has no usable edges; look at an older, greener
-        # one (up to a limit, so a genuinely always-bare field still gets an answer).
-        if seed_val < VEG_MIN and skipped_bare < SKIP_BARE_LIMIT:
-            skipped_bare += 1
-            continue
 
         # Edge map: a boundary (road, ditch, different crop/soil) shows as a gradient. NDVI alone
         # is flat on bare/uniform soil, so we ALSO take the red & NIR reflectance gradients — a
