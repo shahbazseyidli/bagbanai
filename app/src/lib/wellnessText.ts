@@ -5,7 +5,7 @@
 // code+params into a sentence in the viewer's active locale via tf(). Every function falls back to
 // the supplied AZ prose string when no code is present (older payloads / unknown codes), so nothing
 // ever breaks — the localization is purely additive.
-import { tf } from "@/lib/i18n";
+import { tf, type I18nKey } from "@/lib/i18n";
 
 type Params = Record<string, unknown> | null | undefined;
 
@@ -359,4 +359,31 @@ export function frostSentence(
     out += ` ${tf("app.frostclim.frostFree", { days: p.frost_free_days })}`;
   }
   return out;
+}
+
+// ── Alerts (rules/engine.py → public.notifications, migration 0057) ────────────────────────────
+
+/**
+ * Render a notification's title/body in the READER's language.
+ *
+ * Until 0057 the rule engine wrote a finished Azerbaijani sentence into public.notifications, and
+ * that same row was read by the in-app bell, Telegram, web push and the weekly digest. A Turkish
+ * farmer's frost, heat, wind, water-stress and NDVI alerts therefore all arrived in Azerbaijani —
+ * next to a timestamp that was correctly Turkish, which made it look like a bug in one line rather
+ * than a missing contract. Alerts are the most urgent thing the product says; they were the one
+ * producer with nowhere to put a code.
+ *
+ * `fallback` is the stored prose and is genuinely load-bearing, not politeness: every row written
+ * before 0057 has no code at all, and producers we have not converted yet (pest) still have none.
+ * A missing translation falls back the same way, so a new code can ship ahead of its strings
+ * without ever showing a raw id to a farmer.
+ */
+export function alertText(
+  code: string | null | undefined,
+  params: Record<string, unknown> | null | undefined,
+  fallback: string,
+): string {
+  if (!code) return fallback;
+  const s = tf(code as I18nKey, (params ?? {}) as Record<string, unknown>);
+  return s === code ? fallback : s;
 }

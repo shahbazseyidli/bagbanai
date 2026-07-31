@@ -55,6 +55,17 @@ def _age_days(generated_at: datetime) -> int:
     return max(0, (datetime.now(timezone.utc) - generated_at).days)
 
 
+def _jsonb(v):
+    """asyncpg hands a jsonb column back as a string on some paths and a dict on others; the client
+    wants an object either way. Null stays null so the reader can test for it."""
+    if v is None or isinstance(v, dict):
+        return v
+    try:
+        return json.loads(v)
+    except Exception:  # noqa: BLE001 — a malformed params blob must not break the whole bell
+        return None
+
+
 @router.get("/fields/{field_id}/advice")
 async def get_advice(field_id: str, request: Request,
                      user_id: str = Depends(get_current_user_id)):
@@ -179,6 +190,7 @@ async def list_notifications(user_id: str = Depends(get_current_user_id)):
         prefs = await notify_prefs.load(conn, user_id)
         rows = await conn.fetch(
             """select n.id, n.field_id, n.source, n.type, n.severity, n.title, n.body,
+                      n.title_code, n.title_params, n.body_code, n.body_params,
                       n.created_at, n.read_at
                from public.notifications n
                join public.organization_members m
@@ -189,6 +201,11 @@ async def list_notifications(user_id: str = Depends(get_current_user_id)):
     return {"notifications": [
         {"id": str(r["id"]), "field_id": str(r["field_id"]) if r["field_id"] else None,
          "type": r["type"], "severity": r["severity"], "title": r["title"], "body": r["body"],
+         # CODE + PARAMS (0057). The prose stays as the fallback for rows written before the
+         # migration and for producers with no code yet; the client prefers the code so the alert
+         # renders in the READER's language rather than the writer's.
+         "title_code": r["title_code"], "title_params": _jsonb(r["title_params"]),
+         "body_code": r["body_code"], "body_params": _jsonb(r["body_params"]),
          "created_at": r["created_at"].isoformat(), "read": r["read_at"] is not None}
         for r in visible]}
 

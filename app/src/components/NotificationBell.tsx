@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Bell } from "lucide-react";
 import { api } from "@/lib/api";
 import { t } from "@/lib/i18n";
+import { alertText } from "@/lib/wellnessText";
 
 interface Notif {
   id: string;
@@ -15,6 +16,10 @@ interface Notif {
   body: string;
   created_at: string;
   read: boolean;
+  title_code?: string | null;
+  title_params?: Record<string, unknown> | null;
+  body_code?: string | null;
+  body_params?: Record<string, unknown> | null;
 }
 
 const SEV_DOT: Record<string, string> = {
@@ -119,8 +124,8 @@ export default function NotificationBell() {
                       }`}
                     />
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-slate-800">{n.title}</p>
-                      <p className="mt-0.5 line-clamp-2 text-xs text-slate-500">{n.body}</p>
+                      <p className="truncate text-sm font-medium text-slate-800">{alertText(n.title_code, n.title_params, n.title)}</p>
+                      <p className="mt-0.5 line-clamp-2 text-xs text-slate-500">{alertText(n.body_code, n.body_params, n.body)}</p>
                       <p className="mt-0.5 text-[11px] text-slate-400">{timeAgo(n.created_at)}</p>
                     </div>
                   </div>

@@ -10,6 +10,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { ListSkeleton } from "@/components/Skeleton";
 import { t } from "@/lib/i18n";
+import { alertText } from "@/lib/wellnessText";
 
 interface Notif {
   id: string;
@@ -20,6 +21,10 @@ interface Notif {
   body: string;
   created_at: string;
   read: boolean;
+  title_code?: string | null;
+  title_params?: Record<string, unknown> | null;
+  body_code?: string | null;
+  body_params?: Record<string, unknown> | null;
 }
 
 const SEV: Record<string, { cls: string; Icon: typeof Check }> = {
@@ -80,8 +85,8 @@ export default function NotificationsPage() {
                   <Icon className="h-4 w-4" aria-hidden="true" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="font-bold text-slate-900">{n.title}</p>
-                  <p className="mt-0.5 text-sm text-slate-600">{n.body}</p>
+                  <p className="font-bold text-slate-900">{alertText(n.title_code, n.title_params, n.title)}</p>
+                  <p className="mt-0.5 text-sm text-slate-600">{alertText(n.body_code, n.body_params, n.body)}</p>
                   <p className="mt-1 text-xs text-slate-500">{timeAgo(n.created_at)}</p>
                 </div>
                 {n.field_id && <ChevronRight className="mt-1 h-5 w-5 shrink-0 text-slate-400" aria-hidden="true" />}

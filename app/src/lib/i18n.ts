@@ -149,6 +149,18 @@ export const az = {
 
   // indices
   "idx.title": "Peyk indeksləri",
+  "alert.frost.title": "🥶 Şaxta xəbərdarlığı",
+  "alert.heat.title": "🌡️ İstilik stresi",
+  "alert.wind.title": "💨 Güclü külək",
+  "alert.weather.title": "Hava xəbərdarlığı",
+  "alert.ndviDrop.title": "📉 Bitki sağlamlığı düşür",
+  "alert.ndviDrop.body": "NDVI {prior}→{latest}{pct} — çətir stresi. Sahəni yoxlayın: su, zərərverici, qidalanma.",
+  "alert.ndmiLow.title": "💧 Su stresi (nəmlik aşağı)",
+  "alert.ndmiLow.body": "Bitki nəmliyi (NDMI) {ndmi} — aşağı. Suvarma ehtiyacını yoxlayın.",
+  "alert.ndviNbr.title": "🔥 Kəskin dəyişim (yanıq/senescens?)",
+  "alert.ndviNbr.body": "NDVI və NBR birlikdə kəskin düşüb — yanıq, biçin və ya sürətli quruma ola bilər.",
+  "alert.vegAnomaly.title": "⚠️ NDVI normadan aşağı",
+  "alert.vegAnomaly.body": "NDVI {latest} bu həftə üçün sahənizin adi həddindən (p10 {p10}) aşağıdır — anomaliya.",
   "app.field.export.button": "Endir",
   "idx.csvDownload": "CSV",
   "idx.csvColDate": "tarix",

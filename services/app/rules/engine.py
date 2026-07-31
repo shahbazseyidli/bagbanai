@@ -42,6 +42,16 @@ _WEATHER_TITLES = {
     "wind": "💨 Güclü külək",
 }
 
+# CODE + PARAMS (0057). Every candidate now carries a stable id next to its Azerbaijani prose, so
+# the reader's own surface can render the alert in the reader's own language. The prose stays
+# because Telegram, web push and the weekly digest render SERVER-side and still need a string; the
+# in-app bell resolves the code and only falls back to the prose when there is none.
+_WEATHER_TITLE_CODES = {
+    "frost": "alert.frost.title",
+    "heat": "alert.heat.title",
+    "wind": "alert.wind.title",
+}
+
 
 async def _weather_candidates(conn, field_id: str) -> list[dict]:
     """Read the weather job's stored alerts (spray_window block) → candidate notifications."""
@@ -61,7 +71,14 @@ async def _weather_candidates(conn, field_id: str) -> list[dict]:
             "severity": a.get("severity", "warning"),
             "source": "weather",
             "title": _WEATHER_TITLES.get(rt, "Hava xəbərdarlığı"),
+            "title_code": _WEATHER_TITLE_CODES.get(rt, "alert.weather.title"),
+            # The weather job already emits detail_code/detail_params for exactly this reason
+            # (ai/weather.py) — KnowledgePassport renders them. The rule engine was re-reading the
+            # AZ `detail` fallback and dropping the code, so the same alert was localized on the
+            # passport and Azerbaijani in the bell. Now it carries the code through.
             "body": a.get("detail") or "",
+            "body_code": a.get("detail_code"),
+            "body_params": a.get("detail_params"),
             "dedup_key": "",
         })
     return out
@@ -69,6 +86,12 @@ async def _weather_candidates(conn, field_id: str) -> list[dict]:
 
 def _fmt(v) -> str:
     return f"{float(v):.3f}"
+
+
+def _json_or_null(v):
+    """asyncpg wants a JSON string for a jsonb parameter, and NULL must stay NULL rather than
+    becoming the four characters 'null' — a reader testing `params is None` would then never fire."""
+    return None if v is None else json.dumps(v)
 
 
 async def _vegetation_candidates(conn, field_id: str) -> list[dict]:
@@ -87,16 +110,23 @@ async def _vegetation_candidates(conn, field_id: str) -> list[dict]:
             sev = "critical" if d <= -0.20 else "warning"
             out.append({"rule_type": "ndvi_drop", "severity": sev, "source": "vegetation",
                         "title": "📉 Bitki sağlamlığı düşür",
+                        "title_code": "alert.ndviDrop.title",
                         "body": f"NDVI {_fmt(ndvi['prior'])}→{_fmt(ndvi['latest'])}"
                                 + (f" ({pct}%)" if pct is not None else "")
                                 + " — çətir stresi. Sahəni yoxlayın: su, zərərverici, qidalanma.",
+                        "body_code": "alert.ndviDrop.body",
+                        "body_params": {"prior": _fmt(ndvi["prior"]), "latest": _fmt(ndvi["latest"]),
+                                        "pct": ("" if pct is None else f" ({pct}%)")},
                         "dedup_key": ""})
 
     # VG-2 — NDMI low (water stress).
     if ndmi and ndmi.get("latest") is not None and ndmi["latest"] < 0.15:
         out.append({"rule_type": "ndmi_low", "severity": "warning", "source": "vegetation",
                     "title": "💧 Su stresi (nəmlik aşağı)",
+                    "title_code": "alert.ndmiLow.title",
                     "body": f"Bitki nəmliyi (NDMI) {_fmt(ndmi['latest'])} — aşağı. Suvarma ehtiyacını yoxlayın.",
+                    "body_code": "alert.ndmiLow.body",
+                    "body_params": {"ndmi": _fmt(ndmi["latest"])},
                     "dedup_key": ""})
 
     # VG-4 — NDVI + NBR both dropping (burn / rapid senescence).
@@ -104,7 +134,9 @@ async def _vegetation_candidates(conn, field_id: str) -> list[dict]:
             and ndvi["delta"] <= -0.10 and nbr["delta"] <= -0.10):
         out.append({"rule_type": "ndvi_nbr", "severity": "warning", "source": "vegetation",
                     "title": "🔥 Kəskin dəyişim (yanıq/senescens?)",
+                    "title_code": "alert.ndviNbr.title",
                     "body": "NDVI və NBR birlikdə kəskin düşüb — yanıq, biçin və ya sürətli quruma ola bilər.",
+                    "body_code": "alert.ndviNbr.body",
                     "dedup_key": ""})
 
     # VG-3 — NDVI anomalously below the field's own seasonal baseline.
@@ -115,8 +147,11 @@ async def _vegetation_candidates(conn, field_id: str) -> list[dict]:
     if an and an.get("is_anomaly") and an.get("direction") == "low":
         out.append({"rule_type": "veg_anomaly", "severity": "warning", "source": "vegetation",
                     "title": "⚠️ NDVI normadan aşağı",
+                    "title_code": "alert.vegAnomaly.title",
                     "body": f"NDVI {_fmt(an['latest'])} bu həftə üçün sahənizin adi həddindən "
                             f"(p10 {_fmt(an['p10'])}) aşağıdır — anomaliya.",
+                    "body_code": "alert.vegAnomaly.body",
+                    "body_params": {"latest": _fmt(an["latest"]), "p10": _fmt(an["p10"])},
                     "dedup_key": ""})
     return out
 
@@ -189,9 +224,13 @@ async def dispatch(conn, field_id: str, org_id: str, candidates: list[dict]) -> 
         if notify_prefs.any_wants(audience, cat, ("inapp", "digest")):
             await conn.execute(
                 """insert into public.notifications
-                     (field_id, org_id, source, type, severity, title, body, delivered_channels)
-                   values ($1::uuid,$2::uuid,$3,$4,$5,$6,$7,array['inapp'])""",
-                field_id, org_id, src, rt, sev, c["title"], c["body"])
+                     (field_id, org_id, source, type, severity, title, body,
+                      title_code, title_params, body_code, body_params, delivered_channels)
+                   values ($1::uuid,$2::uuid,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$11::jsonb,
+                           array['inapp'])""",
+                field_id, org_id, src, rt, sev, c["title"], c["body"],
+                c.get("title_code"), _json_or_null(c.get("title_params")),
+                c.get("body_code"), _json_or_null(c.get("body_params")))
         else:
             suppressed += 1
         # alert_state is written either way: the cooldown describes the EVENT, not its delivery. If
