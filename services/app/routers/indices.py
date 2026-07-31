@@ -285,10 +285,16 @@ def _next_pass(dates: list[date_cls], today: date_cls) -> Optional[date_cls]:
         k = d.toordinal() % _S2_REPEAT_DAYS
         if k not in latest_in_residue or d > latest_in_residue[k]:
             latest_in_residue[k] = d
+    have = set(dates)
     candidates = []
     for d in latest_in_residue.values():
         nxt = d
-        while nxt < today:
+        # Past the dates that have already delivered, not merely past today. Without the second
+        # predicate a field imaged THIS MORNING answered "next pass: today" — true about the
+        # satellite, useless to the reader, and indistinguishable from "still waiting". Skipping a
+        # day we already hold an image for can only ever push the answer later, which is the safe
+        # direction to be wrong in: it under-promises.
+        while nxt < today or nxt in have:
             nxt += timedelta(days=_S2_REPEAT_DAYS)
         candidates.append(nxt)
     return min(candidates) if candidates else None
