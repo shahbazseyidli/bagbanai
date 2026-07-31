@@ -285,6 +285,72 @@ SELECT/INSERT edir. `update.sh` miqrasiya işlətmir.
 
 ---
 
+## D0. OneSoil korpus analizi — icra vəziyyəti (2026-07-31)
+
+Mənbə: `Agradex_Fermer_Ehtiyaclari_Analizi.docx` (OneSoil icmasının 8 illik yazışması) + həmin gün
+aparılmış kod auditi, 8 dildə canlı sayt yoxlaması və sahibin brauzerində tətbiqdaxili test.
+Tam plan və sübutlar: sessiya jurnalı. Aşağıda yalnız **status**.
+
+### ✅ Bitdi və CANLIDIR (8 commit, `a25aece..68cda1c`)
+
+| Nə | Commit |
+|---|---|
+| Gecəlik S2 refresh OOM-dan ölürdü — `rio.clip()` bütün rasteri yaddaşa alırdı | `a25aece` |
+| Qeydiyyatdan əvvəl çəkilmiş sahə hər dəfə itirdi (origin sərhədi) | `769ebfb` |
+| `t()` modul səviyyəsində ilk dili dondururdu — 3 həqiqi hal | `769ebfb` |
+| Landing-də uydurma provayder kartları (★ reytinqlə) | `769ebfb` |
+| Public geo endpoint-lərində rate limit yox idi | `769ebfb` |
+| Türkcə «Alanlar» vs «Tarlalar» (46 açar) · macarca «Mezők» vs «Tábla» (94 dəyər) | `71f27c0` |
+| Çiləmə pəncərəsi pulsuz oldu (yalnız o blok; pasportun qalanı ödənişli) | `71f27c0` |
+| Ölkə adı bütün dillərdə «Türkiyə» görünürdü | `71f27c0` |
+| İlk sahə üçün məhsul məcburi idi (API heç vaxt tələb etmirdi) | `1362bb4` |
+| Demo «hər gün yenilənir» yazırdı, səhnə 5 günlük idi | `1362bb4` |
+| Tap-to-detect keşi (təkrar toxunuş 56 s → 0.1 s) + ucuz probe | `ce464ee` |
+| Eksport: sərhəd GeoJSON/KML + indeks sırası CSV (pulsuz) | `50b8b75` |
+| Mövsüm forması keçən mövsümdən dolur · skorun yanında verdikt sözü | `50b8b75` |
+| Anomaliya həddi 0.001-ə işləyirdi → `ANOMALY_MARGIN = 0.05` | `b3f876c` |
+| `/fields` tək org-a bağlı idi (aqronom seqmenti üçün bloker) | `b3f876c` |
+| Data hazırlanır banneri: proqres + real ETA + `failed` vəziyyəti | `68cda1c` |
+
+### ⬜ Qalan iş — prioritetlə
+
+**Ölçülüb, amma HƏLL OLUNMAYIB:**
+- ⬜ **Tap-to-detect 45-60 s worst case.** Kök səbəb tapılıb və `segment.py`-də yazılıb: döngə 32+
+  granul gəzir, hər biri tam pəncərə oxuyur, hamısı `lbl[row,col] == 0`-da düşür (toxunulan piksel
+  kənar maskasında). İki düzəliş sınanıb və **geri qaytarılıb** — ikisi də cavabı dəyişirdi.
+  Həqiqi həll kənar-seed halındadır və **real toxunuşlarla çöl testi** tələb edir.
+
+**W1 qalığı:**
+- ⬜ Bağ/çoxillik üçün `mean` yerinə **p90** (p10/p50/p90 artıq saxlanılır — miqrasiya lazım deyil).
+  ⚠️ `analytics.py` baseline-i `mean` üzərində qurur — bazis uyğunluğu birlikdə dəyişməlidir.
+- ⬜ Kiçik sahədə piksel sayı (`index_stats.valid_pixels` göndərilir, 0 istifadəçisi var)
+- ⬜ Qeyd müəllifi (sütunlar var, API qaytarmır, UI göstərmir)
+- ⬜ `/weather` hələ `orgs[0]`-a bağlıdır
+
+**W2 qalığı:**
+- ⬜ **Xəbərdarlıqların dili (M, MİQRASİYA)** — `rules/engine.py` hazır AZ cümlə yazır;
+  `notifications`-da kod sütunu yoxdur. Türk istifadəçi bütün alertləri azərbaycanca alır.
+- ⬜ **Ölkə kilidinin açılması (M)** — 5 yer + geolokasiya icazəsi (sahibin qərarı: açılsın)
+- ⬜ Digest dil qarışığı (tr/de/hu/it/pl üçün 3 dil bir məktubda) — T28/T30
+- ⬜ 25 ekran xam backend xəta kodu göstərir (`azError()`-u keçmir)
+- ⬜ Xəritədə mənbə sətri (fon ili + səhnə tarixi)
+- ⬜ `org_is_paid` RLS siyasətləri (yatmış, amma «tarixçəni geri almırıq» qaydasını pozur)
+- ⬜ Rəylər 5 beynəlmiləl ada · quiz «Digər» mətn qutusu · yan menyu kəsilməsi (ru/hu)
+- ⬜ Bulud %-in granul üzrə olduğunu bildirmək · hava modelinin dəqiqliyi
+
+**W3 (struktur):**
+- ⬜ **Per-sahə paylaşma (L)** — sahibin qərarı: bu dalğada. Yeni `field_grants` + `deps.py`-də
+  `require_field_access` + ~60 gate çağırışının org-fərziyyəsi
+- ⬜ Ferma CRUD + sahə qruplaşdırma · toplu məhsul/mövsüm · PDF/çap hesabatı (60%-i `81660df`-də
+  hazır yazılıb) · növbəti peyk keçidi + uğursuz cəhd jurnalı · e-poçt unikallığı
+
+### ⚠️ Yoxlanmamış qalan
+- Dashboard xəritəsinin sahələrə yaxınlaşmaması — kodda `fitBounds` var; canlıda gördüyüm çox güman
+  ki, **gizli-tab artefaktıdır**. Açıq tabda yoxlanmalıdır, kor-koranə dəyişilməməlidir.
+- Hava radarı eyni səbəbdən qiymətləndirilə bilmədi.
+
+---
+
 ## D. Tövsiyə olunan növbə (sıra) — 2026-07-30 yenidən yazıldı
 
 > Köhnə sıra (T0/T1/T2/T4/T5/T6/T8-T12 + T14) tamamilə bitib və ya çıxarılıb — silindi.
