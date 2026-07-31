@@ -19,6 +19,7 @@ import { SupportCard } from "@/components/ui/SupportCard";
 import { ListSkeleton } from "@/components/Skeleton";
 import BulkActions from "@/components/BulkActions";
 import ShareButton from "@/components/field/ShareButton";
+import SharedWithMe from "@/components/field/SharedWithMe";
 import type { Tone } from "@/lib/indexStatus";
 import type { Farm, Field, Org } from "@/lib/types";
 
@@ -414,6 +415,10 @@ export default function FieldsListPage() {
                 );
               })}
             </ul>
+
+            {/* Fields other people granted me access to (0061). Renders nothing for a farmer who
+                has none, which is most of them — so it costs an empty list no space at all. */}
+            <SharedWithMe />
 
             {/* OneSoil-style "request a free call" support card, pinned under the list. */}
             <SupportCard variant="quiet" />

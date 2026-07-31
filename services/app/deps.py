@@ -68,6 +68,33 @@ async def require_member(conn: asyncpg.Connection, user_id: str, org_id: str) ->
         raise HTTPException(status_code=403, detail="forbidden")
 
 
+async def require_field_read(conn: asyncpg.Connection, user_id: str, field_id: str) -> str:
+    """Gate a READ of one field. Returns the field's org id.
+
+    The org-membership check every field route has always made, WIDENED by exactly one thing: a
+    live row in public.field_grants (0061). That is how a farmer shows a single field to their
+    agronomist without adding them to the organization — which would hand over every field, every
+    farm, the team and the costs, to show one orchard.
+
+    READ ONLY. There is no require_field_write() and there must not be one: every write path keeps
+    going through require_role() on the ORGANIZATION. A grant widens who can look, never who can
+    change.
+
+    The expiry and revocation predicates live inside public.has_field_access, not here, so a call
+    site cannot forget them. Same function the RLS policies call, so the gate and the defence layer
+    can never drift into two different answers.
+    """
+    field_id = safe_uuid(field_id, "field_not_found")
+    row = await conn.fetchrow(
+        """select f.org_id, public.has_field_access($2::uuid, f.id) as allowed
+             from public.fields f where f.id = $1::uuid""", field_id, user_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="field_not_found")
+    if not row["allowed"]:
+        raise HTTPException(status_code=403, detail="forbidden")
+    return str(row["org_id"])
+
+
 async def require_role(conn: asyncpg.Connection, user_id: str, org_id: str,
                        roles: list[OrgRole]) -> None:
     org_id = safe_uuid(org_id, "org_not_found")

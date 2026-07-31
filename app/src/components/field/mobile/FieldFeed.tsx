@@ -27,6 +27,7 @@ import { t } from "@/lib/i18n";
 import FieldPulse from "@/components/field/overview/FieldPulse";
 import SignalsActions from "@/components/field/overview/SignalsActions";
 import ShareButton from "@/components/field/ShareButton";
+import GrantAccess from "@/components/field/GrantAccess";
 import FeedBlock from "./FeedBlock";
 import WeatherGlance from "./WeatherGlance";
 import SprayWindowCard from "./SprayWindowCard";
@@ -74,6 +75,7 @@ export default function FieldFeed({
       <MoreSections pathname={pathname} search={search} onNavigate={onNavigateSection} />
 
       <ShareButton fieldId={field.id} />
+      <GrantAccess fieldId={field.id} />
     </div>
   );
 }

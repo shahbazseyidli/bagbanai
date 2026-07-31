@@ -10,6 +10,7 @@ import { t } from "@/lib/i18n";
 import FieldPulse from "@/components/field/overview/FieldPulse";
 import SignalsActions from "@/components/field/overview/SignalsActions";
 import ShareButton from "@/components/field/ShareButton";
+import GrantAccess from "@/components/field/GrantAccess";
 import SatelliteStage from "@/components/field/workbench/SatelliteStage";
 import type { FieldDetail } from "@/lib/types";
 
@@ -83,6 +84,7 @@ export default function FieldWorkbench({
         <FieldPulse field={field} />
         <SignalsActions fieldId={field.id} onOpenAnalysis={onOpenAnalysis} />
         <ShareButton fieldId={field.id} />
+        <GrantAccess fieldId={field.id} />
       </aside>
     </div>
   );

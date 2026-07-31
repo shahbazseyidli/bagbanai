@@ -32,8 +32,7 @@ from urllib.parse import quote
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 
 from ..db import connection
-from ..deps import get_current_user_id, require_member
-from .fields import _org_of_field
+from ..deps import get_current_user_id, require_field_read
 from .report_labels import (_CROP_AZ, _IRR_AZ, _OPTYPE_AZ, _SCOUTCAT_AZ, _SEASON_STATUS_AZ,
                             _SEVERITY_AZ, _SOIL_AZ, label)
 
@@ -228,8 +227,12 @@ async def field_report(field_id: str, format: Optional[str] = Query("html"),
     """
     fmt = _check_format(format)
     async with connection(user_id) as conn:
-        org_id = await _org_of_field(conn, field_id)
-        await require_member(conn, user_id, org_id)
+        # The ONE read surface a field_grant opens (0061). Deliberately this endpoint and no other:
+        # it is already a complete, read-only, single-field document, so "show my agronomist this
+        # orchard" needs no second decision about which of eighty routes to widen — and a grantee
+        # can never reach a sibling field, the farm, the team or the org, because nothing here
+        # addresses them.
+        await require_field_read(conn, user_id, field_id)
 
         field = await conn.fetchrow(
             """select f.name, f.area_ha, fa.name as farm_name,
