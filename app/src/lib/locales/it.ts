@@ -1987,6 +1987,8 @@ export const it: Dict = {
   "app.bulkActions.opsAddedSuffix": " campi a cui è stata registrata l'operazione.",
   "app.bulkActions.fieldsSelectedSuffix": " campi selezionati",
   "app.bulkActions.addOperation": "Aggiungi operazione",
+  "app.bulkActions.setCrop": "Imposta coltura",
+  "app.bulkActions.cropSetSuffix": " campi aggiornati.",
   "app.bulkActions.opFormHeading": "Operazione per i campi selezionati",
   "app.bulkActions.close": "Chiudi",
   "app.bulkActions.note": "Nota",

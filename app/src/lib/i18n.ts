@@ -1949,6 +1949,8 @@ export const az = {
   "app.admin.fdOpenFull": "Tam səhifədə aç",
   "app.admin.scoreNone": "Bal yoxdur",
   "app.bulkActions.addOperation": "Əməliyyat əlavə et",
+  "app.bulkActions.setCrop": "Məhsulu təyin et",
+  "app.bulkActions.cropSetSuffix": " sahəyə məhsul yazıldı.",
   "app.bulkActions.close": "Bağla",
   "app.bulkActions.costInvalid": "Xərc düzgün deyil.",
   "app.bulkActions.costLabel": "Xərc (hər sahə üçün)",

@@ -14,10 +14,12 @@
 // The chrome is fully translated; what is still inline AZ is exactly OP_TYPES below, which renders
 // as <option> labels — extracting it needs new keys in i18n.ts + all 7 locale files.
 import { useState } from "react";
-import { CalendarCheck, X } from "lucide-react";
+import { CalendarCheck, Sprout, X } from "lucide-react";
 import { api, azError } from "@/lib/api";
 import { t } from "@/lib/i18n";
-import { ErrorNote, Field as FormField } from "@/components/ui";
+import { ErrorNote, Field as FormField, Spinner } from "@/components/ui";
+import CropGrid from "@/components/field/info/CropGrid";
+import { CROP_CYCLE } from "@/lib/metadataOptions";
 
 interface BulkActionsProps {
   orgId: string;
@@ -39,7 +41,8 @@ function today(): string {
 }
 
 export default function BulkActions({ orgId, fieldIds, onDone }: BulkActionsProps) {
-  const [mode, setMode] = useState<"" | "op">("");
+  const [mode, setMode] = useState<"" | "op" | "crop">("");
+  const [bulkCrop, setBulkCrop] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState("");
@@ -129,8 +132,54 @@ export default function BulkActions({ orgId, fieldIds, onDone }: BulkActionsProp
             >
               <CalendarCheck className="h-4 w-4" /> {t("app.bulkActions.addOperation")}
             </button>
+            {/* Setting this year's crop on forty fields used to be forty page visits. */}
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => {
+                setDone("");
+                setError("");
+                setMode(mode === "crop" ? "" : "crop");
+              }}
+            >
+              <Sprout className="h-4 w-4" /> {t("app.bulkActions.setCrop")}
+            </button>
           </div>
         </div>
+
+        {mode === "crop" && (
+          <div className="mt-3 space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <CropGrid cycle={null} value={bulkCrop || null} onChange={(v) => setBulkCrop(v ?? "")} />
+            <button
+              type="button"
+              className="btn-primary"
+              disabled={busy || !bulkCrop.trim()}
+              onClick={async () => {
+                setBusy(true);
+                setError("");
+                try {
+                  await api.post("/api/bulk/crop", {
+                    org_id: orgId,
+                    field_ids: fieldIds,
+                    crop_type: bulkCrop.trim(),
+                    crop_cycle: CROP_CYCLE[bulkCrop.trim()] ?? null,
+                  });
+                  setDone(`${fieldIds.length}${t("app.bulkActions.cropSetSuffix")}`);
+                  setMode("");
+                  setBulkCrop("");
+                  onDone?.();
+                } catch (err) {
+                  setError(azError(err));
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              {busy ? <Spinner /> : null}
+              {fieldIds.length}{t("app.bulkActions.writeToFieldsSuffix")}
+            </button>
+          </div>
+        )}
 
         {done && !mode && (
           <p className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{done}</p>

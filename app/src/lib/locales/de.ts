@@ -1989,6 +1989,8 @@ export const de: Dict = {
   "app.bulkActions.opsAddedSuffix": " Feldern einen Vorgang erfasst.",
   "app.bulkActions.fieldsSelectedSuffix": " Felder ausgewählt",
   "app.bulkActions.addOperation": "Vorgang hinzufügen",
+  "app.bulkActions.setCrop": "Kultur festlegen",
+  "app.bulkActions.cropSetSuffix": " Feldern zugewiesen.",
   "app.bulkActions.opFormHeading": "Vorgang für ausgewählte Felder",
   "app.bulkActions.close": "Schließen",
   "app.bulkActions.note": "Notiz",

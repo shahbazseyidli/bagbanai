@@ -105,6 +105,10 @@ function WeatherScreenInner() {
   const [stageRef, stageW] = useStageWidth();
 
   const [fields, setFields] = useState<GeoField[] | null>(null);
+  // Same reason as the fields list: an agronomist keeps one ORG PER CLIENT, so a screen pinned to
+  // orgs[0] silently shows the wrong farmer's weather after they switch client elsewhere.
+  const [orgs, setOrgs] = useState<Org[]>([]);
+  const [orgId, setOrgId] = useState<string>("");
   // A FAILED load is not an empty farm. Collapsing the two would put "you have no fields yet — add
   // one" in front of a farmer with twelve of them whose request timed out, which is the same class
   // of lie as an invented number.
@@ -138,13 +142,16 @@ function WeatherScreenInner() {
     let active = true;
     (async () => {
       try {
-        const orgs = await api.get<Org[]>("/api/orgs");
+        const list = orgs.length ? orgs : await api.get<Org[]>("/api/orgs");
         if (!active) return;
-        if (orgs.length === 0) {
+        if (list.length === 0) {
           router.replace("/onboarding");
           return;
         }
-        const g = await api.get<{ fields: GeoField[] }>(`/api/fields/geo?org_id=${orgs[0].id}`);
+        if (!orgs.length) setOrgs(list);
+        const active_org = list.find((o) => o.id === orgId)?.id ?? list[0].id;
+        setOrgId(active_org);
+        const g = await api.get<{ fields: GeoField[] }>(`/api/fields/geo?org_id=${active_org}`);
         if (!active) return;
         const rows = g?.fields ?? [];
         setFields(rows);
@@ -159,7 +166,7 @@ function WeatherScreenInner() {
     return () => {
       active = false;
     };
-  }, [loading, user, router]);
+  }, [loading, user, router, orgId]);
 
   // A refreshed index is a different list of frames: the same ordinal now points at a different
   // minute, so the selection goes back to "newest observation" rather than silently sliding.
@@ -216,9 +223,23 @@ function WeatherScreenInner() {
   // ── gates ─────────────────────────────────────────────────────────────────────────────────────
   const header = (
     <div className="mb-3">
-      <h1 className="font-display text-xl font-extrabold tracking-tight text-ink">
-        {t("app.weather.title")}
-      </h1>
+      <div className="flex flex-wrap items-center gap-2">
+        <h1 className="font-display text-xl font-extrabold tracking-tight text-ink">
+          {t("app.weather.title")}
+        </h1>
+        {orgs.length > 1 && (
+          <select
+            value={orgId}
+            onChange={(e) => { setFields(null); setOrgId(e.target.value); }}
+            className="input max-w-[200px]"
+            aria-label={t("today.org")}
+          >
+            {orgs.map((o) => (
+              <option key={o.id} value={o.id}>{o.name}</option>
+            ))}
+          </select>
+        )}
+      </div>
       <p className="mt-0.5 text-[13px] text-ink-soft">{t("app.weather.subtitle")}</p>
     </div>
   );

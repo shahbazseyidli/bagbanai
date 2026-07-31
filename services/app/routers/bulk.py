@@ -48,6 +48,13 @@ class BulkTaskIn(BaseModel):
     notes: Optional[str] = None
 
 
+class BulkCropIn(BaseModel):
+    org_id: str
+    field_ids: list[str]
+    crop_type: str
+    crop_cycle: Optional[str] = None
+
+
 class BulkOperationIn(BaseModel):
     org_id: str
     field_ids: list[str]
@@ -146,6 +153,45 @@ async def _verify_fields(conn, org_id: str, field_ids: list[str]) -> dict[str, O
 
 
 # ---------- endpoints ----------
+@router.post("/bulk/crop")
+async def bulk_crop(body: BulkCropIn, user_id: str = Depends(get_current_user_id)):
+    """Set the crop on many fields at once.
+
+    Setting this year's crop on forty fields meant forty page visits — the research corpus records
+    a farmer doing it for 552. Everything hard about a bulk write already existed for
+    /bulk/operations: all-or-nothing org verification, a single transaction, MAX_FIELDS. This is
+    that pattern with a different statement.
+
+    ONLY crop_type and crop_cycle are touched. The upsert names those two columns and leaves the
+    rest of field_metadata alone, because a farmer selecting forty fields to set a crop is not
+    asking to erase forty soil analyses — and the single-field PUT, which sends the WHOLE record,
+    would do exactly that if it were reused here.
+    """
+    org_id = _as_uuid(body.org_id, "invalid_org_id")
+    field_ids = _field_ids(body.field_ids)
+    crop = _text(body.crop_type, 80)
+    if not crop:
+        raise HTTPException(status_code=400, detail="crop_required")
+    cycle = _text(body.crop_cycle, 40) or None
+
+    async with connection(user_id) as conn:                       # single transaction
+        await require_role(conn, user_id, org_id, ROLES_WRITE)
+        await _verify_fields(conn, org_id, field_ids)
+        for fid in field_ids:
+            await conn.execute(
+                """insert into public.field_metadata (field_id, crop_type, crop_cycle)
+                   values ($1::uuid, $2, $3)
+                   on conflict (field_id) do update set
+                     crop_type = excluded.crop_type,
+                     -- coalesce: an explicit cycle wins, but sending none must not WIPE a cycle the
+                     -- farmer already set on one of the selected fields.
+                     crop_cycle = coalesce(excluded.crop_cycle, public.field_metadata.crop_cycle),
+                     updated_at = now()""",
+                fid, crop, cycle)
+    return {"ok": True, "updated": len(field_ids)}
+
+
+
 @router.post("/bulk/operations")
 async def bulk_operations(body: BulkOperationIn, user_id: str = Depends(get_current_user_id)):
     """One public.field_operations row per selected field."""

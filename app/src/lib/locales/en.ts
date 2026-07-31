@@ -2012,6 +2012,8 @@ export const en: Dict = {
   "app.bulkActions.opsAddedSuffix": " fields had an operation recorded.",
   "app.bulkActions.fieldsSelectedSuffix": " fields selected",
   "app.bulkActions.addOperation": "Add operation",
+  "app.bulkActions.setCrop": "Set crop",
+  "app.bulkActions.cropSetSuffix": " fields updated.",
   "app.bulkActions.opFormHeading": "Operation for selected fields",
   "app.bulkActions.close": "Close",
   "app.bulkActions.note": "Note",

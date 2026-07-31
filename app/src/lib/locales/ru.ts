@@ -1842,6 +1842,8 @@ export const ru: Dict = {
   "app.admin.fdOpenFull": "Открыть на всю страницу",
   "app.admin.scoreNone": "Нет балла",
   "app.bulkActions.addOperation": "Добавить операцию",
+  "app.bulkActions.setCrop": "Указать культуру",
+  "app.bulkActions.cropSetSuffix": " полям задана культура.",
   "app.bulkActions.close": "Закрыть",
   "app.bulkActions.costInvalid": "Стоимость указана неверно.",
   "app.bulkActions.costLabel": "Стоимость (на каждое поле)",

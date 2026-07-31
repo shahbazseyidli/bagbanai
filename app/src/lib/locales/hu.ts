@@ -1987,6 +1987,8 @@ export const hu: Dict = {
   "app.bulkActions.opsAddedSuffix": " táblához művelet rögzítve.",
   "app.bulkActions.fieldsSelectedSuffix": " tábla kiválasztva",
   "app.bulkActions.addOperation": "Művelet hozzáadása",
+  "app.bulkActions.setCrop": "Növény beállítása",
+  "app.bulkActions.cropSetSuffix": " táblához beállítva.",
   "app.bulkActions.opFormHeading": "Művelet a kiválasztott táblákhoz",
   "app.bulkActions.close": "Bezárás",
   "app.bulkActions.note": "Megjegyzés",

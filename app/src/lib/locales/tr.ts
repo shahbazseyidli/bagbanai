@@ -1986,6 +1986,8 @@ export const tr: Dict = {
   "app.bulkActions.opsAddedSuffix": " tarlaya işlem kaydedildi.",
   "app.bulkActions.fieldsSelectedSuffix": " tarla seçildi",
   "app.bulkActions.addOperation": "İşlem ekle",
+  "app.bulkActions.setCrop": "Ürünü belirle",
+  "app.bulkActions.cropSetSuffix": " tarlaya ürün yazıldı.",
   "app.bulkActions.opFormHeading": "Seçili tarlalara işlem",
   "app.bulkActions.close": "Kapat",
   "app.bulkActions.note": "Not",

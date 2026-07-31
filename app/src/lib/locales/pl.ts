@@ -1988,6 +1988,8 @@ export const pl: Dict = {
   "app.bulkActions.opsAddedSuffix": " polom zapisano operację.",
   "app.bulkActions.fieldsSelectedSuffix": " pól wybrano",
   "app.bulkActions.addOperation": "Dodaj operację",
+  "app.bulkActions.setCrop": "Ustaw uprawę",
+  "app.bulkActions.cropSetSuffix": " polom przypisano uprawę.",
   "app.bulkActions.opFormHeading": "Operacja dla wybranych pól",
   "app.bulkActions.close": "Zamknij",
   "app.bulkActions.note": "Notatka",
