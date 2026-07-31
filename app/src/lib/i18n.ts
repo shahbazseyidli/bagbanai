@@ -166,6 +166,7 @@ export const az = {
   "alert.vegAnomaly.title": "⚠️ NDVI normadan aşağı",
   "alert.vegAnomaly.body": "NDVI {latest} bu həftə üçün sahənizin adi həddindən (p10 {p10}) aşağıdır — anomaliya.",
   "app.field.export.button": "Endir",
+  "app.field.report.button": "Hesabat",
   "idx.csvDownload": "CSV",
   "idx.csvColDate": "tarix",
   "idx.csvColSensor": "peyk",

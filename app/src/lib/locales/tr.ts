@@ -136,6 +136,7 @@ export const tr: Dict = {
   "alert.vegAnomaly.title": "⚠️ NDVI tarlanın normunun altında",
   "alert.vegAnomaly.body": "NDVI {latest}, bu tarlanın bu haftaki olağan seviyesinin (p10 {p10}) altında — anomali.",
   "app.field.export.button": "İndir",
+  "app.field.report.button": "Rapor",
   "idx.csvDownload": "CSV",
   "idx.csvColDate": "tarih",
   "idx.csvColSensor": "uydu",

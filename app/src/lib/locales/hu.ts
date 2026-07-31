@@ -144,6 +144,7 @@ export const hu: Dict = {
   "alert.vegAnomaly.title": "⚠️ Az NDVI a tábla normája alatt",
   "alert.vegAnomaly.body": "Az NDVI {latest} a tábla erre a hétre szokásos szintje (p10 {p10}) alatt van — anomália.",
   "app.field.export.button": "Letöltés",
+  "app.field.report.button": "Jelentés",
   "idx.csvDownload": "CSV",
   "idx.csvColDate": "dátum",
   "idx.csvColSensor": "műhold",

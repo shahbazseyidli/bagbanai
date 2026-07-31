@@ -144,6 +144,7 @@ export const en: Dict = {
   "alert.vegAnomaly.title": "⚠️ NDVI below the field's norm",
   "alert.vegAnomaly.body": "NDVI {latest} is below this field's usual level for this week (p10 {p10}) — an anomaly.",
   "app.field.export.button": "Download",
+  "app.field.report.button": "Report",
   "idx.csvDownload": "CSV",
   "idx.csvColDate": "date",
   "idx.csvColSensor": "satellite",

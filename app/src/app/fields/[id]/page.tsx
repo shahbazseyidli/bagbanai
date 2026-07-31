@@ -15,6 +15,7 @@ import { ErrorNote, Spinner } from "@/components/ui";
 // inside FieldFeed (mobile/FieldFeed.tsx), which is now the only narrow body of the status section.
 import SatelliteTab from "@/components/field/SatelliteTab";
 import ExportButton from "@/components/field/ExportButton";
+import ReportButton from "@/components/field/ReportButton";
 import FieldMapSheet from "@/components/field/FieldMapSheet";
 import FieldMapCard from "@/components/field/FieldMapCard";
 import type { PickerVariant } from "@/components/field/layers/LayerPicker";
@@ -338,6 +339,7 @@ function FieldDetailInner() {
         !editing ? (
           <>
             <ExportButton name={field.name} geom={field.geom} />
+            <ReportButton fieldId={field.id} />
             <button
               onClick={openEdit}
               className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"

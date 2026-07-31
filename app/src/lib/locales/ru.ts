@@ -140,6 +140,7 @@ export const ru: Dict = {
   "alert.vegAnomaly.title": "⚠️ NDVI ниже нормы поля",
   "alert.vegAnomaly.body": "NDVI {latest} ниже обычного уровня этого поля для этой недели (p10 {p10}) — аномалия.",
   "app.field.export.button": "Скачать",
+  "app.field.report.button": "Отчёт",
   "idx.csvDownload": "CSV",
   "idx.csvColDate": "дата",
   "idx.csvColSensor": "спутник",
