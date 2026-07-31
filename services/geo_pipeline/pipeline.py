@@ -141,6 +141,9 @@ def run_field(field_id: str, days_back: int = 120, max_cloud: int = 70,
                         except Exception as exc:  # noqa: BLE001
                             print(f"  ! raster {name} {g.granule_id}: {exc}", file=sys.stderr)
                 scenes_written += 1
+            persist.record_attempt(field_id, field["org_id"], g.sensor, g.acquired_at,
+                                   g.mgrs_tile, g.cloud_pct, g.granule_id,
+                                   "written" if stats_da else "no_valid_pixels")
             if track_status:
                 remaining = total - (i + 1)
                 persist.update_field_progress(field_id, i + 1, remaining * AVG_SEC_PER_SCENE)
@@ -260,6 +263,9 @@ def run_field_s2(field_id: str, days_back: int = 120, max_cloud: int = 70,
                 # a neighbouring tile whose extent misses the field), keep the rest; mirrors HLS.
                 print(f"  ! S2 granule {g.granule_id}: {exc}", file=sys.stderr)
                 stats_da = {}
+                read_error = str(exc)
+            else:
+                read_error = None
             if stats_da and any((v[0] or {}).get("valid_pixels", 0) for v in stats_da.values()):
                 stats = {k: v[0] for k, v in stats_da.items()}
                 scene_id = persist.persist_scene(
@@ -276,6 +282,16 @@ def run_field_s2(field_id: str, days_back: int = 120, max_cloud: int = 70,
                         except Exception as exc:  # noqa: BLE001
                             print(f"  ! S2 raster {name} {g.granule_id}: {exc}", file=sys.stderr)
                 scenes_written += 1
+                _outcome, _detail = "written", None
+            elif read_error is not None:
+                _outcome, _detail = "read_error", read_error
+            else:
+                # The granule read fine and not one pixel over THIS field survived the SCL mask.
+                # From the farmer's side this is the commonest reason a pass produces no picture,
+                # and until now it left no trace anywhere but stderr.
+                _outcome, _detail = "no_valid_pixels", None
+            persist.record_attempt(field_id, field["org_id"], g.sensor, g.acquired_at,
+                                   g.mgrs_tile, g.cloud_pct, g.granule_id, _outcome, _detail)
             if track_status:
                 remaining = total - (i + 1)
                 persist.update_field_progress(field_id, i + 1, remaining * AVG_SEC_PER_SCENE_S2)

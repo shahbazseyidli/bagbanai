@@ -4,6 +4,7 @@ Batch job → sync psycopg (separate from the async API pool)."""
 from __future__ import annotations
 
 import os
+import sys
 from datetime import date
 from typing import Optional
 
@@ -65,6 +66,36 @@ def persist_scene(field_id: str, org_id: str, sensor: str, acquired_at: date,
                  s["p10"], s["p50"], s["p90"], s["valid_pixels"], acquired_at))
         conn.commit()
     return str(scene_id)
+
+
+def record_attempt(field_id: str, org_id: str, sensor: str, acquired_at: date,
+                   mgrs_tile: Optional[str], cloud_pct: Optional[float],
+                   granule_id: Optional[str], outcome: str,
+                   detail: Optional[str] = None) -> None:
+    """Record what became of one granule — including the ones that produced nothing.
+
+    This is the half of the story public.scenes cannot tell. A field with no new image for three
+    weeks looks identical, in `scenes`, to a field the satellite stopped flying over; the
+    difference is four rows here saying the passes happened and every one was cloud.
+
+    Best-effort by construction: an attempt row is diagnostics, and failing to write it must never
+    cost the caller a scene it did manage to process. Errors are printed and swallowed.
+    """
+    try:
+        with psycopg.connect(_dsn()) as conn, conn.cursor() as cur:
+            cur.execute(
+                """insert into public.scene_attempts
+                     (field_id, org_id, sensor, acquired_at, granule_id, mgrs_tile, cloud_pct,
+                      outcome, detail)
+                   values (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                   on conflict (field_id, sensor, acquired_at, granule_id) do update set
+                     outcome=excluded.outcome, detail=excluded.detail, cloud_pct=excluded.cloud_pct,
+                     mgrs_tile=excluded.mgrs_tile, attempted_at=now()""",
+                (field_id, org_id, sensor, acquired_at, granule_id or "", mgrs_tile, cloud_pct,
+                 outcome, (detail or None) and str(detail)[:300]))
+            conn.commit()
+    except Exception as exc:  # noqa: BLE001 — never let bookkeeping break the run
+        print(f"  · attempt log skipped ({granule_id}): {exc}", file=sys.stderr)
 
 
 def persist_raster(scene_id: str, field_id: str, index_name: str,

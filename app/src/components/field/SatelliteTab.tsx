@@ -43,6 +43,7 @@ import { scenePreviewUrl } from "./layers/previewUrl";
 import type { LayerPreview } from "./layers/useLayerPreviews";
 import { forecastMethodLabel } from "@/lib/wellnessText";
 import { useFieldDataStatus } from "@/lib/useFieldDataStatus";
+import CoverageNote from "./CoverageNote";
 import SatelliteWorkbench from "./workbench/SatelliteWorkbench";
 import type { FieldLayout } from "./workbench/useStageWidth";
 import type { RangeKey } from "./chart/chartRange";
@@ -713,7 +714,12 @@ export default function SatelliteTab({
   // parcels as existential for Azerbaijan: the average holding here is well under the 3 ha where
   // 10 m imagery is comfortable.
   const nominalPixels = field.area_ha != null ? Math.round(field.area_ha * 100) : null;
-  const smallBannerNode = showSmallBanner ? (
+  // "Why hasn't my field updated?" belongs beside the date strip, in BOTH bodies — so it rides the
+  // banner slot the two layouts already share rather than being placed twice. CoverageNote renders
+  // nothing when it has nothing to say, so the slot stays empty exactly as often as before.
+  const coverageNode = <CoverageNote fieldId={field.id} />;
+
+  const smallBannerInner = showSmallBanner ? (
     <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
       {smallField
         ? `${t("app.field.satelliteTab.smallFieldPre")}${formatArea(field.area_ha, areaUnit)}${t("app.field.satelliteTab.smallFieldPost")}`
@@ -725,6 +731,13 @@ export default function SatelliteTab({
       )}
     </div>
   ) : null;
+
+  const smallBannerNode = (
+    <>
+      {smallBannerInner}
+      {coverageNode}
+    </>
+  );
 
   // --- bodies ----------------------------------------------------------------
 

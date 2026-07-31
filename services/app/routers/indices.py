@@ -7,6 +7,7 @@ The map/latest/summary endpoints take ?sensor= (default s2) and fall back to the
 when the requested one has no rows (S2-only fields, or the pre-backfill/rollout window); the
 time-series endpoint returns BOTH sensors tagged so the chart can draw two labeled lines."""
 import math
+from datetime import date as date_cls, datetime, timedelta, timezone
 from typing import Any, Optional
 from urllib.parse import quote
 
@@ -243,6 +244,113 @@ async def summary(field_id: str, sensor: str = Query("s2"),
             }
             for name in _SUMMARY_INDICES
         ],
+    }
+
+
+# Sentinel-2's repeat cycle. NOT a constant taken from a datasheet — MEASURED against this
+# database: group every acquisition date by (date mod 5) and every gap inside a group is an exact
+# multiple of 5 days. 86 gaps across all seven fields and 120 days, no exceptions. A field sits in
+# two or three of those groups because neighbouring swaths overlap, which is why images arrive 2
+# and 3 days apart and then pause for 5.
+_S2_REPEAT_DAYS = 5
+
+# Enough history to see every group the field belongs to (three cycles) without dragging in an
+# orbit that only clipped the corner of the field last spring.
+_COVERAGE_LOOKBACK_DAYS = 30
+
+
+def _next_pass(dates: list[date_cls], today: date_cls) -> Optional[date_cls]:
+    """When the satellite next flies over — derived from when it flew over BEFORE.
+
+    Each distinct (date mod 5) residue is one repeating ground track. Step the most recent date in
+    each residue forward by 5 until it reaches today or later, then take the earliest across
+    residues. No ephemeris, no hardcoded calendar, and it self-corrects: if the constellation
+    changes, the answer follows the observations rather than a number someone typed in 2026.
+
+    Returns None when there is no history to extrapolate from — a brand-new field. Saying nothing
+    is correct there; guessing a date for a field we have never seen imaged would be invention.
+
+    BACK-TESTED, and the failures are the interesting part. Replaying one field's July history and
+    predicting each next acquisition from the ones before it: 07-21→07-23 and 07-23→07-26 land
+    exactly; 07-06→07-08, 07-11→07-13 and 07-16→07-18 are each three days early. Those three are
+    not wrong about the SATELLITE — 07-08, 07-13 and 07-18 are real passes in the 07-03 residue —
+    they are wrong about the IMAGE, because all three were cloud. Which is the whole argument for
+    scene_attempts: the pass calendar is predictable, the picture is not, and only the attempt log
+    can tell the farmer which of the two they are waiting on.
+    """
+    if not dates:
+        return None
+    latest_in_residue: dict[int, date_cls] = {}
+    for d in dates:
+        k = d.toordinal() % _S2_REPEAT_DAYS
+        if k not in latest_in_residue or d > latest_in_residue[k]:
+            latest_in_residue[k] = d
+    candidates = []
+    for d in latest_in_residue.values():
+        nxt = d
+        while nxt < today:
+            nxt += timedelta(days=_S2_REPEAT_DAYS)
+        candidates.append(nxt)
+    return min(candidates) if candidates else None
+
+
+@router.get("/{field_id}/coverage")
+async def coverage(field_id: str, user_id: str = Depends(get_current_user_id)):
+    """When the next satellite pass is, and why the recent ones produced no picture.
+
+    THE QUESTION THIS ANSWERS. "Why has my field not updated in three weeks?" was unanswerable:
+    public.scenes records what SUCCEEDED, so a run of cloudy passes and a satellite that stopped
+    flying look identical — an absence. public.scene_attempts (0060) records the rejections too, so
+    the honest answer ("it flew over on the 8th, 13th and 18th; every one was cloud") can finally
+    be given.
+
+    A PASS IS NOT A PICTURE. `next_pass` is when Sentinel-2 is overhead, not a promise of an image;
+    cloud decides that on the day. The wording on the client has to keep that distinction — over-
+    promising an image and then not delivering it is worse than saying nothing.
+    """
+    async with connection(user_id) as conn:
+        org_id = await _org_of_field(conn, field_id)
+        await require_member(conn, user_id, org_id)
+        rows = await conn.fetch(
+            """select distinct acquired_at from public.scenes
+                where field_id=$1::uuid and sensor='S2'
+                  and acquired_at > current_date - $2::int
+                order by acquired_at desc""", field_id, _COVERAGE_LOOKBACK_DAYS * 3)
+        attempts = await conn.fetch(
+            """select acquired_at, outcome, cloud_pct, mgrs_tile
+                 from public.scene_attempts
+                where field_id=$1::uuid and sensor='S2'
+                  and acquired_at > current_date - $2::int
+                order by acquired_at desc, outcome""", field_id, _COVERAGE_LOOKBACK_DAYS)
+
+    seen = [r["acquired_at"] for r in rows]
+    today = datetime.now(timezone.utc).date()
+    nxt = _next_pass(seen, today)
+
+    # One row per DAY, not per granule: a field straddling three MGRS tiles gets three attempts for
+    # the same pass, and "3 × cloudy on the 8th" is noise. A day counts as covered if any granule
+    # that day was written.
+    by_day: dict[date_cls, dict] = {}
+    for a in attempts:
+        d = a["acquired_at"]
+        cur = by_day.setdefault(d, {"date": d.isoformat(), "outcome": a["outcome"],
+                                    "cloud_pct": None})
+        if a["outcome"] == "written":
+            cur["outcome"] = "written"
+        if a["cloud_pct"] is not None:
+            c = float(a["cloud_pct"])
+            cur["cloud_pct"] = c if cur["cloud_pct"] is None else min(cur["cloud_pct"], c)
+    days = sorted(by_day.values(), key=lambda x: x["date"], reverse=True)
+
+    return {
+        "last_scene": seen[0].isoformat() if seen else None,
+        "next_pass": nxt.isoformat() if nxt else None,
+        "days_since_last": (today - seen[0]).days if seen else None,
+        "repeat_days": _S2_REPEAT_DAYS,
+        # Empty for every field processed before 0060 shipped — the pipeline only starts recording
+        # from its next run. The client must treat [] as "nothing recorded yet", NOT as "no passes".
+        "attempts": days,
+        "lookback_days": _COVERAGE_LOOKBACK_DAYS,
     }
 
 
