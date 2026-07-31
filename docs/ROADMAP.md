@@ -328,8 +328,17 @@ Tam plan və sübutlar: sessiya jurnalı. Aşağıda yalnız **status**.
 - ⬜ `/weather` hələ `orgs[0]`-a bağlıdır
 
 **W2 qalığı:**
-- ⬜ **Xəbərdarlıqların dili (M, MİQRASİYA)** — `rules/engine.py` hazır AZ cümlə yazır;
-  `notifications`-da kod sütunu yoxdur. Türk istifadəçi bütün alertləri azərbaycanca alır.
+- ✅ **Xəbərdarlıqların dili — BİTDİ və CANLIDIR** (`49f979c`, miqrasiya **0057** tətbiq olunub və
+  `schema_migrations`-a yazılıb). `notifications`-a `title_code/title_params/body_code/body_params`
+  əlavə edildi; 4 vegetasiya + 3 hava qaydası kod daşıyır; `alertText()` oxucunun dilində render
+  edir; 12 sətir × 8 dil. Köhnə sətirlər (kodsuz) saxlanmış AZ mətnə düşür — qəsdən.
+  ⚠️ **Qalıq:** Telegram / web push / həftəlik digest hələ **server tərəfdə AZ mətni** göndərir —
+  onlar oxucunun dilini bilmir, ona görə `emails/catalog.py` üslubunda server-tərəfli locale
+  cədvəli lazımdır. Bu, ayrıca işdir.
+  ⚠️ **Müşahidə edilməyən həlqə:** təzə *kodlu* alert canlıda görülmədi, çünki hazırda heç bir alert
+  şərti yoxdur (`candidates: 0` — bu, `ANOMALY_MARGIN` düzəlişinin özünün işlədiyini göstərir).
+  Yazma yolu koddan yoxlanılıb və konteynerdə map/helper canlı təsdiqlənib; ilk real alertdə
+  `title_code` sütununu bir dəfə yoxlamaq qalır.
 - ⬜ **Ölkə kilidinin açılması (M)** — 5 yer + geolokasiya icazəsi (sahibin qərarı: açılsın)
 - ⬜ Digest dil qarışığı (tr/de/hu/it/pl üçün 3 dil bir məktubda) — T28/T30
 - ⬜ 25 ekran xam backend xəta kodu göstərir (`azError()`-u keçmir)
