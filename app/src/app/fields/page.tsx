@@ -205,6 +205,10 @@ export default function FieldsListPage() {
   const [error, setError] = useState("");
   // B14 — multi-select drives the bulk task/operation bar.
   const [orgId, setOrgId] = useState("");
+  // The agronomist's real workaround is one ORG PER CLIENT, so this screen must be switchable.
+  // /, /notes and /team already had a switcher; this one and /weather were pinned to orgs[0], so
+  // switching client on the home map and then opening "Fields" silently showed client #1 again.
+  const [orgs, setOrgs] = useState<Org[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   // A3 — field_id → latest stored wellness score (may stay empty; the chips are optional garnish).
   const [scores, setScores] = useState<Record<string, FieldScore>>({});
@@ -226,13 +230,16 @@ export default function FieldsListPage() {
     if (!user) return;
     (async () => {
       try {
-        const orgs = await api.get<Org[]>("/api/orgs");
-        if (orgs.length === 0) {
+        const list = orgs.length ? orgs : await api.get<Org[]>("/api/orgs");
+        if (list.length === 0) {
           router.replace("/onboarding");
           return;
         }
-        setOrgId(orgs[0].id);
-        const farms = await api.get<Farm[]>(`/api/farms?org_id=${orgs[0].id}`);
+        if (!orgs.length) setOrgs(list);
+        // Honour the chosen org across re-runs; fall back to the first only on the first pass.
+        const active = list.find((o) => o.id === orgId)?.id ?? list[0].id;
+        setOrgId(active);
+        const farms = await api.get<Farm[]>(`/api/farms?org_id=${active}`);
         const lists = await Promise.all(
           farms.map((f) => api.get<Field[]>(`/api/fields?farm_id=${f.id}`).catch(() => [])),
         );
@@ -243,9 +250,9 @@ export default function FieldsListPage() {
           // a failure costs a chip, a picture or the bar, never the list itself. Usage is fetched
           // only when the org has fields — the empty state shows the demo link, not a 0/1 bar.
           const [w, th, us] = await Promise.all([
-            api.get<{ fields: FieldScore[] }>(`/api/orgs/${orgs[0].id}/wellness`).catch(() => null),
-            api.get<{ thumbs: Thumb[] }>(`/api/orgs/${orgs[0].id}/thumbs`).catch(() => null),
-            api.get<Usage>(`/api/orgs/${orgs[0].id}/usage`).catch(() => null),
+            api.get<{ fields: FieldScore[] }>(`/api/orgs/${active}/wellness`).catch(() => null),
+            api.get<{ thumbs: Thumb[] }>(`/api/orgs/${active}/thumbs`).catch(() => null),
+            api.get<Usage>(`/api/orgs/${active}/usage`).catch(() => null),
           ]);
           const map: Record<string, FieldScore> = {};
           for (const s of w?.fields ?? []) {
@@ -264,7 +271,7 @@ export default function FieldsListPage() {
         setFields([]);
       }
     })();
-  }, [loading, user, router]);
+  }, [loading, user, router, orgId]);
 
   if (loading || fields === null) return <ListSkeleton count={4} />;
 
@@ -274,7 +281,21 @@ export default function FieldsListPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl font-bold text-teal">{t("app.fieldsList.heading")}</h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="font-display text-2xl font-bold text-teal">{t("app.fieldsList.heading")}</h1>
+            {orgs.length > 1 && (
+              <select
+                value={orgId}
+                onChange={(e) => { setFields(null); setOrgId(e.target.value); }}
+                className="input max-w-[200px]"
+                aria-label={t("today.org")}
+              >
+                {orgs.map((o) => (
+                  <option key={o.id} value={o.id}>{o.name}</option>
+                ))}
+              </select>
+            )}
+          </div>
           {fields.length > 0 && (
             <p className="mt-0.5 text-sm text-ink-soft">
               {fields.length} {tp("app.plural.fields", fields.length)} · {fmtArea(totalHa)}

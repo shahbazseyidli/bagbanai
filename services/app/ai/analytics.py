@@ -10,6 +10,25 @@ from __future__ import annotations
 BASELINE_INDICES = ["NDVI", "NDMI", "NDRE", "EVI", "NBR"]
 MIN_HISTORY = 4  # need ≥4 observations in a week before its baseline is trustworthy
 
+# HOW FAR BELOW p10 IS ACTUALLY ANOMALOUS.
+#
+# This used to be a bare `latest < p10`, and a farmer was sent this alert on 2026-07-30 — twice:
+#
+#     "NDVI 0.719 bu həftə üçün sahənizin adi həddindən (p10 0.720) aşağıdır — anomaliya."
+#
+# One thousandth. Nothing about the measurement supports a claim at that resolution: between two
+# scenes, NDVI over the same unchanged field moves by more than this from atmospheric correction,
+# view/sun angle, sub-pixel cloud edges and the shifting set of pixels that survive the SCL mask.
+# A threshold with no margin does not detect crop stress, it detects the noise floor — and every
+# alert it fires teaches the farmer that our alerts are worth ignoring, which is the one thing an
+# alerting system cannot afford.
+#
+# 0.05 is chosen as the smallest step that is unambiguously larger than that scene-to-scene noise
+# while still well inside a real stress signal (a stressed field drops 0.1-0.3). It is absolute,
+# not relative: these indices are already bounded ratios, so a percentage of a small p10 would
+# make the test hair-trigger exactly where the index is least reliable.
+ANOMALY_MARGIN = 0.05
+
 
 async def refresh_baseline(conn, field_id: str) -> dict:
     """Recompute the per-week percentile baseline for one field (Sentinel-2). Idempotent upsert."""
@@ -47,8 +66,11 @@ async def anomaly_for(conn, field_id: str, index_name: str = "NDVI") -> dict | N
     if not base or base["n"] < MIN_HISTORY:
         return None
     latest, p10, p50, p90 = float(row["mean"]), float(base["p10"]), float(base["p50"]), float(base["p90"])
-    if latest < p10:
+    # Below the band by MORE than the noise floor — see ANOMALY_MARGIN. `is_anomaly: False` is
+    # still returned for a reading that merely dips under p10, so the passport and the charts keep
+    # showing where it sits; what changes is that it no longer fires an alert.
+    if latest < p10 - ANOMALY_MARGIN:
         return {"is_anomaly": True, "direction": "low", "latest": latest, "p10": p10, "p50": p50}
-    if latest > p90:
+    if latest > p90 + ANOMALY_MARGIN:
         return {"is_anomaly": True, "direction": "high", "latest": latest, "p90": p90, "p50": p50}
     return {"is_anomaly": False, "latest": latest, "p10": p10, "p50": p50, "p90": p90}
