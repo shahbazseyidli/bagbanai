@@ -149,6 +149,11 @@ export const az = {
 
   // indices
   "idx.title": "Peyk indeksləri",
+  "app.field.export.button": "Endir",
+  "idx.csvDownload": "CSV",
+  "idx.csvColDate": "tarix",
+  "idx.csvColSensor": "peyk",
+  "idx.csvColMean": "orta",
   "idx.select": "İndeks seçin",
   "idx.noData": "Peyk məlumatı hazırlanır. Yeni sahələr üçün ilkin analiz avtomatik işə düşür və adətən 1 gün ərzində burada görünür.",
   "idx.latest": "Son ölçmə",

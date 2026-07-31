@@ -122,6 +122,30 @@ export default function SeasonTab({ fieldId }: { fieldId: string }) {
   const [notes, setNotes] = useState("");
   const [makeCurrent, setMakeCurrent] = useState(true);
 
+  /** Open the new-season form already filled in from the season above it.
+   *
+   *  The form used to open completely blank while last year's crop, variety, cycle, density and
+   *  target yield sat on screen one card below — so "start next season" meant re-typing what the
+   *  product already knew. The season model is the concept farmers understand least (the research
+   *  document calls it out by name), and an empty form is what makes it feel like bookkeeping
+   *  rather than carrying the field forward.
+   *
+   *  Only ever a PREFILL: every value stays editable, and anything already typed wins because
+   *  this runs on open, not on every render. The year is bumped past the newest season rather
+   *  than copied — the whole point is the next one. Dates are deliberately NOT carried: a planting
+   *  date from last year is wrong by construction, where a crop usually is not. */
+  function prefillFromLast() {
+    const last = (items ?? [])[0];
+    if (!last) return;
+    const nextYear = Math.max(last.season_year + 1, new Date().getFullYear());
+    setYear(String(nextYear));
+    if (!crop) setCrop(last.crop_type || "");
+    if (!variety) setVariety(last.variety || "");
+    if (last.crop_cycle) setCycle(last.crop_cycle);
+    if (!density) setDensity(last.seeding_density != null ? String(last.seeding_density) : "");
+    if (!targetYield) setTargetYield(last.target_yield != null ? String(last.target_yield) : "");
+  }
+
   const cycleOptions = [
     { value: "annual", label: t("app.field.seasonTab.cycleAnnual") },
     { value: "perennial", label: t("app.field.seasonTab.cyclePerennial") },
@@ -232,7 +256,7 @@ export default function SeasonTab({ fieldId }: { fieldId: string }) {
         </div>
         <button
           type="button"
-          onClick={() => setOpen(!open)}
+          onClick={() => { if (!open) prefillFromLast(); setOpen(!open); }}
           className="btn-secondary"
           aria-expanded={open}
         >

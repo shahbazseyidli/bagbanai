@@ -127,6 +127,11 @@ export const it: Dict = {
   "field.mgrs": "Riquadri MGRS",
 
   "idx.title": "Indici satellitari",
+  "app.field.export.button": "Scarica",
+  "idx.csvDownload": "CSV",
+  "idx.csvColDate": "data",
+  "idx.csvColSensor": "satellite",
+  "idx.csvColMean": "media",
   "idx.select": "Seleziona indice",
   "idx.noData": "I dati satellitari sono in preparazione. L'analisi iniziale viene eseguita automaticamente per i nuovi campi e di solito compare qui entro un giorno.",
   "idx.latest": "Ultima misurazione",

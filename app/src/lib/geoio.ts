@@ -38,6 +38,53 @@ export function polygonToKML(polygon: Polygon, name = "sahə"): string {
 </kml>`;
 }
 
+/**
+ * The index time series as CSV — the farmer's own numbers, in the format every farm office
+ * already has a program for.
+ *
+ * WHY CSV IS BUILT HERE AND NOT SERVED BY AN ENDPOINT: the rows are already on the client. The
+ * chart the farmer is looking at holds exactly this array (SatelliteTab keeps the /indices
+ * response in state), so a backend route would be a second round-trip for data the browser has.
+ *
+ * THE BOM IS NOT DECORATION. Without a leading U+FEFF, Excel opens a UTF-8 CSV as the local
+ * 8-bit codepage and "Sahə sağlamlığı" arrives as mojibake. Same reason the deleted reports.py
+ * prepended one; this is the surviving copy of that lesson.
+ *
+ * Values are written raw (no locale decimal comma) because this file is for a machine to read
+ * back. Nulls stay EMPTY rather than becoming 0 — a cloudy scene with no reading is not a zero.
+ */
+export function seriesToCSV(
+  rows: { date: string; sensor?: string; mean: number | null; p10?: number | null; p50?: number | null; p90?: number | null }[],
+  header: { date: string; sensor: string; mean: string },
+): string {
+  const head = [header.date, header.sensor, header.mean, "p10", "p50", "p90"].join(",");
+  const num = (v: number | null | undefined) => (v == null || !Number.isFinite(v) ? "" : String(v));
+  const body = rows.map((r) =>
+    [r.date, r.sensor ?? "", num(r.mean), num(r.p10), num(r.p50), num(r.p90)].join(","),
+  );
+  return "﻿" + [head, ...body].join("\r\n") + "\r\n";
+}
+
+/** One or many field boundaries as a GeoJSON FeatureCollection. */
+export function fieldsToGeoJSON(
+  fields: { name?: string | null; area_ha?: number | null; geom?: Polygon | null }[],
+): string {
+  return JSON.stringify(
+    {
+      type: "FeatureCollection",
+      features: fields
+        .filter((f) => f.geom)
+        .map((f) => ({
+          type: "Feature",
+          properties: { name: f.name ?? "", area_ha: f.area_ha ?? null },
+          geometry: { type: "Polygon", coordinates: (f.geom as Polygon).coordinates },
+        })),
+    },
+    null,
+    2,
+  );
+}
+
 /** Trigger a client-side file download. */
 export function downloadText(filename: string, text: string, mime = "application/octet-stream") {
   const blob = new Blob([text], { type: mime });

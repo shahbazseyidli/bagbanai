@@ -22,8 +22,9 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
-import { GitCompareArrows, Cloud } from "lucide-react";
+import { GitCompareArrows, Cloud, Download } from "lucide-react";
 import { api } from "@/lib/api";
+import { downloadText, seriesToCSV } from "@/lib/geoio";
 import { t } from "@/lib/i18n";
 import { formatArea, useAreaUnit } from "@/lib/units";
 import { DisplayMap, CompareMap } from "@/components/FieldMap";
@@ -803,7 +804,31 @@ export default function SatelliteTab({
       <div className="grid gap-6 md:grid-cols-2">
         {/* Left — index selector + time series (this sensor) */}
         <div className="card">
-          <h3 className="mb-3 font-semibold text-slate-800">{t("idx.title")}</h3>
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h3 className="font-semibold text-slate-800">{t("idx.title")}</h3>
+            {/* The farmer's own numbers, downloadable. Free by decision, and client-side because
+                `series` below IS the file — a backend route would re-fetch what we already hold. */}
+            {series && series.length > 0 && (
+              <button
+                type="button"
+                onClick={() =>
+                  downloadText(
+                    `${field.name || "field"}-${index}.csv`,
+                    seriesToCSV(series, {
+                      date: t("idx.csvColDate"),
+                      sensor: t("idx.csvColSensor"),
+                      mean: t("idx.csvColMean"),
+                    }),
+                    "text/csv;charset=utf-8",
+                  )
+                }
+                className="inline-flex min-h-[var(--tap)] items-center gap-1.5 rounded-lg border border-slate-300 px-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+              >
+                <Download className="h-3.5 w-3.5" aria-hidden="true" />
+                {t("idx.csvDownload")}
+              </button>
+            )}
+          </div>
           {/* W4 — a <select> of ten codes told a farmer nothing; the picker shows the field itself
               in each layer. Not a <label>, because the control it opens is a button, not a form
               field. */}

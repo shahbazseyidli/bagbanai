@@ -119,6 +119,11 @@ export const de: Dict = {
   "field.mgrs": "MGRS-Kacheln",
 
   "idx.title": "Satellitenindizes",
+  "app.field.export.button": "Herunterladen",
+  "idx.csvDownload": "CSV",
+  "idx.csvColDate": "Datum",
+  "idx.csvColSensor": "Satellit",
+  "idx.csvColMean": "Mittel",
   "idx.select": "Index wählen",
   "idx.noData": "Satellitendaten werden vorbereitet. Für neue Felder läuft die erste Analyse automatisch und erscheint meist innerhalb eines Tages hier.",
   "idx.latest": "Letzte Messung",

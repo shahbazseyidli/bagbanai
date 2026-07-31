@@ -37,6 +37,14 @@ export function toneWord(tone: Tone): string {
   return t(tone === "good" ? "today.tone.good" : tone === "warn" ? "today.tone.warn" : "today.tone.bad");
 }
 
+/** Muted text colours for the verdict word — it sits UNDER the badge, so it must read as a label,
+ *  not compete with the number's own colour block. */
+const WORD: Record<Tone, string> = {
+  good: "text-good",
+  warn: "text-warn",
+  bad: "text-bad",
+};
+
 const DOT: Record<Tone, string> = {
   good: "bg-good text-white",
   warn: "bg-warn text-white",
@@ -138,10 +146,18 @@ export function ScorePill({ score, className = "" }: { score?: FieldScore | null
       {score.score}
     </span>
   );
-  if (!age) return pill;
+  // THE VERDICT IS SHOWN, NOT HIDDEN IN A TOOLTIP. The word lived only in `title=`, and this file
+  // already argues (see ScoreAge) that "a tooltip nobody opens — and that a phone has no way to
+  // open at all — is not a disclosure". That reasoning was applied to the date stamp and not to
+  // the verdict, so the phone home screen showed a farmer "73" and nothing else. One word,
+  // already translated in eight languages, is what makes the number mean something.
+  const word = (
+    <span className={`text-[11px] font-semibold leading-none ${WORD[band]}`}>{toneWord(band)}</span>
+  );
   return (
     <span className="inline-flex shrink-0 flex-col items-end gap-0.5">
       {pill}
+      {word}
       {age}
     </span>
   );

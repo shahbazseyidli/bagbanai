@@ -14,6 +14,7 @@ import { ErrorNote, Spinner } from "@/components/ui";
 // FieldPulse / SignalsActions / ShareButton are no longer imported here: the phone renders them
 // inside FieldFeed (mobile/FieldFeed.tsx), which is now the only narrow body of the status section.
 import SatelliteTab from "@/components/field/SatelliteTab";
+import ExportButton from "@/components/field/ExportButton";
 import FieldMapSheet from "@/components/field/FieldMapSheet";
 import FieldMapCard from "@/components/field/FieldMapCard";
 import type { PickerVariant } from "@/components/field/layers/LayerPicker";
@@ -331,12 +332,15 @@ function FieldDetailInner() {
       onBack={narrow && !feedMode ? backToFeed : undefined}
       actions={
         !editing ? (
-          <button
-            onClick={openEdit}
-            className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
-          >
-            <Settings className="h-4 w-4" /> {t("app.fieldDetail.editButton")}
-          </button>
+          <>
+            <ExportButton name={field.name} geom={field.geom} />
+            <button
+              onClick={openEdit}
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
+            >
+              <Settings className="h-4 w-4" /> {t("app.fieldDetail.editButton")}
+            </button>
+          </>
         ) : undefined
       }
     />

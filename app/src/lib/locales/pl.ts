@@ -129,6 +129,11 @@ export const pl: Dict = {
   "field.mgrs": "Kafelki MGRS",
 
   "idx.title": "Indeksy satelitarne",
+  "app.field.export.button": "Pobierz",
+  "idx.csvDownload": "CSV",
+  "idx.csvColDate": "data",
+  "idx.csvColSensor": "satelita",
+  "idx.csvColMean": "średnia",
   "idx.select": "Wybierz indeks",
   "idx.noData": "Dane satelitarne są przygotowywane. Wstępna analiza uruchamia się automatycznie dla nowych pól i zwykle pojawia się tutaj w ciągu doby.",
   "idx.latest": "Ostatni odczyt",

@@ -119,6 +119,11 @@ export const tr: Dict = {
   "field.mgrs": "MGRS karoları",
 
   "idx.title": "Uydu indeksleri",
+  "app.field.export.button": "İndir",
+  "idx.csvDownload": "CSV",
+  "idx.csvColDate": "tarih",
+  "idx.csvColSensor": "uydu",
+  "idx.csvColMean": "ortalama",
   "idx.select": "İndeks seçin",
   "idx.noData": "Uydu verisi hazırlanıyor. Yeni tarlalar için ilk analiz otomatik başlar ve genellikle bir gün içinde burada görünür.",
   "idx.latest": "Son ölçüm",

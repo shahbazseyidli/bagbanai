@@ -447,10 +447,16 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
       {/* STEP 1 — boundary */}
       {step === 1 && (
         <div className="space-y-4">
-          {/* Optional: leave it blank and POST /api/fields names the field "Sahə 1", "Sahə 2", …
-              in this locale. The placeholder shows the exact word the server will store, so the
-              promise and the stored value cannot drift apart. */}
-          <FormField label={`${t("field.name")} ${t("common.optional")}`}>
+          {/* NOT labelled "(optional)" any more, deliberately. Every field DOES end up with a
+              name — leave this blank and POST /api/fields stores "Sahə 1", "Sahə 2", … in this
+              locale — so "optional" described the input box while misdescribing the outcome, and
+              read as one more thing to skip. The hint below says what will happen instead.
+              The box is still not PRE-filled with the computed name, and that is on purpose: the
+              server picks the number under an advisory lock over max()+1 including soft-deleted
+              rows, so a number guessed in the browser could hand two fields the same name — the
+              exact collision that lock exists to prevent. The placeholder shows the real word the
+              server will use, so the promise and the stored value cannot drift apart. */}
+          <FormField label={t("field.name")}>
             <input
               className="input"
               value={name}

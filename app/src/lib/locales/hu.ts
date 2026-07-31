@@ -127,6 +127,11 @@ export const hu: Dict = {
   "field.mgrs": "MGRS csempék",
 
   "idx.title": "Műholdas indexek",
+  "app.field.export.button": "Letöltés",
+  "idx.csvDownload": "CSV",
+  "idx.csvColDate": "dátum",
+  "idx.csvColSensor": "műhold",
+  "idx.csvColMean": "átlag",
   "idx.select": "Válasszon indexet",
   "idx.noData": "A műholdas adatok készülnek. Az új tábláknál a kezdeti elemzés automatikusan lefut, és általában egy napon belül itt megjelenik.",
   "idx.latest": "Legutóbbi mérés",

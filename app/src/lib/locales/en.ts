@@ -127,6 +127,11 @@ export const en: Dict = {
   "field.mgrs": "MGRS tiles",
 
   "idx.title": "Satellite indices",
+  "app.field.export.button": "Download",
+  "idx.csvDownload": "CSV",
+  "idx.csvColDate": "date",
+  "idx.csvColSensor": "satellite",
+  "idx.csvColMean": "mean",
   "idx.select": "Select index",
   "idx.noData": "Satellite data is being prepared. Initial analysis runs automatically for new fields and usually appears here within a day.",
   "idx.latest": "Latest reading",
