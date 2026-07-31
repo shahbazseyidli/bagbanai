@@ -84,6 +84,10 @@ export const az = {
   "auth.magic.verifyingTitle": "Daxil olursunuz…",
   "auth.magic.verifyingBody": "Bir neçə saniyə çəkir, səhifəni bağlamayın.",
   "auth.magic.failedTitle": "Bu link işləmir",
+  "auth.magic.freshTitle": "Yeni hesab açıldı",
+  "auth.magic.freshBody": "Bu hesab yenidir və hələ heç bir sahəniz yoxdur. Əvvəllər Agradex istifadə etmisinizsə, ola bilsin başqa e-poçt ünvanı ilə qeydiyyatdan keçmisiniz — bu halda aşağıdakı keçidlə düzgün ünvanı yoxlayın.",
+  "auth.magic.freshContinue": "Davam et — ilk sahəmi əlavə edim",
+  "auth.magic.freshWrongEmail": "Bu mənim ünvanım deyil — başqası ilə daxil ol",
   // TƏK uğursuzluq mətni: vaxtı bitib / işlədilib / heç olmayıb — backend bunları qəsdən
   // ayırmır (ayırsaq, link təxmin edən adama nəyin doğru olduğunu deyərdik). Tərcümə də ayırmır.
   "auth.magic.failedBody": "Linkin vaxtı bitib və ya artıq istifadə olunub. Yeni link istəyin.",

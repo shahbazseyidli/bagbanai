@@ -230,8 +230,14 @@ async def signup(body: SignupIn, response: Response):
     if body.password is not None and len(body.password) < MIN_PASSWORD_LEN:
         raise HTTPException(status_code=400, detail="password_too_short")
     password_hash = hash_password(body.password) if body.password else NO_PASSWORD
+    # NORMALISED, like every other write path. This route stored body.email VERBATIM while
+    # /magic-link stored it lowercased, so two concurrent requests could write two different
+    # strings for one mailbox and `on conflict (email)` would not fire — two accounts, one farmer,
+    # and their fields in whichever one they are not looking at. 0059 now makes that impossible at
+    # the database level; this makes the two paths agree at the application level as well.
+    email = str(body.email).strip().lower()
     async with connection() as conn:
-        exists = await conn.fetchval("select 1 from public.users where lower(email)=lower($1)", body.email)
+        exists = await conn.fetchval("select 1 from public.users where lower(email)=lower($1)", email)
         if exists:
             raise HTTPException(status_code=409, detail="email_taken")
         row = await conn.fetchrow(
@@ -240,7 +246,7 @@ async def signup(body: SignupIn, response: Response):
                   onboarding)
                values ($1,$2,$3,$4,$5::user_role,$6,$7,$8,$9::jsonb)
                returning id, email, full_name, locale, role, country, region""",
-            body.email, password_hash, body.full_name, body.locale,
+            email, password_hash, body.full_name, body.locale,
             body.role.value, body.country, body.region, body.name_public,
             json.dumps(onb) if onb else None)
         uid = str(row["id"])

@@ -47,6 +47,8 @@ const APP_HOME = PANEL_HOST ? `https://${PANEL_HOST}/` : "/";
 export default function MagicLinkPage() {
   const { setUser } = useAuth();
   const [failed, setFailed] = useState(false);
+  // Set only when a just-authenticated session turns out to own nothing — see spend().
+  const [freshEmail, setFreshEmail] = useState<string | null>(null);
   // A callback, not a boolean: the unspent token lives only in the effect's closure now that the
   // URL has been cleared, so the retry has to carry the function that already holds it.
   const [retry, setRetry] = useState<(() => Promise<void>) | null>(null);
@@ -78,6 +80,24 @@ export default function MagicLinkPage() {
         const user = await api.post<User>("/api/auth/magic-login", { token });
         setUser(user);
         await carryQuiz();
+        // A TYPO IS INDISTINGUISHABLE FROM A NEW SIGNUP, and that is deliberate: /magic-link
+        // answers identically whether or not the address has an account, so it cannot be used to
+        // enumerate users. Correct — but it had no counterweight. A farmer on a new phone who
+        // typed ali@gmial.com got a real email, a real link, and a real EMPTY account, and the
+        // only reasonable conclusion available to them was that we had lost their farm.
+        //
+        // This leaks nothing, because it runs AFTER authentication: the session already exists and
+        // is already allowed to know its own orgs. An account with none is brand new, and saying
+        // so — with the address it was opened under — is the one moment that can catch the typo.
+        try {
+          const orgs = await api.get<unknown[]>("/api/orgs");
+          if (Array.isArray(orgs) && orgs.length === 0) {
+            setFreshEmail(user.email || "");
+            return;
+          }
+        } catch {
+          /* cannot tell → say nothing and continue; a false alarm here would be worse */
+        }
         window.location.assign(APP_HOME);
       } catch (err) {
         // A REJECTED token and an UNREACHABLE server are not the same event, and only one of them
@@ -109,6 +129,27 @@ export default function MagicLinkPage() {
             >
               {t("common.retry")}
             </button>
+          </>
+        ) : freshEmail !== null ? (
+          <>
+            {/* A brand-new account. Almost always genuine — but if it is a mistyped address, this
+                is the only screen that can catch it, and the cost of getting it wrong is the
+                farmer concluding we deleted their fields. */}
+            <h1 className="mb-3 text-xl font-bold text-slate-900">{t("auth.magic.freshTitle")}</h1>
+            <p className="text-sm text-slate-600">{t("auth.magic.freshBody")}</p>
+            <p className="mt-2 break-all rounded-lg bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-800">
+              {freshEmail}
+            </p>
+            <button
+              type="button"
+              className="btn-primary mt-4 w-full"
+              onClick={() => window.location.assign(APP_HOME)}
+            >
+              {t("auth.magic.freshContinue")}
+            </button>
+            <Link href="/login" className="mt-3 block text-center text-sm text-emerald-700 hover:underline">
+              {t("auth.magic.freshWrongEmail")}
+            </Link>
           </>
         ) : failed ? (
           <>
