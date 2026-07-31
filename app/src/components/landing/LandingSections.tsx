@@ -516,11 +516,26 @@ export function Testimonials() {
       n: "Gülnar Ə.",
       r: t("mkt.sections.testi3Role"),
     },
+    {
+      q: t("mkt.sections.testi4Quote"),
+      n: "Zsolt K.",
+      r: t("mkt.sections.testi4Role"),
+    },
+    {
+      q: t("mkt.sections.testi5Quote"),
+      n: "Aigerim S.",
+      r: t("mkt.sections.testi5Role"),
+    },
   ];
 
   return (
     <Wrap className="py-14 sm:py-16">
       <SectionHead title={t("mkt.sections.testiTitle")} />
+      {/* Five voices, not three, and not all Azerbaijani. The product sells in eight
+          languages; a page whose every farmer is from one country tells a Hungarian or a
+          Kazakh reader that it is not for them. The "sample scenarios" note below STAYS —
+          these are illustrations until the pilot produces real ones, and dressing them up
+          as testimonials would be the one dishonesty this whole review exists to remove. */}
       <div className="grid gap-4 min-[920px]:grid-cols-3">
         {TESTIS.map((t2) => (
           <div key={t2.n} className="lp-card p-6">

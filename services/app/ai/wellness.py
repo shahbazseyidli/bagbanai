@@ -135,19 +135,41 @@ def _baseline_score(latest: float, p10: float, p50: float, p90: float) -> float:
     return 95.0
 
 
-async def _vegetation(conn, field_id: str, crop_type: Optional[str]) -> Optional[dict]:
-    """NDVI level (crop bands) blended with the field's own weekly baseline, nudged by the trend."""
+async def _vegetation(conn, field_id: str, crop_type: Optional[str],
+                      crop_cycle: Optional[str] = None) -> Optional[dict]:
+    """NDVI level (crop bands) blended with the field's own weekly baseline, nudged by the trend.
+
+    ORCHARDS DO NOT GET THE MEAN. In a hazelnut, pomegranate, vine, apple or olive block the
+    polygon's MEAN NDVI averages the tree canopy together with the bare soil between the rows, so
+    the absolute number describes the planting geometry as much as the crop — and those five are
+    Azerbaijan's headline crops. The competitor whose corpus this came from confirmed the problem
+    in 2022 and never fixed it, leaving every orchard, vineyard and olive grove quietly scored
+    against a number that meant something else.
+
+    We do not need a raster change to fix it: zonal_stats has always computed p10/p50/p90 and
+    persist_scene has always stored them, for every scene, every index, both sensors, since the
+    first migration. p90 is the canopy-dominated tail — the same quantity inter-row masking would
+    try to isolate — and it costs one column swap instead of reprocessing the archive.
+
+    `perennial` comes from field_metadata.crop_cycle, which the wizard has always asked for as its
+    FIRST question and which, until now, exactly one module read (ai/fertilizer.py).
+    """
+    perennial = (crop_cycle or "").strip().lower() == "perennial"
+    # p90 for a perennial, mean otherwise — chosen in SQL so the baseline below can be read on the
+    # same basis without a second round trip.
+    stat = "p90" if perennial else "mean"
     row = await conn.fetchrow(
-        """select mean, acquired_at, sensor, extract(week from acquired_at)::int as wk
+        f"""select {stat} as val, mean, acquired_at, sensor,
+                   extract(week from acquired_at)::int as wk
            from public.index_stats
-           where field_id=$1::uuid and index_name='NDVI' and mean is not null
+           where field_id=$1::uuid and index_name='NDVI' and {stat} is not null
              and acquired_at >= current_date - $2::int
            order by acquired_at desc, (case when sensor='S2' then 0 else 1 end)
            limit 1""", field_id, _FRESH_DAYS)
-    if not row or row["mean"] is None:
+    if not row or row["val"] is None:
         return None
 
-    latest = float(row["mean"])
+    latest = float(row["val"])
     family = _sensor_family(row["sensor"])
     edges, calibrated = await _ndvi_edges(conn, crop_type)
     level = _band_score(latest, edges)
@@ -205,6 +227,11 @@ async def _vegetation(conn, field_id: str, crop_type: Optional[str]) -> Optional
                   "trend": trend, "delta": delta, "calibrated": calibrated,
                   "baseline": baseline_pos,
                   "reason_code": "veg",
+                  # The reader is TOLD which number this is. An orchard is scored on p90 rather
+                  # than the mean (see the docstring), and a score that silently changed basis
+                  # would be a number the farmer cannot reconcile with the chart in front of them.
+                  # The frontend appends one clause when this is set; nothing else changes.
+                  "perennial": perennial,
                   "reason_params": {"ndvi": f"{latest:.2f}", "crop": crop_type},
                   "measured_on": row["acquired_at"].isoformat() if row["acquired_at"] else None},
     }
@@ -449,7 +476,7 @@ async def compute_wellness(conn, field_id: str, *, store: bool = True) -> dict[s
     Returns `{"available": False, "missing": [...]}` when NO component had an input — the platform
     says "I cannot judge this yet" rather than inventing a number."""
     frow = await conn.fetchrow(
-        """select f.org_id, m.crop_type from public.fields f
+        """select f.org_id, m.crop_type, m.crop_cycle from public.fields f
            left join public.field_metadata m on m.field_id=f.id
            where f.id=$1::uuid and f.deleted_at is null""", field_id)
     if not frow:
@@ -458,9 +485,10 @@ async def compute_wellness(conn, field_id: str, *, store: bool = True) -> dict[s
                 "components": {}, "headline": "Sahə tapılmadı.",
                 "headline_code": "headline.fieldNotFound", "headline_params": {}}
     org_id, crop_type = str(frow["org_id"]), frow["crop_type"]
+    crop_cycle = frow["crop_cycle"]
 
     raw: dict[str, Optional[dict]] = {
-        "ndvi": await _vegetation(conn, field_id, crop_type),
+        "ndvi": await _vegetation(conn, field_id, crop_type, crop_cycle),
         "water": await _water(conn, field_id),
         "pest": await _pest(conn, field_id, crop_type),
         "gdd": await _gdd(conn, field_id),

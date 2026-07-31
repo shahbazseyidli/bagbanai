@@ -105,6 +105,14 @@ export function NoteRow({
               {categoryLabel(note.category)}
             </span>
             <SeverityScale value={note.severity} />
+            {/* WHO WROTE IT. Stored since 0005, returned as a bare UUID, rendered nowhere — so a
+                shared organization produced a note log in which nobody could tell who had written
+                what. Absent when the row predates the author join or the writer is unknown. */}
+            {note.author && (
+              <span className="rounded-full border border-line bg-paper px-2 py-0.5 text-[11.5px] font-medium text-ink-soft">
+                {note.author}
+              </span>
+            )}
             {resolved && (
               <span className="rounded-full border border-line bg-paper px-2 py-0.5 text-[11.5px] font-medium text-ink-soft">
                 {t("app.field.scouting.resolved")}

@@ -84,7 +84,7 @@ async def build_field_context(conn, field_id: str, lang: str | None = None) -> d
     is quoted back to the model — see the `prior` query below for why that matters."""
     field = await conn.fetchrow(
         """select f.name, round(f.area_ha::numeric,2) as area_ha,
-                  m.crop_type, m.variety, m.planting_date, m.expected_harvest,
+                  m.crop_type, m.crop_cycle, m.variety, m.planting_date, m.expected_harvest,
                   m.soil_type, m.soil_ph, m.irrigation_method, m.irrigation_available,
                   m.growth_stage, m.previous_crop, m.notes
            from public.fields f

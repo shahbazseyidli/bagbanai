@@ -91,7 +91,7 @@ async def _issue_otp(conn, user_id: str, email: str, locale: str | None = None) 
 
 
 # E13 — the landing quiz is anonymous input, so it is whitelisted before it touches the database.
-_ONB_STR = ("crop", "country", "region", "challenge", "completed_at")
+_ONB_STR = ("crop", "crop_other", "country", "region", "challenge", "completed_at")
 
 # A traced boundary is a handful of vertices. This cap is not a UX limit — the landing simplifies to
 # ~24 points and a freehand lasso to a few hundred — it is the bound that stops an anonymous caller

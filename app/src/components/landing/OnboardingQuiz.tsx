@@ -217,9 +217,25 @@ export default function OnboardingQuiz() {
                 emoji="➕"
                 label={t("mkt.quiz.cropOther")}
                 selected={a.crop === "other"}
-                onClick={() => update({ crop: "other" }, true)}
+                onClick={() => update({ crop: "other" }, false)}
               />
             </div>
+            {/* THE ONE PLACE THE CROP LIST WAS STILL A WALL. "Other" was a bare chip: picking it
+                stored the literal string "other", which the field wizard then explicitly discarded,
+                so a farmer growing something off our 12-item shortlist answered the question and
+                had their answer thrown away. The research corpus counts 30+ crops that stopped a
+                signup this way at the competitor. Now they can just type it, it rides into the
+                account with the rest of the quiz, and it prefills their first field. */}
+            {a.crop === "other" && (
+              <input
+                className="quiz-other-input mt-3 w-full rounded-xl border border-line-2 bg-panel px-3 py-2.5 text-[15px]"
+                autoFocus
+                value={a.crop_other ?? ""}
+                onChange={(e) => update({ crop_other: e.target.value }, false)}
+                onBlur={() => { if (a.crop_other?.trim()) setStep((st) => Math.min(st + 1, STEPS)); }}
+                placeholder={t("mkt.quiz.cropOtherPlaceholder")}
+              />
+            )}
           </div>
         )}
 

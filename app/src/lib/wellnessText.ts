@@ -134,6 +134,10 @@ export function wellnessReason(
       const dir = d > 0.03 ? "up" : d < -0.03 ? "down" : "flat";
       s += tf(`app.wl.veg.trend.${dir}`);
     }
+    // An orchard is scored on the canopy-dominated tail (p90), not the polygon mean, because the
+    // mean averages the trees with the bare soil between the rows. Saying so is not a footnote:
+    // without it the farmer sees a score they cannot reconcile with the chart beside it.
+    if (extra?.perennial) s += tf("app.wl.veg.perennialBasis");
     return `${s}.`;
   }
 

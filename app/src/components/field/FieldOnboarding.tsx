@@ -161,7 +161,7 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
     let active = true;
     (async () => {
       try {
-        const r = await api.get<{ onboarding?: { crop?: string; region?: string; country?: string } }>(
+        const r = await api.get<{ onboarding?: { crop?: string; crop_other?: string; region?: string; country?: string } }>(
           "/api/auth/onboarding",
         );
         const onb = r?.onboarding;
@@ -170,9 +170,11 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
         // the whole point: asking the question and then ignoring the answer was the old behaviour.
         if (onb.country && COUNTRY_CODES.includes(onb.country)) setCountry(onb.country);
         const patch: Partial<FieldMetadata> = {};
-        if (onb.crop && onb.crop !== "other" && !data.crop_type) {
-          patch.crop_type = onb.crop;
-          const cyc = CROP_CYCLE[onb.crop];
+        // "other" is no longer a dead end: the visitor typed their crop and it rides in crop_other.
+        const quizCrop = onb.crop === "other" ? (onb.crop_other || "").trim() : onb.crop;
+        if (quizCrop && !data.crop_type) {
+          patch.crop_type = quizCrop;
+          const cyc = CROP_CYCLE[quizCrop];
           if (cyc && !data.crop_cycle) patch.crop_cycle = cyc;
         }
         if (onb.region && !data.region) patch.region = onb.region;

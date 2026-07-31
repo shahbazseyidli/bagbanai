@@ -5,7 +5,7 @@ import maplibregl from "maplibre-gl";
 import { Layers, Search, Ruler, Mountain, X } from "lucide-react";
 import { length as turfLength, area as turfArea, simplify as turfSimplify } from "@turf/turf";
 import type { MapPin, Polygon } from "@/lib/types";
-import { t, getLocale } from "@/lib/i18n";
+import { t, tf, getLocale } from "@/lib/i18n";
 import { formatArea, useAreaUnit } from "@/lib/units";
 import { useMapReady } from "@/lib/useMapReady";
 import {
@@ -187,12 +187,20 @@ function SearchControl({ onPick }: { onPick: (lng: number, lat: number, bbox?: [
 }
 
 // Live coordinate + attribution readout (bottom-right, FarmerApp-style).
-function CoordBar({ coord, attribution }: { coord: string; attribution: string }) {
+//
+// `layerNote` names the DATE OF THE DATA ON TOP of the basemap. The most-repeated misunderstanding
+// in the research corpus is a farmer seeing a 2-4 year old aerial basemap, concluding the whole
+// product is stale, and leaving — the competitor's support wrote the same 100-word explanation at
+// least five times. Two dates side by side end the confusion in one line: the photo underneath is
+// old, the measurement on top is from this week.
+function CoordBar({ coord, attribution, layerNote }:
+  { coord: string; attribution: string; layerNote?: string | null }) {
   return (
-    <div className="pointer-events-none absolute bottom-2 right-2 z-10 max-w-[70%] truncate rounded bg-white/85 px-2 py-0.5 text-[10px] text-slate-600 shadow">
+    <div className="pointer-events-none absolute bottom-2 right-2 z-10 max-w-[80%] truncate rounded bg-white/85 px-2 py-0.5 text-[10px] text-slate-600 shadow">
       {coord && <span className="tabular-nums">{coord}</span>}
       {coord && " · "}
       <span>{attribution}</span>
+      {layerNote && <span> · {layerNote}</span>}
     </div>
   );
 }
@@ -502,6 +510,7 @@ export function DrawMap({ onPolygon, importedPolygon, importSeq = 0, detectMode 
 export function DisplayMap({
   polygon,
   rasterUrl,
+  layerDate,
   rasterOpacity = 0.85,
   heightClass = "h-64",
   fill = false,
@@ -529,6 +538,9 @@ export function DisplayMap({
   onCenterChange?: (lng: number, lat: number) => void;
   /** Imperative recentre. Bump `seq` to re-apply the same coordinates. */
   flyTo?: { lng: number; lat: number; seq: number } | null;
+  /** Date of the index layer drawn on top, shown beside the basemap credit so the basemap's own
+   *  age can never be mistaken for the product's. */
+  layerDate?: string | null;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -915,7 +927,7 @@ export function DisplayMap({
           there: a filled map is a viewer for one known field, not a place finder. */}
       {!fill && <SearchControl onPick={flyToPick} />}
       <BasemapControl current={basemap} onChange={changeBasemap} hillshade={hillshade} onToggleHillshade={toggleHillshade} />
-      <CoordBar coord={coord} attribution={basemap.attribution} />
+      <CoordBar coord={coord} attribution={basemap.attribution} layerNote={layerDate ? tf("mkt.map.layerDate", { date: layerDate }) : null} />
     </div>
   );
 }

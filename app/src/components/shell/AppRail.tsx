@@ -157,11 +157,18 @@ const ROW_EXPANDED =
 const ROW_ACTIVE = "bg-mint-soft text-grass-deep";
 const ROW_IDLE = "text-ink-soft hover:bg-paper-2 hover:text-ink";
 
-const LABEL_COMPACT = "w-full truncate px-0.5 text-center";
+// TWO LINES, not one truncated one. The collapsed rail is 56px wide, which fits the Azerbaijani
+// labels and clips almost every other language: Russian rendered "Сообщ…" and "Уведо…", Hungarian
+// "Kataló…" and "Közös…". Wrapping costs nothing — the row is already min-h-[var(--tap)] and an
+// icon plus two 10px lines fits inside it — and it keeps overflow:hidden, which is what let the
+// label shrink inside the flex row in the first place. The title attribute still carries the full
+// name for the rare word that needs three lines.
+const LABEL_COMPACT = "w-full line-clamp-2 px-0.5 text-center leading-[1.15]";
 // xl:w-auto matters: at xl the row is a flex ROW, and a `width:100%` label beside the icon would
-// only fit by shrinking — which works (truncate's overflow:hidden zeroes the automatic minimum) but
-// reads as an accident. Auto width is what the layout actually wants there.
-const LABEL_EXPANDED = "w-full truncate px-0.5 text-center xl:w-auto xl:px-0 xl:text-left";
+// only fit by shrinking — which works (the clamp's overflow:hidden zeroes the automatic minimum)
+// but reads as an accident. Auto width is what the layout actually wants there, and at that size
+// the label is on one line anyway.
+const LABEL_EXPANDED = "w-full line-clamp-2 px-0.5 text-center leading-[1.15] xl:w-auto xl:truncate xl:px-0 xl:text-left xl:leading-5";
 
 const LIST_COMPACT = "flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto px-2 py-3";
 const LIST_EXPANDED =

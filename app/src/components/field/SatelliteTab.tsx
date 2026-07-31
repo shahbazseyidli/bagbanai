@@ -25,7 +25,7 @@ import {
 import { GitCompareArrows, Cloud, Download } from "lucide-react";
 import { api } from "@/lib/api";
 import { downloadText, seriesToCSV } from "@/lib/geoio";
-import { t } from "@/lib/i18n";
+import { t, tf } from "@/lib/i18n";
 import { formatArea, useAreaUnit } from "@/lib/units";
 import { DisplayMap, CompareMap } from "@/components/FieldMap";
 import { Placeholder, Spinner } from "@/components/ui";
@@ -706,11 +706,23 @@ export default function SatelliteTab({
     </div>
   ) : null;
 
+  // SAY HOW MANY PIXELS, not just "small". The banner told a farmer their field was "very small"
+  // and the result "approximate" — true, but unfalsifiable, and it named no limit they could
+  // reason about. At 10 m a hectare is 100 pixels, so the honest version is arithmetic the farmer
+  // can check against their own map. This is the whole reason the research document lists small
+  // parcels as existential for Azerbaijan: the average holding here is well under the 3 ha where
+  // 10 m imagery is comfortable.
+  const nominalPixels = field.area_ha != null ? Math.round(field.area_ha * 100) : null;
   const smallBannerNode = showSmallBanner ? (
     <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
       {smallField
         ? `${t("app.field.satelliteTab.smallFieldPre")}${formatArea(field.area_ha, areaUnit)}${t("app.field.satelliteTab.smallFieldPost")}`
         : `${t("app.field.satelliteTab.smallHlsPre")}${formatArea(field.area_ha, areaUnit)}${t("app.field.satelliteTab.smallHlsPost")}`}
+      {nominalPixels != null && (
+        <span className="mt-1 block text-[12.5px] opacity-90">
+          {tf("app.field.satelliteTab.pixelCount", { n: nominalPixels })}
+        </span>
+      )}
     </div>
   ) : null;
 

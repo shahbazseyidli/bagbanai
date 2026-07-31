@@ -4,6 +4,7 @@ from typing import Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from ..db import connection
+from ..display import public_display_name
 from ..deps import (
     ROLES_ADMIN, ROLES_WORKER, get_current_user_id, require_member, require_role, safe_uuid,
 )
@@ -58,6 +59,15 @@ def _row_out(r: Any) -> dict:
     d["id"] = str(d["id"])
     d["field_id"] = str(d["field_id"])
     d["created_by"] = str(d["created_by"]) if d["created_by"] else None
+    # WHO WROTE THIS. created_by has been stored since 0005 and returned as a bare UUID that no
+    # screen rendered, so two people sharing an organization produced a note log in which nobody
+    # could tell who had written what — the exact gap the research corpus says was reported against
+    # the competitor within ten days of their multi-user launch. The name goes through
+    # public_display_name so a farmer who turned off name visibility (0045) stays an alias here
+    # too; the raw columns that decision needs are dropped rather than shipped to the client.
+    d["author"] = public_display_name(
+        d.pop("full_name", None), d.pop("author_role", None),
+        d.pop("name_public", None), d.get("created_by")) if d.get("created_by") else None
     d["severity"] = _severity_out(d["severity"])
     d["color"] = _color(d["color"])
     d["status"] = d["status"] or "open"
@@ -130,10 +140,13 @@ async def list_obs(
             # rendered. Resolved notes are returned TOO — "resolved is not deleted" only means
             # something if the row still arrives; the filter belongs to the client, which fades them.
             rows = await conn.fetch(
-                """select id, field_id, category, severity, note, photos, color, status,
-                          st_y(geom) as lat, st_x(geom) as lon,
-                          created_by, observed_at, resolved_at
-                   from public.scouting_observations where field_id=$1::uuid order by observed_at desc""",
+                """select o.id, o.field_id, o.category, o.severity, o.note, o.photos, o.color,
+                          o.status, st_y(o.geom) as lat, st_x(o.geom) as lon,
+                          o.created_by, o.observed_at, o.resolved_at,
+                          u.full_name, u.role as author_role, u.name_public
+                   from public.scouting_observations o
+                   left join public.users u on u.id = o.created_by
+                   where o.field_id=$1::uuid order by o.observed_at desc""",
                 field_id)
         return [_row_out(r) for r in rows]
 
@@ -154,9 +167,11 @@ async def list_obs(
             """select o.id, o.field_id, f.name as field_name, o.category, o.severity, o.note,
                       o.photos, o.color, o.status,
                       st_y(o.geom) as lat, st_x(o.geom) as lon,
-                      o.created_by, o.observed_at, o.resolved_at
+                      o.created_by, o.observed_at, o.resolved_at,
+                      u.full_name, u.role as author_role, u.name_public
                from public.scouting_observations o
                join public.fields f on f.id = o.field_id
+               left join public.users u on u.id = o.created_by
                where o.org_id=$1::uuid and f.deleted_at is null
                order by o.observed_at desc, o.id desc
                limit $2""",

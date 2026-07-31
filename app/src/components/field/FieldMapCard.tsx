@@ -377,6 +377,7 @@ export default function FieldMapCard({
           <DisplayMap
             polygon={field.geom}
             rasterUrl={active?.tile_url ?? null}
+            layerDate={active?.date ?? null}
             fill
             pins={pins}
             onPinClick={onPinClick}

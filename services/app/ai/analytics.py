@@ -30,17 +30,32 @@ MIN_HISTORY = 4  # need ≥4 observations in a week before its baseline is trust
 ANOMALY_MARGIN = 0.05
 
 
+async def _field_stat(conn, field_id: str) -> str:
+    """Which per-scene statistic represents THIS field: p90 for a perennial, mean otherwise.
+
+    BASIS CONSISTENCY IS THE WHOLE POINT. ai/wellness.py scores an orchard on p90 (the mean
+    averages canopy with the bare soil between rows — see the docstring there). If the baseline
+    underneath it were still percentiles OF THE MEAN, every orchard would be compared against a
+    band built from a different quantity and would read as permanently, spuriously above its own
+    norm. The statistic is chosen once, here, and both the baseline and the anomaly test use it.
+    """
+    cycle = await conn.fetchval(
+        "select crop_cycle from public.field_metadata where field_id=$1::uuid", field_id)
+    return "p90" if (cycle or "").strip().lower() == "perennial" else "mean"
+
+
 async def refresh_baseline(conn, field_id: str) -> dict:
     """Recompute the per-week percentile baseline for one field (Sentinel-2). Idempotent upsert."""
+    stat = await _field_stat(conn, field_id)
     res = await conn.execute(
-        """insert into public.field_index_baseline (field_id, index_name, week, p10, p50, p90, n)
+        f"""insert into public.field_index_baseline (field_id, index_name, week, p10, p50, p90, n)
            select field_id, index_name, extract(week from acquired_at)::int as week,
-                  percentile_cont(0.1) within group (order by mean),
-                  percentile_cont(0.5) within group (order by mean),
-                  percentile_cont(0.9) within group (order by mean),
+                  percentile_cont(0.1) within group (order by {stat}),
+                  percentile_cont(0.5) within group (order by {stat}),
+                  percentile_cont(0.9) within group (order by {stat}),
                   count(*)
            from public.index_stats
-           where field_id=$1::uuid and sensor='S2' and mean is not null
+           where field_id=$1::uuid and sensor='S2' and {stat} is not null
              and index_name = any($2::text[])
            group by field_id, index_name, extract(week from acquired_at)::int
            on conflict (field_id, index_name, week) do update set
@@ -52,10 +67,11 @@ async def refresh_baseline(conn, field_id: str) -> dict:
 async def anomaly_for(conn, field_id: str, index_name: str = "NDVI") -> dict | None:
     """Is the latest S2 reading anomalous vs the field's own baseline for that week? None when
     there isn't enough history to judge."""
+    stat = await _field_stat(conn, field_id)
     row = await conn.fetchrow(
-        """select mean, extract(week from acquired_at)::int as wk
+        f"""select {stat} as val, extract(week from acquired_at)::int as wk
            from public.index_stats
-           where field_id=$1::uuid and index_name=$2 and sensor='S2' and mean is not null
+           where field_id=$1::uuid and index_name=$2 and sensor='S2' and {stat} is not null
            order by acquired_at desc limit 1""", field_id, index_name)
     if not row:
         return None
@@ -65,7 +81,7 @@ async def anomaly_for(conn, field_id: str, index_name: str = "NDVI") -> dict | N
         field_id, index_name, row["wk"])
     if not base or base["n"] < MIN_HISTORY:
         return None
-    latest, p10, p50, p90 = float(row["mean"]), float(base["p10"]), float(base["p50"]), float(base["p90"])
+    latest, p10, p50, p90 = float(row["val"]), float(base["p10"]), float(base["p50"]), float(base["p90"])
     # Below the band by MORE than the noise floor — see ANOMALY_MARGIN. `is_anomaly: False` is
     # still returned for a reading that merely dips under p10, so the passport and the charts keep
     # showing where it sits; what changes is that it no longer fires an alert.

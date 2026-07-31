@@ -184,6 +184,9 @@ export interface Scouting {
   /** open | resolved. */
   status?: string | null;
   created_by?: string | null;
+  /** Display name of whoever wrote it — an alias when that farmer turned off name
+   *  visibility (0045). Resolved server-side; the client never sees the raw identity. */
+  author?: string | null;
   observed_at?: string;
   resolved_at?: string | null;
 }

@@ -19,6 +19,10 @@ export interface QuizAnswers {
   region: string;
   challenge: string;
   needs: string[];
+  /** What they typed when the shortlist did not contain their crop. Carried into the account
+   *  with the rest of the quiz — picking "other" used to store the literal string and the
+   *  field wizard then discarded it, so the answer was collected and thrown away. */
+  crop_other?: string;
   completed_at?: string;
   /** The boundary the visitor traced on the landing map before they had an account.
    *  It rides in THIS blob, not in its own localStorage key, for one reason: this blob is carried

@@ -81,6 +81,10 @@ SYSTEM = (
     "  fenoloji mərhələ və zona zərərvericilərini nəzərə al. Passport boşdursa peyk datasına əsaslan.\n"
     "- Konkret rəqəm (doza, gün) yalnız passport/dataya əsaslanırsa yaz; yoxsa ümumi tövsiyə ver.\n"
     "- Qısa, aydın, Azərbaycan dilində yaz. Fermerə birbaşa müraciət et.\n"
+    "- ÇOXİLLİK SAHƏ (crop_cycle='perennial' — bağ, plantasiya, üzümlük, zeytunluq): poliqonun "
+    "  ORTA NDVI-si ağac çətiri ilə sıra-arası çılpaq torpağı birlikdə ortalayır, ona görə MÜTLƏQ "
+    "  rəqəm əkin həndəsəsindən asılıdır. Belə sahədə TRENDƏ və sahənin öz tarixçəsinə əsaslan, "
+    "  mütləq həddi başqa sahə ilə müqayisə etmə.\n"
     "- Risk şiddəti yalnız: aşağı, orta, yüksək."
 )
 
