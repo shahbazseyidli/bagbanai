@@ -2414,7 +2414,7 @@ export const it: Dict = {
   "mkt.meta.termsDesc": "Che cosa promette la piattaforma e che cosa no: il consiglio dell'IA è supporto alle decisioni, non una garanzia agronomica. Pacchetti, responsabilità e proprietà dei dati.",
   "mkt.demo.eyebrow": "CAMPO DIMOSTRATIVO",
   "mkt.demo.title": "Ecco come lavora Agradex su un campo vero",
-  "mkt.demo.subtitle": "Il campo qui sotto non è un mockup: immagini satellitari, meteo e analisi si aggiornano ogni giorno. Fai il tour, poi imposta lo stesso per la tua terra.",
+  "mkt.demo.subtitle": "Il campo qui sotto non è un mock-up: appartiene a un agricoltore vero e i dati satellitari, meteo e di analisi sono reali. Si aggiorna quando il satellite riesce a vedere senza nuvole. Fai il tour, poi imposta lo stesso per la tua terra.",
   "mkt.demo.readOnlyBadge": "Sola lettura",
   "mkt.demo.startTour": "Avvia il tour",
   "mkt.demo.replayTour": "Rivedi il tour",

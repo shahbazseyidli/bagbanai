@@ -2413,7 +2413,7 @@ export const tr: Dict = {
   "mkt.meta.termsDesc": "Platform neyi vaat eder, neyi etmez: yapay zekâ tavsiyesi karar desteğidir, agronomik garanti değil. Paketler, sorumluluk ve verilerin kime ait olduğu.",
   "mkt.demo.eyebrow": "ÖRNEK TARLA",
   "mkt.demo.title": "Agradex gerçek bir tarlada böyle çalışıyor",
-  "mkt.demo.subtitle": "Aşağıdaki tarla bir maket değil: uydu görüntüleri, hava durumu ve analiz her gün yenileniyor. Tura çıkın, sonra aynısını kendi tarlanız için kurun.",
+  "mkt.demo.subtitle": "Aşağıdaki tarla bir maket değil — gerçek bir çiftçinin tarlası ve uydu, hava, analiz verileri canlı. Uydu bulutsuz bir görüntü aldıkça yenilenir. Tura başlayın, sonra aynısını kendi tarlanız için kurun.",
   "mkt.demo.readOnlyBadge": "Yalnızca görüntüleme",
   "mkt.demo.startTour": "Tura başla",
   "mkt.demo.replayTour": "Turu tekrar göster",

@@ -2499,7 +2499,7 @@ export const az = {
   "mkt.meta.termsDesc": "Platforma nə vəd edir, nə vəd etmir: AI məsləhəti qərar dəstəyidir, aqronomik zəmanət deyil. Paketlər, məsuliyyət və məlumatın kimə aid olması.",
   "mkt.demo.eyebrow": "NÜMUNƏ SAHƏ",
   "mkt.demo.title": "Agradex real sahədə belə işləyir",
-  "mkt.demo.subtitle": "Aşağıdakı sahə uydurma deyil — peyk şəkilləri, hava məlumatı və analiz hər gün yenilənir. Gəzintiyə başlayın, sonra eynisini öz sahənizdə qurun.",
+  "mkt.demo.subtitle": "Aşağıdakı sahə uydurma deyil — real fermerin sahəsidir və peyk, hava, analiz datası canlıdır. Peyk yeni buludsuz görüntü çəkdikcə yenilənir. Gəzintiyə başlayın, sonra eynisini öz sahənizdə qurun.",
   "mkt.demo.readOnlyBadge": "Yalnız baxış üçün",
   "mkt.demo.startTour": "Turu başlat",
   "mkt.demo.replayTour": "Turu təkrar göstər",

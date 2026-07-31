@@ -2414,7 +2414,7 @@ export const hu: Dict = {
   "mkt.meta.termsDesc": "Mit ígér a platform és mit nem: az MI-tanács döntéstámogatás, nem agronómiai garancia. Csomagok, felelősség és az adatok tulajdonjoga.",
   "mkt.demo.eyebrow": "BEMUTATÓ TÁBLA",
   "mkt.demo.title": "Így dolgozik az Agradex egy valódi táblán",
-  "mkt.demo.subtitle": "Az alábbi tábla nem makett: a műholdképek, az időjárás és az elemzés naponta frissül. Járja végig a bemutatót, majd állítsa be ugyanezt a saját földjére.",
+  "mkt.demo.subtitle": "Az alábbi tábla nem makett — egy valódi gazdálkodóé, és a műhold-, időjárás- és elemzési adatok élők. Akkor frissül, amikor a műhold felhőmentes felvételt készít. Járja végig a túrát, majd állítsa be ugyanezt a saját földjére.",
   "mkt.demo.readOnlyBadge": "Csak megtekintés",
   "mkt.demo.startTour": "Bemutató indítása",
   "mkt.demo.replayTour": "Bemutató újra",

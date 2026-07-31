@@ -2416,7 +2416,7 @@ export const de: Dict = {
   "mkt.meta.termsDesc": "Was die Plattform verspricht und was nicht: KI-Empfehlungen sind Entscheidungshilfe, keine agronomische Garantie. Pakete, Haftung und Dateneigentum.",
   "mkt.demo.eyebrow": "BEISPIELFELD",
   "mkt.demo.title": "So arbeitet Agradex auf einem echten Feld",
-  "mkt.demo.subtitle": "Das Feld unten ist kein Modell: Satellitenbilder, Wetter und Analyse werden täglich aktualisiert. Machen Sie die Tour und richten Sie dasselbe für Ihr eigenes Land ein.",
+  "mkt.demo.subtitle": "Das Feld unten ist kein Mock-up — es gehört einem echten Landwirt, und Satellit, Wetter und Analyse sind Live-Daten. Es aktualisiert sich, sobald der Satellit freie Sicht hat. Machen Sie die Tour und richten Sie dann dasselbe für Ihr eigenes Land ein.",
   "mkt.demo.readOnlyBadge": "Nur ansehen",
   "mkt.demo.startTour": "Tour starten",
   "mkt.demo.replayTour": "Tour erneut zeigen",

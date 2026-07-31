@@ -328,10 +328,12 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
       }
       void fetchGeo(poly);
     }
-    if (step === 2 && !(data.crop_type && data.crop_type.trim())) {
-      setError(t("meta.cropRequired"));
-      return;
-    }
+    // NO CROP GATE HERE, deliberately. POST /api/fields has never required a crop — FieldIn is
+    // farm_id + geometry + an optional name — and the metadata PUT below is already best-effort in
+    // a try/catch. The wall was purely client-side, and it is the exact wall the OneSoil corpus
+    // describes: a farmer whose crop is not in the list (or who simply does not want to answer
+    // yet) cannot create their first field at all. MetadataNudge and the completeness ranking
+    // exist precisely to ask for this later, on a screen that already has their field on it.
     setStep((s) => Math.min(4, s + 1));
   }
 
@@ -363,12 +365,6 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
       setStep(1);
       return;
     }
-    if (!(data.crop_type && data.crop_type.trim())) {
-      setStep(2);
-      setError(t("meta.cropRequired"));
-      return;
-    }
-
     setBusy(true);
     try {
       // A blank name is sent as "" on purpose: the server names the field and returns the stored
@@ -577,7 +573,7 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
             <CycleCards value={cycle} onChange={(v) => set("crop_cycle", v)} />
           </FormField>
 
-          <FormField label={t("meta.crop_type")} required>
+          <FormField label={t("meta.crop_type")}>
             <CropGrid
               cycle={cycle}
               value={data.crop_type || null}

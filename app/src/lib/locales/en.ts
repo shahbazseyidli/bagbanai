@@ -2439,7 +2439,7 @@ export const en: Dict = {
   "mkt.meta.termsDesc": "What the platform promises and what it does not: AI advice is decision support, not an agronomic guarantee. Packages, liability and who owns the data.",
   "mkt.demo.eyebrow": "DEMO FIELD",
   "mkt.demo.title": "This is how Agradex works on a real field",
-  "mkt.demo.subtitle": "The field below is not a mock-up — its satellite imagery, weather and analysis are updated every day. Take the tour, then set up the same thing for your own land.",
+  "mkt.demo.subtitle": "The field below is not a mock-up — it belongs to a real farmer, and its satellite, weather and analysis data are live. It refreshes whenever the satellite gets a clear look. Take the tour, then set up the same thing for your own land.",
   "mkt.demo.readOnlyBadge": "View only",
   "mkt.demo.startTour": "Start the tour",
   "mkt.demo.replayTour": "Show the tour again",

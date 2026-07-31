@@ -2415,7 +2415,7 @@ export const pl: Dict = {
   "mkt.meta.termsDesc": "Co platforma obiecuje, a czego nie: porada AI to wsparcie decyzji, a nie gwarancja agronomiczna. Pakiety, odpowiedzialność i własność danych.",
   "mkt.demo.eyebrow": "POLE DEMONSTRACYJNE",
   "mkt.demo.title": "Tak Agradex pracuje na prawdziwym polu",
-  "mkt.demo.subtitle": "Pole poniżej nie jest makietą: zdjęcia satelitarne, pogoda i analiza odświeżają się codziennie. Przejdź przewodnik, a potem ustaw to samo dla własnej ziemi.",
+  "mkt.demo.subtitle": "Pole poniżej to nie makieta — należy do prawdziwego rolnika, a dane satelitarne, pogodowe i analityczne są żywe. Odświeża się, gdy satelita złapie bezchmurny kadr. Przejdź przez tour, a potem ustaw to samo dla własnej ziemi.",
   "mkt.demo.readOnlyBadge": "Tylko podgląd",
   "mkt.demo.startTour": "Rozpocznij przewodnik",
   "mkt.demo.replayTour": "Pokaż przewodnik ponownie",
