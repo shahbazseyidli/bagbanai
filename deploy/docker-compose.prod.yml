@@ -85,9 +85,16 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       RASTER_DIR: /data/rasters
+      GDAL_CACHEMAX: "128"   # MB. Unbounded, GDAL sizes its block cache from host RAM.
     volumes:
       - ../services/geo_pipeline:/srv/geo_pipeline:ro   # live code (no rebuild per change)
       - ./data/rasters:/data/rasters:rw                 # clipped index COGs written per scene
+    # A BACKSTOP, not the fix. The fix is read.open_clipped() reading only the field's window;
+    # measured peak for a whole S2 granule (7 bands + SCL + 10 indices) is ~193 MB. Before it,
+    # rio.clip() materialised the full 10980x10980 band and the run hit ~3.4 GB — on a 3.8 GB
+    # box that was a GLOBAL oom-kill, so it took the host down rather than just itself, every
+    # night, for every field. This limit means a future regression dies alone and loudly.
+    mem_limit: 1g
     depends_on:
       db:
         condition: service_healthy

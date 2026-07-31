@@ -14,10 +14,22 @@ DAYS="${1:-120}"
 ids=$($COMPOSE exec -T db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "select id from public.fields")
 if [ -z "$ids" ]; then echo "no fields yet — nothing to process"; exit 0; fi
 
+total=0; failed=0
 for id in $ids; do
+  total=$((total + 1))
   echo "==> S2 pipeline for field $id (days_back=$DAYS)"
   # 4th arg 's2' → run_field_s2; track=0 → silent refresh (idempotent upserts, skip-if-exists COGs).
-  $COMPOSE --profile geo run --rm geo python -m geo_pipeline.pipeline "$id" "$DAYS" 0 s2 \
-    || echo "  ! field $id S2 failed, continuing"
+  if ! $COMPOSE --profile geo run --rm geo python -m geo_pipeline.pipeline "$id" "$DAYS" 0 s2; then
+    failed=$((failed + 1))
+    echo "  ! field $id S2 failed, continuing"
+  fi
 done
-echo "S2 run complete."
+
+# FAIL LOUDLY. Every field OOM-died here for days while this script kept printing "S2 run
+# complete." and exiting 0 — a green log over a refresh that wrote nothing. A non-zero exit is
+# what makes cron mail root, and the FAILED line is what makes `tail` tell the truth.
+if [ "$failed" -gt 0 ]; then
+  echo "S2 run FAILED for $failed/$total field(s)."
+  exit 1
+fi
+echo "S2 run complete — $total/$total field(s) OK."

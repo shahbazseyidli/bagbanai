@@ -19,14 +19,62 @@ def _reproject_geom(field_geojson: dict, dst_crs):
     return shp_transform(lambda x, y, z=None: transformer.transform(x, y), geom)
 
 
+def open_clipped(asset_href: str, field_geojson: dict) -> xr.DataArray:
+    """Read ONLY the field's window out of a (usually remote) COG, then mask it to the polygon.
+
+    THIS FUNCTION IS THE WHOLE REASON THE NIGHTLY REFRESH SURVIVES. The obvious spelling —
+    `rioxarray.open_rasterio(href).rio.clip(geom)` — materialises the ENTIRE raster before it
+    masks anything. A Sentinel-2 10 m band is 10980x10980, i.e. 482 MB as float32, and
+    process_granule_s2 holds seven of them plus SCL at once. That peaked near 3.4 GB, and on a
+    3.8 GB box the kernel OOM-killed the run for EVERY field, every night, while run-s2.sh
+    swallowed the failure and still printed "S2 run complete."
+
+    Measured on the live box, one 1.36 ha field, same granule (2026-07-31):
+
+        windowed read (this function)        170 MB peak    2.0 s
+        clip(from_disk=True), GDAL cache 64 MB      1424 MB peak   16.8 s
+        clip() as it was                     OOM-killed     >6 min
+
+    `from_disk=True` is NOT sufficient — it was tried and measured. Only a real window read is.
+    HLS survived on the same code path purely because 30 m bands are ~9x smaller (53 MB), which
+    is why the symptom looked S2-specific rather than like the shared bug it is.
+
+    segment.py has always read this way; this brings the pipeline in line with it. The polygon
+    clip still happens — on an array that is now a few kilobytes, so it costs nothing — because
+    a bounding-box window would leave out-of-polygon corner pixels in the zonal statistics.
+    """
+    import math
+
+    import rasterio
+    from rasterio.warp import transform_bounds
+    from rasterio.windows import Window, from_bounds
+
+    with rasterio.open(asset_href) as src:
+        left, bottom, right, top = transform_bounds("EPSG:4326", src.crs, *shape(field_geojson).bounds)
+        win = from_bounds(left, bottom, right, top, src.transform)
+        # Whole pixels, plus a one-pixel margin on every side so that rounding never clips an
+        # all_touched edge pixel that the polygon does in fact touch. boundless=True lets the
+        # window hang off the raster (a field on a tile edge) and fills those cells with nodata.
+        win = Window(math.floor(win.col_off) - 1, math.floor(win.row_off) - 1,
+                     math.ceil(win.width) + 2, math.ceil(win.height) + 2)
+        fill = src.nodata if src.nodata is not None else 0
+        arr = src.read(1, window=win, boundless=True, fill_value=fill)
+        transform, crs = src.window_transform(win), src.crs
+
+    # Pixel-CENTRE coordinates — what rioxarray expects; the affine gives the corner.
+    h, w = arr.shape
+    xs = transform.c + transform.a * (np.arange(w) + 0.5)
+    ys = transform.f + transform.e * (np.arange(h) + 0.5)
+    da = xr.DataArray(arr, dims=("y", "x"), coords={"y": ys, "x": xs})
+    da.rio.write_crs(crs, inplace=True)
+    da.rio.write_transform(transform, inplace=True)
+    geom = _reproject_geom(field_geojson, crs)
+    return da.rio.clip([geom.__geo_interface__], crs=crs, drop=True, all_touched=True)
+
+
 def read_window(asset_href: str, field_geojson: dict, fill: int, scale: float) -> xr.DataArray:
     """Open a COG, clip to the field window, apply fill→NaN and scale."""
-    da = rioxarray.open_rasterio(asset_href, masked=False, chunks=None)
-    if "band" in da.dims and da.sizes.get("band", 1) == 1:
-        da = da.squeeze("band", drop=True)
-    geom = _reproject_geom(field_geojson, da.rio.crs)
-    clipped = da.rio.clip([geom.__geo_interface__], crs="EPSG:4326"
-                          if False else da.rio.crs, drop=True, all_touched=True)
+    clipped = open_clipped(asset_href, field_geojson)
     arr = clipped.astype("float32")
     arr = arr.where(arr != fill)
     return arr * scale
@@ -51,11 +99,7 @@ def write_cog(da: xr.DataArray, path: str) -> None:
 
 
 def read_fmask(asset_href: str, field_geojson: dict) -> xr.DataArray:
-    da = rioxarray.open_rasterio(asset_href, masked=False)
-    if "band" in da.dims and da.sizes.get("band", 1) == 1:
-        da = da.squeeze("band", drop=True)
-    geom = _reproject_geom(field_geojson, da.rio.crs)
-    return da.rio.clip([geom.__geo_interface__], crs=da.rio.crs, drop=True, all_touched=True)
+    return open_clipped(asset_href, field_geojson)
 
 
 def apply_fmask(index_da: xr.DataArray, fmask_da: xr.DataArray) -> xr.DataArray:
@@ -104,11 +148,7 @@ def read_s2_band(asset_href: str, field_geojson: dict, ref: "xr.DataArray | None
 
     if resampling is None:
         resampling = Resampling.bilinear
-    da = rioxarray.open_rasterio(asset_href, masked=False, chunks=None)
-    if "band" in da.dims and da.sizes.get("band", 1) == 1:
-        da = da.squeeze("band", drop=True)
-    geom = _reproject_geom(field_geojson, da.rio.crs)
-    da = da.rio.clip([geom.__geo_interface__], crs=da.rio.crs, drop=True, all_touched=True)
+    da = open_clipped(asset_href, field_geojson)
     da = da.astype("float32").where(da != nodata)          # DN nodata → NaN before regrid
     da = da.rio.write_nodata(float("nan"))
     if ref is not None and da.shape != ref.shape:
@@ -119,11 +159,7 @@ def read_s2_band(asset_href: str, field_geojson: dict, ref: "xr.DataArray | None
 
 def read_scl(asset_href: str, field_geojson: dict) -> xr.DataArray:
     """Read the Scene Classification (SCL) band clipped to the field (integer classes, no scale)."""
-    da = rioxarray.open_rasterio(asset_href, masked=False)
-    if "band" in da.dims and da.sizes.get("band", 1) == 1:
-        da = da.squeeze("band", drop=True)
-    geom = _reproject_geom(field_geojson, da.rio.crs)
-    return da.rio.clip([geom.__geo_interface__], crs=da.rio.crs, drop=True, all_touched=True)
+    return open_clipped(asset_href, field_geojson)
 
 
 def apply_scl_mask(index_da: xr.DataArray, scl_da: xr.DataArray) -> xr.DataArray:
