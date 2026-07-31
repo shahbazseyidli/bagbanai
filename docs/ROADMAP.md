@@ -339,7 +339,16 @@ Tam plan və sübutlar: sessiya jurnalı. Aşağıda yalnız **status**.
   şərti yoxdur (`candidates: 0` — bu, `ANOMALY_MARGIN` düzəlişinin özünün işlədiyini göstərir).
   Yazma yolu koddan yoxlanılıb və konteynerdə map/helper canlı təsdiqlənib; ilk real alertdə
   `title_code` sütununu bir dəfə yoxlamaq qalır.
-- ⬜ **Ölkə kilidinin açılması (M)** — 5 yer + geolokasiya icazəsi (sahibin qərarı: açılsın)
+- ✅ **Ölkə kilidi AÇILDI — CANLIDIR** (`6bd02ed`). `regions.ts` tək ölkədən `QUIZ_COUNTRY_CODES`-a
+  keçdi (ad `Intl.DisplayNames` ilə oxucunun dilində) · sehrbazdakı `disabled` select açıldı və
+  landing quizinin cavabı ilə doldurulur · 66 rayon yalnız AZ üçün, digər ölkələrdə sərbəst mətn ·
+  xəritə axtarışından `countrycodes=az` + `Accept-Language: az` çıxarıldı (**brauzerdə təsdiqləndi**:
+  chunk-da nominatim var, AZ kilidi yoxdur) · `geo.py` reverse-geocode `X-Locale` izləyir ·
+  **xəritə artıq geolokasiya icazəsi istəyir və fermerin mövqeyinə yaxınlaşır** (yalnız default
+  zoom-dadırsa — idxal olunmuş sərhədin üstündən kameranı qaçırmır).
+  ⚠️ Ölkə **saxlanılmır**: `field_metadata`-da sütun yoxdur, köhnə select onsuz da heç vaxt yazmırdı.
+  Yalnız region xanasının dropdown yoxsa sərbəst mətn olduğunu həll edir. Nəyəsə hesablama lazım
+  olsa, sütun sonra əlavə edilə bilər.
 - ⬜ Digest dil qarışığı (tr/de/hu/it/pl üçün 3 dil bir məktubda) — T28/T30
 - ⬜ 25 ekran xam backend xəta kodu göstərir (`azError()`-u keçmir)
 - ⬜ Xəritədə mənbə sətri (fon ili + səhnə tarixi)
