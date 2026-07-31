@@ -1443,6 +1443,7 @@ export const tr: Dict = {
   "app.field.shareButton.linkDuration": "Bağlantının süresi",
   "app.field.seasonTab.makeCurrentCheckbox": "Güncel sezon olarak belirle",
   "app.field.satelliteTab.noDataYet": "için henüz veri yok",
+  "app.field.satelliteTab.processingFailed": "Uydu verisinin hazırlanması tamamlanamadı. Bu gece otomatik olarak yeniden denenecek — sorun devam ederse bize yazın.",
   "app.field.weatherHistoryTab.sourceOpenMeteo": "Kaynak: Open-Meteo arşivi",
   "app.field.shareButton.copyPromptFallback": "Bağlantıyı kopyalayın:",
   "app.field.seasonTab.statusVegetation": "Vejetasyon",

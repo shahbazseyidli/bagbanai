@@ -1446,6 +1446,7 @@ export const de: Dict = {
   "app.field.shareButton.linkDuration": "Gültigkeitsdauer des Links",
   "app.field.seasonTab.makeCurrentCheckbox": "Als aktuelle Saison festlegen",
   "app.field.satelliteTab.noDataYet": "hat noch keine Daten",
+  "app.field.satelliteTab.processingFailed": "Die Aufbereitung der Satellitendaten wurde nicht abgeschlossen. Heute Nacht wird es automatisch erneut versucht — melden Sie sich, wenn es weiterhin passiert.",
   "app.field.weatherHistoryTab.sourceOpenMeteo": "Quelle: Open-Meteo-Archiv",
   "app.field.shareButton.copyPromptFallback": "Kopieren Sie den Link:",
   "app.field.seasonTab.statusVegetation": "Vegetation",

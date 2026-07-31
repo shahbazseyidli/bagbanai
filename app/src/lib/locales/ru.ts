@@ -1350,6 +1350,7 @@ export const ru: Dict = {
   "app.field.satelliteTab.maxCloud": "Макс. облачность: ",
   "app.field.satelliteTab.noCleanScene": "При этом пороге облачности чистых снимков нет — увеличьте порог.",
   "app.field.satelliteTab.noDataYet": "— данных пока нет",
+  "app.field.satelliteTab.processingFailed": "Подготовка спутниковых данных не завершилась. Ночью система повторит попытку автоматически — напишите нам, если это повторяется.",
   "app.field.satelliteTab.noRasterYet": "Для этого индекса растра пока нет.",
   "app.field.satelliteTab.otherFieldsMean": "Среднее по другим полям",
   "app.field.satelliteTab.preparing": "готовится…",

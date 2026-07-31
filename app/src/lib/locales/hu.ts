@@ -1444,6 +1444,7 @@ export const hu: Dict = {
   "app.field.shareButton.linkDuration": "A link érvényessége",
   "app.field.seasonTab.makeCurrentCheckbox": "Beállítás aktuális szezonként",
   "app.field.satelliteTab.noDataYet": "számára még nincs adat",
+  "app.field.satelliteTab.processingFailed": "A műholdas adatok előkészítése nem fejeződött be. Ma éjjel automatikusan újrapróbálja — szóljon, ha továbbra is előfordul.",
   "app.field.weatherHistoryTab.sourceOpenMeteo": "Forrás: Open-Meteo archívum",
   "app.field.shareButton.copyPromptFallback": "Másolja a linket:",
   "app.field.seasonTab.statusVegetation": "Vegetáció",

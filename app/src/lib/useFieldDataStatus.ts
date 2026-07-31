@@ -10,6 +10,9 @@ import type { FieldDataStatus } from "@/lib/types";
 export function useFieldDataStatus(fieldId: string): FieldDataStatus | null {
   const [status, setStatus] = useState<FieldDataStatus | null>(null);
   useEffect(() => {
+    // Callers may mount before the field itself has loaded (the field page calls this above its
+    // own `if (!field) return` so the hook order stays stable). No id, no request.
+    if (!fieldId) return;
     let active = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
     async function poll() {

@@ -34,6 +34,8 @@ import WeatherHistoryTab from "@/components/field/WeatherHistoryTab";
 import SeasonCompareChart from "@/components/field/SeasonCompareChart";
 import BackfillCard from "@/components/field/BackfillCard";
 import RainNowcast from "@/components/field/RainNowcast";
+import DataPreparing from "@/components/field/DataPreparing";
+import { useFieldDataStatus } from "@/lib/useFieldDataStatus";
 import FieldHeader from "@/components/field/FieldHeader";
 import FieldWorkbench from "@/components/field/workbench/FieldWorkbench";
 import { fieldLayout, useStageWidth } from "@/components/field/workbench/useStageWidth";
@@ -64,6 +66,8 @@ function FieldDetailInner() {
 
 
   const [field, setField] = useState<FieldDetail | null>(null);
+  // Above the early `if (!field)` return on purpose — hook order must not depend on load state.
+  const dataStatus = useFieldDataStatus(field?.id ?? "");
   const [error, setError] = useState("");
   // Tab lives in the URL (?tab=) so notifications/Telegram can deep-link and the back button steps
   // through tabs instead of leaving the field (D0.3).
@@ -483,6 +487,9 @@ function FieldDetailInner() {
             // `stageW ?? 0` would compile and then feed the workbench's own 1000/1280 tier ladder a
             // zero if the invariant were ever broken.
             <div className="space-y-4">
+              {/* Above everything: while the satellite archive is still being read there is no
+                  point offering charts. It renders nothing once the field is ready. */}
+              <DataPreparing status={dataStatus} />
               <RainNowcast fieldId={field.id} />
               <FieldWorkbench
                 field={field}

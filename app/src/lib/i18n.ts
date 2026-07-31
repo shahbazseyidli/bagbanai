@@ -1447,6 +1447,7 @@ export const az = {
   "app.field.satelliteTab.maxCloud": "Maks. bulud: ",
   "app.field.satelliteTab.noCleanScene": "Bu bulud həddində təmiz səhnə yoxdur — həddi artırın.",
   "app.field.satelliteTab.noDataYet": "üçün hələ məlumat yoxdur",
+  "app.field.satelliteTab.processingFailed": "Peyk məlumatının hazırlanması yarımçıq qaldı. Növbəti avtomatik cəhd bu gecə olacaq — problem davam edərsə bizə yazın.",
   "app.field.satelliteTab.noRasterYet": "Bu indeks üçün hələ raster yoxdur.",
   "app.field.satelliteTab.otherFieldsMean": "Digər sahələrin ortası",
   "app.field.satelliteTab.preparing": "hazırlanır…",

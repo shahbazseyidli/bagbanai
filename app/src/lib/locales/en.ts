@@ -1469,6 +1469,7 @@ export const en: Dict = {
   "app.field.shareButton.linkDuration": "Link duration",
   "app.field.seasonTab.makeCurrentCheckbox": "Set as current season",
   "app.field.satelliteTab.noDataYet": "no data yet",
+  "app.field.satelliteTab.processingFailed": "Preparing the satellite data did not finish. It will be retried automatically tonight — tell us if it keeps happening.",
   "app.field.weatherHistoryTab.sourceOpenMeteo": "Source: Open-Meteo archive",
   "app.field.shareButton.copyPromptFallback": "Copy the link:",
   "app.field.seasonTab.statusVegetation": "Vegetation",
