@@ -138,18 +138,24 @@ async def _send_one(endpoint: str, p256dh: str, auth_key: str, payload: dict) ->
         return "gone" if status in (404, 410) else "failed"
 
 
-async def _fanout(conn, rows, payload: dict) -> int:
-    """Send to every row, then reconcile the table with what the push services said. Returns sent."""
-    targets = [(r["endpoint"], r["p256dh"], r["auth"]) for r in rows]
+async def _fanout(conn, rows, payload_for) -> int:
+    """Send to every row, then reconcile the table with what the push services said. Returns sent.
+
+    `payload_for` is a CALLABLE over the row, not a single dict, because a push has exactly one
+    reader: the same property that lets the per-user opt-out apply here lets the LANGUAGE apply
+    here. One shared payload meant every subscriber got the alert in whatever language the rule
+    engine happened to write it in — Azerbaijani.
+    """
+    targets = [(r["endpoint"], r["p256dh"], r["auth"], payload_for(r)) for r in rows]
     if not targets:
         return 0
     results = await asyncio.gather(
-        *(_send_one(e, p, a, payload) for e, p, a in targets), return_exceptions=True)
+        *(_send_one(e, p, a, pl) for e, p, a, pl in targets), return_exceptions=True)
 
     gone: list[str] = []
     sent: list[str] = []
     failed: list[str] = []
-    for (endpoint, _p, _a), res in zip(targets, results):
+    for (endpoint, _p, _a, _pl), res in zip(targets, results):
         status = res if isinstance(res, str) else "failed"
         if status == "gone":
             gone.append(endpoint)
@@ -175,7 +181,7 @@ async def _fanout(conn, rows, payload: dict) -> int:
 
 
 async def deliver_org(conn, org_id: str, category: str, title: str, body: str,
-                      url: Optional[str] = None) -> int:
+                      url: Optional[str] = None, codes: Optional[dict] = None) -> int:
     """Push one dispatched alert to every subscribed device in an org. Never raises.
 
     Shaped after rules/engine._deliver_telegram: a push has exactly one recipient device belonging to
@@ -187,7 +193,7 @@ async def deliver_org(conn, org_id: str, category: str, title: str, body: str,
         return 0
     try:
         rows = await conn.fetch(
-            """select s.endpoint, s.p256dh, s.auth, u.notify_prefs
+            """select s.endpoint, s.p256dh, s.auth, u.notify_prefs, u.locale
                  from public.push_subscriptions s
                  join public.organization_members m on m.user_id = s.user_id
                  join public.users u on u.id = s.user_id
@@ -201,7 +207,18 @@ async def deliver_org(conn, org_id: str, category: str, title: str, body: str,
         wanted = [r for r in rows if notify_prefs.allows(r["notify_prefs"], category, "push")]
         if not wanted:
             return 0
-        return await _fanout(conn, wanted, _payload(title, body, url, category))
+        # Rendered per subscriber (0057 codes + params); `title`/`body` stay the fallback for rows
+        # with no code and for producers that have none yet.
+        from ..rules import alert_copy
+        c = codes or {}
+
+        def _for(r):
+            return _payload(
+                alert_copy.render(c.get("title_code"), c.get("title_params"), r["locale"], title),
+                alert_copy.render(c.get("body_code"), c.get("body_params"), r["locale"], body),
+                url, category)
+
+        return await _fanout(conn, wanted, _for)
     except Exception:  # noqa: BLE001 — never let delivery break dispatch
         return 0
 
@@ -219,7 +236,7 @@ async def deliver_user(conn, user_id: str, title: str, body: str,
                where user_id=$1::uuid limit 20""", user_id)
         if not rows:
             return 0
-        return await _fanout(conn, rows, _payload(title, body, url, "test"))
+        return await _fanout(conn, rows, lambda _r: _payload(title, body, url, "test"))
     except Exception:  # noqa: BLE001
         return 0
 

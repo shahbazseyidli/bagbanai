@@ -20,7 +20,8 @@ ledger (public.email_sends, dedup_key = ISO week) and the unsubscribe footer. No
 COPY: the frame (subject / heading / intro / outro / signoff, per variant) lives in `catalog`; the
 data-shaped strings (section titles, "72/100 · NDVI 0.63 ↑0.04 · 24 iyl") live in `_LABELS` below,
 because they are interpolated from query results rather than authored per send. AZ and EN are
-hand-written; every other locale falls back to EN, exactly like `catalog.build`.
+hand-written for ALL EIGHT locales as of 2026-07-31 (they used to be az/en/ru only, so a
+Turkish reader got English headings over Azerbaijani stat tiles under a Turkish footer).
 
 FIELD ORDER: worst wellness score first (nulls last, then oldest field). The farmer should open the
 mail on the field that needs attention — and "the first field", whose satellite image we embed, is
@@ -73,7 +74,7 @@ _TREND_INDEX = "NDVI"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Copy for the data-shaped strings. AZ + EN authored; every other locale → EN.
+# Copy for the data-shaped strings. All eight locales authored; `en` remains the fallback.
 # ─────────────────────────────────────────────────────────────────────────────
 _LABELS: dict[str, dict[str, str]] = {
     "az": {
@@ -474,7 +475,7 @@ async def _trend(conn, ids: list) -> dict[str, dict]:
     return out
 
 
-async def _alerts(conn, ids: list, prefs: Any) -> list[dict]:  # prefs is REQUIRED — see below
+async def _alerts(conn, ids: list, prefs: Any, locale: str | None = None) -> list[dict]:  # prefs REQUIRED
     """This week's rule-engine notifications, one row per (field, rule type).
 
     The engine's cooldown is 18h, so a week of bad weather writes the same frost alert up to nine
@@ -490,6 +491,7 @@ async def _alerts(conn, ids: list, prefs: Any) -> list[dict]:  # prefs is REQUIR
     rows = await conn.fetch(
         """select distinct on (n.field_id, n.type)
                   n.field_id, n.source, n.type, n.severity, n.title, n.body, n.created_at,
+                  n.title_code, n.title_params, n.body_code, n.body_params,
                   count(*) over (partition by n.field_id, n.type) as hits
            from public.notifications n
            where n.field_id = any($1::uuid[])
@@ -498,8 +500,31 @@ async def _alerts(conn, ids: list, prefs: Any) -> list[dict]:  # prefs is REQUIR
            order by n.field_id, n.type,
                     case n.severity when 'critical' then 3 when 'warning' then 2 else 1 end desc,
                     n.created_at desc""", ids, ALERT_DAYS)
-    return [dict(r) for r in rows
-            if notify_prefs.allows_notification(prefs, r["source"], r["type"], "digest")]
+    # The digest quotes these rows verbatim, so before 0057 a Turkish reader's weekly email carried
+    # Azerbaijani alert headlines under Turkish section titles. The stored prose stays the fallback
+    # for pre-0057 rows and for producers with no code.
+    from ...rules import alert_copy
+    out = []
+    for r in rows:
+        if not notify_prefs.allows_notification(prefs, r["source"], r["type"], "digest"):
+            continue
+        d = dict(r)
+        d["title"] = alert_copy.render(d.get("title_code"), _jsonb_params(d.get("title_params")),
+                                       locale, d["title"])
+        d["body"] = alert_copy.render(d.get("body_code"), _jsonb_params(d.get("body_params")),
+                                      locale, d["body"])
+        out.append(d)
+    return out
+
+
+def _jsonb_params(v):
+    """asyncpg returns jsonb as a str on some paths and a dict on others; render() wants a dict."""
+    if v is None or isinstance(v, dict):
+        return v
+    try:
+        return json.loads(v)
+    except Exception:  # noqa: BLE001
+        return None
 
 
 async def _advice(conn, ids: list, locale: str | None) -> dict[str, dict]:
@@ -608,7 +633,7 @@ async def build_weekly(conn, user: dict) -> dict | None:
     ids = [f["id"] for f in fields]
     wellness = await _wellness(conn, ids)
     trends = await _trend(conn, ids)
-    alerts = await _alerts(conn, ids, prefs)
+    alerts = await _alerts(conn, ids, prefs, loc)
     # "AI aqronom" muted for the digest → skip the query entirely; step 7 then renders nothing.
     advice = await _advice(conn, ids, loc) if notify_prefs.allows(prefs, "advice", "digest") else {}
     rasters = await _rasters(conn, ids)

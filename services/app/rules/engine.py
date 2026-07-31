@@ -29,6 +29,7 @@ import json
 from datetime import datetime, timedelta, timezone
 
 from .. import notify_prefs
+from . import alert_copy
 
 # Azerbaijan is UTC+4 year-round (no DST) — quiet-hours are computed in field-local time.
 _AZ_TZ = timezone(timedelta(hours=4))
@@ -249,11 +250,11 @@ async def dispatch(conn, field_id: str, org_id: str, candidates: list[dict]) -> 
         # is delivered once a week by the Wednesday digest, which reads public.notifications. Do
         # not re-add — and note that push arriving does NOT weaken this: a push is dismissible and
         # costs the farmer nothing, whereas each of those emails was a permanent thing to delete.
-        await _deliver_telegram(conn, org_id, cat, c["title"], c["body"])
+        await _deliver_telegram(conn, org_id, cat, c["title"], c["body"], c)
         # Quiet hours and the cooldown were both applied above, so the phone push inherits them for
         # free — which is the whole point of putting it here rather than in the producers. A 3 a.m.
         # frost ping is exactly the failure a new channel would otherwise reintroduce.
-        await _deliver_push(conn, org_id, cat, c["title"], c["body"], field_id)
+        await _deliver_push(conn, org_id, cat, c["title"], c["body"], field_id, c)
         fired += 1
     # `fired` = alerts that survived quiet-hours and cooldown; `suppressed` = how many of those
     # wrote no notification row because the whole org had muted the category. They overlap on
@@ -262,7 +263,8 @@ async def dispatch(conn, field_id: str, org_id: str, candidates: list[dict]) -> 
             "quiet_hours": quiet}
 
 
-async def _deliver_telegram(conn, org_id: str, category: str, title: str, body: str) -> None:
+async def _deliver_telegram(conn, org_id: str, category: str, title: str, body: str,
+                            c: dict | None = None) -> None:
     """Best-effort push of a dispatched alert to org members' linked+opted-in Telegram chats (U4).
 
     Unlike the notification row, a Telegram message has exactly one recipient, so the per-user
@@ -274,26 +276,34 @@ async def _deliver_telegram(conn, org_id: str, category: str, title: str, body: 
         return
     try:
         rows = await conn.fetch(
-            """select c.id, c.chat_id, u.notify_prefs from public.messaging_channels c
+            """select c.id, c.chat_id, u.notify_prefs, u.locale from public.messaging_channels c
                join public.organization_members m on m.user_id = c.user_id
                join public.users u on u.id = c.user_id
                where m.org_id=$1::uuid and c.channel='telegram'
                  and c.verified and c.opt_in and c.chat_id is not null""", org_id)
         for r in rows:
+            # EACH RECIPIENT IN THEIR OWN LANGUAGE. One Telegram message has exactly one reader —
+            # the same property that makes the per-user opt-out apply cleanly here — so the locale
+            # applies cleanly too. Before this, every recipient got the Azerbaijani prose the rule
+            # engine writes as its fallback, whatever language they use the product in.
+            r_title = alert_copy.render((c or {}).get("title_code"), (c or {}).get("title_params"),
+                                        r["locale"], title)
+            r_body = alert_copy.render((c or {}).get("body_code"), (c or {}).get("body_params"),
+                                       r["locale"], body)
             status = await telegram.send_alert(r["chat_id"], r["notify_prefs"], category,
-                                               f"{title}\n{body}")
+                                               f"{r_title}\n{r_body}")
             # A muted send never happened — logging it would make message_log read like a delivery.
             if status == "muted":
                 continue
             await conn.execute(
                 "insert into public.message_log (channel_id, text, status) values ($1,$2,$3)",
-                r["id"], title, status)
+                r["id"], r_title, status)
     except Exception:  # noqa: BLE001 — never let delivery break dispatch
         pass
 
 
 async def _deliver_push(conn, org_id: str, category: str, title: str, body: str,
-                        field_id: str) -> None:
+                        field_id: str, c: dict | None = None) -> None:
     """Best-effort Web Push of a dispatched alert to org members' subscribed devices (H-push).
 
     The same per-user opt-out story as Telegram: one push has one recipient, so the category switch
@@ -305,7 +315,10 @@ async def _deliver_push(conn, org_id: str, category: str, title: str, body: str,
     if not configured():
         return
     try:
-        await deliver_org(conn, org_id, category, title, body, url=f"/fields/{field_id}")
+        # The codes ride along so deliver_org can render per SUBSCRIBER — a push lands on one
+        # person's lock screen, so it has exactly one correct language.
+        await deliver_org(conn, org_id, category, title, body, url=f"/fields/{field_id}",
+                          codes=(c or {}))
     except Exception:  # noqa: BLE001 — never let delivery break dispatch
         pass
 
