@@ -312,60 +312,40 @@ Tam plan və sübutlar: sessiya jurnalı. Aşağıda yalnız **status**.
 | `/fields` tək org-a bağlı idi (aqronom seqmenti üçün bloker) | `b3f876c` |
 | Data hazırlanır banneri: proqres + real ETA + `failed` vəziyyəti | `68cda1c` |
 
-### ⬜ Qalan iş — prioritetlə
+### ⬜ Qalan iş (2026-07-31 sonu)
 
-**Ölçülüb, amma HƏLL OLUNMAYIB:**
-- ⬜ **Tap-to-detect 45-60 s worst case.** Kök səbəb tapılıb və `segment.py`-də yazılıb: döngə 32+
-  granul gəzir, hər biri tam pəncərə oxuyur, hamısı `lbl[row,col] == 0`-da düşür (toxunulan piksel
-  kənar maskasında). İki düzəliş sınanıb və **geri qaytarılıb** — ikisi də cavabı dəyişirdi.
+**Ölçülüb, HƏLL OLUNMAYIB — kod şərhində tam yazılıb:**
+- ⬜ **Tap-to-detect 45-60 s worst case.** Kök səbəb `segment.py`-də sənədləşdirilib: döngə 32+
+  granul gəzir, hamısı `lbl[row,col] == 0`-da düşür (toxunulan piksel kənar maskasında). İki
+  düzəliş sınanıb və **ölçmədən sonra geri qaytarılıb** — ikisi də vaxtı yox, **cavabı** dəyişirdi.
   Həqiqi həll kənar-seed halındadır və **real toxunuşlarla çöl testi** tələb edir.
+  Keş (təkrar toxunuş 56 s → 0.1 s) və ucuz probe **canlıdır**.
 
-**W1 qalığı:**
-- ⬜ Bağ/çoxillik üçün `mean` yerinə **p90** (p10/p50/p90 artıq saxlanılır — miqrasiya lazım deyil).
-  ⚠️ `analytics.py` baseline-i `mean` üzərində qurur — bazis uyğunluğu birlikdə dəyişməlidir.
-- ⬜ Kiçik sahədə piksel sayı (`index_stats.valid_pixels` göndərilir, 0 istifadəçisi var)
-- ⬜ Qeyd müəllifi (sütunlar var, API qaytarmır, UI göstərmir)
-- ⬜ `/weather` hələ `orgs[0]`-a bağlıdır
+**Böyük, ayrıca sessiya tələb edən:**
+- ⬜ **Per-sahə paylaşma (L)** — yeni `field_grants` + `deps.py`-də `require_field_access` +
+  **~60 gate çağırışının** org-fərziyyəsini sındırmaq. Bu, **giriş nəzarəti** dəyişikliyidir;
+  tələsik edilməsi ən təhlükəli sinifdir. Ayrıca sessiya + review istəyir.
+- ⬜ **PDF/çap hesabatı (M)** — **60%-i `81660df`-də hazır yazılıb** (A4 print CSS, `_doc()`,
+  UTF-8 BOM-lu CSV, RFC 5987 fayl adı). PDF kitabxanası lazım deyil, brauzer print edir.
+  `public.reports` cədvəli `payload jsonb` ilə hələ də yerindədir — miqrasiya lazım deyil.
+- ⬜ **Növbəti peyk keçidi + uğursuz cəhd jurnalı (M-L)** — orbit datası yoxdur; yeni cədvəl
+  (`scene_attempts`) + `pipeline.py:263`-də `else` budağı lazımdır (hazırda buludlu granul **heç
+  bir iz qoymur**).
+- ⬜ **Ferma CRUD + sahə qruplaşdırma (S→M)** — `farms` DB-də var, UI-da yaradıla/adlandırıla bilmir.
 
-**W2 qalığı:**
-- ✅ **Xəbərdarlıqların dili — BİTDİ və CANLIDIR** (`49f979c`, miqrasiya **0057** tətbiq olunub və
-  `schema_migrations`-a yazılıb). `notifications`-a `title_code/title_params/body_code/body_params`
-  əlavə edildi; 4 vegetasiya + 3 hava qaydası kod daşıyır; `alertText()` oxucunun dilində render
-  edir; 12 sətir × 8 dil. Köhnə sətirlər (kodsuz) saxlanmış AZ mətnə düşür — qəsdən.
-  ⚠️ **Qalıq:** Telegram / web push / həftəlik digest hələ **server tərəfdə AZ mətni** göndərir —
-  onlar oxucunun dilini bilmir, ona görə `emails/catalog.py` üslubunda server-tərəfli locale
-  cədvəli lazımdır. Bu, ayrıca işdir.
-  ⚠️ **Müşahidə edilməyən həlqə:** təzə *kodlu* alert canlıda görülmədi, çünki hazırda heç bir alert
-  şərti yoxdur (`candidates: 0` — bu, `ANOMALY_MARGIN` düzəlişinin özünün işlədiyini göstərir).
-  Yazma yolu koddan yoxlanılıb və konteynerdə map/helper canlı təsdiqlənib; ilk real alertdə
-  `title_code` sütununu bir dəfə yoxlamaq qalır.
-- ✅ **Ölkə kilidi AÇILDI — CANLIDIR** (`6bd02ed`). `regions.ts` tək ölkədən `QUIZ_COUNTRY_CODES`-a
-  keçdi (ad `Intl.DisplayNames` ilə oxucunun dilində) · sehrbazdakı `disabled` select açıldı və
-  landing quizinin cavabı ilə doldurulur · 66 rayon yalnız AZ üçün, digər ölkələrdə sərbəst mətn ·
-  xəritə axtarışından `countrycodes=az` + `Accept-Language: az` çıxarıldı (**brauzerdə təsdiqləndi**:
-  chunk-da nominatim var, AZ kilidi yoxdur) · `geo.py` reverse-geocode `X-Locale` izləyir ·
-  **xəritə artıq geolokasiya icazəsi istəyir və fermerin mövqeyinə yaxınlaşır** (yalnız default
-  zoom-dadırsa — idxal olunmuş sərhədin üstündən kameranı qaçırmır).
-  ⚠️ Ölkə **saxlanılmır**: `field_metadata`-da sütun yoxdur, köhnə select onsuz da heç vaxt yazmırdı.
-  Yalnız region xanasının dropdown yoxsa sərbəst mətn olduğunu həll edir. Nəyəsə hesablama lazım
-  olsa, sütun sonra əlavə edilə bilər.
-- ⬜ Digest dil qarışığı (tr/de/hu/it/pl üçün 3 dil bir məktubda) — T28/T30
-- ⬜ 25 ekran xam backend xəta kodu göstərir (`azError()`-u keçmir)
-- ⬜ Xəritədə mənbə sətri (fon ili + səhnə tarixi)
-- ⬜ `org_is_paid` RLS siyasətləri (yatmış, amma «tarixçəni geri almırıq» qaydasını pozur)
-- ⬜ Rəylər 5 beynəlmiləl ada · quiz «Digər» mətn qutusu · yan menyu kəsilməsi (ru/hu)
-- ⬜ Bulud %-in granul üzrə olduğunu bildirmək · hava modelinin dəqiqliyi
+**Xəbərdarlıqların ÇIXAN kanalları:**
+- ⬜ Telegram / web push / həftəlik digest hələ **server tərəfdə** mətn göndərir. Zəng və bildiriş
+  səhifəsi artıq oxucunun dilindədir (`49f979c`); çıxan kanallar oxucunu bilmədiyi üçün
+  `emails/catalog.py` üslubunda server-tərəfli locale cədvəli istəyir.
 
-**W3 (struktur):**
-- ⬜ **Per-sahə paylaşma (L)** — sahibin qərarı: bu dalğada. Yeni `field_grants` + `deps.py`-də
-  `require_field_access` + ~60 gate çağırışının org-fərziyyəsi
-- ⬜ Ferma CRUD + sahə qruplaşdırma · toplu məhsul/mövsüm · PDF/çap hesabatı (60%-i `81660df`-də
-  hazır yazılıb) · növbəti peyk keçidi + uğursuz cəhd jurnalı · e-poçt unikallığı
+**Kiçik qalıqlar:**
+- ⬜ PWA install təsviri AZ (`manifest.ts` — `middleware` matcher-i manifest-i istisna edir,
+  struktur düzəliş lazımdır) · dil seçicinin öz etiketi «Language» · sortlar yalnız AZ reyestrindən ·
+  alman/polyak landing-də AZN qiymətlər · `robots.txt` direktivsiz + `sitemap.xml` 404 ·
+  `/az` 404 (hreflang `az` → məzmun-neqotiasiyalı `/`).
 
-### ⚠️ Yoxlanmamış qalan
-- Dashboard xəritəsinin sahələrə yaxınlaşmaması — kodda `fitBounds` var; canlıda gördüyüm çox güman
-  ki, **gizli-tab artefaktıdır**. Açıq tabda yoxlanmalıdır, kor-koranə dəyişilməməlidir.
-- Hava radarı eyni səbəbdən qiymətləndirilə bilmədi.
+**Yoxlanmamış (gizli-tab artefaktı — açıq tabda baxılmalıdır):**
+- ⬜ Dashboard xəritəsinin sahələrə yaxınlaşması (kodda `fitBounds` **var**) · hava radarı.
 
 ---
 
