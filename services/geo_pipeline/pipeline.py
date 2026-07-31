@@ -169,6 +169,23 @@ def run_field(field_id: str, days_back: int = 120, max_cloud: int = 70,
         raise
 
 
+def _record_cloudy_passes(field_id: str, org_id: str, bbox, date_from: date, date_to: date,
+                          processed_ids: set[str]) -> None:
+    """Log the passes that the cloud filter removed from the search results.
+
+    A granule the STAC query rejected is invisible to the processing loop, so without this the
+    attempt log can only ever say "nothing happened" about the commonest reason nothing happened.
+    Only granules NOT already accounted for by the loop are written, so this never overwrites a
+    real verdict with a guess.
+    """
+    from .search_s2 import search_passes_s2
+    for acquired_at, granule_id, cloud in search_passes_s2(bbox, date_from, date_to):
+        if granule_id in processed_ids:
+            continue
+        persist.record_attempt(field_id, org_id, "S2", acquired_at, None, cloud, granule_id,
+                               "too_cloudy")
+
+
 # ── Sentinel-2 10m engine (computes indices from reflectance; SCL cloud mask) ──────────
 
 def process_granule_s2(field_geojson: dict, granule: Granule) -> dict[str, tuple[dict, object]]:
@@ -295,6 +312,20 @@ def run_field_s2(field_id: str, days_back: int = 120, max_cloud: int = 70,
             if track_status:
                 remaining = total - (i + 1)
                 persist.update_field_progress(field_id, i + 1, remaining * AVG_SEC_PER_SCENE_S2)
+
+        # The passes the SEARCH filtered out, before any of the above could see them. The STAC
+        # query carries `eo:cloud_cover <= max_cloud`, so a 95%-cloud granule never arrives and the
+        # loop above cannot record what it never received — yet that is exactly the pass the farmer
+        # is asking about when they say the field has not updated in three weeks. One extra
+        # metadata-only search closes the gap.
+        #
+        # Strictly best-effort: this runs AFTER the field is marked ready and is wrapped whole, so
+        # a slow or failing STAC call costs a diagnostic, never a refresh.
+        try:
+            _record_cloudy_passes(field_id, field["org_id"], field["bbox"], date_from, date_to,
+                                  {g.granule_id for g in granules})
+        except Exception as exc:  # noqa: BLE001
+            print(f"  · cloudy-pass scan skipped: {exc}", file=sys.stderr)
 
         if track_status:
             persist.set_field_status(field_id, "ready")

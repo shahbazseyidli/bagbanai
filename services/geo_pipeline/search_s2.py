@@ -103,6 +103,36 @@ def search_scenes_s2_ex(field_bbox: tuple[float, float, float, float],
                                        "truncated": truncated, "matched": matched}})
 
 
+def search_passes_s2(field_bbox: tuple[float, float, float, float],
+                     date_from: date, date_to: date,
+                     limit: int = GRANULE_CAP) -> list[tuple[date, str, Optional[float]]]:
+    """Every Sentinel-2 pass over the bbox, INCLUDING the ones too cloudy to process.
+
+    The ordinary search sends `eo:cloud_cover <= max_cloud` to the STAC server, so a 95%-cloud
+    granule never comes back and the pipeline cannot know the satellite was even there. That is
+    precisely the pass the farmer is asking about — "it's been three weeks" is usually three
+    overcast passes, not a gap in coverage. This asks the same question with the cloud predicate
+    removed and returns metadata only: no assets, no COG reads, one HTTP call.
+
+    Returns (acquired_at, granule_id, cloud_pct) — sorted, deduplicated by granule id.
+    """
+    client = Client.open(EARTH_SEARCH_URL)
+    search = client.search(
+        collections=[S2_COLLECTION], bbox=list(field_bbox),
+        datetime=f"{date_from.isoformat()}/{date_to.isoformat()}",
+        max_items=max(1, int(limit)))
+    out: dict[str, tuple[date, str, Optional[float]]] = {}
+    for item in search.items():
+        acq = (item.properties.get("datetime") or "")[:10]
+        if not acq:
+            continue
+        gid = str(getattr(item, "id", ""))
+        cloud = item.properties.get("eo:cloud_cover")
+        out[gid] = (date.fromisoformat(acq), gid,
+                    float(cloud) if cloud is not None else None)
+    return sorted(out.values(), key=lambda x: x[0])
+
+
 def search_scenes_s2(field_bbox: tuple[float, float, float, float],
                      date_from: Optional[date] = None, date_to: Optional[date] = None,
                      max_cloud: int = 70, *, days_back: Optional[int] = None,
