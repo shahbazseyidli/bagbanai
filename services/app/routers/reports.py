@@ -34,6 +34,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from ..db import connection
 from ..deps import get_current_user_id, require_member
 from .fields import _org_of_field
+from .report_labels import (_CROP_AZ, _IRR_AZ, _OPTYPE_AZ, _SCOUTCAT_AZ, _SEASON_STATUS_AZ,
+                            _SEVERITY_AZ, _SOIL_AZ, label)
 
 router = APIRouter(prefix="/api", tags=["reports"])
 
@@ -56,6 +58,10 @@ def _dec(v: Any, nd: int = 2) -> str:
         return "—"
 
 
+def _now_str() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+
+
 def _d(v: Any) -> str:
     if v is None:
         return "—"
@@ -68,26 +74,6 @@ def _d(v: Any) -> str:
 
 def _now_str() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-
-
-_OP_AZ = {"planting": "Əkin", "spraying": "Çiləmə", "fertilizing": "Gübrələmə",
-          "irrigation": "Suvarma", "harvest": "Yığım", "tillage": "Şumlama",
-          "scouting": "Skautinq", "other": "Digər"}
-_SCOUT_AZ = {"pest": "Zərərverici", "disease": "Xəstəlik", "weed": "Alaq", "nutrient": "Qida",
-             "water": "Su", "damage": "Zədə", "other": "Digər"}
-_SEVERITY_AZ = {"low": "Aşağı", "medium": "Orta", "high": "Yüksək",
-                "aşağı": "Aşağı", "orta": "Orta", "yüksək": "Yüksək"}
-_SEASON_STATUS_AZ = {"preparation": "Hazırlıq", "planted": "Əkilib", "vegetation": "Vegetasiya",
-                     "harvest": "Yığım", "fallow": "Herik", "closed": "Bağlanıb"}
-
-
-def _label(m: dict, v: Any) -> str:
-    s = (str(v).strip().lower() if v is not None else "")
-    if not s:
-        return "—"
-    return m.get(s, str(v))
-
-
 
 
 # ------------------------------------------------------------ html output ----
@@ -296,9 +282,9 @@ async def field_report(field_id: str, format: Optional[str] = Query("html"),
     parts.append(_kv([
         ("Sahə", name), ("Ferma", field["farm_name"]),
         ("Sahə ölçüsü", f'{_dec(field["area_ha"])} ha'),
-        ("Məhsul", field["crop_type"]), ("Sort", field["variety"]),
-        ("Rayon", field["region"]), ("Torpaq", field["soil_type"]),
-        ("pH", _dec(field["soil_ph"], 1)), ("Suvarma", field["irrigation_method"]),
+        ("Məhsul", label(_CROP_AZ, field["crop_type"])), ("Sort", field["variety"]),
+        ("Rayon", field["region"]), ("Torpaq", label(_SOIL_AZ, field["soil_type"])),
+        ("pH", _dec(field["soil_ph"], 1)), ("Suvarma", label(_IRR_AZ, field["irrigation_method"])),
         ("Əkin", _d(field["planting_date"])), ("Gözlənilən yığım", _d(field["expected_harvest"])),
         ("Sağlamlıq balı", f'{int(well["score"])}/100' if well and well["score"] is not None else "—"),
     ]))
@@ -307,15 +293,15 @@ async def field_report(field_id: str, format: Optional[str] = Query("html"),
     parts.append(_table(
         [("İl", True), ("Məhsul", False), ("Sort", False), ("Status", False),
          ("Əkin", False), ("Yığım", False)],
-        [[s["season_year"], s["crop_type"], s["variety"],
-          _label(_SEASON_STATUS_AZ, s["status"]), _d(s["planting_date"]),
+        [[s["season_year"], label(_CROP_AZ, s["crop_type"]), s["variety"],
+          label(_SEASON_STATUS_AZ, s["status"]), _d(s["planting_date"]),
           _d(s["actual_harvest_date"])] for s in seasons],
         empty="Mövsüm qeydi yoxdur."))
 
     parts.append("<h2>Əməliyyatlar</h2>")
     parts.append(_table(
         [("Tarix", False), ("Növ", False), ("Xərc", True), ("Qeyd", False)],
-        [[_d(o["performed_on"]), _label(_OP_AZ, o["type"]),
+        [[_d(o["performed_on"]), label(_OPTYPE_AZ, o["type"]),
           (f'{_dec(o["cost"])} {o["currency"] or ""}'.strip() if o["cost"] is not None else "—"),
           o["notes"]] for o in ops],
         empty="Əməliyyat qeydi yoxdur."))
@@ -323,7 +309,7 @@ async def field_report(field_id: str, format: Optional[str] = Query("html"),
     parts.append("<h2>Skautinq qeydləri</h2>")
     parts.append(_table(
         [("Tarix", False), ("Kateqoriya", False), ("Şiddət", True), ("Qeyd", False)],
-        [[_d(n["observed_at"]), _label(_SCOUT_AZ, n["category"]), n["severity"], n["note"]]
+        [[_d(n["observed_at"]), label(_SCOUTCAT_AZ, n["category"]), label(_SEVERITY_AZ, n["severity"]), n["note"]]
          for n in notes],
         empty="Skautinq qeydi yoxdur."))
 
@@ -354,7 +340,7 @@ async def field_report(field_id: str, format: Optional[str] = Query("html"),
                 parts.append("<h3>Risklər</h3>")
                 parts.append(_table(
                     [("Risk", False), ("Şiddət", False), ("İzah", False)],
-                    [[r.get("title"), _label(_SEVERITY_AZ, r.get("severity")), r.get("detail")]
+                    [[r.get("title"), label(_SEVERITY_AZ, r.get("severity")), r.get("detail")]
                      for r in risks],
                     empty="—"))
             recs = [x for x in (f.get("recommendations") or []) if isinstance(x, dict)]
