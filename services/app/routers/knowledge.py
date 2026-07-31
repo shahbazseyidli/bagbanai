@@ -24,9 +24,25 @@ async def get_knowledge(field_id: str, user_id: str = Depends(get_current_user_i
         await require_member(conn, user_id, org_id)
         # Knowledge Passport is a paid feature (Pro/Business). Free tier gets an empty passport
         # (the UI hides it) → a nudge to upgrade.
+        #
+        # EXCEPT the spraying window, which is free on every tier by the owner's decision
+        # (2026-07-31). It is the one block that answers a decision rather than describing a
+        # condition — "can I spray in the next few hours" — it needs no index literacy, and it was
+        # computed nightly for every field and then shown to nobody, because billing is deferred so
+        # every org in production sits on `free`. Withholding it was costing us the single best
+        # activation surface in the product to protect revenue that does not exist yet.
+        #
+        # Deliberately ONE block, not a loosened gate: soil, water requirement and pest blocks stay
+        # paid. `gated` stays true so the UI still knows the rest is withheld.
         from .. import tiers
         if not tiers.allows(await tiers.org_tier(conn, org_id), "passport"):
-            return {"crop_type": None, "zone_id": None, "zone": {}, "field": {}, "gated": True}
+            # Filtered from read_field_blocks rather than hand-built, so the free spray block has
+            # BYTE-IDENTICAL shape to the paid one (content + sources + confidence + refreshed_at).
+            # A hand-rolled dict here would have dropped `sources`, and <Sources/> renders it.
+            blocks = await kb.read_field_blocks(conn, field_id)
+            free_blocks = {k: v for k, v in blocks.items() if k == "spray_window"}
+            return {"crop_type": None, "zone_id": None, "zone": {},
+                    "field": free_blocks, "gated": True}
         meta = await conn.fetchrow(
             "select crop_type, region from public.field_metadata where field_id=$1::uuid", field_id)
         crop_type = meta["crop_type"] if meta else None

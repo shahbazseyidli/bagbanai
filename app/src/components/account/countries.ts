@@ -15,3 +15,26 @@ export const ACCOUNT_COUNTRIES: { value: string; code: string }[] = [
   { value: "Qazaxıstan", code: "KZ" },
   { value: "Digər", code: "" },
 ];
+
+/**
+ * The stored country, rendered in the reader's language.
+ *
+ * The picker on /account already did this (Intl.DisplayNames over the code), but the summary card
+ * above it printed users.country RAW — so a Turkish account read "Ülke & bölge: Türkiyə" and a
+ * Russian one "Страна и регион: Türkiyə", in Azerbaijani, on a screen that was otherwise fully
+ * translated. Both observed live on 2026-07-31.
+ *
+ * An unlisted value (a legacy row, or something the landing quiz wrote) falls back to itself: the
+ * farmer's own words beat a blank.
+ */
+export function countryLabel(stored: string | null | undefined, locale: string): string {
+  const v = (stored || "").trim();
+  if (!v) return "";
+  const hit = ACCOUNT_COUNTRIES.find((c) => c.value === v);
+  if (!hit || !hit.code) return v;
+  try {
+    return new Intl.DisplayNames([locale], { type: "region" }).of(hit.code) || v;
+  } catch {
+    return v;
+  }
+}

@@ -15,7 +15,8 @@ import NotifyMatrix from "@/components/NotifyMatrix";
 import ProfileForm from "@/components/account/ProfileForm";
 import ChangePassword from "@/components/account/ChangePassword";
 import CloseAccount from "@/components/account/CloseAccount";
-import { t } from "@/lib/i18n";
+import { t, getLocale } from "@/lib/i18n";
+import { countryLabel } from "@/components/account/countries";
 
 // Role code → localized label. Resolved at render time (not module load) so the active locale applies.
 function roleLabel(role?: string): string {
@@ -79,7 +80,7 @@ export default function AccountPage() {
             form below, which is why ChangePassword/ProfileForm carry #password / #profile. */}
         <Card Icon={Lock} title={t("app.account.passwordTitle")} value={t("app.account.passwordValue")} action={<a href="#password" className="text-xs font-semibold text-emerald-700">{t("app.account.change")}</a>} />
         <Card Icon={Globe} title={t("app.account.languageTitle")} action={<LanguageSwitcher />} />
-        <Card Icon={MapPin} title={t("app.account.countryRegionTitle")} value={[user?.country, user?.region].filter(Boolean).join(" · ") || t("app.account.notSet")} action={<a href="#profile" className="text-xs font-semibold text-emerald-700">{t("app.account.change")}</a>} />
+        <Card Icon={MapPin} title={t("app.account.countryRegionTitle")} value={[countryLabel(user?.country, getLocale()), user?.region].filter(Boolean).join(" · ") || t("app.account.notSet")} action={<a href="#profile" className="text-xs font-semibold text-emerald-700">{t("app.account.change")}</a>} />
         <Card Icon={Download} title={t("app.account.downloadTitle")} value={t("app.account.downloadValue")} action={<span className="text-xs font-semibold text-emerald-700">{t("app.account.downloadCta")}</span>} />
         <Card Icon={UserCog} title={t("app.account.roleTitle")} value={roleLabel(user?.role)} />
         {isProvider && (

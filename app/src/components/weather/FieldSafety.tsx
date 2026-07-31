@@ -8,10 +8,10 @@
 //     ?refresh=1 needs a write role, and this component never refreshes. Answers {ok:false} until
 //     the archive has been computed for the field's zone.
 //   • GET /api/fields/{id}/knowledge → field.spray_window.content.best_window (ai/weather.py
-//     compute_spray_window). ⚠️ services/app/tiers.py has "passport": False on the free tier and
-//     every org defaults to free while billing is deferred, so in practice this returns
-//     {gated:true} today and the spray card simply does not render. That is the correct behaviour
-//     and NOT a bug to work around: this file adds no paywall teaser and no placeholder window.
+//     compute_spray_window). The rest of the passport is still Pro/Business, but the SPRAY BLOCK
+//     is free on every tier since 2026-07-31 — routers/knowledge.py returns it inside the gated
+//     response for exactly that reason. So `gated` no longer means "no spray": read the block and
+//     let its absence, not the flag, decide whether anything renders.
 //
 // When neither answers, the component renders NOTHING — it never occupies the panel with a heading
 // over an empty box.
@@ -89,7 +89,8 @@ export default function FieldSafety({ fieldId }: { fieldId: string }) {
     api
       .get<Passport>(`/api/fields/${fieldId}/knowledge`)
       .then((p) => {
-        if (!active || p?.gated) return;
+        // NOT `|| p?.gated` — the spray block ships inside the gated payload now (see above).
+        if (!active) return;
         const c = p?.field?.spray_window?.content as
           | { best_window?: { start?: string; end?: string } | null }
           | undefined;
