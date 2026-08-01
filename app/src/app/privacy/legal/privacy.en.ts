@@ -200,6 +200,11 @@ export const privacyEn: PrivacyDoc = {
                 "endpoint.",
             },
             {
+              k: "Google (Sign in with Google)",
+              v:
+                "Only if you press “Continue with Google” yourself. What goes to Google: your browser (so, your IP address) and which app you are signing in to. What Google returns to us: the account’s permanent identifier, the email address, whether it is verified, and your display name. Nothing about your fields, notes or satellite data goes to Google. No Google script is loaded on our pages — the button is an ordinary link, so until you press it Google does not see that you are on our site.",
+            },
+            {
               k: "Telegram",
               v:
                 "Only if you connect the bot yourself. No bot token is configured today, so the " +
@@ -275,12 +280,13 @@ export const privacyEn: PrivacyDoc = {
     cookies: {
       heading: "Cookies and browser storage",
       body: [
-        { kind: "p", text: "There are two cookies, both functional:" },
+        { kind: "p", text: "There are three cookies, all functional:" },
         {
           kind: "ul",
           items: [
             "bagban_session — the login session. httpOnly (JavaScript cannot read it), SameSite=Lax, Secure over https, 7 days. It is used for nothing else.",
             "bagban_locale — remembers the language you chose, 1 year.",
+            "bagban_oauth_state — created only when you press \u201cContinue with Google\u201d, and only to protect that sign-in (CSRF). httpOnly, SameSite=Lax, Secure, 10 minutes; deleted as soon as sign-in finishes.",
           ],
         },
         {
@@ -310,6 +316,7 @@ export const privacyEn: PrivacyDoc = {
           items: [
             "Other members of your organisation — they see its fields according to their role; the permission is checked on the server on every request.",
             "A share link (/s/…) shows a deliberately minimal, read-only field card to anyone holding it. You can revoke the link at any time.",
+            "Field access — if you open one field to a named user, they see the report for that field only (not your other fields, your farm or your team). You can revoke it at any time, and so can they.",
             "If you switch name visibility off, your name is replaced by a \"user_…\" alias on every surface other users see.",
             "Comparison and benchmark figures are not computed without a cohort of at least 5 other fields, and they never name a specific field or farm.",
             "The team running the platform — through an admin panel that sees usage, AI cost and accounts across all organisations, and, as the server's operators, with technical access to the database.",

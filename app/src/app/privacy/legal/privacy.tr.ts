@@ -198,6 +198,11 @@ export const privacyTr: PrivacyDoc = {
                 "servis cihazınızın abonelik adresini görür.",
             },
             {
+              k: "Google (Google ile giriş)",
+              v:
+                "Yalnızca «Google ile devam et» düğmesine kendiniz basarsanız. Google’a giden: tarayıcınız (yani IP adresiniz) ve hangi uygulamaya giriş yaptığınız. Google’ın bize döndürdüğü: hesabın kalıcı kimliği, e-posta adresi, doğrulanmış olup olmadığı ve görünen adınız. Tarlalarınız, notlarınız ve uydu verileriniz hakkında Google’a hiçbir şey gitmez. Sayfalarımıza Google betiği yüklenmez — düğme sıradan bir bağlantıdır, bu yüzden siz basana kadar Google sitemizde olduğunuzu görmez.",
+            },
+            {
               k: "Telegram",
               v:
                 "Yalnızca botu kendiniz bağlarsanız. Bugün bot jetonu tanımlı değil, kanal " +
@@ -272,12 +277,13 @@ export const privacyTr: PrivacyDoc = {
     cookies: {
       heading: "Çerezler ve tarayıcı deposu",
       body: [
-        { kind: "p", text: "İki çerez vardır, ikisi de işlevseldir:" },
+        { kind: "p", text: "Üç çerez vardır, üçü de işlevseldir:" },
         {
           kind: "ul",
           items: [
             "bagban_session — oturum çerezi. httpOnly (JavaScript okuyamaz), SameSite=Lax, https üzerinde Secure, 7 gün. Başka hiçbir amaçla kullanılmaz.",
             "bagban_locale — seçtiğiniz dili hatırlar, 1 yıl.",
+            "bagban_oauth_state — yalnızca «Google ile devam et» düğmesine bastığınızda oluşur ve yalnızca o girişi korumak içindir (CSRF). httpOnly, SameSite=Lax, Secure, 10 dakika; giriş biter bitmez silinir.",
           ],
         },
         {
@@ -305,6 +311,7 @@ export const privacyTr: PrivacyDoc = {
           items: [
             "Organizasyonunuzun diğer üyeleri — tarlaları rollerine göre görür; yetki her istekte sunucuda denetlenir.",
             "Paylaşım bağlantısı (/s/…) elinde tutan herkese kasıtlı olarak sadeleştirilmiş, salt okunur bir tarla kartı gösterir. Bağlantıyı istediğiniz an iptal edebilirsiniz.",
+            "Tarla erişimi — bir tarlayı adıyla belirttiğiniz bir kullanıcıya açarsanız, yalnızca o tarlanın raporunu görür (diğer tarlalarınızı, çiftliğinizi veya ekibinizi değil). İstediğiniz zaman geri alabilirsiniz; o kişi de kendisi bırakabilir.",
             "Ad görünürlüğünü kapatırsanız, diğer kullanıcıların gördüğü yüzeylerde adınız «user_…» takma adıyla değiştirilir.",
             "Karşılaştırma ve kıyaslama değerleri en az 5 başka tarladan oluşan bir küme olmadan hesaplanmaz ve hiçbir zaman belirli bir tarlanın veya işletmenin adını vermez.",
             "Platformu yürüten ekip — bir yönetim paneli üzerinden tüm organizasyonlardaki kullanım, yapay zekâ maliyeti ve hesapları görür; ayrıca sunucunun işletmecisi olarak veritabanına teknik erişimi vardır.",

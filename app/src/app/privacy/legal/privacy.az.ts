@@ -212,6 +212,11 @@ export const privacyAz: PrivacyDoc = {
                 "gedir, lakin xidmət cihazınızın abunə ünvanını görür.",
             },
             {
+              k: "Google (Google ilə giriş)",
+              v:
+                "Yalnız «Google ilə davam et» düyməsini özünüz bassanız. Google-a gedən: sizin brauzeriniz (yəni IP ünvanınız) və hansı tətbiqə daxil olduğunuz. Google-dan bizə gələn: hesabın daimi identifikatoru, e-poçt ünvanı, onun təsdiqlənib-təsdiqlənmədiyi və göstərilən adınız. Sahələriniz, qeydləriniz və peyk məlumatınız haqqında Google-a heç nə getmir. Səhifələrimizə Google skripti yüklənmir — düymə adi linkdir, ona görə düyməyə basana qədər Google sizin bizim saytda olduğunuzu görmür.",
+            },
+            {
               k: "Telegram",
               v:
                 "Yalnız botu özünüz qoşsanız. Hazırda bot tokeni təyin edilməyib, kanal " +
@@ -290,13 +295,14 @@ export const privacyAz: PrivacyDoc = {
       body: [
         {
           kind: "p",
-          text: "İki kuki var, hər ikisi funksionaldır:",
+          text: "Üç kuki var, hamısı funksionaldır:",
         },
         {
           kind: "ul",
           items: [
             "bagban_session — giriş seansı. httpOnly (JavaScript oxuya bilmir), SameSite=Lax, https üzərində Secure, 7 gün. Başqa heç nə üçün istifadə olunmur.",
             "bagban_locale — seçdiyiniz dili yadda saxlayır, 1 il.",
+            "bagban_oauth_state — yalnız «Google ilə davam et» düyməsini basanda yaranır və girişi qorumaq üçündür (CSRF). httpOnly, SameSite=Lax, Secure, 10 dəqiqə; giriş bitən kimi silinir.",
           ],
         },
         {
@@ -324,6 +330,7 @@ export const privacyAz: PrivacyDoc = {
           items: [
             "Təşkilatınızın digər üzvləri — sahələri roluna uyğun görürlər; icazə hər sorğuda serverdə yoxlanılır.",
             "Paylaşım linki (/s/…) — linki əlində saxlayan istənilən şəxsə sahənin qəsdən məhdud, yalnız-oxunan kartını göstərir. Linki istənilən vaxt ləğv edə bilərsiniz.",
+            "Sahə icazəsi — konkret bir sahəni adı ilə göstərdiyiniz istifadəçiyə açsanız, o yalnız həmin sahənin hesabatını görür (digər sahələrinizi, təsərrüfatınızı və komandanızı yox). İstənilən vaxt geri ala bilərsiniz; həmin adam da özü imtina edə bilər.",
             "Ad görünürlüyünü söndürsəniz, digər istifadəçilərin gördüyü səthlərdə adınız «user_…» şəklində təxəllüslə əvəz olunur.",
             "Müqayisə və benchmark göstəriciləri ən azı 5 başqa sahədən ibarət qrup olmadan hesablanmır və heç vaxt konkret sahənin və ya təsərrüfatın adını göstərmir.",
             "Platformanı idarə edən komanda — admin paneli vasitəsilə bütün təşkilatlar üzrə istifadə statistikasını, AI xərcini və hesabları görür; həm də serverin operatoru olaraq verilənlər bazasına texniki girişi var.",

@@ -199,6 +199,11 @@ export const privacyHu: PrivacyDoc = {
                 "titkosítva utazik, de a szolgáltatás látja az eszköze feliratkozási címét.",
             },
             {
+              k: "Google (bejelentkezés Google-fiókkal)",
+              v:
+                "Csak akkor, ha Ön nyomja meg a „Folytatás Google-fiókkal” gombot. Ami a Google-hoz kerül: a böngészője (tehát az IP-címe) és az, hogy melyik alkalmazásba lép be. Amit a Google visszaad nekünk: a fiók állandó azonosítója, az e-mail-cím, hogy az meg van-e erősítve, és a megjelenítendő neve. A tábláiról, jegyzeteiről és műholdas adatairól semmi nem kerül a Google-hoz. Az oldalainkon nem töltődik be Google-szkript — a gomb közönséges hivatkozás, így a kattintásig a Google nem látja, hogy Ön az oldalunkon jár.",
+            },
+            {
               k: "Telegram",
               v:
                 "Csak ha ön maga köti össze a botot. Ma nincs bot-token beállítva, a csatorna " +
@@ -274,12 +279,13 @@ export const privacyHu: PrivacyDoc = {
     cookies: {
       heading: "Sütik és böngészőtár",
       body: [
-        { kind: "p", text: "Két süti van, mindkettő működési célú:" },
+        { kind: "p", text: "Három süti van, mindegyik működési célú:" },
         {
           kind: "ul",
           items: [
             "bagban_session — a bejelentkezési munkamenet. httpOnly (a JavaScript nem olvassa), SameSite=Lax, https felett Secure, 7 nap. Semmi másra nem használjuk.",
             "bagban_locale — megjegyzi a választott nyelvet, 1 év.",
+            "bagban_oauth_state — csak akkor jön létre, amikor megnyomja a „Folytatás Google-fiókkal” gombot, és kizárólag ennek a bejelentkezésnek a védelmére (CSRF). httpOnly, SameSite=Lax, Secure, 10 perc; a bejelentkezés végeztével törlődik.",
           ],
         },
         {
@@ -307,6 +313,7 @@ export const privacyHu: PrivacyDoc = {
           items: [
             "A szervezete többi tagja — a szerepkörüknek megfelelően látják a táblákat; a jogosultságot minden kérésnél a szerver ellenőrzi.",
             "A megosztási hivatkozás (/s/…) szándékosan minimális, csak olvasható táblakártyát mutat bárkinek, akinél a hivatkozás van. A hivatkozás bármikor visszavonható.",
+            "Tábla-hozzáférés — ha egyetlen táblát megoszt egy megnevezett felhasználóval, ő csak annak a táblának a jelentését látja (a többi tábláját, a gazdaságát és a csapatát nem). Bármikor visszavonhatja, és az illető is lemondhat róla.",
             "Ha kikapcsolja a névláthatóságot, a más felhasználók által látott felületeken a nevét „user_…” álnév váltja fel.",
             "Az összehasonlító és viszonyítási értékek legalább 5 másik táblából álló csoport nélkül nem számítódnak ki, és soha nem neveznek meg konkrét táblát vagy gazdaságot.",
             "A platformot működtető csapat — egy adminisztrációs felületen látja a használatot, az MI-költséget és a fiókokat minden szervezetben, a szerver üzemeltetőjeként pedig műszaki hozzáférése van az adatbázishoz.",

@@ -202,6 +202,11 @@ export const privacyPl: PrivacyDoc = {
                 "podróżuje zaszyfrowana, ale usługa widzi adres subskrypcji Twojego urządzenia.",
             },
             {
+              k: "Google (logowanie przez Google)",
+              v:
+                "Tylko jeśli sam naciśniesz „Kontynuuj z Google”. Co trafia do Google: Twoja przeglądarka (czyli adres IP) i to, do jakiej aplikacji się logujesz. Co Google zwraca nam: stały identyfikator konta, adres e-mail, informację czy jest zweryfikowany, oraz Twoją nazwę wyświetlaną. O Twoich polach, notatkach i danych satelitarnych nie trafia do Google nic. Na naszych stronach nie ładuje się żaden skrypt Google — przycisk to zwykły odnośnik, więc dopóki go nie naciśniesz, Google nie widzi, że jesteś na naszej stronie.",
+            },
+            {
               k: "Telegram",
               v:
                 "Tylko jeśli sam podłączysz bota. Dziś token bota nie jest skonfigurowany, kanał " +
@@ -278,12 +283,13 @@ export const privacyPl: PrivacyDoc = {
     cookies: {
       heading: "Pliki cookie i pamięć przeglądarki",
       body: [
-        { kind: "p", text: "Są dwa pliki cookie, oba funkcjonalne:" },
+        { kind: "p", text: "Są trzy pliki cookie, wszystkie funkcjonalne:" },
         {
           kind: "ul",
           items: [
             "bagban_session — sesja logowania. httpOnly (JavaScript go nie czyta), SameSite=Lax, Secure po https, 7 dni. Do niczego innego nie służy.",
             "bagban_locale — zapamiętuje wybrany język, 1 rok.",
+            "bagban_oauth_state — powstaje tylko wtedy, gdy naciśniesz „Kontynuuj z Google”, i wyłącznie po to, by zabezpieczyć to logowanie (CSRF). httpOnly, SameSite=Lax, Secure, 10 minut; usuwany zaraz po zalogowaniu.",
           ],
         },
         {
@@ -312,6 +318,7 @@ export const privacyPl: PrivacyDoc = {
           items: [
             "Pozostali członkowie Twojej organizacji — widzą jej pola zgodnie ze swoją rolą; uprawnienie jest sprawdzane na serwerze przy każdym żądaniu.",
             "Link udostępniania (/s/…) pokazuje każdemu, kto go ma, celowo minimalną kartę pola tylko do odczytu. Link możesz w każdej chwili unieważnić.",
+            "Dostęp do pola — jeśli udostępnisz jedno pole wskazanej z nazwy osobie, zobaczy tylko raport tego pola (nie inne Twoje pola, gospodarstwo ani zespół). Możesz cofnąć dostęp w każdej chwili, ona również.",
             "Jeśli wyłączysz widoczność nazwiska, na powierzchniach widocznych dla innych użytkowników nazwisko zastępuje pseudonim „user_…”.",
             "Wartości porównawcze i benchmarki nie są liczone bez grupy co najmniej 5 innych pól i nigdy nie wskazują konkretnego pola ani gospodarstwa.",
             "Zespół prowadzący platformę — przez panel administracyjny widzi użycie, koszty SI i konta we wszystkich organizacjach, a jako operator serwera ma techniczny dostęp do bazy danych.",

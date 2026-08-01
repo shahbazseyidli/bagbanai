@@ -205,6 +205,11 @@ export const privacyDe: PrivacyDoc = {
                 "Abonnementadresse Ihres Geräts.",
             },
             {
+              k: "Google (Anmeldung mit Google)",
+              v:
+                "Nur wenn Sie selbst „Mit Google fortfahren“ drücken. Was zu Google geht: Ihr Browser (also Ihre IP-Adresse) und bei welcher App Sie sich anmelden. Was Google uns zurückgibt: die dauerhafte Kennung des Kontos, die E-Mail-Adresse, ob sie bestätigt ist, und Ihren Anzeigenamen. Über Ihre Felder, Notizen und Satellitendaten geht nichts an Google. Auf unseren Seiten wird kein Google-Skript geladen — die Schaltfläche ist ein gewöhnlicher Link, daher sieht Google bis zum Klick nicht, dass Sie auf unserer Seite sind.",
+            },
+            {
               k: "Telegram",
               v:
                 "Nur wenn Sie den Bot selbst verbinden. Derzeit ist kein Bot-Token hinterlegt, " +
@@ -282,12 +287,13 @@ export const privacyDe: PrivacyDoc = {
     cookies: {
       heading: "Cookies und Browserspeicher",
       body: [
-        { kind: "p", text: "Es gibt zwei Cookies, beide funktional:" },
+        { kind: "p", text: "Es gibt drei Cookies, alle funktional:" },
         {
           kind: "ul",
           items: [
             "bagban_session — die Anmeldesitzung. httpOnly (JavaScript kann es nicht lesen), SameSite=Lax, über https Secure, 7 Tage. Für nichts anderes verwendet.",
             "bagban_locale — merkt sich die gewählte Sprache, 1 Jahr.",
+            "bagban_oauth_state — entsteht nur, wenn Sie \u201eMit Google fortfahren\u201c drücken, und nur zum Schutz dieser Anmeldung (CSRF). httpOnly, SameSite=Lax, Secure, 10 Minuten; wird direkt nach der Anmeldung gelöscht.",
           ],
         },
         {
@@ -317,6 +323,7 @@ export const privacyDe: PrivacyDoc = {
           items: [
             "Andere Mitglieder Ihrer Organisation — sie sehen deren Felder gemäß ihrer Rolle; die Berechtigung wird bei jeder Anfrage auf dem Server geprüft.",
             "Ein Freigabelink (/s/…) zeigt jedem, der ihn hat, eine bewusst reduzierte, nur lesbare Feldkarte. Sie können den Link jederzeit widerrufen.",
+            "Feldzugriff — wenn Sie ein einzelnes Feld für eine namentlich genannte Person freigeben, sieht sie nur den Bericht zu diesem Feld (nicht Ihre anderen Felder, Ihren Betrieb oder Ihr Team). Sie können den Zugriff jederzeit entziehen, die Person selbst ebenso.",
             "Schalten Sie die Sichtbarkeit des Namens ab, wird Ihr Name auf allen für andere sichtbaren Oberflächen durch ein Pseudonym „user_…“ ersetzt.",
             "Vergleichs- und Benchmark-Werte werden nicht ohne eine Gruppe von mindestens 5 anderen Feldern berechnet und nennen nie ein bestimmtes Feld oder einen bestimmten Betrieb.",
             "Das Team, das die Plattform betreibt — über ein Administrationspanel sieht es Nutzung, KI-Kosten und Konten aller Organisationen und hat als Serverbetreiber technischen Zugang zur Datenbank.",

@@ -204,6 +204,11 @@ export const privacyIt: PrivacyDoc = {
                 "dispositivo.",
             },
             {
+              k: "Google (accesso con Google)",
+              v:
+                "Solo se premi tu «Continua con Google». Cosa va a Google: il tuo browser (quindi il tuo indirizzo IP) e a quale app stai accedendo. Cosa Google restituisce a noi: l’identificatore permanente dell’account, l’indirizzo email, se è verificato e il tuo nome visualizzato. Nulla sui tuoi campi, sulle tue note o sui dati satellitari va a Google. Sulle nostre pagine non viene caricato alcuno script Google — il pulsante è un normale link, quindi finché non lo premi Google non vede che sei sul nostro sito.",
+            },
+            {
               k: "Telegram",
               v:
                 "Solo se colleghi tu stesso il bot. Oggi non è configurato alcun token del bot, " +
@@ -280,12 +285,13 @@ export const privacyIt: PrivacyDoc = {
     cookies: {
       heading: "Cookie e memoria del browser",
       body: [
-        { kind: "p", text: "I cookie sono due, entrambi funzionali:" },
+        { kind: "p", text: "I cookie sono tre, tutti funzionali:" },
         {
           kind: "ul",
           items: [
             "bagban_session — la sessione di accesso. httpOnly (JavaScript non lo legge), SameSite=Lax, Secure su https, 7 giorni. Non è usato per nient'altro.",
             "bagban_locale — ricorda la lingua che hai scelto, 1 anno.",
+            "bagban_oauth_state — creato solo quando premi «Continua con Google», e solo per proteggere quell'accesso (CSRF). httpOnly, SameSite=Lax, Secure, 10 minuti; eliminato appena l'accesso è concluso.",
           ],
         },
         {
@@ -315,6 +321,7 @@ export const privacyIt: PrivacyDoc = {
           items: [
             "Gli altri membri della tua organizzazione — ne vedono i campi in base al proprio ruolo; il permesso è verificato sul server a ogni richiesta.",
             "Un link di condivisione (/s/…) mostra a chiunque lo possieda una scheda del campo deliberatamente minimale e in sola lettura. Puoi revocarlo in qualsiasi momento.",
+            "Accesso al campo — se apri un singolo campo a un utente indicato per nome, vedrà solo il report di quel campo (non gli altri campi, l'azienda o il team). Puoi revocarlo in qualsiasi momento, e può farlo anche lui.",
             "Se disattivi la visibilità del nome, sulle superfici viste dagli altri utenti il tuo nome è sostituito da uno pseudonimo «user_…».",
             "I valori di confronto e benchmark non vengono calcolati senza un gruppo di almeno 5 altri campi e non nominano mai un campo o un'azienda specifici.",
             "Il team che gestisce la piattaforma — tramite un pannello di amministrazione vede utilizzo, costi dell'IA e account di tutte le organizzazioni e, in quanto operatore del server, ha accesso tecnico al database.",

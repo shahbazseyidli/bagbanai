@@ -18,7 +18,7 @@
  *
  *  It lives here rather than in ./index so LegalArticle can read it without importing the barrel
  *  that re-exports LegalArticle — that would be an import cycle. */
-export const LEGAL_UPDATED = "2026-07-26";
+export const LEGAL_UPDATED = "2026-08-01";
 
 export type LegalBlock =
   | { kind: "p"; text: string }
