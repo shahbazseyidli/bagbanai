@@ -39,10 +39,29 @@ MIN_PASSWORD_LEN = 8
 NO_PASSWORD = "!"
 
 
+def _cookie_secure() -> bool:
+    """Whether the session cookie may only travel over TLS.
+
+    NOT derived from next_public_app_url, which is what this used to read. In production that
+    variable holds the INTERNAL container URL — `http://localhost:3000` on the live box, verified —
+    so the check evaluated to False and the session JWT shipped WITHOUT Secure. A cookie without it
+    is attached to plain-http requests too, and the origin's :80 server block still does not force
+    a redirect (a leftover from the Cloudflare Flexible era), so the token was one `http://` link
+    away from crossing the browser→edge hop in cleartext.
+
+    cookie_domain is the honest signal: empty in development, ".agradex.com" in production, and set
+    precisely because the deployment is a real multi-host HTTPS site. The panel host is accepted for
+    the same reason, and the old https check is kept as a third path so a plain single-host TLS
+    deployment still works.
+    """
+    return bool(settings.cookie_domain or settings.next_public_panel_host) \
+        or settings.next_public_app_url.startswith("https")
+
+
 def _set_cookie(resp: Response, token: str) -> None:
     resp.set_cookie(
         key=settings.cookie_name, value=token, httponly=True, samesite="lax",
-        secure=settings.next_public_app_url.startswith("https"),
+        secure=_cookie_secure(),
         max_age=COOKIE_MAX_AGE, path="/",
         domain=settings.cookie_domain or None,
     )
