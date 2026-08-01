@@ -15,10 +15,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { t } from "@/lib/i18n";
+import { t, type I18nKey } from "@/lib/i18n";
 import { ErrorNote } from "@/components/ui";
 import OtpVerify from "@/components/OtpVerify";
 import MagicLinkForm from "@/components/auth/MagicLinkForm";
+import GoogleButton from "@/components/auth/GoogleButton";
 import { carryQuiz } from "@/components/auth/carryQuiz";
 import type { User } from "@/lib/types";
 
@@ -37,12 +38,26 @@ function postLoginDest(): string {
   return "/";
 }
 
+/** Reason the Google round-trip failed, handed over in ?err= because a 302 has no body to explain
+ *  itself in. Unknown codes fall back to the generic error rather than printing a raw token. */
+function googleError(): string {
+  try {
+    const code = new URLSearchParams(window.location.search).get("err");
+    if (!code) return "";
+    const known = ["cancelled", "state", "exchange", "network", "unverified", "disabled"];
+    return t(known.includes(code) ? (`auth.google.err.${code}` as I18nKey) : "common.error");
+  } catch {
+    return "";
+  }
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const { setUser } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  // Seeded from ?err= so a failed Google round-trip explains itself on arrival.
+  const [error, setError] = useState(googleError);
   const [busy, setBusy] = useState(false);
   const [withPassword, setWithPassword] = useState(false); // false = the magic-link view
   const [otpEmail, setOtpEmail] = useState<string | null>(null); // set → account needs verification
@@ -134,6 +149,9 @@ export default function LoginPage() {
         </button>
         </>
         )}
+        {/* Under both views, because it is a third way in rather than an alternative to one of
+            them. Renders nothing when the server has no Google credentials. */}
+        <GoogleButton next={postLoginDest()} />
         <Link href="/signup" className="mt-4 block text-center text-sm text-emerald-700 hover:underline">
           {t("auth.toSignup")}
         </Link>

@@ -22,6 +22,11 @@ class Settings(BaseSettings):
     # emails (next_public_app_url is the internal container URL in prod, unusable for email).
     next_public_panel_host: str = ""
     internal_api_token: str = "change-me"
+    # Google sign-in (0062). Empty → the routes 404 and the button never renders; the operator
+    # adds these to .env and restarts, no rebuild. The redirect URI registered with Google is
+    # derived from next_public_panel_host — see routers/oauth.py::_redirect_uri.
+    google_client_id: str = ""
+    google_client_secret: str = ""
 
     # Satellite / weather / AI / storage (used in later steps)
     stac_url: str = "https://cmr.earthdata.nasa.gov/stac/LPCLOUD"

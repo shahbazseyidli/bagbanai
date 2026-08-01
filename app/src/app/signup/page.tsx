@@ -23,6 +23,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { t } from "@/lib/i18n";
 import MagicLinkForm from "@/components/auth/MagicLinkForm";
+import GoogleButton from "@/components/auth/GoogleButton";
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
@@ -32,6 +33,9 @@ export default function SignupPage() {
       <div className="card">
         <h1 className="mb-4 text-xl font-bold text-slate-900">{t("auth.signupTitle")}</h1>
         <MagicLinkForm mode="signup" email={email} onEmailChange={setEmail} />
+        {/* Signing up with Google IS signing in with it — same route, same account rules. No
+            `next`: a brand-new account belongs on the home screen. */}
+        <GoogleButton />
       </div>
       <Link href="/login" className="mt-4 block text-center text-sm text-emerald-700 hover:underline">
         {t("auth.toLogin")}

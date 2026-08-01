@@ -8,7 +8,7 @@ from .config import settings
 from .db import close_pool, init_pool
 from .routers import (admin, advice, analytics, auth, backfill, bulk, chat, demo, documents,
                       email_prefs, events, farms, fertilizer, fields, geo, grants, health, indices, internal, knowledge, messaging, mgmt,
-                      nowcast, orgs, photos, providers, push, reports, scouting,
+                      nowcast, oauth, orgs, photos, providers, push, reports, scouting,
                       seasons, shares, uploads, weather_history)
 
 
@@ -32,6 +32,7 @@ def create_app() -> FastAPI:
 
     app.include_router(health.router)
     app.include_router(auth.router)
+    app.include_router(oauth.router)
     app.include_router(orgs.router)
     app.include_router(farms.router)
     app.include_router(fields.router)
