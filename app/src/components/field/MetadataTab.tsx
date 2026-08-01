@@ -20,7 +20,7 @@ import {
   optLabel,
   CYCLE_OPTIONS,
   CROP_OPTIONS,
-  VARIETY_OPTIONS_BY_CROP,
+  varietiesFor,
   SOIL_TYPE_OPTIONS,
   IRRIGATION_METHOD_OPTIONS,
   GROWTH_STAGE_OPTIONS,
@@ -234,7 +234,8 @@ export default function MetadataTab({ fieldId }: { fieldId: string }) {
   if (!meta) return null;
 
   const cycle = meta.crop_cycle ?? null;
-  const varietyOptions = VARIETY_OPTIONS_BY_CROP[meta.crop_type ?? ""] ?? [];
+  // Market-aware suggestions (see varietiesFor); the AZ registry is the fallback, not the law.
+  const varietyOptions = varietiesFor(meta.crop_type);
 
   // ---- DISPLAY MODE -------------------------------------------------------
   if (!editing) {

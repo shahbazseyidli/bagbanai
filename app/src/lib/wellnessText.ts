@@ -5,7 +5,7 @@
 // code+params into a sentence in the viewer's active locale via tf(). Every function falls back to
 // the supplied AZ prose string when no code is present (older payloads / unknown codes), so nothing
 // ever breaks — the localization is purely additive.
-import { tf, type I18nKey } from "@/lib/i18n";
+import { tf, tp, type I18nKey } from "@/lib/i18n";
 
 type Params = Record<string, unknown> | null | undefined;
 
@@ -153,6 +153,15 @@ export function wellnessReason(
     // A proxy has to say so out loud. The sentence names the signal and adds the caveat that it is
     // an approximation of the soil-water balance, not the balance itself.
     return `${tf("app.wl.water.ndmi", params ?? {})} ${tf("app.wl.water.ndmiProxyNote")}`;
+  }
+
+  if (code === "pest.active") {
+    // The count here is genuinely small — one to about five open risk windows — which is exactly
+    // the range where Slavic and Germanic plurals diverge. "3 aktywnych okien ryzyka" is wrong for
+    // 2-4, and "1 active risk windows" is wrong for 1. The plural FORM carries the whole noun
+    // phrase (adjective included) because more than the ending changes.
+    const n = Number((params as Record<string, unknown> | null)?.n ?? 0);
+    return tf("app.wl.pest.active", { ...(params ?? {}), unit: tp("app.plural.riskWindows", n) });
   }
 
   // pest.*, gdd.* — direct one-key mappings.

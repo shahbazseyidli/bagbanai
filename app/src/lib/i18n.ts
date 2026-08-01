@@ -351,8 +351,7 @@ export const az = {
   "onb.check.advice": "AI aqronom məsləhətini aç",
   "onb.check.telegram": "Bildirişləri Telegram-a bağla",
   "onb.check.profile": "Sahə pasportunu tamamla",
-  "onb.check.profileHint": "{count} vacib məlumat boşdur",
-
+  "onb.check.profileHint": "{count} {unit}",
   // PWA install card (D3.5)
   "install.title": "Agradex-ı telefona quraşdırın",
   "install.body": "Tətbiq kimi açılır — offline işləyir, tarlada daha sürətli.",
@@ -2045,6 +2044,8 @@ export const az = {
   "app.plural.fields.other": "sahə",
   "app.plural.aiAnalysis.other": "AI analizi",
   "app.plural.days.other": "gün",
+  "app.plural.riskWindows.other": "aktiv risk pəncərəsi",
+  "app.plural.profileGaps.other": "vacib məlumat boşdur",
   "app.plural.farmers.other": "fermer",
   "app.plural.records.other": "qeyd",
   "app.plural.saleRecords.other": "satış qeydi",
@@ -2649,7 +2650,7 @@ export const az = {
   "app.wl.water.ndmiProxyNote": "Bu təxmini siqnaldır — torpaq-su balansını əvəz etmir.",
   // pest
   "app.wl.pest.none": "Aktiv zərərverici/xəstəlik pəncərəsi yoxdur (GDD {gdd}).",
-  "app.wl.pest.active": "{n} aktiv risk pəncərəsi: {names}.",
+  "app.wl.pest.active": "{n} {unit}: {names}.",
   // gdd
   "app.wl.gdd.behind": "İstilik toplanması {gdd} GDD — keçən mövsümün bu vaxtından {pct}% geri.",
   "app.wl.gdd.ahead": "İstilik toplanması {gdd} GDD — keçən mövsümün bu vaxtından {pct}% qabaq.",

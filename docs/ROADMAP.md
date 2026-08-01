@@ -185,11 +185,11 @@ SELECT/INSERT edir. `update.sh` miqrasiya işlətmir.
 | **T24** | Lab-analiz OCR yükləmə (soil_profiles, lab>manual>soilgrids) | **E1b** / D1 | ai/soil | M | 🟡 | T5 (vision) | ✅ ba497fe (vision OCR + precedence; canlı) |
 | **T25** | D3 data qatı L1+L2 (consent/audit/k-anon infra) | **E11** / D3 | analytics | L | ⚪ | T10, U12 | ⬜ |
 | **T26** | İcma forumu / Q&A (Telegram-qrup MVP) | **E12** / C6 | community | M | ⚪ | T22 (infra) | ⬜ |
-| **T27** | Qalan `<n> <isim>` cəm səthlərini `tp()`-yə keçir: **satış qeydləri · paylaşma baxışları · qonşu fermerlər · yağış günləri** | i18n | frontend/i18n | S | 🟡 | yox (tp() hazır) | ⬜ |
-| **T28** | Həftəlik digest tərcümə borcu — `catalog_i18n.WEEKLY_EXTRA`-da yalnız `ru`, `weekly.py _LABELS`-də az/en/ru → **tr/de/hu/it/pl istifadəçilər digest-i İNGİLİSCƏ alır** | E15/i18n | backend/email | S | 🟡 | yox | ⬜ |
+| **T27** | Cəm səthləri | i18n | frontend/i18n | S | 🟡 | yox | ✅ **2026-08-01** — ⚠️ köhnə mətndəki 4 səth **YANLIŞ idi**: «satış qeydləri» sadələşdirmə ilə silinib, «paylaşma baxışları/qonşu fermerlər/yağış günləri» üçün açar heç istifadə olunmurdu. ru/pl lüğətlərini tam skan etdim: əsl problem **kiçik n** olan 2 səthdir — `app.wl.pest.active` (1-5 risk pəncərəsi) və `onb.check.profileHint` (1-5 boş xana). Hər ikisi `tp()`-yə keçdi, cəm forması **bütöv isim qrupunu** (sifət + lazım olanda felə) daşıyır. Qalanlar ya **sabit n**-dir (`notes.capped`=100, `weatherCoverage`=12, magic link=15 dəq), ya da tərcüməçi onsuz da ikinöqtə/mötərizə ilə həll edib |
+| **T28** | Həftəlik digest tərcümə borcu | E15/i18n | backend/email | S | 🟡 | yox | ✅ **2026-08-01** — `WEEKLY_EXTRA`-ya tr/de/hu/it/pl əlavə edildi (4 variant × 6 sahə = 120 sətir). `_LABELS` onsuz da 8 dildə idi (`e48b8fa`). Ton hər dilin öz konvensiyasına uyğundur: de/hu/tr rəsmi, it/pl qeyri-rəsmi. İmza açarı **mütləq mövcud olmalıdır** — `catalog.build()` imzanı ƏVƏZ edir, YARATMIR |
 | **T29** | ~~`POST /api/auth/onboarding` frontend-də çağırılmır~~ | E13 | frontend/backend | S | 🟡 | yox | ✅ **HƏLL OLUNUB — task səhv yazılmışdı.** Kodla yoxlanıb (2026-07-30): iki çağıran var — `landing/OnboardingQuiz.tsx` (daxil olmuş ziyarətçi quizi təkrar keçəndə, `20615d5`, **roadmap sətri ilə eyni gün**) və `auth/carryQuiz.ts` (`786bb4d`, magic-link sessiyası yaranandan sonra). `OnboardingQuiz.tsx`-in şərhi niyə **yalnız landing-də** olduğunu izah edir: `localStorage` origin başınadır, quiz apex-də yazılır, app host-da `loadAnswers()` **həmişə null**-dır — «app açılışında süpür» çağıranı konstruksiyaya görə ölü kod olardı |
-| **T30** | Digest AI məsləhət mətnini **dil yoxlamadan** sitat gətirir (`weekly._advice()`-də `lang` predikatı yox) → RU/EN digest içində AZ proza. `lang_mismatch` düzəlişi yalnız sahə səhifəsini əhatə edir | E15/P0.3 | backend/email | S | 🟡 | 0049 | ⬜ |
-| **T31** | `HLS_ENABLED` **"bir-boolean rollback" DEYİL** (dead-end): `sensors.ts`-dən kənarda `HLS_ENABLED`/`UI_SENSORS`/`sensorVisible()` heç yerdə istifadə olunmur; səhifə `sensor="S2"` hard-code edir, `SECTION_GROUPS`-da HLS bölməsi yoxdur. Ya rollback-ı doğrudan bağla, ya da şərhdəki iddianı düzəlt | E14 | frontend | S | ⚪ | yox | ⬜ **2026-07-30-da grep ilə yenidən yoxlanıb — hələ doğrudur** |
+| **T30** | Digest AI məsləhətinin dili | E15/P0.3 | backend/email | S | 🟡 | 0049 | ✅ **`e48b8fa` (2026-07-31)** — `_advice()` artıq `order by ... (lang = $3) desc, generated_at desc` işlədir: oxucunun dili **rekordluqdan üstündür**. Dili olmayan oxucu boş bölmə əvəzinə yad dildə mətn alır — bu, kodda **qəsdən** yazılmış güzəştdir |
+| **T31** | `HLS_ENABLED` **"bir-boolean rollback" DEYİL** (dead-end): `sensors.ts`-dən kənarda `HLS_ENABLED`/`UI_SENSORS`/`sensorVisible()` heç yerdə istifadə olunmur; səhifə `sensor="S2"` hard-code edir, `SECTION_GROUPS`-da HLS bölməsi yoxdur. Ya rollback-ı doğrudan bağla, ya da şərhdəki iddianı düzəlt | E14 | frontend | S | ⚪ | yox | ✅ **2026-08-01 — iddia düzəldildi.** `sensors.ts` başlığı indi rollback üçün əlavə **3 şeyi adı ilə sadalayır** (bölmə girişi, `app.sensor.hls.*` açarları, sensor seçicisi) — heç biri bu flaqı oxumur. Bayraq da tam ölü qalmadı: səhifə `sensor="S2"` hard-code etmək əvəzinə `UI_SENSORS[0]` oxuyur. **Silinmiş UI-ni bayraq arxasında bərpa etmək qəsdən edilmədi** — HLS-in çıxarılması məhsul qərarı idi (E14.3) |
 | **T32** | **`ulkar@agradex.com` cavab qəbul etmir** — `786bb4d` göndərəni təkləşdirdi, amma `notify.py` başlığı açıq yazır ki, agradex.com **MX dərc etmir**: fermerin welcome/digest məktubuna cavabı bounce olur. Poçt qutusu + MX qeydi lazımdır (istifadəçi addımı, sonra kod tərəfdə heç nə) | E15/A4 | infra/email | S | 🔴 | istifadəçi (DNS) | ⬜ |
 | **T33** | **Bake-off nəticəsinə görə qərar** — `decbdb2` ölçdü ki, Anthropic-i `messages.parse` ilə çağırmaq eyni promptda Opus çıxışını **2146 → 1565 token** endirir (prodakşn onsuz da belə çağırır) və `18113e3` göstərdi ki, `research` düzəlişindən sonra qalan hesabın ~75%-i **advice**-dir. Növbəti qərar oradadır: **Batch API** (`ai_usage.source='auto'` sətirləri üçün 50% endirim) və/və ya tier-model seçiminin yenidən baxılması | AI/cost | ai | M | 🟡 | 0056 (data yığılmalıdır) | ⬜ |
 | **T34** | **Sonnet 5 qiymət artımı 2026-08-31** — `ai/pricing.py` sentyabr sətrini onsuz da saxlayır (kod hazır, əl işi lazım deyil), amma **tarif iki dəfə bahalaşır** ($2/$10 → $3/$15). O tarixdən əvvəl model seçimi yenidən qiymətləndirilməlidir (T33 ilə birlikdə) | AI/cost | ai | S | 🟡 | T33 | ⬜ |
@@ -351,11 +351,17 @@ Tam plan və sübutlar: sessiya jurnalı. Aşağıda yalnız **status**.
 - ✅ `robots.txt` + `sitemap.xml` + `/az` — `0efac3b`. 104 URL tam hreflang dəsti ilə;
   `PUBLIC_ROUTES` **tək siyahıdır** (sitemap və robots ondan oxuyur); `/az` artıq 307 ilə `/`-ə;
   manifest oxucunun dilində.
-- ⬜ Qalan kiçiklər: dil seçicinin öz etiketi «Language» · sortlar yalnız AZ reyestrindən ·
-  alman/polyak landing-də AZN qiymətlər.
+- ✅ **Sortlar artıq bazara görədir** (2026-08-01) — `metadataOptions.varietiesFor(crop, locale)`:
+  tr (fındıq/buğda/üzüm/alma), de/it/hu (üzüm/alma), pl (alma), ru (alma/üzüm); dili olmayan məhsul
+  **AZ reyestrinə düşür**. Sort adı **xüsusi isimdir**, ona görə `labelKey` YOXDUR — yoxsa lüğətdə
+  olmayan açar «app.meta.variety.Tombul» kimi render olunardı. Sərbəst mətn həmişə qalır: bu,
+  **təklifi** dəyişir, qəbulu yox.
+- ✅ Dil seçicinin öz etiketi — onsuz da `t("app.languageSwitcher.label")`-dir (köhnə qeyd yanlış idi).
+- ✅ Alman/polyak landing-də AZN — bu **boşluq deyil, qərardır**: `pricing.ts` açıq yazır ki, məbləğ
+  AZN-də qalır, çünki faktiki olaraq bu valyutada hesab kəsilir.
 
 **Yoxlanmamış (gizli-tab artefaktı — açıq tabda baxılmalıdır):**
-- ⬜ Dashboard xəritəsinin sahələrə yaxınlaşması (kodda `fitBounds` **var**) · hava radarı.
+- ✅ **Hər ikisi onsuz da qurulub** (2026-08-01-də yoxlandı): `DashboardMap.fitTo()` iki yerdən çağırılır (ilk çəkiliş + sahə dəsti dəyişəndə, rəng dəyişəndə YOX), `weather/RadarMap.tsx` (407 sətir) isə `WeatherScreen`-də mount olunub. Köhnə qeyd yanlış idi.
 
 ---
 

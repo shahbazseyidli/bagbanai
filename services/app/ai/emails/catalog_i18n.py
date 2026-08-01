@@ -1634,6 +1634,286 @@ SIMPLE_EXTRA = {
 # every other locale used to fall through to English. RU is a launch-tier locale, so it gets a real
 # translation of all four variants. Keyed locale → variant → content, merged into COPY["weekly"].
 WEEKLY_EXTRA = {
+  "tr": {
+    "calm": {
+      "subject": "Haftalık özet: {fields_label}, her şey yolunda",
+      "preheader": "Sağlık puanı, NDVI eğilimi ve yapay zeka önerisi — tek bakışta.",
+      "heading": "Bu hafta tarlalarınız",
+      "intro": [
+        "Merhaba{name_suffix}! Bu hafta tarlalarınızda acil bir durum olmadı — işte kısa özeti."
+      ],
+      "outro": [
+        "Acil uyarılar uygulamaya anında düşer; e-posta haftada bir, çarşamba sabahı gelir.",
+        "Sorunuz mu var? Bu e-postayı yanıtlayın — hepsini okuyorum."
+      ],
+      "signoff": "Ülkər Nəsirova — Agradex"
+    },
+    "alerts": {
+      "subject": "⚠️ {alerts_label} — haftalık özetiniz",
+      "preheader": "En çok dikkat isteyen tarla: “{field}”.",
+      "heading": "Bu hafta dikkat isteyenler",
+      "intro": [
+        "Merhaba{name_suffix}! Bu hafta tarlalarınızda <b>{alerts_label}</b> oluştu. En çok dikkat isteyen tarla: <b>“{field}”</b>.",
+        "Hepsi aşağıda. Tarlaya çıkmadan önce bir dakikanızı ayırmaya değer."
+      ],
+      "outro": [
+        "Acil uyarılar uygulamaya anında düşer; e-posta haftada bir, çarşamba sabahı gelir.",
+        "Sorunuz mu var? Bu e-postayı yanıtlayın — hepsini okuyorum."
+      ],
+      "signoff": "Ülkər Nəsirova — Agradex"
+    },
+    "no_crop": {
+      "subject": "Tek bir adım kaldı: “{field}” için ürünü seçin",
+      "preheader": "Ürün seçimi ürüne özel eşikleri devreye alır.",
+      "heading": "Tek bir adım kaldı: ürünü seçin",
+      "intro": [
+        "Merhaba{name_suffix}! Tarlalarınız uzaydan görünüyor, ama ürün henüz seçilmedi. Seçtiğiniz anda Agradex <b>ürüne özel sağlık eşiklerini</b>, gübre normlarını ve daha isabetli önerileri uygulayabilir.",
+        "Bir dakika sürer. Haftalık özet de aşağıda."
+      ],
+      "outro": [
+        "Bu e-posta haftada bir, çarşamba sabahı gelir."
+      ],
+      "signoff": "Ülkər Nəsirova — Agradex"
+    },
+    "no_fields": {
+      "subject": "İlk tarlanızı 2 dakikada ekleyin",
+      "preheader": "Uydunun tarlanızı görmesi için tek gereken bir sınır.",
+      "heading": "Bir tarla her şeyi değiştirir",
+      "intro": [
+        "Merhaba{name_suffix}! Hesabınız hazır, ama henüz bir tarla eklemediniz. <b>Uydunun tarlanızı “görmesi” için tek gereken bir sınır.</b>",
+        "Çizmek istemiyor musunuz? Haritada tarlaya <b>dokunun</b> — Agradex sınırı sizin için bulur."
+      ],
+      "outro": [
+        "Bir engel olduysa tek satırla yanıtlayın, yardımcı olayım.",
+        "Bir tarla eklediğiniz anda bu e-posta yerini haftalık tarla özetinize bırakır."
+      ],
+      "signoff": "Ülkər Nəsirova — Agradex"
+    }
+  },
+  "de": {
+    "calm": {
+      "subject": "Ihre Woche: {fields_label}, alles ruhig",
+      "preheader": "Gesundheitswert, NDVI-Trend und KI-Rat — auf einen Blick.",
+      "heading": "Diese Woche auf Ihren Feldern",
+      "intro": [
+        "Hallo{name_suffix}! Diese Woche ist auf Ihren Feldern nichts Dringendes passiert — hier die Kurzfassung."
+      ],
+      "outro": [
+        "Dringende Warnungen erscheinen sofort in der App; die E-Mail kommt einmal pro Woche, Mittwochmorgen.",
+        "Fragen? Antworten Sie einfach auf diese E-Mail — ich lese jede."
+      ],
+      "signoff": "Ülkər Nəsirova — Agradex"
+    },
+    "alerts": {
+      "subject": "⚠️ {alerts_label} — Ihre Wochenübersicht",
+      "preheader": "Das Feld, das Sie am dringendsten braucht: „{field}“.",
+      "heading": "Was diese Woche Ihre Aufmerksamkeit braucht",
+      "intro": [
+        "Hallo{name_suffix}! Diese Woche gab es auf Ihren Feldern <b>{alerts_label}</b>. Am dringendsten braucht Sie <b>„{field}“</b>.",
+        "Alles steht unten. Ein Blick lohnt sich, bevor Sie rausfahren."
+      ],
+      "outro": [
+        "Dringende Warnungen erscheinen sofort in der App; die E-Mail kommt einmal pro Woche, Mittwochmorgen.",
+        "Fragen? Antworten Sie einfach auf diese E-Mail — ich lese jede."
+      ],
+      "signoff": "Ülkər Nəsirova — Agradex"
+    },
+    "no_crop": {
+      "subject": "Ein Schritt fehlt: Kultur für „{field}“ festlegen",
+      "preheader": "Mit der Kultur greifen kulturspezifische Normen.",
+      "heading": "Ein Schritt fehlt: Kultur festlegen",
+      "intro": [
+        "Hallo{name_suffix}! Ihre Felder sind aus dem All sichtbar, aber es ist noch keine Kultur eingetragen. Sobald Sie eine wählen, kann Agradex <b>kulturspezifische Schwellenwerte</b>, Düngernormen und genauere Empfehlungen anwenden.",
+        "Das dauert eine Minute. Die Wochenübersicht steht ebenfalls unten."
+      ],
+      "outro": [
+        "Diese E-Mail kommt einmal pro Woche, Mittwochmorgen."
+      ],
+      "signoff": "Ülkər Nəsirova — Agradex"
+    },
+    "no_fields": {
+      "subject": "Ihr erstes Feld in 2 Minuten",
+      "preheader": "Der Satellit braucht nur eine Feldgrenze.",
+      "heading": "Ein Feld macht den Unterschied",
+      "intro": [
+        "Hallo{name_suffix}! Ihr Konto ist bereit, aber es ist noch kein Feld angelegt. <b>Der Satellit braucht nur eine Grenze, um Ihr Feld zu „sehen“.</b>",
+        "Sie möchten nicht zeichnen? <b>Tippen</b> Sie das Feld auf der Karte an — Agradex erkennt die Grenze für Sie."
+      ],
+      "outro": [
+        "Wenn etwas im Weg war, antworten Sie mit einer Zeile — ich helfe.",
+        "Sobald Sie ein Feld anlegen, wird aus dieser E-Mail Ihre wöchentliche Feldübersicht."
+      ],
+      "signoff": "Ülkər Nəsirova — Agradex"
+    }
+  },
+  "hu": {
+    "calm": {
+      "subject": "Heti összefoglaló: {fields_label}, minden rendben",
+      "preheader": "Egészségpontszám, NDVI-trend és MI-tanács — egy pillantásra.",
+      "heading": "Ez a hét a tábláin",
+      "intro": [
+        "Üdvözlöm{name_suffix}! Ezen a héten nem történt sürgős esemény a tábláin — itt a rövid összefoglaló."
+      ],
+      "outro": [
+        "A sürgős riasztások azonnal megjelennek az alkalmazásban; az e-mail hetente egyszer, szerda reggel érkezik.",
+        "Kérdése van? Válaszoljon erre az e-mailre — mindet elolvasom."
+      ],
+      "signoff": "Ülkər Nəsirova — Agradex"
+    },
+    "alerts": {
+      "subject": "⚠️ {alerts_label} — heti összefoglalója",
+      "preheader": "A legtöbb figyelmet igénylő tábla: „{field}”.",
+      "heading": "Mi igényel figyelmet ezen a héten",
+      "intro": [
+        "Üdvözlöm{name_suffix}! Ezen a héten a tábláin <b>{alerts_label}</b> keletkezett. A legtöbb figyelmet a <b>„{field}”</b> tábla igényli.",
+        "Mind lent található. Érdemes rászánni egy percet, mielőtt kimegy a földre."
+      ],
+      "outro": [
+        "A sürgős riasztások azonnal megjelennek az alkalmazásban; az e-mail hetente egyszer, szerda reggel érkezik.",
+        "Kérdése van? Válaszoljon erre az e-mailre — mindet elolvasom."
+      ],
+      "signoff": "Ülkər Nəsirova — Agradex"
+    },
+    "no_crop": {
+      "subject": "Egy lépés maradt: adja meg a „{field}” tábla növényét",
+      "preheader": "A növény kiválasztása bekapcsolja a növényspecifikus küszöböket.",
+      "heading": "Egy lépés maradt: adja meg a növényt",
+      "intro": [
+        "Üdvözlöm{name_suffix}! A táblái már láthatók a műholdról, de a növény még nincs megadva. Amint kiválasztja, az Agradex <b>növényspecifikus egészségküszöböket</b>, tápanyagnormákat és pontosabb javaslatokat tud alkalmazni.",
+        "Egy percbe telik. A heti összefoglaló szintén lent található."
+      ],
+      "outro": [
+        "Ez az e-mail hetente egyszer, szerda reggel érkezik."
+      ],
+      "signoff": "Ülkər Nəsirova — Agradex"
+    },
+    "no_fields": {
+      "subject": "Adja hozzá első tábláját 2 perc alatt",
+      "preheader": "A műholdnak csak egy határvonalra van szüksége.",
+      "heading": "Egyetlen tábla mindent megváltoztat",
+      "intro": [
+        "Üdvözlöm{name_suffix}! A fiókja készen áll, de még nincs hozzáadva tábla. <b>A műholdnak csak egy határvonal kell, hogy „lássa” a tábláját.</b>",
+        "Nem szeretne rajzolni? Egyszerűen <b>koppintson</b> a táblára a térképen — az Agradex megkeresi a határt."
+      ],
+      "outro": [
+        "Ha valami közbejött, válaszoljon egy sorral — segítek.",
+        "Amint hozzáad egy táblát, ebből az e-mailből a heti tábla-összefoglalója lesz."
+      ],
+      "signoff": "Ülkər Nəsirova — Agradex"
+    }
+  },
+  "it": {
+    "calm": {
+      "subject": "La tua settimana: {fields_label}, tutto tranquillo",
+      "preheader": "Punteggio di salute, andamento NDVI e consiglio AI — in un colpo d'occhio.",
+      "heading": "Questa settimana nei tuoi campi",
+      "intro": [
+        "Ciao{name_suffix}! Questa settimana non è successo nulla di urgente nei tuoi campi — ecco il riepilogo breve."
+      ],
+      "outro": [
+        "Gli avvisi urgenti arrivano subito nell'app; l'email arriva una volta a settimana, il mercoledì mattina.",
+        "Domande? Rispondi a questa email — le leggo tutte."
+      ],
+      "signoff": "Ülkər Nəsirova — Agradex"
+    },
+    "alerts": {
+      "subject": "⚠️ {alerts_label} — il tuo riepilogo settimanale",
+      "preheader": "Il campo che ha più bisogno di te: «{field}».",
+      "heading": "Cosa richiede la tua attenzione questa settimana",
+      "intro": [
+        "Ciao{name_suffix}! Questa settimana nei tuoi campi si è verificato: <b>{alerts_label}</b>. Il campo che ha più bisogno di te è <b>«{field}»</b>.",
+        "Trovi tutto qui sotto. Vale un minuto prima di andare in campo."
+      ],
+      "outro": [
+        "Gli avvisi urgenti arrivano subito nell'app; l'email arriva una volta a settimana, il mercoledì mattina.",
+        "Domande? Rispondi a questa email — le leggo tutte."
+      ],
+      "signoff": "Ülkər Nəsirova — Agradex"
+    },
+    "no_crop": {
+      "subject": "Manca un passo: imposta la coltura per «{field}»",
+      "preheader": "Scegliere la coltura attiva le soglie specifiche.",
+      "heading": "Manca un passo: imposta la coltura",
+      "intro": [
+        "Ciao{name_suffix}! I tuoi campi sono visibili dallo spazio, ma la coltura non è ancora impostata. Appena la scegli, Agradex può applicare <b>soglie di salute specifiche per coltura</b>, norme di concimazione e consigli più precisi.",
+        "Ci vuole un minuto. Il riepilogo della settimana è qui sotto."
+      ],
+      "outro": [
+        "Questa email arriva una volta a settimana, il mercoledì mattina."
+      ],
+      "signoff": "Ülkər Nəsirova — Agradex"
+    },
+    "no_fields": {
+      "subject": "Aggiungi il tuo primo campo in 2 minuti",
+      "preheader": "Al satellite serve solo un confine per vedere il campo.",
+      "heading": "Un campo cambia tutto",
+      "intro": [
+        "Ciao{name_suffix}! Il tuo account è pronto, ma non hai ancora aggiunto un campo. <b>Al satellite serve solo un confine per “vedere” il tuo campo.</b>",
+        "Non vuoi disegnarlo? <b>Tocca</b> il campo sulla mappa — Agradex rileva il confine per te."
+      ],
+      "outro": [
+        "Se qualcosa non ha funzionato, rispondi con una riga e ti aiuto.",
+        "Appena aggiungi un campo, questa email diventa il tuo riepilogo settimanale."
+      ],
+      "signoff": "Ülkər Nəsirova — Agradex"
+    }
+  },
+  "pl": {
+    "calm": {
+      "subject": "Twój tydzień: {fields_label}, spokojnie",
+      "preheader": "Wynik zdrowia, trend NDVI i porada AI — na jeden rzut oka.",
+      "heading": "Ten tydzień na Twoich polach",
+      "intro": [
+        "Cześć{name_suffix}! W tym tygodniu nie wydarzyło się nic pilnego na Twoich polach — oto krótkie podsumowanie."
+      ],
+      "outro": [
+        "Pilne alerty pojawiają się w aplikacji od razu; e-mail przychodzi raz w tygodniu, w środę rano.",
+        "Pytania? Po prostu odpowiedz na tego e-maila — czytam każdy."
+      ],
+      "signoff": "Ülkər Nəsirova — Agradex"
+    },
+    "alerts": {
+      "subject": "⚠️ {alerts_label} — Twoje podsumowanie tygodnia",
+      "preheader": "Pole, które najbardziej Cię potrzebuje: „{field}”.",
+      "heading": "Co wymaga uwagi w tym tygodniu",
+      "intro": [
+        "Cześć{name_suffix}! W tym tygodniu na Twoich polach odnotowano: <b>{alerts_label}</b>. Najbardziej potrzebuje Cię pole <b>„{field}”</b>.",
+        "Wszystko znajdziesz poniżej. Warto poświęcić minutę przed wyjazdem w pole."
+      ],
+      "outro": [
+        "Pilne alerty pojawiają się w aplikacji od razu; e-mail przychodzi raz w tygodniu, w środę rano.",
+        "Pytania? Po prostu odpowiedz na tego e-maila — czytam każdy."
+      ],
+      "signoff": "Ülkər Nəsirova — Agradex"
+    },
+    "no_crop": {
+      "subject": "Został jeden krok: ustaw uprawę dla pola „{field}”",
+      "preheader": "Wybór uprawy włącza progi dopasowane do niej.",
+      "heading": "Został jeden krok: ustaw uprawę",
+      "intro": [
+        "Cześć{name_suffix}! Twoje pola są już widoczne z satelity, ale uprawa nie jest jeszcze ustawiona. Gdy ją wybierzesz, Agradex zastosuje <b>progi zdrowia dopasowane do uprawy</b>, normy nawożenia i trafniejsze porady.",
+        "To zajmie minutę. Podsumowanie tygodnia znajdziesz poniżej."
+      ],
+      "outro": [
+        "Ten e-mail przychodzi raz w tygodniu, w środę rano."
+      ],
+      "signoff": "Ülkər Nəsirova — Agradex"
+    },
+    "no_fields": {
+      "subject": "Dodaj pierwsze pole w 2 minuty",
+      "preheader": "Satelicie wystarczy granica, żeby zobaczyć Twoje pole.",
+      "heading": "Jedno pole zmienia wszystko",
+      "intro": [
+        "Cześć{name_suffix}! Twoje konto jest gotowe, ale nie ma w nim jeszcze żadnego pola. <b>Satelicie wystarczy granica, żeby „zobaczyć” Twoje pole.</b>",
+        "Nie chcesz rysować? Po prostu <b>dotknij</b> pola na mapie — Agradex sam wykryje granicę."
+      ],
+      "outro": [
+        "Jeśli coś stanęło na przeszkodzie, odpisz jedną linijką — pomogę.",
+        "Gdy tylko dodasz pole, ten e-mail zmieni się w tygodniowe podsumowanie Twoich pól."
+      ],
+      "signoff": "Ülkər Nəsirova — Agradex"
+    }
+  },
   "ru": {
     "calm": {
       "subject": "Сводка за неделю: {fields_label} — без тревог",

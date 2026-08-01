@@ -6,15 +6,28 @@
 //   HLS — 30m (Landsat 8/9 + S2): the denser time series and the long archive (back to 2015).
 // DB codes are 'S30'/'L30' (HLS) and 'S2'; the API uses family strings 's2'/'hls'.
 //
-// HLS was pulled out of the USER INTERFACE. Nothing here was deleted: flip HLS_ENABLED back to
-// true and the second sensor becomes selectable again (that is the one-boolean rollback the
-// owner asked for). sensorFamily() must keep resolving 'hls'/'s30'/'l30' either way, because
-// stored rows tagged with those codes still flow into the app and have to be classified.
+// HLS was pulled out of the USER INTERFACE (E14.3). sensorFamily() must keep resolving
+// 'hls'/'s30'/'l30' either way, because stored rows tagged with those codes still flow into the
+// app and have to be classified.
+//
+// HLS_ENABLED IS NOT A ONE-LINE ROLLBACK, whatever an earlier version of this comment claimed.
+// Flipping it to true restores the sensor to UI_SENSORS and lets the satellite section render HLS,
+// and that is genuinely all — three further things would be needed for the second sensor to be
+// SELECTABLE again, and none of them read this flag:
+//   1. a second entry in lib/fieldSections.ts (there is no HLS section; SECTION_GROUPS is a flat
+//      const and SectionKey has no member for it);
+//   2. i18n labels — sensorMeta() falls back to the hardcoded "HLS · 30m" below because no
+//      app.sensor.hls.* key exists in any of the eight dictionaries;
+//   3. a sensor picker, which was deleted with the second tab.
+// Stating this is the point: the false claim would have cost a future session an afternoon
+// discovering that the switch it was told to flip does almost nothing.
 
 import { t } from "@/lib/i18n";
 
-/** Single switch that hides HLS from the UI. Data ingestion is unaffected. */
-export const HLS_ENABLED = false;
+/** Hides HLS from the UI. Data ingestion is unaffected — see the rollback note above for what
+ *  this flag does NOT do. Typed `boolean` on purpose: without the annotation TypeScript narrows it
+ *  to the literal `false` and marks every HLS branch below as unreachable dead code. */
+export const HLS_ENABLED: boolean = false;
 
 export type Sensor = "S2" | "HLS";
 
@@ -62,7 +75,8 @@ export function sensorMeta(sensor: Sensor): SensorMeta {
       note: t("app.sensor.s2.note"),
     };
   }
-  // Unreachable while HLS_ENABLED is false — kept so the rollback is a one-line flip.
+  // Reached only with HLS_ENABLED=true. Hardcoded rather than translated because no
+  // app.sensor.hls.* key exists — see point 2 of the rollback note at the top of this file.
   return { ...SENSOR_STYLE.HLS, label: "HLS · 30m", short: "HLS 30m", note: "" };
 }
 

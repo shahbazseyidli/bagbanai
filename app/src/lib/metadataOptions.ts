@@ -3,7 +3,7 @@
 // crop_thresholds and the subsidy engine; labels are what the farmer sees.
 // Free-text is still possible via the "Digər" (Other) fallback in the form.
 
-import { t, type I18nKey } from "@/lib/i18n";
+import { t, type I18nKey, getLocale } from "@/lib/i18n";
 
 export interface Opt {
   value: string;
@@ -216,6 +216,70 @@ export const CROP_OPTIONS: Opt[] = [
 // Variety value === proper cultivar name (same across languages); routed through t() for
 // consistency. labelKey uses the raw name so optLabel() resolves the (identical) az string.
 const variety = (v: string): Opt => ({ value: v, label: v, labelKey: `app.meta.variety.${v}` as I18nKey });
+
+// Cultivar suggestions for markets outside Azerbaijan.
+//
+// WHY. The list below is the Azerbaijani registry, and it was the ONLY list — so a Turkish hazelnut
+// grower, in a product that ships in Turkish, was offered "Ata-baba, Topqara, Aşrəfli" and had to
+// fall back to free text for Tombul, the single most planted hazelnut cultivar on earth. The
+// suggestions were right for one country and useless in the other seven.
+//
+// A cultivar name is a PROPER NOUN — "Tombul" is Tombul in every language — so these entries carry
+// no labelKey: optLabel() renders the raw name and no dictionary entry is needed or wanted.
+//
+// SUGGESTIONS ONLY. VarietyChips always offers free text ("Digər") and "Bilmirəm", so a farmer
+// whose cultivar is not listed was never blocked and still is not. Adding a market here changes
+// what is OFFERED, never what is ACCEPTED — which is why a short, confident list beats a long
+// speculative one. Crops absent for a locale fall back to the Azerbaijani list rather than to
+// nothing: a Georgian or Iranian grower shares much of that registry.
+const LOCALE_VARIETIES: Record<string, Record<string, string[]>> = {
+  tr: {
+    hazelnut: ["Tombul", "Palaz", "Çakıldak", "Foşa", "Mincane", "Sivri", "Kalınkara",
+               "Kara Fındık", "Yağlı", "Uzunmusa", "Cavcava", "Allahverdi"],
+    wheat: ["Bezostaja-1", "Gerek-79", "Tosunbey", "Müfitbey", "Kızıltan-91", "Ceyhan-99",
+            "Adana-99", "Esperia"],
+    grape: ["Sultaniye", "Öküzgözü", "Boğazkere", "Kalecik Karası", "Narince", "Emir",
+            "Çavuş", "Razakı"],
+    apple: ["Amasya", "Starking Delicious", "Golden Delicious", "Granny Smith", "Fuji",
+            "Gala", "Braeburn"],
+  },
+  de: {
+    grape: ["Riesling", "Müller-Thurgau", "Spätburgunder", "Dornfelder", "Silvaner",
+            "Grauburgunder", "Weißburgunder"],
+    apple: ["Elstar", "Braeburn", "Jonagold", "Gala", "Golden Delicious", "Boskoop", "Topaz"],
+  },
+  it: {
+    grape: ["Sangiovese", "Nebbiolo", "Barbera", "Montepulciano", "Primitivo", "Trebbiano",
+            "Glera", "Nero d'Avola"],
+    apple: ["Golden Delicious", "Gala", "Fuji", "Granny Smith", "Renetta Canada", "Annurca"],
+  },
+  hu: {
+    grape: ["Furmint", "Hárslevelű", "Kékfrankos", "Olaszrizling", "Kadarka", "Ezerjó",
+            "Cserszegi fűszeres"],
+    apple: ["Jonagold", "Idared", "Gala", "Golden Delicious", "Braeburn"],
+  },
+  pl: {
+    apple: ["Ligol", "Szampion", "Jonagold", "Gloster", "Idared", "Cortland", "Gala",
+            "Golden Delicious"],
+  },
+  ru: {
+    apple: ["Антоновка", "Симиренко", "Мелба", "Голден Делишес", "Гала", "Джонаголд"],
+    grape: ["Ркацители", "Изабелла", "Кишмиш", "Молдова", "Восторг"],
+  },
+};
+
+/** Cultivars to suggest for a crop in the reader's market, falling back to the AZ registry. */
+export function varietiesFor(crop: string | null | undefined, locale?: string): Opt[] {
+  const c = crop ?? "";
+  const loc = (locale || getLocale()).slice(0, 2);
+  const local = LOCALE_VARIETIES[loc]?.[c];
+  if (local?.length) {
+    // No labelKey: a cultivar is a proper noun, and inventing app.meta.variety.Tombul would render
+    // the KEY itself in every dictionary that lacks it.
+    return local.map((v) => ({ value: v, label: v })).sort((a, b) => a.label.localeCompare(b.label, loc));
+  }
+  return VARIETY_OPTIONS_BY_CROP[c] ?? [];
+}
 
 export const VARIETY_OPTIONS_BY_CROP: Record<string, Opt[]> = {
   hazelnut: [

@@ -9,7 +9,7 @@ import Link from "next/link";
 import { Check, Circle, ChevronRight, X, PartyPopper } from "lucide-react";
 import { api } from "@/lib/api";
 import { track } from "@/lib/track";
-import { t, tf } from "@/lib/i18n";
+import { t, tf, tp } from "@/lib/i18n";
 import { missingMetaGaps } from "@/components/field/overview/completeness";
 import type { Farm, Field, FieldMetadata, Org } from "@/lib/types";
 
@@ -78,7 +78,13 @@ export default function OnboardingChecklist() {
                 label: t("onb.check.profile"),
                 done: metaGaps === 0,
                 href: `/fields/${first.id}?tab=metadata`,
-                hint: metaGaps > 0 ? tf("onb.check.profileHint", { count: metaGaps }) : undefined,
+                hint: metaGaps > 0 ? tf("onb.check.profileHint", {
+                    count: metaGaps,
+                    // 1-5 missing details: the range where "1 key details missing" and
+                    // "brakuje 2 ważnych danych" are both wrong. The form carries the verb
+                    // too, since German and Italian conjugate it with the count.
+                    unit: tp("app.plural.profileGaps", metaGaps),
+                  }) : undefined,
               }]
             : []),
           { key: "data", label: t("onb.check.data"), done: hasData,

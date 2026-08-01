@@ -1,11 +1,10 @@
 "use client";
 
-// VarietyChips — chips of known sorts/varieties for the chosen crop
-// (VARIETY_OPTIONS_BY_CROP, which may be empty), plus "Digər" free text and a
-// "Bilmirəm" escape. When the crop has no known varieties, only Digər/Bilmirəm
-// are shown.
+// VarietyChips — chips of known sorts/varieties for the chosen crop, in the reader's market where
+// we have a list for it and the Azerbaijani registry otherwise (varietiesFor), plus "Digər" free
+// text and a "Bilmirəm" escape. When the crop has no known varieties, only Digər/Bilmirəm show.
 
-import { VARIETY_OPTIONS_BY_CROP } from "@/lib/metadataOptions";
+import { varietiesFor } from "@/lib/metadataOptions";
 import ChoiceChips from "./ChoiceChips";
 
 export interface VarietyChipsProps {
@@ -18,7 +17,9 @@ export interface VarietyChipsProps {
 }
 
 export default function VarietyChips({ crop, value, onChange }: VarietyChipsProps) {
-  const options = VARIETY_OPTIONS_BY_CROP[crop ?? ""] ?? [];
+  // Suggestions for the reader's market, not only the Azerbaijani registry — a Turkish
+  // hazelnut grower gets Tombul and Palaz. Free text is still always available below.
+  const options = varietiesFor(crop);
   return (
     <ChoiceChips
       options={options}

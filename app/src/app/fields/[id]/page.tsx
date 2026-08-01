@@ -14,6 +14,7 @@ import { ErrorNote, Spinner } from "@/components/ui";
 // FieldPulse / SignalsActions / ShareButton are no longer imported here: the phone renders them
 // inside FieldFeed (mobile/FieldFeed.tsx), which is now the only narrow body of the status section.
 import SatelliteTab from "@/components/field/SatelliteTab";
+import { UI_SENSORS } from "@/lib/sensors";
 import ExportButton from "@/components/field/ExportButton";
 import ReportButton from "@/components/field/ReportButton";
 import FieldMapSheet from "@/components/field/FieldMapSheet";
@@ -526,7 +527,11 @@ function FieldDetailInner() {
       {tab === "satellite" && (
         <SatelliteTab
           field={field}
-          sensor="S2"
+          // From the flag, not a literal: with a hardcoded "S2" here, HLS_ENABLED controlled
+          // nothing at all on this screen. UI_SENSORS[0] is "S2" today and stays "S2" when the
+          // flag flips — the flag's job is to make the second sensor EXIST, not to replace the
+          // first — but the dependency is now real and greppable.
+          sensor={UI_SENSORS[0]}
           pickerVariant={pickerVariant}
           layout={layout}
           chartFullscreen={chartFullscreen}
