@@ -1499,7 +1499,7 @@ export const en: Dict = {
   // The word must match the one the server stores — grep `_FIELD_WORD` in
   // services/app/routers/fields.py.
   "app.field.autoName.placeholder": "Field 1, Field 2 …",
-  "app.field.autoName.hint": "Leave it blank and a name is given automatically. You can change it any time later.",
+  "app.field.autoName.hint": "This name is suggested for you — change it if you like. You can also rename it any time later.",
   "app.field.autoName.summary": "A name will be given automatically",
   "app.shell.appRail.equipment": "Equipment",
   "app.field.overviewTab.readingArchive": "Reading from the satellite archive. ",

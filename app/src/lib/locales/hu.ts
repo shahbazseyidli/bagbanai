@@ -1473,7 +1473,7 @@ export const hu: Dict = {
   // A szónak egyeznie kell azzal, amit a szerver elment — grep `_FIELD_WORD` a
   // services/app/routers/fields.py fájlban.
   "app.field.autoName.placeholder": "Tábla 1, Tábla 2 …",
-  "app.field.autoName.hint": "Ha üresen hagyja, a rendszer automatikusan nevet ad. Később bármikor átnevezheti.",
+  "app.field.autoName.hint": "Ezt a nevet javasoljuk — nyugodtan írja át. Később is bármikor átnevezheti.",
   "app.field.autoName.summary": "A rendszer automatikusan nevet ad",
   "app.shell.appRail.equipment": "Gépek",
   "app.field.overviewTab.readingArchive": "Beolvasás a műholdarchívumból. ",

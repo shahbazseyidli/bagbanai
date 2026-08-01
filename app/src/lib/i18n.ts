@@ -1169,7 +1169,7 @@ export const az = {
   "app.field.autoName.placeholder": "Sahə 1, Sahə 2 …",
   // İki fakt da yük daşıyır: boş buraxmaq olar, VƏ verilən ad sonradan dəyişdirilə bilər
   // (o, həqiqi saxlanmış dəyərdir, placeholder deyil).
-  "app.field.autoName.hint": "Boş buraxsanız sistem avtomatik ad verəcək. Sonra istədiyiniz vaxt dəyişə bilərsiniz.",
+  "app.field.autoName.hint": "Bu ad hazır təklif olunub — istəsəniz dəyişin. Sonra da istənilən vaxt dəyişə bilərsiniz.",
   // 4-cü addımın təsdiq xülasəsində tirenin yerinə. Gələcək zaman: ad sahə yaradılana qədər yoxdur.
   "app.field.autoName.summary": "Avtomatik ad veriləcək",
   "app.field.backfillCard.archivePost": "-ci ilə qədər gedir. Keçmiş illəri yükləsəniz, mövsüm müqayisəsi işləyə bilər.",

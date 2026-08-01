@@ -1085,7 +1085,7 @@ export const ru: Dict = {
   // Слово должно совпадать с тем, что сохраняет сервер — grep `_FIELD_WORD` в
   // services/app/routers/fields.py.
   "app.field.autoName.placeholder": "Поле 1, Поле 2 …",
-  "app.field.autoName.hint": "Оставьте пустым — название присвоится автоматически. Позже его можно изменить в любой момент.",
+  "app.field.autoName.hint": "Это название предложено автоматически — измените его, если хотите. Переименовать можно и позже.",
   "app.field.autoName.summary": "Название будет присвоено автоматически",
   "app.field.backfillCard.archivePost": " года. Если загрузить прошлые годы, заработает сравнение сезонов.",
   "app.field.backfillCard.archivePre": "Спутниковый архив доступен до ",

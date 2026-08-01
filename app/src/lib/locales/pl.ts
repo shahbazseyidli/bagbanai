@@ -1477,7 +1477,7 @@ export const pl: Dict = {
   // Słowo musi być takie samo jak to, które zapisuje serwer — grep `_FIELD_WORD` w
   // services/app/routers/fields.py.
   "app.field.autoName.placeholder": "Pole 1, Pole 2 …",
-  "app.field.autoName.hint": "Jeśli zostawisz puste, nazwa zostanie nadana automatycznie. Później możesz ją zmienić w dowolnej chwili.",
+  "app.field.autoName.hint": "Ta nazwa jest propozycją — możesz ją zmienić. Później też możesz zmienić ją w dowolnej chwili.",
   "app.field.autoName.summary": "Nazwa zostanie nadana automatycznie",
   "app.shell.appRail.equipment": "Sprzęt",
   "app.field.overviewTab.readingArchive": "Odczyt z archiwum satelitarnego. ",

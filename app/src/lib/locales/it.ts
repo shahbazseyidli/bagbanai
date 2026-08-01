@@ -1474,7 +1474,7 @@ export const it: Dict = {
   // La parola deve coincidere con quella salvata dal server — grep `_FIELD_WORD` in
   // services/app/routers/fields.py.
   "app.field.autoName.placeholder": "Campo 1, Campo 2 …",
-  "app.field.autoName.hint": "Se lo lasci vuoto, il nome viene assegnato automaticamente. Puoi cambiarlo quando vuoi.",
+  "app.field.autoName.hint": "Questo nome è un suggerimento — cambialo pure. Puoi rinominarlo anche più tardi.",
   "app.field.autoName.summary": "Il nome sarà assegnato automaticamente",
   "app.shell.appRail.equipment": "Attrezzature",
   "app.field.overviewTab.readingArchive": "Lettura dall'archivio satellitare. ",

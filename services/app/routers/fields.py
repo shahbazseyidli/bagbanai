@@ -112,6 +112,32 @@ async def _generate_field_name(conn, org_id: str, locale: str) -> str:
     return f"{_FIELD_WORD.get(locale, _FIELD_WORD['az'])} {n}"
 
 
+@router.get("/next-name")
+async def next_field_name(farm_id: str, request: Request,
+                          user_id: str = Depends(get_current_user_id)):
+    """The name this org's next field WOULD get — so the wizard can show it before it exists.
+
+    WHY THE CLIENT MUST ASK RATHER THAN COUNT. The number comes from max()+1 over names matching
+    the auto-name pattern INCLUDING soft-deleted rows, in any of eight language words, under an
+    advisory lock. A browser holding a list of visible fields cannot reproduce that, and a guess
+    that lands one low puts two "Sahə 2" in one org.
+
+    A PREVIEW, NOT A RESERVATION. Nothing is written and no number is held: by the time the farmer
+    finishes drawing, someone else in the org may have taken it. That is why the wizard submits an
+    EMPTY name when the farmer leaves the suggestion untouched — the real number is then chosen
+    inside the insert's own transaction, exactly as before this endpoint existed. What the farmer
+    sees is a truthful preview; what gets stored is still generated under the lock.
+
+    Same call the insert makes, deliberately, so the preview and the assignment can never drift
+    into two different answers.
+    """
+    async with connection(user_id) as conn:
+        org_id = await _org_of_farm(conn, farm_id)
+        await require_role(conn, user_id, org_id, ROLES_WRITE)
+        locale = await _creator_locale(conn, request, user_id)
+        return {"name": await _generate_field_name(conn, org_id, locale)}
+
+
 @router.post("", response_model=FieldOut)
 async def create_field(body: FieldIn, request: Request,
                        user_id: str = Depends(get_current_user_id)):

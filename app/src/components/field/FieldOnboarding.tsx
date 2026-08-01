@@ -93,11 +93,36 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
 
   // --- Step 1: boundary ---
   const [name, setName] = useState("");
+  // The name the SERVER would assign right now — fetched, not counted. The number is max()+1 over
+  // eight language words INCLUDING soft-deleted rows, taken under an advisory lock; a browser
+  // holding the visible field list cannot reproduce that, and a guess one low puts two "Sahə 2" in
+  // one org. Shown in the box so the farmer never faces an empty required field.
+  const [suggestedName, setSuggestedName] = useState("");
+  // Whether the farmer actually typed one. Untouched → submit "" and let the server pick the number
+  // inside the insert's own transaction, exactly as before this suggestion existed: the preview can
+  // go stale while they draw the boundary, but the STORED name still cannot collide.
+  const [nameTouched, setNameTouched] = useState(false);
   const [mode, setMode] = useState<Mode>("draw");
   const [drawnPolygon, setDrawnPolygon] = useState<Polygon | null>(null);
   const [coordsText, setCoordsText] = useState("");
   // P1.2 — the drawn/detected area is shown in the farmer's own unit; the POSTed value stays ha.
   const areaUnit = useAreaUnit();
+
+  useEffect(() => {
+    let active = true;
+    api
+      .get<{ name: string }>(`/api/fields/next-name?farm_id=${encodeURIComponent(farmId)}`)
+      .then((r) => {
+        if (active && r?.name) setSuggestedName(r.name);
+      })
+      .catch(() => {
+        // Best-effort. With no suggestion the box starts empty and the server still names the
+        // field — which is exactly the behaviour that shipped before this.
+      });
+    return () => {
+      active = false;
+    };
+  }, [farmId]);
   const [importedPolygon, setImportedPolygon] = useState<Polygon | null>(null);
   const [importSeq, setImportSeq] = useState(0);
   const [detect, setDetect] = useState(false);       // C3 tap-to-detect mode
@@ -390,7 +415,8 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
       // shapefile/tap-to-detect paths through the same endpoint get the same treatment.
       const field = await api.post<Field>("/api/fields", {
         farm_id: farmId,
-        name: name.trim(),
+        // Untouched → "" so the server names it under the lock (see the input above).
+        name: nameTouched ? name.trim() : "",
         geometry: poly,
       });
 
@@ -465,20 +491,34 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
       {/* STEP 1 — boundary */}
       {step === 1 && (
         <div className="space-y-4">
-          {/* NOT labelled "(optional)" any more, deliberately. Every field DOES end up with a
-              name — leave this blank and POST /api/fields stores "Sahə 1", "Sahə 2", … in this
-              locale — so "optional" described the input box while misdescribing the outcome, and
-              read as one more thing to skip. The hint below says what will happen instead.
-              The box is still not PRE-filled with the computed name, and that is on purpose: the
-              server picks the number under an advisory lock over max()+1 including soft-deleted
-              rows, so a number guessed in the browser could hand two fields the same name — the
-              exact collision that lock exists to prevent. The placeholder shows the real word the
-              server will use, so the promise and the stored value cannot drift apart. */}
+          {/* REQUIRED, and never empty — the owner's call. An earlier version left this blank on
+              purpose and explained that a browser-guessed number could collide with the server's.
+              That reasoning was right about the number and wrong about the remedy: the fix is to
+              ASK the server for it (GET /api/fields/next-name) instead of leaving the farmer
+              staring at an empty box they are told they must fill.
+
+              Two rules keep the collision impossible anyway:
+                * the shown value is the server's own answer, not arithmetic done here;
+                * if the farmer never edits it we submit "" and the server re-picks the number
+                  under its advisory lock at insert time — so a suggestion that went stale while
+                  they were drawing cannot become a duplicate name.
+              Clearing the box restores the suggestion on blur, which is what makes "required"
+              cost the farmer nothing. */}
           <FormField label={t("field.name")}>
             <input
               className="input"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              required
+              value={nameTouched ? name : suggestedName}
+              onChange={(e) => {
+                setNameTouched(true);
+                setName(e.target.value);
+              }}
+              onBlur={() => {
+                if (nameTouched && !name.trim() && suggestedName) {
+                  setNameTouched(false);
+                  setName("");
+                }
+              }}
               placeholder={t("app.field.autoName.placeholder")}
             />
             <p className="mt-1.5 text-[11.5px] leading-snug text-slate-500">
@@ -857,7 +897,9 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
               {/* "—" next to a name field reads like an error; say what will actually happen. */}
               <SummaryItem
                 label={t("field.name")}
-                value={name.trim() || t("app.field.autoName.summary")}
+                value={
+                  (nameTouched ? name.trim() : suggestedName) || t("app.field.autoName.summary")
+                }
               />
               <SummaryItem
                 label={t("field.area")}

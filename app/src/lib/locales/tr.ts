@@ -1472,7 +1472,7 @@ export const tr: Dict = {
   // Buradaki sözcük sunucunun kaydettiğiyle aynı olmalı — services/app/routers/fields.py
   // içinde grep `_FIELD_WORD`.
   "app.field.autoName.placeholder": "Tarla 1, Tarla 2 …",
-  "app.field.autoName.hint": "Boş bırakırsanız sistem otomatik ad verir. Sonra istediğiniz zaman değiştirebilirsiniz.",
+  "app.field.autoName.hint": "Bu ad sizin için önerildi — isterseniz değiştirin. Sonra da istediğiniz zaman değiştirebilirsiniz.",
   "app.field.autoName.summary": "Otomatik ad verilecek",
   "app.shell.appRail.equipment": "Ekipman",
   "app.field.overviewTab.readingArchive": "Uydu arşivinden okunuyor. ",
