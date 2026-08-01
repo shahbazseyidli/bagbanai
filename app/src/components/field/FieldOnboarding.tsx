@@ -356,9 +356,21 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
     return polygon;
   }
 
+  /** What will actually be stored: the farmer's text once they have typed, else the server's
+   *  suggestion. Both the step gate and the summary read this, so they cannot disagree. */
+  const effectiveName = (nameTouched ? name : suggestedName).trim();
+
   function next() {
     setError("");
     if (step === 1) {
+      // The name is REQUIRED (owner's decision). `required` on the input cannot enforce it — this
+      // wizard has no <form>, so the browser never validates — and the only way to reach here
+      // empty is a failed suggestion fetch plus an untouched box. Say so rather than letting the
+      // step advance and the rule exist in name only.
+      if (!effectiveName) {
+        setError(t("app.field.autoName.required"));
+        return;
+      }
       const poly = validateBoundary();
       if (!poly) return;
       if (areaHa != null && areaHa < 0.05) {
@@ -415,7 +427,8 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
       // shapefile/tap-to-detect paths through the same endpoint get the same treatment.
       const field = await api.post<Field>("/api/fields", {
         farm_id: farmId,
-        // Untouched → "" so the server names it under the lock (see the input above).
+        // Untouched → "" so the server names it under the lock (see the input above). NOT
+        // effectiveName: sending back the suggestion verbatim would defeat the re-pick.
         name: nameTouched ? name.trim() : "",
         geometry: poly,
       });
@@ -897,9 +910,7 @@ export default function FieldOnboarding({ farmId, onCreated }: Props) {
               {/* "—" next to a name field reads like an error; say what will actually happen. */}
               <SummaryItem
                 label={t("field.name")}
-                value={
-                  (nameTouched ? name.trim() : suggestedName) || t("app.field.autoName.summary")
-                }
+                value={effectiveName || t("app.field.autoName.summary")}
               />
               <SummaryItem
                 label={t("field.area")}

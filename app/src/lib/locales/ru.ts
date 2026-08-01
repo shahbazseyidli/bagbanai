@@ -1086,6 +1086,7 @@ export const ru: Dict = {
   // services/app/routers/fields.py.
   "app.field.autoName.placeholder": "Поле 1, Поле 2 …",
   "app.field.autoName.hint": "Это название предложено автоматически — измените его, если хотите. Переименовать можно и позже.",
+  "app.field.autoName.required": "Название поля не может быть пустым.",
   "app.field.autoName.summary": "Название будет присвоено автоматически",
   "app.field.backfillCard.archivePost": " года. Если загрузить прошлые годы, заработает сравнение сезонов.",
   "app.field.backfillCard.archivePre": "Спутниковый архив доступен до ",

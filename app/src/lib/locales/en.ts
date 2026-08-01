@@ -1500,6 +1500,7 @@ export const en: Dict = {
   // services/app/routers/fields.py.
   "app.field.autoName.placeholder": "Field 1, Field 2 …",
   "app.field.autoName.hint": "This name is suggested for you — change it if you like. You can also rename it any time later.",
+  "app.field.autoName.required": "The field name cannot be empty.",
   "app.field.autoName.summary": "A name will be given automatically",
   "app.shell.appRail.equipment": "Equipment",
   "app.field.overviewTab.readingArchive": "Reading from the satellite archive. ",

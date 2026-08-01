@@ -1478,6 +1478,7 @@ export const pl: Dict = {
   // services/app/routers/fields.py.
   "app.field.autoName.placeholder": "Pole 1, Pole 2 …",
   "app.field.autoName.hint": "Ta nazwa jest propozycją — możesz ją zmienić. Później też możesz zmienić ją w dowolnej chwili.",
+  "app.field.autoName.required": "Nazwa pola nie może być pusta.",
   "app.field.autoName.summary": "Nazwa zostanie nadana automatycznie",
   "app.shell.appRail.equipment": "Sprzęt",
   "app.field.overviewTab.readingArchive": "Odczyt z archiwum satelitarnego. ",
