@@ -574,3 +574,15 @@ grep ilə yenidən yoxlanıb; bağlananlar üstündən xətt çəkilib, silinmə
 | SEO-S3 | Kataloqlar (Product Hunt/Capterra/G2/Crunchbase/F6S) + AZ ekosistem linkləri | ⏳ istifadəçi hesabları |
 | — | Müəllif: **Sabir Ismayilbayli** + LinkedIn linki (`lib/author.ts`, byline + Article JSON-LD) | ✅ 2026-08-02 |
 | — | ES locale qərarı (hədəf 5-10 user/gün pilləsində) | ⏳ qərar |
+
+## 2026-08-02 gecə — SEO dalğa 3 + brend (sahibin «B1-B4,B6,C,D + branding» sifarişi)
+
+- **B1 ✅** TR variantları: 7 mövzu × tr (dekar/dönüm, Karadeniz fındığı, MGM dürüstlüyü) — blog 6 dilə çıxdı.
+- **B2 ✅** AZ uzun-quyruq: fertilizer-rates · wheat/hazelnut-growing-guide · grape-diseases · online-agronomist · farm-apps-comparison (aqro rəqəmlər interval + «torpaq analizi ilə dəqiqləşdir» qeydi ilə).
+- **B3 ✅** `agradex-vs-onesoil` (en) — dürüst müqayisə; «OneSoil alternative» sorğusunun səhifəsi.
+- **B4 ✅ TAM** es lokalizasiyası: UI lüğəti 2,824 açar (en ilə tam paritet, placeholder-validator 0 xəta) + content-overlay 679 + legal privacy/terms — `/es` bütün səthlərdə ispancadır.
+- **B6 ✅** landing h2 «Əkin sahələrinin peyklə monitorinqi…» (9 dildə) + footer «kim qurub» sətri (müəllif kimliyi ilə eyni).
+- **C ✅** Ölçmə ritualı: server cron ×2 (`seo-weekly.sh` B.e. 06:12 — nginx-dən organik kliklər; `goaccess-report.sh` ayın 1-i) + bulud rutini «Agradex weekly SEO check» (B.e. 09:07 Bakı, `trig_01XbZaa8TM8MZHbsfG2SySpn`). İlk ölçmə: son 7 gündə **13 Google keçidi** (/, /en, /guide, /demo).
+- **D 🚀** PSI baseline (T15): **SEO 100 · Perf 66 (mobil) · A11y 95 · BP 92**; CrUX hələ «No Data». Perf 66 → gələcək perf dalğasının hədəfi (O3 keş və s.). Lighthouse UA bot-istisnaya əlavə edildi (PSI /en-ə 307 alırdı).
+- **Brend v2 ✅** NDVI-piksel nişan: favicon/ikonlar/OG + nav/footer loqoları. Token re-teması → ayrıca dizayn dalğası (⏳).
+- Blog cəmi: **14 slug / 49 səhifə**; sitemap **229 URL**.
