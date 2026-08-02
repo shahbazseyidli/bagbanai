@@ -11,7 +11,7 @@ import type { NextRequest } from "next/server";
 const PANEL_HOST = (process.env.NEXT_PUBLIC_PANEL_HOST || "").toLowerCase();
 const AUTH_COOKIE = "bagban_session";
 const LOCALE_COOKIE = "bagban_locale";
-const PREFIXED = ["en", "ru", "tr", "de", "hu", "it", "pl"]; // az is the default (no prefix)
+const PREFIXED = ["en", "ru", "tr", "de", "hu", "it", "pl", "es"]; // az is the default (no prefix)
 // Every route that belongs to the APP host. A route missing from this list is served by the
 // MARKETING apex as well — no shell, no rail, no bottom nav — which is how /weather and /notes
 // briefly shipped as bare pages on agradex.com. When you add an app route, add it here.

@@ -7,7 +7,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
-_LOCALES = {"az", "en", "tr", "de", "hu", "it", "pl", "ru"}
+_LOCALES = {"az", "en", "tr", "de", "hu", "it", "pl", "ru", "es"}
 
 
 def _resolve_locale(request: Request, body_locale: Optional[str]) -> str:

@@ -15,8 +15,9 @@ import { de } from "@/lib/locales/de";
 import { hu } from "@/lib/locales/hu";
 import { it } from "@/lib/locales/it";
 import { pl } from "@/lib/locales/pl";
+import { es } from "@/lib/locales/es";
 
-const DICTS: Record<Locale, Dict> = { az, en, ru, tr, de, hu, it, pl };
+const DICTS: Record<Locale, Dict> = { az, en, ru, tr, de, hu, it, pl, es };
 
 /** Resolve the active locale from the middleware-set x-locale header (falls back to the cookie, az). */
 export async function getServerLocale(): Promise<Locale> {
@@ -37,5 +38,7 @@ export async function getT(override?: string): Promise<(key: I18nKey) => string>
     ? (override as Locale)
     : await getServerLocale();
   const d = DICTS[locale];
-  return (key: I18nKey) => (d && d[key]) || az[key] || (key as string);
+  // locale → en → az, mirroring the client t(): es is a partial locale whose gaps must read as
+  // English; the seven complete locales never reach the en hop.
+  return (key: I18nKey) => (d && d[key]) || en[key] || az[key] || (key as string);
 }

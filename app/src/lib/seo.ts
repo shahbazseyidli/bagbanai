@@ -16,10 +16,26 @@ export function localeUrl(path: string, locale: Locale): string {
 }
 
 /** Canonical (same-language — Google ignores hreflang clusters whose canonical crosses languages)
- *  plus the full 8-locale + x-default hreflang set for `path`. */
+ *  plus the full 9-locale + x-default hreflang set for `path`. */
 export function pageAlternates(path: string, locale: Locale) {
   const languages: Record<string, string> = {};
   for (const l of LOCALES) languages[l] = localeUrl(path, l);
   languages["x-default"] = localeUrl(path, "az");
   return { canonical: localeUrl(path, locale), languages };
+}
+
+/** Like pageAlternates, but for pages that exist only in SOME locales (blog posts ship in five
+ *  languages, not nine). Never advertise an hreflang variant that does not exist; when the current
+ *  locale has no variant, the canonical points at the language actually being served. */
+export function pageAlternatesAmong(
+  path: string,
+  locale: Locale,
+  available: readonly string[],
+  served: Locale,
+) {
+  const languages: Record<string, string> = {};
+  for (const l of LOCALES) if (available.includes(l)) languages[l] = localeUrl(path, l);
+  languages["x-default"] = localeUrl(path, available.includes("az") ? "az" : (available[0] as Locale));
+  const canonicalLocale = available.includes(locale) ? locale : served;
+  return { canonical: localeUrl(path, canonicalLocale), languages };
 }

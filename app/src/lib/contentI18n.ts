@@ -14,7 +14,9 @@ import { it } from "@/lib/content-locales/it";
 import { pl } from "@/lib/content-locales/pl";
 
 export type ContentOverlay = Record<string, string>;
-const OVERLAY: Partial<Record<Locale, ContentOverlay>> = { en, ru, tr, de, hu, it, pl };
+// es reuses the ENGLISH overlay until content-locales/es.ts is written: for a Spanish reader,
+// English long-form marketing beats Azerbaijani (the az base it would otherwise fall back to).
+const OVERLAY: Partial<Record<Locale, ContentOverlay>> = { en, ru, tr, de, hu, it, pl, es: en };
 
 export function overlayFor(locale?: Locale | null): ContentOverlay | undefined {
   return locale && locale !== "az" ? OVERLAY[locale] : undefined;

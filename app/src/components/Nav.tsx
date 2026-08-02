@@ -143,6 +143,7 @@ export default function Nav() {
     { href: "/solutions", label: t("nav.solutions") },
     { href: "/how-it-works", label: t("nav.howItWorks") },
     { href: "/pricing", label: t("nav.pricing") },
+    { href: "/blog", label: t("nav.blog") },
   ];
   // While auth is still resolving (and we have no cached user) we don't yet know whether to show the
   // signed-in account controls, so we hold those back instead of flashing signed-out chrome.

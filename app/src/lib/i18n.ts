@@ -2592,6 +2592,15 @@ export const az = {
   "mkt.demo.seoP3": "Qeydiyyatdan sonra öz tarlanızı xəritədə bir toxunuşla qeyd edirsiniz — kadastr sənədi və ya koordinat lazım deyil. Pulsuz paketə peyk xəritəsi, vəziyyət qiyməti və hava proqnozu daxildir; AI aqronom məsləhəti üçün 1 aylıq pulsuz sınaq var, bank kartı tələb olunmur.",
   "mkt.guideSlug.authorLabel": "Müəllif",
   "mkt.guideSlug.updatedLabel": "Yenilənib",
+  // Blog (SEO wave 2, 2026-08-02)
+  "nav.blog": "Bloq",
+  "mkt.footer.linkBlog": "Bloq",
+  "mkt.meta.blogTitle": "Aqro-bloq: NDVI, peyk monitorinqi və suvarma — Agradex",
+  "mkt.meta.blogDesc": "NDVI dəyərləri, peykin keçid tezliyi, suvarma vaxtı və dəqiq əkinçilik haqqında qısa, praktik məqalələr — real sahə məlumatları üzərində.",
+  "mkt.blog.eyebrow": "bloq",
+  "mkt.blog.title": "Aqro-bilik mərkəzi",
+  "mkt.blog.lead": "Peyk indeksləri, hava və suvarma haqqında qısa, dəqiq cavablar. Hər məqalə real sahə məlumatları üzərində yazılıb — nəzəriyyə yox, tarlada işə yarayan izahat.",
+  "mkt.blog.readMore": "Oxu",
   "mkt.demo.eyebrow": "NÜMUNƏ SAHƏ",
   "mkt.demo.title": "Agradex real sahədə belə işləyir",
   "mkt.demo.subtitle": "Aşağıdakı sahə uydurma deyil — real fermerin sahəsidir və peyk, hava, analiz datası canlıdır. Peyk yeni buludsuz görüntü çəkdikcə yenilənir. Gəzintiyə başlayın, sonra eynisini öz sahənizdə qurun.",
@@ -3137,15 +3146,16 @@ export type I18nKey = keyof typeof az;
 type PluralForms = { [K in `app.plural.${string}`]?: string };
 export type Dict = Partial<Record<I18nKey, string>> & PluralForms;
 
-// Phase 4 / P1.1 — 8 locales. az is the complete source of truth; the rest fall back to az for any
-// missing key. Translations live in lib/locales/{en,ru,tr,de,hu,it,pl}.ts. ru is a launch-tier
-// language (the working lingua franca of agriculture across the South Caucasus and Central Asia),
-// held to the same quality bar as az — not a machine-translated afterthought.
-export type Locale = "az" | "en" | "ru" | "tr" | "de" | "hu" | "it" | "pl";
-export const LOCALES: Locale[] = ["az", "en", "ru", "tr", "de", "hu", "it", "pl"];
+// Phase 4 / P1.1 — 9 locales. az is the complete source of truth. Missing keys resolve
+// locale → en → az (the en hop added with es): es is a marketing-first PARTIAL locale, and its
+// untranslated corners must read as English, not Azerbaijani. For the seven complete locales the
+// en hop is dormant (key parity means it never fires). ru is a launch-tier language held to the
+// same quality bar as az — not a machine-translated afterthought.
+export type Locale = "az" | "en" | "ru" | "tr" | "de" | "hu" | "it" | "pl" | "es";
+export const LOCALES: Locale[] = ["az", "en", "ru", "tr", "de", "hu", "it", "pl", "es"];
 export const LOCALE_NAMES: Record<Locale, string> = {
   az: "Azərbaycan", en: "English", ru: "Русский", tr: "Türkçe", de: "Deutsch",
-  hu: "Magyar", it: "Italiano", pl: "Polski",
+  hu: "Magyar", it: "Italiano", pl: "Polski", es: "Español",
 };
 
 // Registered lazily by LocaleProvider so this module has no import cycle with the big dicts.
@@ -3177,7 +3187,8 @@ export function detectLocale(): Locale {
 
 export function t(key: I18nKey): string {
   const d = DICTS[_locale];
-  return (d && d[key]) || az[key] || (key as string);
+  const e = DICTS.en;
+  return (d && d[key]) || (e && e[key]) || az[key] || (key as string);
 }
 
 /**
@@ -3189,8 +3200,9 @@ export function t(key: I18nKey): string {
  */
 export function tf(key: string, params?: Record<string, unknown>): string {
   const d = DICTS[_locale] as unknown as Record<string, string> | undefined;
+  const eAny = DICTS.en as unknown as Record<string, string> | undefined;
   const azAny = az as unknown as Record<string, string>;
-  const raw = (d && d[key]) || azAny[key] || key;
+  const raw = (d && d[key]) || (eAny && eAny[key]) || azAny[key] || key;
   if (!params) return raw;
   return raw.replace(/\{(\w+)\}/g, (m, name) =>
     Object.prototype.hasOwnProperty.call(params, name) ? String(params[name]) : m,

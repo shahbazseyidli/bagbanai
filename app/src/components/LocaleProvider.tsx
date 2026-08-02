@@ -13,6 +13,7 @@ import { de } from "@/lib/locales/de";
 import { hu } from "@/lib/locales/hu";
 import { it } from "@/lib/locales/it";
 import { pl } from "@/lib/locales/pl";
+import { es } from "@/lib/locales/es";
 
 let registered = false;
 
@@ -32,6 +33,7 @@ export default function LocaleProvider({
       registerDict("hu", hu);
       registerDict("it", it);
       registerDict("pl", pl);
+      registerDict("es", es);
       registered = true;
     }
     setLocale(initialLocale);

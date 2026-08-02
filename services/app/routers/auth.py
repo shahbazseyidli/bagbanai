@@ -941,7 +941,7 @@ async def set_area_unit(body: dict, user_id: str = Depends(get_current_user_id))
 # digest email and the advice the geo pipeline generates after each new scene both read
 # users.locale. Before this the column only ever held whatever was picked at signup, so a farmer
 # who switched to Russian kept getting Azerbaijani analysis and Azerbaijani mail forever.
-SUPPORTED_LOCALES = ("az", "en", "ru", "tr", "de", "hu", "it", "pl")
+SUPPORTED_LOCALES = ("az", "en", "ru", "tr", "de", "hu", "it", "pl", "es")
 
 
 @router.post("/locale")

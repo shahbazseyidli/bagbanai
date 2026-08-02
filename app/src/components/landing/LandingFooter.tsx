@@ -59,6 +59,7 @@ export default function LandingFooter() {
             <Link href="/pricing" className="lp-flink">{t("mkt.footer.linkPricing")}</Link>
             <Link href="/how-it-works" className="lp-flink">{t("mkt.footer.linkHow")}</Link>
             <Link href="/guide" className="lp-flink">{t("mkt.footer.linkGuide")}</Link>
+            <Link href="/blog" className="lp-flink">{t("mkt.footer.linkBlog")}</Link>
           </div>
 
           <div>

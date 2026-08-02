@@ -17,13 +17,14 @@ export const PUBLIC_ROUTES = [
   "/solutions/consultant",
   "/solutions/supplier",
   "/guide",
+  "/blog",
   "/demo",
   "/privacy",
   "/terms",
 ] as const;
 
 /** Locales that carry a URL prefix. `az` is the unprefixed default. */
-export const SITEMAP_LOCALES = ["az", "en", "ru", "tr", "de", "hu", "it", "pl"] as const;
+export const SITEMAP_LOCALES = ["az", "en", "ru", "tr", "de", "hu", "it", "pl", "es"] as const;
 
 /** Absolute URL for a route in a locale. Mirrors alternatesFor() in app/layout.tsx exactly — if
  *  the two ever disagree, the sitemap advertises a URL whose own hreflang points elsewhere. */
