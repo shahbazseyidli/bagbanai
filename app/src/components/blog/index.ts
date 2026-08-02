@@ -8,38 +8,52 @@ import { post as whatIsNdviEn } from "./posts/what-is-ndvi.en";
 import { post as whatIsNdviRu } from "./posts/what-is-ndvi.ru";
 import { post as whatIsNdviDe } from "./posts/what-is-ndvi.de";
 import { post as whatIsNdviEs } from "./posts/what-is-ndvi.es";
+import { post as whatIsNdviTr } from "./posts/what-is-ndvi.tr";
 import { post as satellitePassAz } from "./posts/satellite-pass-frequency.az";
 import { post as satellitePassEn } from "./posts/satellite-pass-frequency.en";
 import { post as satellitePassRu } from "./posts/satellite-pass-frequency.ru";
 import { post as satellitePassDe } from "./posts/satellite-pass-frequency.de";
 import { post as satellitePassEs } from "./posts/satellite-pass-frequency.es";
+import { post as satellitePassTr } from "./posts/satellite-pass-frequency.tr";
 import { post as whyNoImageAz } from "./posts/why-no-satellite-image.az";
 import { post as whyNoImageEn } from "./posts/why-no-satellite-image.en";
 import { post as whyNoImageRu } from "./posts/why-no-satellite-image.ru";
 import { post as whyNoImageDe } from "./posts/why-no-satellite-image.de";
 import { post as whyNoImageEs } from "./posts/why-no-satellite-image.es";
+import { post as whyNoImageTr } from "./posts/why-no-satellite-image.tr";
 import { post as ndviNdmiNdreAz } from "./posts/ndvi-ndmi-ndre.az";
 import { post as ndviNdmiNdreEn } from "./posts/ndvi-ndmi-ndre.en";
 import { post as ndviNdmiNdreRu } from "./posts/ndvi-ndmi-ndre.ru";
 import { post as ndviNdmiNdreDe } from "./posts/ndvi-ndmi-ndre.de";
 import { post as ndviNdmiNdreEs } from "./posts/ndvi-ndmi-ndre.es";
+import { post as ndviNdmiNdreTr } from "./posts/ndvi-ndmi-ndre.tr";
 import { post as irrigateWheatAz } from "./posts/when-to-irrigate-wheat.az";
 import { post as irrigateWheatEn } from "./posts/when-to-irrigate-wheat.en";
 import { post as irrigateWheatRu } from "./posts/when-to-irrigate-wheat.ru";
 import { post as irrigateWheatDe } from "./posts/when-to-irrigate-wheat.de";
 import { post as irrigateWheatEs } from "./posts/when-to-irrigate-wheat.es";
+import { post as irrigateWheatTr } from "./posts/when-to-irrigate-wheat.tr";
 import { post as freeNdviMapAz } from "./posts/free-ndvi-map.az";
 import { post as freeNdviMapEn } from "./posts/free-ndvi-map.en";
 import { post as freeNdviMapRu } from "./posts/free-ndvi-map.ru";
 import { post as freeNdviMapDe } from "./posts/free-ndvi-map.de";
 import { post as freeNdviMapEs } from "./posts/free-ndvi-map.es";
+import { post as freeNdviMapTr } from "./posts/free-ndvi-map.tr";
 import { post as ndviDiseaseAz } from "./posts/ndvi-crop-disease.az";
 import { post as ndviDiseaseEn } from "./posts/ndvi-crop-disease.en";
 import { post as ndviDiseaseRu } from "./posts/ndvi-crop-disease.ru";
 import { post as ndviDiseaseDe } from "./posts/ndvi-crop-disease.de";
 import { post as ndviDiseaseEs } from "./posts/ndvi-crop-disease.es";
+import { post as ndviDiseaseTr } from "./posts/ndvi-crop-disease.tr";
+import { post as vsOneSoilEn } from "./posts/agradex-vs-onesoil.en";
+import { post as onlineAgronomistAz } from "./posts/online-agronomist.az";
+import { post as farmAppsAz } from "./posts/farm-apps-comparison.az";
+import { post as fertilizerRatesAz } from "./posts/fertilizer-rates.az";
+import { post as wheatGuideAz } from "./posts/wheat-growing-guide.az";
+import { post as hazelnutGuideAz } from "./posts/hazelnut-growing-guide.az";
+import { post as grapeDiseasesAz } from "./posts/grape-diseases.az";
 
-/** Publication order of the hub page (newest editorial priority first). */
+/** Publication order of the hub page (editorial priority). */
 export const BLOG_SLUGS = [
   "what-is-ndvi",
   "ndvi-ndmi-ndre",
@@ -48,30 +62,46 @@ export const BLOG_SLUGS = [
   "when-to-irrigate-wheat",
   "free-ndvi-map",
   "ndvi-crop-disease",
+  "agradex-vs-onesoil",
+  "online-agronomist",
+  "farm-apps-comparison",
+  "fertilizer-rates",
+  "wheat-growing-guide",
+  "hazelnut-growing-guide",
+  "grape-diseases",
 ] as const;
 
 const POSTS: Record<string, Partial<Record<BlogLocale, BlogPost>>> = {
   "what-is-ndvi": {
-    az: whatIsNdviAz, en: whatIsNdviEn, ru: whatIsNdviRu, de: whatIsNdviDe, es: whatIsNdviEs,
+    az: whatIsNdviAz, en: whatIsNdviEn, ru: whatIsNdviRu, de: whatIsNdviDe, es: whatIsNdviEs, tr: whatIsNdviTr,
   },
   "satellite-pass-frequency": {
-    az: satellitePassAz, en: satellitePassEn, ru: satellitePassRu, de: satellitePassDe, es: satellitePassEs,
+    az: satellitePassAz, en: satellitePassEn, ru: satellitePassRu, de: satellitePassDe, es: satellitePassEs, tr: satellitePassTr,
   },
   "why-no-satellite-image": {
-    az: whyNoImageAz, en: whyNoImageEn, ru: whyNoImageRu, de: whyNoImageDe, es: whyNoImageEs,
+    az: whyNoImageAz, en: whyNoImageEn, ru: whyNoImageRu, de: whyNoImageDe, es: whyNoImageEs, tr: whyNoImageTr,
   },
   "ndvi-ndmi-ndre": {
-    az: ndviNdmiNdreAz, en: ndviNdmiNdreEn, ru: ndviNdmiNdreRu, de: ndviNdmiNdreDe, es: ndviNdmiNdreEs,
+    az: ndviNdmiNdreAz, en: ndviNdmiNdreEn, ru: ndviNdmiNdreRu, de: ndviNdmiNdreDe, es: ndviNdmiNdreEs, tr: ndviNdmiNdreTr,
   },
   "when-to-irrigate-wheat": {
-    az: irrigateWheatAz, en: irrigateWheatEn, ru: irrigateWheatRu, de: irrigateWheatDe, es: irrigateWheatEs,
+    az: irrigateWheatAz, en: irrigateWheatEn, ru: irrigateWheatRu, de: irrigateWheatDe, es: irrigateWheatEs, tr: irrigateWheatTr,
   },
   "free-ndvi-map": {
-    az: freeNdviMapAz, en: freeNdviMapEn, ru: freeNdviMapRu, de: freeNdviMapDe, es: freeNdviMapEs,
+    az: freeNdviMapAz, en: freeNdviMapEn, ru: freeNdviMapRu, de: freeNdviMapDe, es: freeNdviMapEs, tr: freeNdviMapTr,
   },
   "ndvi-crop-disease": {
-    az: ndviDiseaseAz, en: ndviDiseaseEn, ru: ndviDiseaseRu, de: ndviDiseaseDe, es: ndviDiseaseEs,
+    az: ndviDiseaseAz, en: ndviDiseaseEn, ru: ndviDiseaseRu, de: ndviDiseaseDe, es: ndviDiseaseEs, tr: ndviDiseaseTr,
   },
+  // Single-language pages: the comparison targets an English query; the six AZ long-tail guides
+  // serve the home market. hreflang stays honest — only real variants are advertised.
+  "agradex-vs-onesoil": { en: vsOneSoilEn },
+  "online-agronomist": { az: onlineAgronomistAz },
+  "farm-apps-comparison": { az: farmAppsAz },
+  "fertilizer-rates": { az: fertilizerRatesAz },
+  "wheat-growing-guide": { az: wheatGuideAz },
+  "hazelnut-growing-guide": { az: hazelnutGuideAz },
+  "grape-diseases": { az: grapeDiseasesAz },
 };
 
 /** Locales a slug actually exists in (drives hreflang + the sitemap). */

@@ -20,7 +20,7 @@ const APP_PREFIXES = ["/fields", "/farms", "/more", "/notifications", "/onboardi
 // Crawlers and link-preview fetchers must see stable content at the URL they asked for — Google
 // explicitly recommends against Accept-Language redirects (its own crawler sends the header
 // inconsistently, mostly not at all). Humans still get the one-time convenience redirect below.
-const BOT_UA = /bot|crawl|spider|slurp|bingpreview|yandex|duckduck|baidu|petal|facebookexternalhit|whatsapp|telegram|linkedinbot|twitterbot/i;
+const BOT_UA = /bot|crawl|spider|slurp|bingpreview|yandex|duckduck|baidu|petal|facebookexternalhit|whatsapp|telegram|linkedinbot|twitterbot|lighthouse|pagespeed/i;
 
 function isAppPath(path: string): boolean {
   return path === "/" || APP_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`));

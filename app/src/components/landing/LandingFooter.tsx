@@ -4,8 +4,9 @@
 // exist AND are public are linked (no 404s, no login walls): /signup, /login, /pricing, /privacy,
 // /terms, the four /solutions/* pages, /guide and the in-page anchors.
 import Link from "next/link";
-import { ArrowRight, Leaf } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { t, type I18nKey } from "@/lib/i18n";
+import { AUTHOR } from "@/lib/author";
 
 const SOLUTIONS: Array<[string, I18nKey]> = [
   ["/solutions/farmer", "mkt.footer.solutionFermer"],
@@ -39,14 +40,28 @@ export default function LandingFooter() {
         {/* link grid */}
         <div className="grid gap-6 pt-8 text-[13.5px] min-[920px]:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div>
-            <div className="mb-2.5 flex items-center gap-2 font-display text-[19px] font-bold text-white">
-              <Leaf className="h-6 w-6 text-mint" aria-hidden="true" /> Agradex
+            <div className="mb-2.5">
+              {/* eslint-disable-next-line @next/next/no-img-element -- static brand SVG */}
+              <img src="/brand/agradex-logo-dark.svg" alt="Agradex" className="h-8 w-auto" />
             </div>
             <p className="text-[13px] text-[#9cc3b1]">
               {t("mkt.footer.tagline")}
             </p>
             <p className="mt-3 text-[12px] text-[#7fae98]">
               {t("mkt.footer.dataSources")}
+            </p>
+            {/* E-E-A-T: a human behind the product, wired to the same identity the Article JSON-LD
+                and bylines carry — one name everywhere, or the signal is noise. */}
+            <p className="mt-3 text-[12px] text-[#7fae98]">
+              {t("mkt.footer.whoBuilt")}{" "}
+              <a
+                href={AUTHOR.url}
+                rel="author noopener"
+                target="_blank"
+                className="underline decoration-dotted underline-offset-2 hover:text-white"
+              >
+                {AUTHOR.name}
+              </a>
             </p>
           </div>
 

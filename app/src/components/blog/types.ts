@@ -6,7 +6,7 @@
 // as scaled machine output — see SEO_PLAN.md §4-S2 "Dil qaydası"). Slugs are English and identical
 // across locales so the variants form one hreflang cluster, like /solutions/farmer.
 
-export const BLOG_LOCALES = ["az", "en", "ru", "de", "es"] as const;
+export const BLOG_LOCALES = ["az", "en", "ru", "de", "es", "tr"] as const;
 export type BlogLocale = (typeof BLOG_LOCALES)[number];
 
 export interface BlogTable {

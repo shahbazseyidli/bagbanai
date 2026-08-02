@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 206 64" width="206" height="64" role="img" aria-label="Agradex">
+  <g fill="#F2F5EE" opacity=".13">
+    <rect x="3.5" y="3.5" width="12" height="12" rx="2.5"/><rect x="18.5" y="3.5" width="12" height="12" rx="2.5"/>
+    <rect x="33.5" y="3.5" width="12" height="12" rx="2.5"/><rect x="3.5" y="18.5" width="12" height="12" rx="2.5"/>
+    <rect x="18.5" y="18.5" width="12" height="12" rx="2.5"/><rect x="3.5" y="33.5" width="12" height="12" rx="2.5"/>
+    <rect x="48.5" y="33.5" width="12" height="12" rx="2.5"/><rect x="33.5" y="48.5" width="12" height="12" rx="2.5"/>
+    <rect x="48.5" y="48.5" width="12" height="12" rx="2.5"/>
+  </g>
+  <rect x="48.5" y="3.5"  width="12" height="12" rx="2.5" fill="#147049"/>
+  <rect x="33.5" y="18.5" width="12" height="12" rx="2.5" fill="#3E9A45"/>
+  <rect x="48.5" y="18.5" width="12" height="12" rx="2.5" fill="#147049"/>
+  <rect x="18.5" y="33.5" width="12" height="12" rx="2.5" fill="#8FC03C"/>
+  <rect x="33.5" y="33.5" width="12" height="12" rx="2.5" fill="#3E9A45"/>
+  <rect x="3.5"  y="48.5" width="12" height="12" rx="2.5" fill="#B25E2E"/>
+  <rect x="18.5" y="48.5" width="12" height="12" rx="2.5" fill="#E0A22C"/>
+  <text x="76" y="41.5" font-family="'Inter Tight','Archivo',Inter,'Helvetica Neue',Helvetica,Arial,sans-serif"
+        font-size="34" font-weight="700" letter-spacing="-1.5" fill="#F2F5EE">agradex</text>
+</svg>

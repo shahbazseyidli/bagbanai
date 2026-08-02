@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { HelpCircle, Leaf, Menu, X } from "lucide-react";
+import { HelpCircle, Menu, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { APEX_HOST, PANEL_HOST, useIsAppHost } from "@/lib/host";
 import { t, type I18nKey } from "@/lib/i18n";
@@ -210,9 +210,9 @@ export default function Nav() {
           <div className="flex min-w-0 items-center gap-1.5">
             {/* The sidebar carries the wordmark from md up; below md there is no sidebar, so the
                 phone keeps the brand exactly where it has always been. */}
-            <a href={HOME_HREF} className="flex shrink-0 items-center gap-2 text-emerald-700 md:hidden">
-              <Leaf className="h-6 w-6 shrink-0" />
-              <span className="whitespace-nowrap text-lg font-bold">{t("brand")}</span>
+            <a href={HOME_HREF} className="flex shrink-0 items-center md:hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element -- static brand SVG, no optimization needed */}
+              <img src="/brand/agradex-logo-light.svg" alt="Agradex" className="h-7 w-auto" />
             </a>
             {/* xl only: below xl the sidebar is already the 72px icon column, so collapsing it would
                 change nothing and the control would be a lie. */}
@@ -233,9 +233,9 @@ export default function Nav() {
             )}
           </div>
         ) : (
-          <a href={HOME_HREF} className="flex shrink-0 items-center gap-2 text-emerald-700">
-            <Leaf className="h-6 w-6 shrink-0" />
-            <span className="whitespace-nowrap text-lg font-bold">{t("brand")}</span>
+          <a href={HOME_HREF} className="flex shrink-0 items-center">
+            {/* eslint-disable-next-line @next/next/no-img-element -- static brand SVG, no optimization needed */}
+            <img src="/brand/agradex-logo-light.svg" alt="Agradex" className="h-7 w-auto" />
           </a>
         )}
 

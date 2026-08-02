@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="256" height="256" role="img" aria-label="Agradex">
+  <g fill="#0E2A21" opacity=".12">
+    <rect x="3.5" y="3.5" width="12" height="12" rx="2.5"/>
+    <rect x="18.5" y="3.5" width="12" height="12" rx="2.5"/>
+    <rect x="33.5" y="3.5" width="12" height="12" rx="2.5"/>
+    <rect x="3.5" y="18.5" width="12" height="12" rx="2.5"/>
+    <rect x="18.5" y="18.5" width="12" height="12" rx="2.5"/>
+    <rect x="3.5" y="33.5" width="12" height="12" rx="2.5"/>
+    <rect x="48.5" y="33.5" width="12" height="12" rx="2.5"/>
+    <rect x="33.5" y="48.5" width="12" height="12" rx="2.5"/>
+    <rect x="48.5" y="48.5" width="12" height="12" rx="2.5"/>
+  </g>
+  <rect x="48.5" y="3.5"  width="12" height="12" rx="2.5" fill="#147049"/>
+  <rect x="33.5" y="18.5" width="12" height="12" rx="2.5" fill="#3E9A45"/>
+  <rect x="48.5" y="18.5" width="12" height="12" rx="2.5" fill="#147049"/>
+  <rect x="18.5" y="33.5" width="12" height="12" rx="2.5" fill="#8FC03C"/>
+  <rect x="33.5" y="33.5" width="12" height="12" rx="2.5" fill="#3E9A45"/>
+  <rect x="3.5"  y="48.5" width="12" height="12" rx="2.5" fill="#B25E2E"/>
+  <rect x="18.5" y="48.5" width="12" height="12" rx="2.5" fill="#E0A22C"/>
+</svg>

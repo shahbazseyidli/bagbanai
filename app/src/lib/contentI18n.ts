@@ -12,11 +12,10 @@ import { de } from "@/lib/content-locales/de";
 import { hu } from "@/lib/content-locales/hu";
 import { it } from "@/lib/content-locales/it";
 import { pl } from "@/lib/content-locales/pl";
+import { es } from "@/lib/content-locales/es";
 
 export type ContentOverlay = Record<string, string>;
-// es reuses the ENGLISH overlay until content-locales/es.ts is written: for a Spanish reader,
-// English long-form marketing beats Azerbaijani (the az base it would otherwise fall back to).
-const OVERLAY: Partial<Record<Locale, ContentOverlay>> = { en, ru, tr, de, hu, it, pl, es: en };
+const OVERLAY: Partial<Record<Locale, ContentOverlay>> = { en, ru, tr, de, hu, it, pl, es };
 
 export function overlayFor(locale?: Locale | null): ContentOverlay | undefined {
   return locale && locale !== "az" ? OVERLAY[locale] : undefined;

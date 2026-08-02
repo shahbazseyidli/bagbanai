@@ -34,6 +34,8 @@ import { termsDe } from "./terms.de";
 import { termsHu } from "./terms.hu";
 import { termsIt } from "./terms.it";
 import { termsPl } from "./terms.pl";
+import { privacyEs } from "./privacy.es";
+import { termsEs } from "./terms.es";
 
 const PRIVACY: Record<Locale, PrivacyDoc> = {
   az: privacyAz,
@@ -44,10 +46,7 @@ const PRIVACY: Record<Locale, PrivacyDoc> = {
   hu: privacyHu,
   it: privacyIt,
   pl: privacyPl,
-  // es is a marketing-first partial locale (SEO wave 2): a Spanish visitor reads the ENGLISH legal
-  // documents until privacy.es/terms.es are written. Deliberate — legal text must never be a
-  // half-translated overlay, and English is the least-bad complete document for that audience.
-  es: privacyEn,
+  es: privacyEs,
 };
 
 const TERMS: Record<Locale, TermsDoc> = {
@@ -59,7 +58,7 @@ const TERMS: Record<Locale, TermsDoc> = {
   hu: termsHu,
   it: termsIt,
   pl: termsPl,
-  es: termsEn,
+  es: termsEs,
 };
 
 // The ?? az fallback is for a locale string that slipped past the Locale type (a hand-edited cookie,
