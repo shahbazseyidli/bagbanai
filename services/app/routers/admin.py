@@ -746,7 +746,9 @@ async def user_detail(user_id_target: str, user_id: str = Depends(get_current_us
             target)
 
         events = await conn.fetch(
-            """select type, created_at from public.user_events
+            # The column is `name`, not `type` (0029) — aliased so the JSON key stays "type",
+            # which is what the activity tab already calls it.
+            """select name as type, created_at from public.user_events
                 where user_id=$1::uuid order by created_at desc limit 25""", target)
         channels = await conn.fetch(
             """select channel, verified, opt_in from public.messaging_channels
