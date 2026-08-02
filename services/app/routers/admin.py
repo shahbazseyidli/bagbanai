@@ -17,6 +17,9 @@ from .. import tiers
 from ..ai import llm
 from ..db import connection
 from ..deps import get_current_user_id, require_platform_admin
+# The ONE closure implementation, imported rather than reimplemented — a second path would
+# be a second set of columns to remember to null, and the forgotten one leaks a name.
+from .auth import anonymise_account, owns_org_with_other_members
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -549,6 +552,14 @@ class UserPatch(BaseModel):
     is_admin: bool | None = None
     email_verified: bool | None = None
     full_name: str | None = None
+    # Widened for the detail drawer. Deliberately NOT here: email (it is the login identity and
+    # 0059's unique index; changing it silently moves an account someone else may be trying to
+    # reach) and password_hash (an admin who can set a password can impersonate — support resets
+    # go through the magic link the owner receives, not through us).
+    locale: str | None = None
+    role: str | None = None
+    country: str | None = None
+    region: str | None = None
 
 
 @router.patch("/users/{user_id_target}")
@@ -663,6 +674,183 @@ async def _export_rows(conn, kind: str) -> tuple[list[str], list[dict]]:
         "cost_usd": _f6(r["cost_usd"]),
     } for r in rows]
     return cols, data
+
+
+@router.get("/users/{user_id_target}")
+async def user_detail(user_id_target: str, user_id: str = Depends(get_current_user_id)):
+    """Everything the platform knows about ONE account, for the admin drawer.
+
+    Seven cheap indexed reads rather than one join: the shapes are unrelated (a profile row, a
+    membership list, a field list, a usage rollup, an event tail) and forcing them into a single
+    statement would multiply rows and then need un-multiplying in Python.
+
+    ADMIN-SCOPED: bypasses org membership on purpose — that is the whole point of the panel — but
+    it is still a READ. Nothing here writes, and the routes that do write are separate and guarded
+    one by one.
+    """
+    target = _demo_uid(user_id_target)
+    async with connection(user_id) as conn:
+        await require_platform_admin(conn, user_id)
+
+        u = await conn.fetchrow(
+            """select id, email, full_name, phone, locale, role, country, region, is_admin,
+                      is_active, email_verified, email_lifecycle, area_unit, name_public,
+                      created_at, last_seen_at, deleted_at, onboarding,
+                      (password_hash <> '!') as has_password,
+                      (google_sub is not null) as has_google
+                 from public.users where id=$1::uuid""", target)
+        if not u:
+            raise HTTPException(status_code=404, detail="user_not_found")
+
+        orgs = await conn.fetch(
+            """select o.id, o.name, m.role, m.status, m.created_at,
+                      (o.owner_id = $1::uuid) as is_owner,
+                      coalesce(s.tier, 'free') as tier, s.valid_until,
+                      (select count(*) from public.organization_members m2
+                        where m2.org_id = o.id and m2.status = 'active') as members
+                 from public.organization_members m
+                 join public.organizations o on o.id = m.org_id
+                 left join public.org_subscriptions s on s.org_id = o.id
+                where m.user_id = $1::uuid
+                order by is_owner desc, o.name""", target)
+
+        # Fields the person can reach through those memberships, with the numbers the admin is
+        # actually looking for: is it processing, has it ever been imaged, how healthy is it.
+        fields = await conn.fetch(
+            """select f.id, f.name, f.area_ha, f.data_status, f.created_at, f.deleted_at,
+                      fa.name as farm_name, o.name as org_name,
+                      m.crop_type, m.crop_cycle, m.region as field_region,
+                      (select max(acquired_at) from public.scenes sc where sc.field_id = f.id) as last_scene,
+                      (select count(*) from public.scenes sc where sc.field_id = f.id) as scenes,
+                      w.score, w.tone
+                 from public.fields f
+                 join public.farms fa on fa.id = f.farm_id
+                 join public.organizations o on o.id = f.org_id
+                 left join public.field_metadata m on m.field_id = f.id
+                 left join lateral (
+                     select score, tone from public.field_wellness ww
+                      where ww.field_id = f.id order by computed_on desc limit 1
+                 ) w on true
+                where f.org_id in (select org_id from public.organization_members
+                                    where user_id = $1::uuid)
+                order by f.deleted_at nulls first, f.created_at desc""", target)
+
+        usage = await conn.fetchrow(
+            """select count(*) as calls, coalesce(sum(input_tokens),0) as inp,
+                      coalesce(sum(output_tokens),0) as outp, coalesce(sum(cost_usd),0) as cost,
+                      max(created_at) as last_used
+                 from public.ai_usage where user_id=$1::uuid""", target)
+        by_kind = await conn.fetch(
+            """select kind, count(*) as calls, coalesce(sum(cost_usd),0) as cost
+                 from public.ai_usage where user_id=$1::uuid group by kind order by cost desc""",
+            target)
+
+        events = await conn.fetch(
+            """select type, created_at from public.user_events
+                where user_id=$1::uuid order by created_at desc limit 25""", target)
+        channels = await conn.fetch(
+            """select channel, verified, opt_in from public.messaging_channels
+                where user_id=$1::uuid""", target)
+        pushes = await conn.fetchval(
+            "select count(*) from public.push_subscriptions where user_id=$1::uuid", target)
+
+        # Surfaced because it is the one thing that BLOCKS closing the account, and an admin should
+        # see the reason before pressing the button rather than after.
+        blocks_close = await owns_org_with_other_members(conn, target)
+
+    return {
+        "user": {
+            "id": str(u["id"]), "email": u["email"], "full_name": u["full_name"],
+            "phone": u["phone"], "locale": u["locale"], "role": u["role"],
+            "country": u["country"], "region": u["region"],
+            "is_admin": bool(u["is_admin"]), "is_active": bool(u["is_active"]),
+            "email_verified": bool(u["email_verified"]),
+            "email_lifecycle": bool(u["email_lifecycle"]),
+            "area_unit": u["area_unit"], "name_public": u["name_public"],
+            "created_at": u["created_at"].isoformat() if u["created_at"] else None,
+            "last_seen_at": u["last_seen_at"].isoformat() if u["last_seen_at"] else None,
+            "deleted_at": u["deleted_at"].isoformat() if u["deleted_at"] else None,
+            "onboarding": u["onboarding"],
+            # How this person can actually get in. An account with none of the three can only
+            # arrive by magic link, which is worth seeing at a glance when someone reports being
+            # locked out.
+            "has_password": bool(u["has_password"]), "has_google": bool(u["has_google"]),
+        },
+        "orgs": [{"id": str(o["id"]), "name": o["name"], "role": o["role"],
+                  "status": o["status"], "is_owner": bool(o["is_owner"]),
+                  "members": int(o["members"]), "tier": o["tier"],
+                  "valid_until": o["valid_until"].isoformat() if o["valid_until"] else None}
+                 for o in orgs],
+        "fields": [{"id": str(f["id"]), "name": f["name"],
+                    "area_ha": float(f["area_ha"]) if f["area_ha"] is not None else None,
+                    "farm_name": f["farm_name"], "org_name": f["org_name"],
+                    "crop_type": f["crop_type"], "crop_cycle": f["crop_cycle"],
+                    "region": f["field_region"], "data_status": f["data_status"],
+                    "scenes": int(f["scenes"] or 0),
+                    "last_scene": f["last_scene"].isoformat() if f["last_scene"] else None,
+                    "score": int(f["score"]) if f["score"] is not None else None,
+                    "tone": f["tone"],
+                    "deleted": f["deleted_at"] is not None,
+                    "created_at": f["created_at"].isoformat() if f["created_at"] else None}
+                   for f in fields],
+        "usage": {"calls": int(usage["calls"] or 0), "input_tokens": int(usage["inp"] or 0),
+                  "output_tokens": int(usage["outp"] or 0), "cost_usd": _f6(usage["cost"]),
+                  "last_used": usage["last_used"].isoformat() if usage["last_used"] else None,
+                  "by_kind": [{"kind": k["kind"], "calls": int(k["calls"]),
+                               "cost_usd": _f6(k["cost"])} for k in by_kind]},
+        "events": [{"type": e["type"], "at": e["created_at"].isoformat()} for e in events],
+        "channels": [{"channel": c["channel"], "verified": bool(c["verified"]),
+                      "opt_in": bool(c["opt_in"])} for c in channels],
+        "push_devices": int(pushes or 0),
+        "blocks_close": bool(blocks_close),
+    }
+
+
+class UserDelete(BaseModel):
+    # The target's own address, typed by the admin. Not a checkbox: the point is to make it
+    # impossible to close the wrong account by clicking the wrong row.
+    email: str
+
+
+# POST, not DELETE: the body carries the typed confirmation address, api.del() sends no body,
+# and the account owner's own closure (/api/auth/account/delete) is already a POST with the
+# same shape. Matching it beats inventing a second convention for the same act.
+@router.post("/users/{user_id_target}/close")
+async def close_user_account(user_id_target: str, body: UserDelete,
+                             user_id: str = Depends(get_current_user_id)):
+    """Close somebody else's account, as a platform admin. Irreversible.
+
+    Runs the SAME anonymisation the owner's own /api/auth/account/delete runs — imported, not
+    reimplemented. A second closure path would be a second set of columns to remember to null, and
+    the one that gets forgotten leaks a name or an email into a "deleted" account.
+
+    Three guards, each for a failure this panel would otherwise make easy:
+      * not yourself — an admin one misclick from erasing their own access, in a product with
+        exactly one admin account;
+      * not another platform admin — demote them first, so removing an administrator is always two
+        deliberate acts;
+      * not an owner of an org with other active members — the same refusal the self-service route
+        gives, because the consequence is the same: colleagues' fields behind a vanished owner.
+    """
+    target = _demo_uid(user_id_target)
+    if target == user_id:
+        raise HTTPException(status_code=400, detail="cannot_delete_self")
+
+    async with connection(user_id) as conn:
+        await require_platform_admin(conn, user_id)
+        row = await conn.fetchrow(
+            "select email, is_admin from public.users where id=$1::uuid and deleted_at is null",
+            target)
+        if not row:
+            raise HTTPException(status_code=404, detail="user_not_found")
+        if row["is_admin"]:
+            raise HTTPException(status_code=400, detail="demote_admin_first")
+        if (body.email or "").strip().lower() != (row["email"] or "").lower():
+            raise HTTPException(status_code=400, detail="confirm_email_mismatch")
+        if await owns_org_with_other_members(conn, target):
+            raise HTTPException(status_code=409, detail="transfer_ownership_first")
+        await anonymise_account(conn, target)
+    return {"ok": True}
 
 
 @router.get("/export")

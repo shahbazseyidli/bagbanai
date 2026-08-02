@@ -22,6 +22,7 @@ import {
   ArrowUpFromLine,
 } from "lucide-react";
 import { api, azError } from "@/lib/api";
+import UserDetailModal from "@/components/admin/UserDetailModal";
 import { t } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { ErrorNote, Placeholder, Spinner } from "@/components/ui";
@@ -290,6 +291,9 @@ function UsersSection({ currentUserId }: { currentUserId: string }) {
   const [users, setUsers] = useState<AdminUser[] | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
+  // Which row is open in the detail drawer. The list stays mounted underneath so closing the
+  // drawer returns to the same scroll position, which is the whole reason it is not a route.
+  const [openUser, setOpenUser] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -340,7 +344,15 @@ function UsersSection({ currentUserId }: { currentUserId: string }) {
               <tr key={u.id}>
                 <td className="py-2 pr-4">
                   <div className="flex flex-wrap items-center gap-1.5 text-slate-800">
-                    {u.email}
+                    {/* The whole row's identity is the way in — a separate "view" button would be
+                        one more column on a table that is already wide on a laptop. */}
+                    <button
+                      type="button"
+                      onClick={() => setOpenUser(u.id)}
+                      className="font-medium text-emerald-700 hover:underline"
+                    >
+                      {u.email}
+                    </button>
                     {u.is_admin && (
                       <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
                         {t("app.admin.adminBadge")}
@@ -412,6 +424,14 @@ function UsersSection({ currentUserId }: { currentUserId: string }) {
           </tbody>
         </table>
       </div>
+      {openUser && (
+        <UserDetailModal
+          userId={openUser}
+          currentUserId={currentUserId}
+          onClose={() => setOpenUser(null)}
+          onChanged={load}
+        />
+      )}
     </div>
   );
 }

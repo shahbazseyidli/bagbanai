@@ -698,6 +698,57 @@ async def update_profile(body: dict, user_id: str = Depends(get_current_user_id)
                    country=row["country"], region=row["region"])
 
 
+async def owns_org_with_other_members(conn, user_id: str) -> bool:
+    """Would closing this account strand somebody else's fields behind a vanished owner?
+
+    Extracted so the admin panel asks the same question this route does — a second, subtly
+    different rule about when an account may be closed is exactly how one of them ends up wrong.
+    """
+    return bool(await conn.fetchval(
+        """select count(*) from public.organizations o
+            where o.owner_id = $1::uuid
+              and exists (select 1 from public.organization_members m
+                           where m.org_id = o.id and m.user_id <> $1::uuid
+                             and m.status = 'active')""", user_id))
+
+
+async def anonymise_account(conn, user_id: str) -> None:
+    """Erase the PERSON, keep the RECORDS. The one implementation of closing an account.
+
+    See db/migrations/0052 for why this is not `delete from public.users`: fifteen tables reference
+    the row with ON DELETE NO ACTION, so a real DELETE fails for any account that ever created
+    anything, and cascading would wipe a farm's history because one worker left.
+
+    Callers must have already checked owns_org_with_other_members(). Runs in its own transaction.
+    """
+    async with conn.transaction():
+        # Orgs where this person was the only member become unreachable, and their fields would
+        # otherwise keep the satellite pipeline and the crons working forever on data nobody can
+        # ever open. Retire them (soft-delete — the same flag the delete-a-field flow uses).
+        await conn.execute(
+            """update public.fields f set deleted_at = now()
+                where f.deleted_at is null
+                  and f.org_id in (
+                    select o.id from public.organizations o
+                     where o.owner_id = $1::uuid
+                       and not exists (select 1 from public.organization_members m
+                                        where m.org_id = o.id and m.user_id <> $1::uuid
+                                          and m.status = 'active'))""", user_id)
+        await conn.execute("delete from public.organization_members where user_id=$1::uuid", user_id)
+        # '!' is not a valid bcrypt hash, so verify_password returns False for every input rather
+        # than raising — the account cannot be logged into by any password, including a future
+        # collision. google_sub is released too, or the Google button would silently re-open the
+        # closed account on the next click (0062 matches on the subject before the email).
+        await conn.execute(
+            """update public.users set
+                 email = 'deleted+' || id::text || '@agradex.invalid',
+                 password_hash = '!', full_name = null, country = null, region = null,
+                 onboarding = null, notify_prefs = null, otp_code = null, otp_expires_at = null,
+                 google_sub = null,
+                 is_active = false, email_lifecycle = false, deleted_at = now()
+               where id=$1::uuid""", user_id)
+
+
 @router.post("/account/delete")
 async def delete_account(body: dict, response: Response,
                          user_id: str = Depends(get_current_user_id)):
@@ -730,40 +781,9 @@ async def delete_account(body: dict, response: Response,
         if typed.strip().lower() != (row["email"] or "").lower():
             raise HTTPException(status_code=400, detail="confirm_email_mismatch")
 
-        blocking = await conn.fetchval(
-            """select count(*) from public.organizations o
-                where o.owner_id = $1::uuid
-                  and exists (select 1 from public.organization_members m
-                               where m.org_id = o.id and m.user_id <> $1::uuid
-                                 and m.status = 'active')""", user_id)
-        if blocking:
+        if await owns_org_with_other_members(conn, user_id):
             raise HTTPException(status_code=409, detail="transfer_ownership_first")
-
-        async with conn.transaction():
-            # Orgs where this person was the only member become unreachable, and their fields would
-            # otherwise keep the satellite pipeline and the crons working forever on data nobody can
-            # ever open. Retire them (soft-delete — the same flag the delete-a-field flow uses).
-            await conn.execute(
-                """update public.fields f set deleted_at = now()
-                    where f.deleted_at is null
-                      and f.org_id in (
-                        select o.id from public.organizations o
-                         where o.owner_id = $1::uuid
-                           and not exists (select 1 from public.organization_members m
-                                            where m.org_id = o.id and m.user_id <> $1::uuid
-                                              and m.status = 'active'))""", user_id)
-            await conn.execute("delete from public.organization_members where user_id=$1::uuid",
-                               user_id)
-            # '!' is not a valid bcrypt hash, so verify_password returns False for every input
-            # rather than raising — the account cannot be logged into by any password, including a
-            # future collision.
-            await conn.execute(
-                """update public.users set
-                     email = 'deleted+' || id::text || '@agradex.invalid',
-                     password_hash = '!', full_name = null, country = null, region = null,
-                     onboarding = null, notify_prefs = null, otp_code = null, otp_expires_at = null,
-                     is_active = false, email_lifecycle = false, deleted_at = now()
-                   where id=$1::uuid""", user_id)
+        await anonymise_account(conn, user_id)
 
     response.delete_cookie(settings.cookie_name, path="/", domain=settings.cookie_domain or None)
     return {"ok": True}
