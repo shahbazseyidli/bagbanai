@@ -250,7 +250,7 @@ async def directory(
                 """select u.id, u.full_name, u.role, u.region, u.country
                      from public.users u
                      left join public.provider_profiles pp on pp.user_id = u.id
-                    where u.role = any($1::text[])
+                    where u.role::text = any($1::text[])
                       and u.deleted_at is null
                       and pp.id is null
                       and ($2::text is null or u.region ilike $2)
@@ -302,7 +302,7 @@ async def directory(
         # A provider reaching a farmer is not blocked, it is simply not initiated here: the farmer
         # finds the provider in the catalog and writes first. That asymmetry is the point.
         caller_role = await conn.fetchval(
-            "select role from public.users where id=$1::uuid", user_id)
+            "select role::text from public.users where id=$1::uuid", user_id)
         farmers: list[DirectoryPersonOut] = []
         if want_farmers and caller_role == "farmer" and (crops or region_list):
             frows = await conn.fetch(
