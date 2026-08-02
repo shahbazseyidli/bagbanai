@@ -205,17 +205,25 @@ async def google_callback(request: Request,
 
     async with connection() as conn:
         # The subject first: it is stable across an address change, which the email is not.
+        created = False
+        verified_now = False
         row = await conn.fetchrow(
             "select id, is_active from public.users where google_sub=$1 and deleted_at is null", sub)
         if not row:
             # Then the address. Safe to treat as proof because Google told us it is verified, and
             # 0059 made lower(email) unique so this can match at most one account.
             row = await conn.fetchrow(
-                "select id, is_active from public.users where lower(email)=$1 and deleted_at is null",
-                email)
+                "select id, is_active, email_verified from public.users "
+                "where lower(email)=$1 and deleted_at is null", email)
             if row:
                 # Link. Also clears any pending OTP: arriving here proves the mailbox as thoroughly
                 # as the code would have, exactly like consuming a magic link does.
+                #
+                # Read BEFORE the write: RETURNING would report the NEW value, so
+                # `returning (email_verified is not true)` after `set email_verified=true` is
+                # always false. The old value is the one that says whether this arrival is the
+                # account's FIRST verification — the only case where a welcome is honest.
+                verified_now = not bool(row["email_verified"])
                 await conn.execute(
                     """update public.users
                           set google_sub=$2, email_verified=true, otp_code=null,
@@ -230,12 +238,17 @@ async def google_callback(request: Request,
                    values ($1,$2,$3,$4,'farmer',true,$5)
                    returning id, is_active""",
                 email, NO_PASSWORD, full_name, loc, sub)
+            created = True
         uid = str(row["id"])
         if not row["is_active"]:
             return _fail(loc, "disabled")
-        # Idempotent through email_sends — fires once per account ever, same as signup and the
-        # magic-link path.
-        await _send_welcome(conn, uid, full_name)
+        # ONLY on a real signup. The email_sends ledger makes this once-per-account-ever, but
+        # "ever" is the wrong unit: welcome is a SIGNUP email, and an account that has been in use
+        # since July does not become new because its owner pressed the Google button today. That is
+        # exactly what happened live — an account created 21 July received "Welcome to Agradex" on
+        # 2 August, its first Google sign-in, because this call was unconditional.
+        if created or verified_now:
+            await _send_welcome(conn, uid, full_name)
 
     resp = RedirectResponse(f"{_app_origin()}{nxt}", status_code=302)
     _set_cookie(resp, create_token(uid))

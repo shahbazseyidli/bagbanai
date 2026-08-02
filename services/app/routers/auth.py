@@ -230,7 +230,7 @@ async def _send_welcome(conn, user_id: str, full_name) -> None:
 
 
 @router.post("/signup")
-async def signup(body: SignupIn, response: Response):
+async def signup(body: SignupIn, request: Request, response: Response):
     """Create the account from an EMAIL ALONE. If email is configured, issue an OTP and return
     {needs_verification:true}; otherwise auto-verify and log the user in immediately.
 
@@ -243,6 +243,10 @@ async def signup(body: SignupIn, response: Response):
         not a wrong unit, and defaultAreaUnit() in app/src/lib/units.ts already behaves the same.
       * no full_name → _send_welcome resolves the greeting name to "" and the copy handles it.
     Anything still worth knowing is asked later, in /account, where it is optional."""
+    # Unauthenticated, and it emails the address it is handed. 0059 stops the SAME address being
+    # looped, but nothing stopped a loop across many — free accounts and a spent Resend quota.
+    if not _otp_rate_ok(_client_ip(request)):
+        raise HTTPException(status_code=429, detail="too_many_requests")
     onb = _clean_onboarding(body.onboarding)
     # Validated here rather than as a Field(min_length=...) on an Optional[str]: this raises the
     # detail code the client already maps, instead of a 422 constraint array nothing renders.
@@ -316,7 +320,9 @@ async def verify_otp(body: VerifyOtpIn, response: Response):
 
 
 @router.post("/resend-otp")
-async def resend_otp(body: ResendOtpIn):
+async def resend_otp(body: ResendOtpIn, request: Request):
+    if not _otp_rate_ok(_client_ip(request)):
+        raise HTTPException(status_code=429, detail="too_many_requests")
     async with connection() as conn:
         row = await conn.fetchrow(
             "select id, email, email_verified, locale from public.users where lower(email)=lower($1)", body.email)
@@ -375,6 +381,8 @@ MAGIC_TTL_MIN = 15
 MAGIC_MAX_PER_EMAIL_15M = 3
 MAGIC_MAX_PER_EMAIL_24H = 10
 MAGIC_MAX_PER_IP_15M = 20
+# Signup + resend-otp share this; see _otp_rate_ok.
+OTP_MAX_PER_IP_15M = 10
 MAGIC_IP_WINDOW_SEC = 15 * 60
 
 
@@ -475,6 +483,23 @@ def _client_ip(request: Request) -> str:
 def _ip_rate_ok(ip: str) -> bool:
     return ratelimit.allow("magic_link", ip,
                            limit=MAGIC_MAX_PER_IP_15M, window_sec=MAGIC_IP_WINDOW_SEC)
+
+
+def _otp_rate_ok(ip: str) -> bool:
+    """Brake on the two OTHER routes that make us email a stranger.
+
+    /magic-link has been guarded since it shipped; /signup and /resend-otp were not, and both send
+    mail to an address chosen by an unauthenticated caller. /resend-otp is the sharper one: it
+    takes any address, and for any account that has not verified yet it issues a fresh code and
+    sends it — so a loop on one known address is a mail bomb aimed at that person's inbox, and a
+    loop across many is a way to spend our Resend quota.
+
+    Its own namespace, so a farmer retrying a code does not consume the sign-in-link budget and
+    lock themselves out of the other door. Tighter than the magic-link limit because there is no
+    legitimate reason to ask for ten codes in a quarter of an hour.
+    """
+    return ratelimit.allow("otp_email", ip, limit=OTP_MAX_PER_IP_15M,
+                           window_sec=MAGIC_IP_WINDOW_SEC)
 
 
 @router.post("/magic-link")
@@ -598,13 +623,19 @@ async def magic_login(body: MagicLoginIn, response: Response):
     async with connection() as conn:
         # Consuming the link IS the verification — it proves the same thing the OTP proves. That is
         # what lets /login keep its email_not_verified gate for the password path.
-        await conn.execute(
+        # The predicate already says "only if this is the first verification"; RETURNING is what
+        # lets the welcome below use that answer instead of firing on every link ever consumed.
+        flipped = await conn.fetchval(
             """update public.users set email_verified=true, otp_code=null, otp_expires_at=null,
                       otp_attempts=0
-                where id=$1::uuid and email_verified is not true""", uid)
-        # Idempotent through email_sends, so this fires once per account ever — on the first link
-        # consumed, exactly as signup and verify-otp call it.
-        await _send_welcome(conn, uid, row["full_name"])
+                where id=$1::uuid and email_verified is not true
+                returning id""", uid)
+        # Same rule as the Google callback: a welcome belongs to a SIGNUP. An account that has been
+        # verified for weeks and simply used a sign-in link today is not signing up, and the
+        # email_sends ledger would not have caught it — the ledger only prevents a SECOND welcome,
+        # not a first one sent at the wrong moment.
+        if flipped:
+            await _send_welcome(conn, uid, row["full_name"])
 
     _set_cookie(response, create_token(uid))
     return UserOut(id=uid, email=row["email"], full_name=row["full_name"],
