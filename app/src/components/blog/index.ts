@@ -4,12 +4,40 @@
 import type { BlogLocale, BlogPost } from "./types";
 
 import { post as whatIsNdviAz } from "./posts/what-is-ndvi.az";
+import { post as whatIsNdviEn } from "./posts/what-is-ndvi.en";
+import { post as whatIsNdviRu } from "./posts/what-is-ndvi.ru";
+import { post as whatIsNdviDe } from "./posts/what-is-ndvi.de";
+import { post as whatIsNdviEs } from "./posts/what-is-ndvi.es";
 import { post as satellitePassAz } from "./posts/satellite-pass-frequency.az";
+import { post as satellitePassEn } from "./posts/satellite-pass-frequency.en";
+import { post as satellitePassRu } from "./posts/satellite-pass-frequency.ru";
+import { post as satellitePassDe } from "./posts/satellite-pass-frequency.de";
+import { post as satellitePassEs } from "./posts/satellite-pass-frequency.es";
 import { post as whyNoImageAz } from "./posts/why-no-satellite-image.az";
+import { post as whyNoImageEn } from "./posts/why-no-satellite-image.en";
+import { post as whyNoImageRu } from "./posts/why-no-satellite-image.ru";
+import { post as whyNoImageDe } from "./posts/why-no-satellite-image.de";
+import { post as whyNoImageEs } from "./posts/why-no-satellite-image.es";
 import { post as ndviNdmiNdreAz } from "./posts/ndvi-ndmi-ndre.az";
+import { post as ndviNdmiNdreEn } from "./posts/ndvi-ndmi-ndre.en";
+import { post as ndviNdmiNdreRu } from "./posts/ndvi-ndmi-ndre.ru";
+import { post as ndviNdmiNdreDe } from "./posts/ndvi-ndmi-ndre.de";
+import { post as ndviNdmiNdreEs } from "./posts/ndvi-ndmi-ndre.es";
 import { post as irrigateWheatAz } from "./posts/when-to-irrigate-wheat.az";
+import { post as irrigateWheatEn } from "./posts/when-to-irrigate-wheat.en";
+import { post as irrigateWheatRu } from "./posts/when-to-irrigate-wheat.ru";
+import { post as irrigateWheatDe } from "./posts/when-to-irrigate-wheat.de";
+import { post as irrigateWheatEs } from "./posts/when-to-irrigate-wheat.es";
 import { post as freeNdviMapAz } from "./posts/free-ndvi-map.az";
+import { post as freeNdviMapEn } from "./posts/free-ndvi-map.en";
+import { post as freeNdviMapRu } from "./posts/free-ndvi-map.ru";
+import { post as freeNdviMapDe } from "./posts/free-ndvi-map.de";
+import { post as freeNdviMapEs } from "./posts/free-ndvi-map.es";
 import { post as ndviDiseaseAz } from "./posts/ndvi-crop-disease.az";
+import { post as ndviDiseaseEn } from "./posts/ndvi-crop-disease.en";
+import { post as ndviDiseaseRu } from "./posts/ndvi-crop-disease.ru";
+import { post as ndviDiseaseDe } from "./posts/ndvi-crop-disease.de";
+import { post as ndviDiseaseEs } from "./posts/ndvi-crop-disease.es";
 
 /** Publication order of the hub page (newest editorial priority first). */
 export const BLOG_SLUGS = [
@@ -23,13 +51,27 @@ export const BLOG_SLUGS = [
 ] as const;
 
 const POSTS: Record<string, Partial<Record<BlogLocale, BlogPost>>> = {
-  "what-is-ndvi": { az: whatIsNdviAz },
-  "satellite-pass-frequency": { az: satellitePassAz },
-  "why-no-satellite-image": { az: whyNoImageAz },
-  "ndvi-ndmi-ndre": { az: ndviNdmiNdreAz },
-  "when-to-irrigate-wheat": { az: irrigateWheatAz },
-  "free-ndvi-map": { az: freeNdviMapAz },
-  "ndvi-crop-disease": { az: ndviDiseaseAz },
+  "what-is-ndvi": {
+    az: whatIsNdviAz, en: whatIsNdviEn, ru: whatIsNdviRu, de: whatIsNdviDe, es: whatIsNdviEs,
+  },
+  "satellite-pass-frequency": {
+    az: satellitePassAz, en: satellitePassEn, ru: satellitePassRu, de: satellitePassDe, es: satellitePassEs,
+  },
+  "why-no-satellite-image": {
+    az: whyNoImageAz, en: whyNoImageEn, ru: whyNoImageRu, de: whyNoImageDe, es: whyNoImageEs,
+  },
+  "ndvi-ndmi-ndre": {
+    az: ndviNdmiNdreAz, en: ndviNdmiNdreEn, ru: ndviNdmiNdreRu, de: ndviNdmiNdreDe, es: ndviNdmiNdreEs,
+  },
+  "when-to-irrigate-wheat": {
+    az: irrigateWheatAz, en: irrigateWheatEn, ru: irrigateWheatRu, de: irrigateWheatDe, es: irrigateWheatEs,
+  },
+  "free-ndvi-map": {
+    az: freeNdviMapAz, en: freeNdviMapEn, ru: freeNdviMapRu, de: freeNdviMapDe, es: freeNdviMapEs,
+  },
+  "ndvi-crop-disease": {
+    az: ndviDiseaseAz, en: ndviDiseaseEn, ru: ndviDiseaseRu, de: ndviDiseaseDe, es: ndviDiseaseEs,
+  },
 };
 
 /** Locales a slug actually exists in (drives hreflang + the sitemap). */
