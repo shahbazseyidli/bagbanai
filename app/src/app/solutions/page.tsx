@@ -4,6 +4,7 @@ import { ArrowRight, Check, FlaskConical, Package, Sprout, Users, Wallet } from 
 import type { LucideIcon } from "lucide-react";
 import { getIndexCopy, getSegmentList, type IconKey } from "@/components/solutions/content";
 import { getT, getServerLocale } from "@/lib/i18n-server";
+import { pageAlternates } from "@/lib/seo";
 
 // W2 / E11 — the /solutions index: the four role segments with the approved mockup's pill + card
 // treatment. Purely presentational (no state, no t()), so it stays a Server Component and ships
@@ -11,10 +12,11 @@ import { getT, getServerLocale } from "@/lib/i18n-server";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getT();
+  const locale = await getServerLocale();
   return {
     title: t("mkt.meta.solutionsTitle"),
     description: t("mkt.meta.solutionsDesc"),
-    alternates: { canonical: "/solutions" },
+    alternates: pageAlternates("/solutions", locale),
   };
 }
 

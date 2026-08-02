@@ -6,6 +6,8 @@ import { ArrowLeft, ArrowRight, Brain, ChevronRight, Clipboard, FileText, FlaskC
 import type { LucideIcon } from "lucide-react";
 import { getGuide, type GuideIcon } from "@/components/guide/content";
 import { getT, getServerLocale } from "@/lib/i18n-server";
+import { pageAlternates, localeUrl } from "@/lib/seo";
+import { AUTHOR, GUIDES_PUBLISHED, GUIDES_MODIFIED } from "@/lib/author";
 
 // The article body is localized via getT() (reads the per-request x-locale header), so it can't be
 // statically prerendered — the locale isn't known at build time. Render on demand. (No
@@ -35,12 +37,13 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const locale = await getServerLocale();
+  const t = await getT();
   const g = getGuide(slug, locale);
-  if (!g) return { title: "Bələdçi — Agradex" };
+  if (!g) return { title: "Agradex" };
   return {
-    title: `${g.title} — Agradex bələdçisi`,
+    title: `${g.title} — ${t("mkt.meta.guideItemSuffix")}`,
     description: g.summary,
-    alternates: { canonical: `/guide/${g.slug}` },
+    alternates: pageAlternates(`/guide/${g.slug}`, locale),
   };
 }
 
@@ -57,8 +60,27 @@ export default async function GuideArticlePage({
 
   const Icon = ICONS[g.icon] ?? MapPin;
 
+  // Article structured data — the byline below and this block must always agree (same author,
+  // same dates), or the page claims one identity to readers and another to crawlers.
+  const articleLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: g.title,
+    description: g.summary,
+    inLanguage: locale,
+    author: { "@type": "Person", name: AUTHOR.name, ...(AUTHOR.url ? { url: AUTHOR.url } : {}) },
+    publisher: { "@type": "Organization", name: "Agradex", url: localeUrl("/", "az") },
+    datePublished: GUIDES_PUBLISHED,
+    dateModified: GUIDES_MODIFIED,
+    mainEntityOfPage: localeUrl(`/guide/${g.slug}`, locale),
+  };
+
   return (
     <div className="-mx-4 -mt-6 -mb-24 bg-paper px-4 pt-6 pb-24 md:-mb-6 md:pb-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleLd).replace(/</g, "\\u003c") }}
+      />
       <article className="mx-auto max-w-[720px]">
         {/* --------------------------------------------------- breadcrumb */}
         <Link
@@ -83,6 +105,11 @@ export default async function GuideArticlePage({
             </h1>
             <p className="mt-1.5 text-[13px] font-semibold uppercase tracking-wide text-[color:var(--brand-muted)]">
               {g.meta}
+            </p>
+            <p className="mt-1.5 text-[13px] text-[color:var(--brand-muted)]">
+              {t("mkt.guideSlug.authorLabel")}: {AUTHOR.name} ·{" "}
+              {t("mkt.guideSlug.updatedLabel")}:{" "}
+              {new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(GUIDES_MODIFIED))}
             </p>
           </div>
         </header>

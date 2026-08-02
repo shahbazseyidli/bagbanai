@@ -50,6 +50,14 @@ from .providers import list_providers as _list_providers
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
+# ai/chat.py writes the question and the reply in ONE transaction, so both rows carry the same
+# now() to the microsecond — verified live: the newest two turns came back with an identical
+# created_at. Ordering by that column alone therefore has NO tiebreak, Postgres may return either
+# row of a pair first, and it showed the farmer's question BELOW the answer it prompted while the
+# thread preview alternated between the question and the reply. Role is the tiebreak: inside a pair
+# the assistant always follows the user, by construction.
+
+
 # The synthetic assistant. NOT a uuid, and that is the point: any client or query that mistakes it
 # for a user id fails loudly at the ::uuid cast instead of silently addressing some real account.
 ASSISTANT_ID = "agradex-ai"
@@ -390,7 +398,7 @@ async def _assistant_fields(conn, user_id: str) -> list[AssistantFieldOut]:
     last = await conn.fetch(
         """select distinct on (field_id) field_id, content, created_at
              from public.ai_chat_messages where field_id = any($1::uuid[])
-            order by field_id, created_at desc""", ids)
+            order by field_id, created_at desc, (role = 'assistant') desc""", ids)
     counts = await conn.fetch(
         """select field_id, count(*) as n from public.ai_chat_messages
             where field_id = any($1::uuid[]) group by field_id""", ids)
@@ -481,7 +489,8 @@ async def assistant_messages(field_id: str, user_id: str = Depends(get_current_u
         fld = await _assistant_field(conn, user_id, field_id)
         rows = await conn.fetch(
             """select id, role, content, user_id, created_at from public.ai_chat_messages
-                where field_id=$1::uuid order by created_at asc limit 500""", fld.field_id)
+                where field_id=$1::uuid
+                order by created_at asc, (role = 'user') desc limit 500""", fld.field_id)
         msgs = await _turns(conn, rows, user_id)
         fields = await _assistant_fields(conn, user_id)
     return AssistantThreadOut(
@@ -519,7 +528,8 @@ async def assistant_send(field_id: str, body: AssistantMessageIn, request: Reque
             # answer() writes exactly two rows: the farmer's question and the reply.
             rows = await conn.fetch(
                 """select id, role, content, user_id, created_at from public.ai_chat_messages
-                    where field_id=$1::uuid order by created_at desc limit 2""", fld.field_id)
+                    where field_id=$1::uuid
+                    order by created_at desc, (role = 'assistant') desc limit 2""", fld.field_id)
             msgs = await _turns(conn, list(reversed(rows)), user_id)
         # Re-read the quota AFTER the turn so the client's counter reflects what it just spent.
         lim, used = await _quota(conn, fld.org_id, {})

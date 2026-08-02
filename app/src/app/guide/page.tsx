@@ -5,6 +5,7 @@ import { ArrowRight, Brain, ChevronRight, Clipboard, FileText, FlaskConical, Map
 import type { LucideIcon } from "lucide-react";
 import { getGuideIndexCopy, getGuideList, type GuideIcon } from "@/components/guide/content";
 import { getT, getServerLocale } from "@/lib/i18n-server";
+import { pageAlternates } from "@/lib/seo";
 
 // C8 — the /guide index: the "Necə başlamalı" hub. Purely presentational (no state, no t()), so it
 // stays a Server Component and ships its own metadata. Copy is inline Azerbaijani (guide/content.ts);
@@ -12,10 +13,11 @@ import { getT, getServerLocale } from "@/lib/i18n-server";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getT();
+  const locale = await getServerLocale();
   return {
     title: t("mkt.meta.guideTitle"),
     description: t("mkt.meta.guideDesc"),
-    alternates: { canonical: "/guide" },
+    alternates: pageAlternates("/guide", locale),
   };
 }
 

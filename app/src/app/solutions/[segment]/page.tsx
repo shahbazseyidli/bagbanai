@@ -3,6 +3,7 @@ import { notFound, permanentRedirect } from "next/navigation";
 import SolutionView from "@/components/solutions/SolutionView";
 import { getSegment, getSegmentList } from "@/components/solutions/content";
 import { getServerLocale } from "@/lib/i18n-server";
+import { pageAlternates } from "@/lib/seo";
 
 // Old Azerbaijani slugs → new English slugs (aligned with the user_role enum). Kept so existing
 // links / bookmarks / search results 308-redirect instead of 404ing.
@@ -31,7 +32,7 @@ export async function generateMetadata({
   return {
     title: seg.metaTitle,
     description: seg.metaDescription,
-    alternates: { canonical: `/solutions/${seg.slug}` },
+    alternates: pageAlternates(`/solutions/${seg.slug}`, locale),
     openGraph: {
       title: seg.metaTitle,
       description: seg.metaDescription,
