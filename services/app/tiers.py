@@ -5,6 +5,23 @@ Single source of truth for gating. Tier stored in public.org_subscriptions.tier
 the admin sets a tier manually for now. AI model is chosen per tier for cost control:
 Pro → claude-sonnet-5 (≈3× cheaper), Business → claude-opus-4-8 (best quality).
 
+FIVE FLAGS ARE GONE (2026-08-02). `email` and `whatsapp` described a per-tier notification ladder
+that no code has ever enforced: `allows()` was never called with either name, E15 deleted per-alert
+email in favour of one weekly digest that reaches every tier, and WhatsApp delivery was never built
+at all. `reports` gated the prepared-report library the 27 July simplification removed; the printable
+field report that replaced it (GET /api/fields/{id}/report) is not tier-gated. `weather_alerts` and `irrigation` went the same
+way and for the same reason, one revision later: the spraying window is free on every tier by the
+owner's dated decision in routers/knowledge.py, the frost/heat rules never imported this module at
+all, and GET /api/fields/{id}/water-balance is require_member only — the FREE dashboard already
+reads TAW/RAW off it for every field. All five lived on only in the pricing page's comparison
+matrix, which sold four of them as reasons to pay.
+
+The test applied was the same each time and is the one to apply next: grep for `allows(` with the
+flag's name. A flag no call site asks about is not a lenient gate, it is a decoration that the
+marketing copy will eventually mistake for a fact. `pest_risk` survives this test only barely — its
+single reader is the anonymous demo tour's _GATED_BLOCKS — so the pricing row for the pest passport
+block is driven by `passport`, which is what actually gates it.
+
 C2 — TRIAL: a newly created org (see routers/orgs.py) is opened on a 1-month Pro trial, because the
 marketing copy promises "1 ay pulsuz sınaq". The trial is just a normal org_subscriptions row with
 tier='pro', valid_until = trial end, trial_ends_at = the same instant and source='trial'; nothing
@@ -24,9 +41,8 @@ TIERS: dict[str, dict] = {
         "advice_per_month": 1,             # 1 taste/month
         "chat_per_month": 0,
         "photo_per_month": 0,
-        "passport": False, "weather_alerts": False, "irrigation": False,
-        "email": False, "whatsapp": False,
-        "pest_risk": False, "fertilizer": False, "benchmark": False, "reports": False,
+        "passport": False,
+        "pest_risk": False, "fertilizer": False, "benchmark": False,
         "research_depth": "regional",      # global + regional, no local
         "model": "claude-sonnet-5",
     },
@@ -37,9 +53,8 @@ TIERS: dict[str, dict] = {
         "advice_per_month": 8,
         "chat_per_month": 50,
         "photo_per_month": 0,
-        "passport": True, "weather_alerts": True, "irrigation": True,
-        "email": True, "whatsapp": False,
-        "pest_risk": False, "fertilizer": False, "benchmark": False, "reports": False,
+        "passport": True,
+        "pest_risk": False, "fertilizer": False, "benchmark": False,
         "research_depth": "regional",
         "model": "claude-sonnet-5",
     },
@@ -50,9 +65,8 @@ TIERS: dict[str, dict] = {
         "advice_per_month": 30,
         "chat_per_month": 300,
         "photo_per_month": 30,
-        "passport": True, "weather_alerts": True, "irrigation": True,
-        "email": True, "whatsapp": True,
-        "pest_risk": True, "fertilizer": True, "benchmark": True, "reports": True,
+        "passport": True,
+        "pest_risk": True, "fertilizer": True, "benchmark": True,
         "research_depth": "local",
         "model": "claude-opus-4-8",
     },
@@ -72,7 +86,7 @@ def tier_config(tier: str | None) -> dict:
 
 
 def allows(tier: str | None, feature: str) -> bool:
-    """Boolean feature flag (passport, weather_alerts, irrigation, pest_risk, ...)."""
+    """Boolean feature flag (passport, pest_risk, fertilizer, benchmark)."""
     return bool(tier_config(tier).get(feature, False))
 
 

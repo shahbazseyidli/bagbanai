@@ -43,12 +43,31 @@ export const FEATURES: FeatureRow[] = [
   { labelKey: "mkt.compare.rowAdvice", tiers: [{ on: true, note: "mkt.compare.perMonth1Gift" }, { on: true, note: "mkt.compare.perMonth8" }, { on: true, note: "mkt.compare.perMonth30" }] },
   { labelKey: "mkt.compare.rowChat", tiers: [OFF, { on: true, note: "mkt.compare.perMonth50" }, { on: true, note: "mkt.compare.perMonth300" }] },
   { labelKey: "mkt.compare.rowPassport", tiers: [OFF, ON, ON] },
-  { labelKey: "mkt.compare.rowSpray", tiers: [OFF, ON, ON] },
-  { labelKey: "mkt.compare.rowIrrigation", tiers: [OFF, ON, ON] },
-  { labelKey: "mkt.pkg.notifLabel", tiers: [{ on: true, note: "mkt.pkg.notifInapp" }, { on: true, note: "mkt.pkg.notifEmail" }, { on: true, note: "mkt.pkg.notifWhatsapp" }] },
-  { labelKey: "mkt.compare.rowPest", tiers: [OFF, OFF, ON], soon: true },
-  { labelKey: "mkt.compare.rowPhoto", tiers: [OFF, OFF, { on: true, note: "mkt.compare.perMonth30" }], soon: true },
-  { labelKey: "mkt.compare.rowFertilizer", tiers: [OFF, OFF, ON], soon: true },
-  { labelKey: "mkt.compare.rowBenchmark", tiers: [OFF, OFF, ON], soon: true },
+  // FREE ON EVERY TIER, and the matrix said otherwise until 2026-08-02. Two separate proofs:
+  // routers/knowledge.py carries the owner's dated decision that the spraying window is free on
+  // every tier (it answers a decision rather than describing a condition, and withholding it was
+  // protecting revenue that does not exist while billing is deferred); the frost/heat half is
+  // require_member only — services/app/rules/ does not import tiers at all. The `weather_alerts`
+  // flag that nominally backed this row has ZERO references outside its own tier definitions.
+  { labelKey: "mkt.compare.rowSpray", tiers: [ON, ON, ON] },
+  // Also free. GET /api/fields/{id}/water-balance (routers/indices.py) is require_member and
+  // nothing else, and the FREE dashboard already consumes it — lib/today.ts fetches it for every
+  // field and TodayStats rolls it into the irrigation tile. The paid thing near here is the crop
+  // NARRATIVE in the Knowledge Passport, which the rowPassport line above already sells; this row
+  // names TAW/RAW and FAO-56, which is exactly the part a free user gets.
+  { labelKey: "mkt.compare.rowIrrigation", tiers: [ON, ON, ON] },
+  // Identical on all three tiers, and it has to be: no delivery channel has ever been gated by
+  // package. The row used to read in-app / +email / +WhatsApp. E15 deleted per-alert email (the one
+  // recurring mail, the weekly digest, goes to every tier), and WhatsApp delivery was never built —
+  // there is no adapter, no channel row, no code. Selling either as a paid step was a promise
+  // attached to money.
+  { labelKey: "mkt.pkg.notifLabel", tiers: [{ on: true, note: "mkt.pkg.notifAll" }, { on: true, note: "mkt.pkg.notifAll" }, { on: true, note: "mkt.pkg.notifAll" }] },
+  // Pro+, because the pest block of the Knowledge Passport is gated by `passport`, not by the
+  // `pest_risk` flag — that one is read only by the anonymous demo tour. Not "soon": it ships,
+  // and the wellness score has been showing its output as a component all along.
+  { labelKey: "mkt.compare.rowPest", tiers: [OFF, ON, ON] },
+  { labelKey: "mkt.compare.rowPhoto", tiers: [OFF, OFF, { on: true, note: "mkt.compare.perMonth30" }] },
+  { labelKey: "mkt.compare.rowFertilizer", tiers: [OFF, OFF, ON] },
+  { labelKey: "mkt.compare.rowBenchmark", tiers: [OFF, OFF, ON] },
   { labelKey: "mkt.compare.rowResearch", tiers: [{ on: true, note: "mkt.compare.noteResearchGlobalReg" }, { on: true, note: "mkt.compare.noteResearchGlobalReg" }, { on: true, note: "mkt.compare.noteResearchLocal" }] },
 ];

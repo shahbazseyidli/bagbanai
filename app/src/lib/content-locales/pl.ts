@@ -535,7 +535,7 @@ export const pl: Record<string, string> = {
   "GUIDES.sahe-elave-et.where": "Pola → „Nowe pole” (przycisk +)",
   "GUIDES.sahe-elave-et.steps.0.title": "Otwórz mapę",
   "GUIDES.sahe-elave-et.steps.0.body": "W dolnej nawigacji przejdź do „Pola” i naciśnij przycisk „+” w prawym dolnym rogu. Otwiera się pełnoekranowa mapa.",
-  "GUIDES.sahe-elave-et.steps.0.screen": "Ekran: mapa satelitarna + na dole pasek „Pola / Dziś / Zadania”, w prawym dolnym rogu zielony „+”.",
+  "GUIDES.sahe-elave-et.steps.0.screen": "Ekran: mapa satelitarna + na dole pasek „Mapa / Pola / Pogoda / Notatki / Konto”, w prawym dolnym rogu zielony „+”.",
   "GUIDES.sahe-elave-et.steps.1.title": "Wyszukaj swoją wieś",
   "GUIDES.sahe-elave-et.steps.1.body": "W pole wyszukiwania u góry wpisz nazwę wsi lub rejonu. Mapa przeskakuje na ten obszar. Jeśli chcesz, przybliż dwoma palcami.",
   "GUIDES.sahe-elave-et.steps.1.screen": "Ekran: u góry pole „Szukaj…”, poniżej obraz satelitarny z konturem pól.",

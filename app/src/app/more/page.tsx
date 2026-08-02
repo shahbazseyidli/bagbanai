@@ -4,31 +4,51 @@
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Tag, Users, Shield, LogOut, ChevronRight, Store, MessageCircle, UserCog,
-  Bell, GraduationCap } from "lucide-react";
+  Bell, GraduationCap, type LucideIcon } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import { t } from "@/lib/i18n";
+import { t, tf } from "@/lib/i18n";
 import { SHOW_MARKETPLACE_NAV } from "@/lib/navFlags";
+// The rail owns the "sum the per-thread unread counts" rule; this screen borrows it rather than
+// re-deriving it. On a phone /more is the ONLY route to Messages — the bottom bar has five fixed
+// slots and none of them is /chat — so without a badge here a farmer has no unread signal at all.
+import { useUnreadMessages } from "@/components/shell/AppRail";
 import DataSaverToggle from "@/components/DataSaverToggle";
 import EmailLifecycleToggle from "@/components/EmailLifecycleToggle";
 import AreaUnitSetting from "@/components/AreaUnitSetting";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 
+type MoreItem = {
+  href: string;
+  label: string;
+  Icon: LucideIcon;
+  authOnly: boolean;
+  /** Unread count rendered as a pill on the row. Absent or 0 = no pill. */
+  badge?: number;
+};
+
 export default function MorePage() {
   const router = useRouter();
   const { user, logout } = useAuth();
+  const unread = useUnreadMessages(SHOW_MARKETPLACE_NAV && !!user);
 
   // This list is the safety net for the trimmed navigation: everything the rail and the bottom nav
   // do not show has to be one tap away from here.
   //
   // The Dəftər/Satış/Anbar/Texnika row this comment used to describe is GONE — the ERP strip
   // deleted those modules and the /farm container that held them, so there is nothing to collapse.
-  const items = [
+  //
+  // Annotated, and annotated on the LITERAL rather than on the filtered result: that is what gives
+  // every row one shape. Left to inference the array is a union of two shapes — with and without
+  // `badge` — and destructuring `badge` in the render below would not typecheck.
+  const allItems: MoreItem[] = [
     { href: "/notifications", label: t("nav.notifications"), Icon: Bell, authOnly: true },
     { href: "/guide", label: t("app.more.howToStart"), Icon: GraduationCap, authOnly: false },
     ...(SHOW_MARKETPLACE_NAV
       ? [
           { href: "/catalog", label: t("nav.catalog"), Icon: Store, authOnly: true },
-          { href: "/chat", label: t("nav.community"), Icon: MessageCircle, authOnly: true },
+          // nav.community — the KEY still says "community", the VALUE says "Mesajlar". See the
+          // note on that key in lib/i18n.ts for why only one of the two was renamed.
+          { href: "/chat", label: t("nav.community"), Icon: MessageCircle, authOnly: true, badge: unread },
         ]
       : []),
     // /provider is the provider's OWN profile + catalog editor, not somewhere a farmer buys
@@ -41,7 +61,8 @@ export default function MorePage() {
     { href: "/pricing", label: t("more.pricingPlans"), Icon: Tag, authOnly: false },
     { href: "/team", label: t("nav.team"), Icon: Users, authOnly: true },
     ...(user?.is_admin ? [{ href: "/admin", label: t("nav.admin"), Icon: Shield, authOnly: true }] : []),
-  ].filter((i) => !i.authOnly || user);
+  ];
+  const items = allItems.filter((i) => !i.authOnly || user);
 
   async function onLogout() {
     await logout();
@@ -53,7 +74,7 @@ export default function MorePage() {
       <h1 className="text-2xl font-bold text-slate-900">{t("more.title")}</h1>
 
       <ul className="space-y-2">
-        {items.map(({ href, label, Icon }) => (
+        {items.map(({ href, label, Icon, badge }) => (
           <li key={href}>
             <Link
               href={href}
@@ -61,6 +82,19 @@ export default function MorePage() {
             >
               <Icon className="h-5 w-5 shrink-0 text-emerald-700" aria-hidden="true" />
               <span className="flex-1 text-base font-medium text-slate-900">{label}</span>
+              {/* The digit is aria-hidden and paired with a sentence: "7" on its own tells a
+                  screen reader nothing about what is unread. */}
+              {badge ? (
+                <>
+                  <span
+                    aria-hidden="true"
+                    className="grid h-6 min-w-[24px] shrink-0 place-items-center rounded-full bg-emerald-600 px-1.5 text-xs font-bold leading-none text-white"
+                  >
+                    {badge > 99 ? "99+" : badge}
+                  </span>
+                  <span className="sr-only">{tf("app.chat.unreadAria", { n: badge })}</span>
+                </>
+              ) : null}
               <ChevronRight className="h-5 w-5 shrink-0 text-slate-400" aria-hidden="true" />
             </Link>
           </li>

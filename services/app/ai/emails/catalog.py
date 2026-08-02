@@ -63,7 +63,7 @@ _WELCOME_AZ = {
         "preheader": "Sahənizi kosmosdan izləyin — 2 addımda başlayın.",
         "heading": "Xoş gəldiniz, {name}! 🌱",
         "intro": [
-            "Mən Agradex komandasından Ülkərəm. Agradex sizin <b>peyk və süni intellekt köməkçinizdir</b> — hər sahəni kosmosdan görün, stresi erkən tutun və hər manatın hesabını aparın.",
+            "Mən Agradex komandasından Ülkərəm. Agradex sizin <b>peyk və süni intellekt köməkçinizdir</b> — hər sahəni kosmosdan görün, stresi erkən tutun və növbəti addımı AI aqronomdan alın.",
             "İki addımda başlayaq:",
         ],
         "steps": [
@@ -79,7 +79,7 @@ _WELCOME_AZ = {
         "preheader": "Bütün müştəri sahələrini bir xəritədən idarə edin.",
         "heading": "Bütün müştəri sahələrini bir xəritədən idarə edin",
         "intro": [
-            "Xoş gəldiniz, {name}. Aqronom kimi <b>çox-sahə iş sahəsini</b> alırsınız: NDVI · NDMI · NDRE trendləri, mövsümi baza xətləri və məsləhət verdiyiniz bütün təsərrüfatlar üzrə VRA zonaları.",
+            "Xoş gəldiniz, {name}. Aqronom kimi <b>çox-sahə iş sahəsini</b> alırsınız: NDVI · NDMI · NDRE trendləri, mövsümi baza xətləri və məsləhət verdiyiniz bütün təsərrüfatlar üzrə AI analizi.",
         ],
         "steps": [
             {"n": 1, "text": "<b>Sahələri əlavə edin və ya import edin</b> (shapefile .zip dəstəklənir)."},
@@ -126,7 +126,7 @@ _WELCOME_EN = {
         "preheader": "See your fields from space — get started in 2 steps.",
         "heading": "Welcome, {name}! 🌱",
         "intro": [
-            "I'm Ülkər from Agradex. Agradex is your <b>satellite + AI co-pilot</b> — see every field from space, catch stress early, and account for every manat.",
+            "I'm Ülkər from Agradex. Agradex is your <b>satellite + AI co-pilot</b> — see every field from space, catch stress early, and get an AI agronomist's read on what to do next.",
             "Let's get started in 2 steps:",
         ],
         "steps": [
@@ -142,7 +142,7 @@ _WELCOME_EN = {
         "preheader": "Manage every client field from one map.",
         "heading": "Manage every client field from one map",
         "intro": [
-            "Welcome, {name}. As an agronomist you get the <b>multi-field workspace</b>: NDVI · NDMI · NDRE trends, seasonal baselines and VRA zones across all the farms you advise.",
+            "Welcome, {name}. As an agronomist you get the <b>multi-field workspace</b>: NDVI · NDMI · NDRE trends, seasonal baselines and the AI analysis across all the farms you advise.",
         ],
         "steps": [
             {"n": 1, "text": "<b>Add or import fields</b> (shapefile .zip supported)."},

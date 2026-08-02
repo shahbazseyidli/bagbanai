@@ -10,7 +10,11 @@ export const az = {
   "nav.solutions": "Həllər",
   "nav.howItWorks": "Necə işləyir",
   "nav.catalog": "Kataloq",
-  "nav.community": "İcma",
+  // KEY NAME KEPT, VALUE RENAMED: the destination is called "Mesajlar" now, not "İcma". Renaming
+  // the key itself would mean editing eight dictionaries and every consumer for a change no farmer
+  // can see — and I18nKey is derived from this object, so a half-finished rename does not compile.
+  // The same divergence is deliberate on app.shell.appRail.community.
+  "nav.community": "Mesajlar",
   "nav.notifications": "Bildirişlər",
   "nav.team": "Komanda",
   "nav.logout": "Çıxış",
@@ -142,21 +146,16 @@ export const az = {
   // field detail tabs
   "field.tab.overview": "İcmal",
   "field.tab.sentinel2": "Peyk görüntüsü",
-  "field.tab.nasa": "Peyk arxivi",
   "field.tab.ai": "AI Məsləhət",
   "field.tab.metadata": "Sahə haqqında məlumat",
   "field.tab.scouting": "Skautinq",
-  "field.tab.tasks": "Tapşırıqlar",
   "field.tab.operations": "Əməliyyatlar",
-  "field.tab.yields": "Məhsuldarlıq",
-  "field.tab.harvest": "Yığım",
   "field.tab.fertilizer": "Gübrə",
   "field.tab.photos": "Foto",
   "field.tab.soil": "Torpaq",
   "field.tab.season": "Mövsüm",
   "field.tab.documents": "Sənədlər",
   "field.tab.weather": "Hava",
-  "field.tab.zones": "Zonalar",
   "field.mgrs": "MGRS xanaları",
 
   // indices
@@ -253,23 +252,6 @@ export const az = {
   "scout.cat.damage": "Zədə",
   "scout.cat.other": "Digər",
 
-  // tasks
-  "task.title": "Tapşırıqlar",
-  "task.add": "Yeni tapşırıq",
-  "task.name": "Başlıq",
-  "task.type": "Növ",
-  "task.due": "Son tarix",
-  "task.priority": "Prioritet",
-  "task.notes": "Qeydlər",
-  "task.status": "Status",
-  "task.empty": "Hələ tapşırıq yoxdur.",
-  "task.status.open": "Açıq",
-  "task.status.in_progress": "İcrada",
-  "task.status.done": "Tamamlandı",
-  "task.pri.low": "Aşağı",
-  "task.pri.medium": "Orta",
-  "task.pri.high": "Yüksək",
-
   // operations
   "op.title": "Əməliyyat jurnalı",
   "op.add": "Yeni əməliyyat",
@@ -280,18 +262,6 @@ export const az = {
   "op.currency": "Valyuta",
   "op.notes": "Qeydlər",
   "op.empty": "Hələ əməliyyat qeydi yoxdur.",
-
-  // yields
-  "yield.title": "Məhsuldarlıq",
-  "yield.add": "Yeni qeyd",
-  "yield.season": "Mövsüm (il)",
-  "yield.crop": "Bitki",
-  "yield.value": "Məhsuldarlıq",
-  "yield.unit": "Vahid",
-  "yield.area": "Sahə",
-  "yield.notes": "Qeydlər",
-  "yield.empty": "Hələ məhsuldarlıq qeydi yoxdur.",
-  "yield.chartTitle": "İllər üzrə məhsuldarlıq",
 
   // team
   "team.title": "Komanda",
@@ -416,7 +386,7 @@ export const az = {
   "notifyCat.advice": "AI aqronom",
   "notifyCat.adviceExample": "Sahə üçün yeni məsləhət hazırdır",
   "notifyCat.system": "Sistem və təsərrüfat",
-  "notifyCat.systemExample": "Peyk məlumatı hazırdır, anbar qalığı azalıb, texnika servisi gecikib",
+  "notifyCat.systemExample": "Peyk məlumatı hazırdır, emal qismən tamamlandı, hesabla bağlı bildirişlər",
   "app.opt.irr.drip": "Damcı suvarma",
   "app.opt.irr.subsurface_drip": "Yeraltı damcı",
   "app.opt.irr.sprinkler": "Yağış yağdıran (sprinkler)",
@@ -787,7 +757,7 @@ export const az = {
   "mkt.how.vp5Body": "Ümumi alətlərdən fərqli olaraq, burada hər məhsul üçün ayrıca indeks normaları və böyümə-mərhələsi hədləri yığılıb. Bu, indeks qiymətinin şərhini — «bu NDVI bu mövsümdə yaxşıdır, yoxsa aşağıdır» — daha dəqiq edir.",
   "mkt.how.vp5Title": "Hər məhsul üçün ayrıca kalibr edilmiş",
   "mkt.pricingFaq.a10Cancel": "Bəli. Ləğv etdikdə hesabınız Pulsuz paketə keçir və məlumatınız itmir. Uzunmüddətli öhdəlik yoxdur.",
-  "mkt.pricingFaq.a11Channels": "Bütün paketlərdə tətbiqdaxili (in-app) bildiriş var. Email bildiriş Pro və Business paketlərində, WhatsApp bildiriş yalnız Business paketində mövcuddur.",
+  "mkt.pricingFaq.a11Channels": "Bütün paketlərdə eyni kanallar var: tətbiqdaxili bildiriş, brauzer push bildirişi və həftədə bir dəfə (çərşənbə səhəri) gələn email xülasəsi. Hansı kateqoriyanın hansı kanala düşdüyünü Hesab bölməsindən özünüz seçirsiniz.",
   "mkt.pricingFaq.a12BusinessFeatures": "Bunlar Business paketinə daxildir və mərhələli açılır (tezliklə). Foto diaqnoz ayda 30 şəkli əhatə edir.",
   "mkt.pricingFaq.a13Providers": "Provayderlər üçün platforma tamamilə pulsuzdur — abunə, qoşulma haqqı və komissiya yoxdur. Yuxarıdakı qiymətlər yalnız fermerlər üçündür.",
   "mkt.pricingFaq.a14Discounts": "Bəli — gənc fermer (−50%), kooperativ və tələbə-aqronom endirimləri mövcuddur. Yuxarıdakı kartlardan müraciət edin; endirim müraciətiniz yoxlandıqdan sonra əl ilə tətbiq olunur.",
@@ -795,7 +765,7 @@ export const az = {
   "mkt.pricingFaq.a1Free": "1 sahə, 10 m peyk monitorinqi, NDVI ilə birlikdə 10 vegetasiya indeksi, 7 günlük hava proqnozu, sahə idarəetmə alətləri və ayda 1 AI aqronom məsləhəti (hədiyyə). Kart tələb olunmur.",
   "mkt.pricingFaq.a2Trial": "Yeni yaratdığınız hər təşkilat avtomatik olaraq 1 ay müddətinə Pro paketini pulsuz alır. Kart məlumatı istənilmir və heç bir avtomatik ödəniş yoxdur.",
   "mkt.pricingFaq.a3AfterTrial": "Heç bir ödəniş çıxılmır. Hesabınız avtomatik Pulsuz paketə (1 sahə, ayda 1 məsləhət) keçir. Sahələriniz və bütün məlumatınız qalır — istədiyiniz vaxt Pro və ya Business-ə keçə bilərsiniz.",
-  "mkt.pricingFaq.a4ProVsBusiness": "Pro (10 AZN/ay): 5 sahə, ayda 8 AI məsləhəti, ayda 50 chatbot sualı, Bilik Pasportu, çiləmə pəncərəsi, suvarma balansı və email bildiriş. Business (25 AZN/ay): limitsiz sahə + komanda, ayda 30 məsləhət, ayda 300 chat, foto diaqnoz, zərərverici riski, gübrə kalkulyatoru, regional benchmark və WhatsApp bildiriş.",
+  "mkt.pricingFaq.a4ProVsBusiness": "Pro (10 AZN/ay): 5 sahə, ayda 8 AI məsləhəti, ayda 50 chatbot sualı və Bilik Pasportu (torpaq, su tələbi, zərərverici). Business (25 AZN/ay): limitsiz sahə + komanda, ayda 30 məsləhət, ayda 300 chat, foto diaqnoz, gübrə kalkulyatoru və regional benchmark. Çiləmə pəncərəsi, suvarma balansı (TAW/RAW · FAO-56) və bildiriş kanalları hər üç paketdə pulsuzdur.",
   "mkt.pricingFaq.a5FieldCount": "Pulsuz paketdə 1, Pro paketdə 5 (təxminən 25 ha), Business paketdə limitsiz sahə. Business həmçinin komanda üzvlərini dəstəkləyir.",
   "mkt.pricingFaq.a6AiQuota": "AI məsləhəti: Pulsuz ayda 1 (hədiyyə), Pro ayda 8, Business ayda 30. AI chatbot: Pulsuz paketdə yoxdur, Pro-da ayda 50, Business-də ayda 300 sual.",
   "mkt.pricingFaq.a7Sentinel2": "Bəli. Tək sahənizdə 10 m peyk görüntüsü pulsuz gəlir. NDRE və CIre kimi red-edge indeksləri Pro paketindən başlayır.",
@@ -971,8 +941,6 @@ export const az = {
   "mkt.compare.rowPassport": "Bilik Pasportu (torpaq · su · zərərverici)",
   "mkt.compare.rowSpray": "Çiləmə pəncərəsi + frost/heat xəbərdarlıq",
   "mkt.compare.rowIrrigation": "Suvarma balansı (TAW/RAW · FAO-56)",
-  "mkt.compare.rowEmail": "Email bildiriş",
-  "mkt.compare.rowWhatsapp": "WhatsApp bildiriş",
   "mkt.compare.rowPhoto": "Foto diaqnoz",
   "mkt.compare.rowPest": "Zərərverici risk proqnozu",
   "mkt.compare.rowFertilizer": "Gübrə kalkulyatoru",
@@ -1097,9 +1065,7 @@ export const az = {
   "mkt.hero.mapEyebrow": "CANLI DEMO",
   "mkt.hero.mapTitle": "Sahənizi indi peykdən görün",
   "mkt.pkg.notifLabel": "Bildirişlər",
-  "mkt.pkg.notifInapp": "in-app",
-  "mkt.pkg.notifEmail": "in-app + email",
-  "mkt.pkg.notifWhatsapp": "+ WhatsApp",
+  "mkt.pkg.notifAll": "tətbiqdaxili · push · həftəlik email",
   "mkt.pkg.trialPre": "Hər yeni hesab avtomatik ",
   "mkt.pkg.trialBold": "1 ay pulsuz Pro",
   "mkt.pkg.trialPost": " alır — kart lazım deyil, sonra Pulsuz paketə keçir.",
@@ -1593,7 +1559,7 @@ export const az = {
   "app.field.seasonTab.daysToPlantingPost": " gün qalıb",
   "app.field.seasonTab.daysToPlantingPre": "Əkinə ",
   "app.field.seasonTab.deleteAriaLabel": "Mövsümü sil",
-  "app.field.seasonTab.deleteConfirm": "Bu mövsüm silinsin? Qeydlər (tapşırıq, əməliyyat, məhsuldarlıq) silinmir.",
+  "app.field.seasonTab.deleteConfirm": "Bu mövsüm silinsin? Sahə qeydləri (əməliyyat jurnalı, skautinq, şəkillər) silinmir.",
   "app.field.seasonTab.deletingBtn": "Silinir…",
   "app.field.seasonTab.densityLabel": "Səpin norması",
   "app.field.seasonTab.emptyState": "Hələ mövsüm qeydi yoxdur. Hər mövsümün öz məhsulu, tarixləri və nəticəsi olur — mövsüm açsanız, növbəti il əkin dəyişəndə bu ilin məlumatı itmir və növbə (rotasiya) tarixçəsi yaranır.",
@@ -1782,17 +1748,13 @@ export const az = {
   "app.home.weatherBar.sprayRainNow": "Çiləmə: hazırda yağış var",
   "app.shell.appRail.account": "Hesab",
   "app.shell.appRail.catalog": "Kataloq",
-  "app.shell.appRail.community": "İcma",
-  "app.shell.appRail.equipment": "Texnika",
+  // Same word as nav.community and app.chat.heading — one destination, one name in three places.
+  "app.shell.appRail.community": "Mesajlar",
   "app.shell.appRail.fields": "Sahələr",
   "app.shell.appRail.homeAria": "ana səhifə",
-  "app.shell.appRail.inventory": "Anbar",
-  "app.shell.appRail.ledger": "Dəftər",
   "app.shell.appRail.mainNav": "Əsas naviqasiya",
   "app.shell.appRail.more": "Daha çox",
   "app.shell.appRail.notifications": "Bildiriş",
-  "app.shell.appRail.places": "Yerlər",
-  "app.shell.appRail.sales": "Satış",
   "app.shell.appRail.today": "Bu gün",
   "app.shell.fieldListPanel.addField": "Sahə əlavə et",
   "app.shell.fieldListPanel.collapsePanel": "Sahə panelini yığ",
@@ -1877,7 +1839,7 @@ export const az = {
   "app.account.close.title": "Hesabın bağlanması",
   "app.account.close.intro": "Hesabı bağlasanız:",
   "app.account.close.p1": "Şəxsi məlumatlarınız — ad, ölkə, region, bildiriş seçimləri — həmişəlik silinir.",
-  "app.account.close.p2": "Yazdığınız qeydlər — sahə tarixçəsi, əməliyyatlar, satışlar — təsərrüfatda qalır, amma artıq sizin adınıza bağlı olmur.",
+  "app.account.close.p2": "Yazdığınız qeydlər — sahə tarixçəsi, əməliyyatlar, skautinq müşahidələri — təsərrüfatda qalır, amma artıq sizin adınıza bağlı olmur.",
   "app.account.close.p3": "Giriş dərhal kəsilir — bütün cihazlarda.",
   "app.account.close.p4": "Yalnız sizin üzv olduğunuz təşkilatın sahələri arxivə keçir.",
   "app.account.close.p5": "E-poçt ünvanınız azad olur — istəsəniz onunla yenidən qeydiyyatdan keçə bilərsiniz.",
@@ -2059,8 +2021,10 @@ export const az = {
   "app.catalog.subtitle": "Laboratoriya, aqronom və təchizatçıları tapın, birbaşa yazın.",
   "app.catalog.title": "Kataloq",
   "app.chat.defaultUser": "İstifadəçi",
-  "app.chat.emptyConversations": "Hələ söhbət yoxdur. Kataloqdan provayderə yazın və ya sahə analizindən yaxın fermerlə əlaqə saxlayın.",
-  "app.chat.heading": "İcma & mesajlar",
+  // The empty state no longer sends the farmer somewhere else: the people directory is rendered
+  // right beside this sentence, so it introduces the list instead of naming a different screen.
+  "app.chat.emptyConversations": "Hələ yazışma yoxdur. Agradex AI-dan soruş və ya aşağıdakılardan birinə yaz.",
+  "app.chat.heading": "Mesajlar",
   "app.chat.messagePlaceholder": "Mesaj yaz…",
   "app.chat.selectConversation": "Söhbət seçin",
   "app.chat.writeFirstMessage": "İlk mesajı yazın.",
@@ -2103,7 +2067,6 @@ export const az = {
   "app.plural.profileGaps.other": "vacib məlumat boşdur",
   "app.plural.farmers.other": "fermer",
   "app.plural.records.other": "qeyd",
-  "app.plural.saleRecords.other": "satış qeydi",
   "app.plural.views.other": "baxış",
   "app.fieldsList.selectFieldAria": " seç",
   "app.fieldsList.srScoreLabel": "Sağlamlıq balı: ",
@@ -2122,23 +2085,6 @@ export const az = {
   "app.fieldsOverviewMap.statusPartial": "qismən",
   "app.fieldsOverviewMap.statusPending": "gözləyir",
   "app.fieldsOverviewMap.statusReady": "hazır",
-  "app.harvestorder.daysLate": "gün gecikib",
-  "app.harvestorder.daysLeft": "gün qalıb",
-  "app.harvestorder.emptyNoFields": "Bu təsərrüfatda hələ sahə yoxdur. Əvvəlcə sahə əlavə edin — peyk məlumatı toplandıqca yığım sırası avtomatik hesablanacaq.",
-  "app.harvestorder.emptyNoRankable": "Heç bir sahəni sıralamaq üçün kifayət qədər göstərici yoxdur. Sahələrin planlaşdırılan yığım tarixini qeyd edin və ya peyk məlumatının toplanmasını gözləyin.",
-  "app.harvestorder.goToFields": "Sahələrə keç",
-  "app.harvestorder.harvestPrefix": "Yığım:",
-  "app.harvestorder.intro": "Sahələr yığıma hazırlıq üzrə sıralanır: son NDVI ölçüsü, NDVI-nin son həftələrdəki dəyişməsi və planlaşdırılan yığım tarixi. Bu təxmindir — yekun qərarı sahədə yoxlayaraq verin.",
-  "app.harvestorder.loading": "Sahələr sıralanır…",
-  "app.harvestorder.missingPrefix": "Nəzərə alınmayıb: ",
-  "app.harvestorder.missingSuffix": " (məlumat yoxdur)",
-  "app.harvestorder.pageTitle": "Yığım sırası",
-  "app.harvestorder.rankedMid": " sahə sıralandı, ",
-  "app.harvestorder.today": "bu gün",
-  "app.harvestorder.truncatedNote": " Siyahı ilk 500 sahə ilə məhdudlaşdırılıb.",
-  "app.harvestorder.unrankableNote": "Bu sahələrə sıra verilmir — uydurma yer əvəzinə çatışmayan məlumat göstərilir.",
-  "app.harvestorder.unrankableTitle": "Sıralana bilməyən sahələr",
-  "app.harvestorder.unrankedMid": " sahə üçün göstərici çatmadı. Hesablanma tarixi: ",
   "app.login.emailVerifyTitle": "Email təsdiqi",
   "app.more.howToStart": "Necə başlamalı",
   "app.nav.menuClose": "Menyunu bağla",
@@ -2957,7 +2903,7 @@ export const az = {
 
   // Account — sub-line of the row that leads to /more; the row's label reuses more.title.
   // Worded open-endedly on purpose so it does not rot when /more's list changes.
-  "app.account.moreValue": "Kataloq, İcma, bələdçi və digər bölmələr",
+  "app.account.moreValue": "Kataloq, Mesajlar, bələdçi və digər bölmələr",
 
   // Field feed — the phone's single continuous scroll. These title BLOCKS inside one page, which
   // is why they do not reuse the section names in app.field.section.* or the tab labels.
@@ -3089,6 +3035,76 @@ export const az = {
   "app.notes.photoAlt": "Qeydə əlavə olunmuş şəkil",
   // Title of the small pin icon. No coordinate numbers are printed on the row.
   "app.notes.hasLocation": "Xəritədə yeri göstərilib",
+
+  // ── Messages screen (/chat) — people directory ──
+  // The screen's normal state today is "no conversations", so the directory IS the screen: who can
+  // be written to, and why each person is on the list.
+  "app.chat.newConversation": "Yeni yazışma",
+  "app.chat.peopleHeading": "Kimə yaza bilərsən",
+  "app.chat.providersHeading": "Mütəxəssislər və təchizatçılar",
+  "app.chat.farmersHeading": "Yaxın fermerlər",
+  "app.chat.filterAll": "Hamısı",
+  "app.chat.searchPlaceholder": "Ad, bölgə və ya ixtisas",
+  "app.chat.searchAria": "İnsanlar arasında axtar",
+  // On a card whose person has no thread yet vs. one who does. Two words, because "Yaz" promises a
+  // new conversation and "Aç" promises the one that already exists.
+  "app.chat.messageAction": "Yaz",
+  "app.chat.openAction": "Aç",
+  // Why a farmer is on the list. The API says match="crop" | "region"; nothing is guessed here.
+  "app.chat.matchCrop": "Eyni məhsul",
+  "app.chat.matchRegion": "Eyni bölgə",
+  "app.chat.featured": "Seçilmiş",
+  "app.chat.noProviders": "Bu süzgəcə uyğun mütəxəssis tapılmadı.",
+  // Shown ONLY when we had crops/regions to match on and still found nobody — a true "empty", not
+  // "we do not know who you are".
+  "app.chat.noFarmers": "Hələlik uyğun gələn fermer yoxdur.",
+  // tf() TEMPLATE — {scope} is the caller's own crops and regions, comma-joined by the client.
+  "app.chat.scopeNote": "Fermerlər sənin məhsul və bölgənə görə seçilir: {scope}.",
+  "app.chat.noScopeTitle": "Kimi təklif edəcəyimizi hələ bilmirik",
+  "app.chat.noScopeBody": "Sahə əlavə et və ya hesabında bölgəni yaz — sonra eyni məhsulu becərən, yaxın fermerləri burada göstərəcəyik.",
+  "app.chat.noScopeAction": "Sahə əlavə et",
+  "app.chat.directoryFailed": "İnsanlar siyahısı yüklənmədi.",
+
+  // ── Messages screen — conversation list + thread ──
+  // 0052 anonymises instead of deleting, so the transcript survives the person. Say so, and make
+  // the composer read-only rather than letting a farmer write into a void.
+  "app.chat.accountClosed": "Hesab bağlanıb",
+  "app.chat.accountClosedNote": "Bu istifadəçi hesabını bağlayıb — yazışma yalnız oxunur.",
+  // tf() TEMPLATE — {n} is the unread count. Screen-reader text for the numeric badge.
+  "app.chat.unreadAria": "{n} oxunmamış mesaj",
+  "app.chat.sendAria": "Göndər",
+
+  // ── Agradex AI — the pinned assistant thread ──
+  // "Agradex AI" is a brand name and stays identical in all 8 locales (it is NOT a key). The badge
+  // beside it is the honesty line: a farmer must never think a human agronomist is answering.
+  "app.chat.ai.badge": "Süni intellekt",
+  "app.chat.ai.subtitle": "Sahən haqqında sual ver",
+  "app.chat.ai.disclaimer": "Agradex AI insan deyil, süni intellektdir. Cavab tövsiyədir — qərardan əvvəl sahəni özün yoxla.",
+  // The AI is field-scoped by construction (ai/context.py): without a field there is no data to
+  // reason over, so the picker is not a convenience, it is the question's subject.
+  "app.chat.ai.fieldLabel": "Hansı sahə haqqında?",
+  "app.chat.ai.fieldAria": "Sual veriləcək sahəni seç",
+  "app.chat.ai.noFieldsTitle": "Əvvəlcə sahə əlavə et",
+  "app.chat.ai.noFieldsBody": "Agradex AI cavabı sahənin peyk, hava və qeyd məlumatından qurur — sahə olmadan sualı cavablandıra bilmir.",
+  "app.chat.ai.noFieldsAction": "Sahə əlavə et",
+  "app.chat.ai.unavailable": "Agradex AI hazırda əlçatan deyil. Bir azdan yenidən cəhd edin.",
+  "app.chat.ai.notConfigured": "Agradex AI hazırda qoşulmayıb. Köhnə yazışmanı oxumaq olar, yeni sual göndərmək olmur.",
+  // tf() TEMPLATE — {used} of {limit}. The limit belongs to the ORGANIZATION, not the field, and
+  // quotaHint says so: two fields in one təsərrüfat share one allowance.
+  "app.chat.ai.quota": "Bu ay: {used} / {limit} sual",
+  "app.chat.ai.quotaHint": "Limit sahə üzrə deyil — bütün təşkilat üzrə aylıqdır.",
+  "app.chat.ai.quotaSpent": "Bu ayın sual limiti bitib. Yeni ay başlayanda davam edə bilərsən — və ya paketi yüksəlt.",
+  "app.chat.ai.quotaAction": "Paketlərə bax",
+  "app.chat.ai.empty": "Bu sahə haqqında istədiyini soruş.",
+  "app.chat.ai.placeholder": "Sahə haqqında soruş…",
+  "app.chat.ai.thinking": "Agradex AI cavab hazırlayır…",
+  "app.chat.ai.error": "Cavab alınmadı. Bir azdan yenidən yoxla.",
+  // persisted=false: the tier refused the turn, nothing was stored. Say it, or the farmer scrolls
+  // back tomorrow looking for an answer that was never saved.
+  "app.chat.ai.notSaved": "Bu cavab yazışmaya yazılmadı.",
+
+  // Link from the field page's peer strip to the full people directory.
+  "app.field.peerSuggest.seeAll": "Hamısına bax",
 } as const;
 
 export type I18nKey = keyof typeof az;

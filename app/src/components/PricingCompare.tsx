@@ -78,14 +78,23 @@ export default function PricingCompare() {
       cells: [NO, { on: true, note: t("mkt.compare.perMonth50") }, { on: true, note: t("mkt.compare.perMonth300") }],
     },
     { label: t("mkt.compare.rowPassport"), cells: [NO, YES, YES] }, // passport
-    { label: t("mkt.compare.rowSpray"), cells: [NO, YES, YES] }, // weather_alerts
-    { label: t("mkt.compare.rowIrrigation"), cells: [NO, YES, YES] }, // irrigation
-    { label: t("mkt.compare.rowEmail"), cells: [NO, YES, YES] }, // email
-    { label: t("mkt.compare.rowWhatsapp"), cells: [NO, NO, YES] }, // whatsapp
-    { label: t("mkt.compare.rowPhoto"), cells: [NO, NO, { on: true, note: t("mkt.compare.perMonth30") }], soon: true }, // photo_per_month 0/0/30
-    { label: t("mkt.compare.rowPest"), cells: [NO, NO, YES], soon: true }, // pest_risk
-    { label: t("mkt.compare.rowFertilizer"), cells: [NO, NO, YES], soon: true }, // fertilizer
-    { label: t("mkt.compare.rowBenchmark"), cells: [NO, NO, YES], soon: true }, // benchmark
+    // Both free on every tier — see the proofs in lib/pricing.ts. The two flags that nominally
+    // backed these rows, weather_alerts and irrigation, were never read by tiers.allows().
+    { label: t("mkt.compare.rowSpray"), cells: [YES, YES, YES] },
+    { label: t("mkt.compare.rowIrrigation"), cells: [YES, YES, YES] },
+    // ONE notifications row, identical across tiers. It replaces two rows that sold channels we do
+    // not gate and, in one case, do not have: "Email bildiriş — Pro+" stopped being true when E15
+    // folded every recurring mail into the weekly digest, which every tier receives; "WhatsApp
+    // bildiriş — Business" was never implemented at all (no adapter, no messaging_channels row, no
+    // code path). Mirrors lib/pricing.ts, which renders the same row on the cards.
+    {
+      label: t("mkt.pkg.notifLabel"),
+      cells: [{ on: true, note: t("mkt.pkg.notifAll") }, { on: true, note: t("mkt.pkg.notifAll") }, { on: true, note: t("mkt.pkg.notifAll") }],
+    },
+    { label: t("mkt.compare.rowPhoto"), cells: [NO, NO, { on: true, note: t("mkt.compare.perMonth30") }] }, // photo_per_month 0/0/30
+    { label: t("mkt.compare.rowPest"), cells: [NO, YES, YES] }, // pest_risk
+    { label: t("mkt.compare.rowFertilizer"), cells: [NO, NO, YES] }, // fertilizer
+    { label: t("mkt.compare.rowBenchmark"), cells: [NO, NO, YES] }, // benchmark
     {
       label: t("mkt.compare.rowResearch"), // research_depth regional / regional / local
       cells: [{ on: true, note: t("mkt.compare.noteResearchGlobalReg") }, { on: true, note: t("mkt.compare.noteResearchGlobalReg") }, { on: true, note: t("mkt.compare.noteResearchLocal") }],

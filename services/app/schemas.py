@@ -331,9 +331,121 @@ class ConversationOut(BaseModel):
     other_user_id: str
     other_name: Optional[str] = None
     other_role: Optional[str] = None
+    # Provider identity is the company, not the person — the Messages list shows "AgroLab MMC",
+    # not the individual who registered it. Null for farmer↔farmer threads.
+    other_company: Optional[str] = None
+    # The counterpart closed their account (users.deleted_at). Deletion is anonymisation, not a
+    # row delete (0052), so the thread survives and stays readable — but the client must not
+    # invite the farmer to keep writing into it.
+    other_deleted: bool = False
     kind: str = "peer"
     last_text: Optional[str] = None
     last_at: Optional[str] = None
+    unread: int = 0
+
+
+# ---- messages: people directory (task 3) ----
+class DirectoryPersonOut(BaseModel):
+    """One row of the "who can I write to" directory.
+
+    Providers and farmers share this shape so the client renders one card component; the fields
+    that do not apply are simply null (a farmer has no company/rating, a provider has no crop)."""
+    user_id: str
+    name: str                            # primary label: company for providers, display name for farmers
+    role: str                            # farmer | lab | consultant | supplier
+    company: Optional[str] = None
+    bio: Optional[str] = None
+    specializations: list[str] = []
+    country: Optional[str] = None
+    region: Optional[str] = None
+    crop: Optional[str] = None           # farmers only — the crop that put them in this list
+    rating: Optional[float] = None
+    featured: bool = False
+    provider_id: Optional[str] = None    # provider_profiles.id, for /catalog deep links
+    match: Optional[str] = None          # why this person is here: provider | crop | region
+    conversation_id: Optional[str] = None  # existing thread, if any — open it instead of starting one
+
+
+class DirectoryScopeOut(BaseModel):
+    """What the farmer list was scoped BY. Empty lists mean "we had nothing to match on" — the
+    client should say so (add a field / set your region) rather than imply nobody is out there."""
+    crops: list[str] = []
+    regions: list[str] = []
+
+
+class DirectoryOut(BaseModel):
+    providers: list[DirectoryPersonOut] = []
+    farmers: list[DirectoryPersonOut] = []
+    scope: DirectoryScopeOut = DirectoryScopeOut()
+
+
+# ---- messages: the Agradex AI pseudo-conversation (task 2) ----
+# NOTE: the assistant is NOT a public.users row and has no public.conversations row. It is a
+# synthetic participant the API describes and the client pins at the top of the Messages list.
+# Its transcript lives in public.ai_chat_messages, keyed by FIELD — which is why every shape
+# below carries a field id instead of a conversation id.
+class AssistantFieldOut(BaseModel):
+    field_id: str
+    org_id: str
+    name: str
+    crop: Optional[str] = None
+    area_ha: Optional[float] = None
+    message_count: int = 0
+    last_text: Optional[str] = None
+    last_at: Optional[str] = None
+    # Quota is per ORGANIZATION, not per field: two fields in the same org share one allowance.
+    chat_limit: int = 0
+    chat_used: int = 0
+    chat_enabled: bool = False
+
+
+class AssistantInfoOut(BaseModel):
+    id: str                              # sentinel id, never a uuid — see routers/chat.py ASSISTANT_ID
+    name: str
+    role: str = "assistant"
+    configured: bool = False             # LLM key present; false ⇒ the thread is read-only
+    default_field_id: Optional[str] = None
+    last_text: Optional[str] = None      # newest turn across all the caller's fields (list preview)
+    last_at: Optional[str] = None
+    fields: list[AssistantFieldOut] = []
+
+
+class AssistantMessageIn(BaseModel):
+    body: str = Field(min_length=1)
+    locale: Optional[str] = None         # overrides X-Locale; see routers/advice.py::_resolve_locale
+
+
+class AssistantTurnOut(BaseModel):
+    """Deliberately a superset of MessageOut so one bubble component renders human and AI threads."""
+    id: str
+    sender_id: str                       # ASSISTANT_ID for AI turns, the human's uuid otherwise
+    sender_name: Optional[str] = None
+    body: str
+    created_at: str
+    mine: bool = False
+    role: str = "user"                   # user | assistant
+
+
+class AssistantThreadOut(BaseModel):
+    assistant: AssistantInfoOut
+    field: AssistantFieldOut
+    messages: list[AssistantTurnOut] = []
+    configured: bool = False
+    chat_limit: int = 0
+    chat_used: int = 0
+    chat_enabled: bool = False
+
+
+class AssistantReplyOut(BaseModel):
+    reply: str
+    # False ⇒ the reply was a tier/quota refusal: nothing was written to ai_chat_messages and
+    # `messages` is empty, so the client must render it as a transient system bubble and NOT
+    # expect it back on the next history fetch.
+    persisted: bool = True
+    messages: list[AssistantTurnOut] = []
+    chat_limit: int = 0
+    chat_used: int = 0
+    chat_enabled: bool = False
 
 
 # ---- fertilizer plans (E8, 0031) ----

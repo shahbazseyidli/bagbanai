@@ -71,7 +71,10 @@ const saheElaveEt: Guide = {
       title: "Xəritəni aç",
       body:
         "Aşağı naviqasiyada «Sahələr»ə keçin və sağ aşağıdakı «+» düyməsinə basın. Tam ekran xəritə açılır.",
-      screen: "Ekran: peyk xəritəsi + aşağıda «Sahələr / Bu gün / İşlər» zolağı, sağ altda yaşıl «+».",
+      // The strip used to be described as «Sahələr / Bu gün / İşlər». Neither "Bu gün" nor "İşlər"
+      // is a bottom-nav destination any more — BottomNav.tsx ships five slots, and "İşlər" is now a
+      // section GROUP inside a field, not a tab of its own.
+      screen: "Ekran: peyk xəritəsi + aşağıda «Xəritə / Sahələr / Hava / Qeydlər / Hesab» zolağı, sağ altda yaşıl «+».",
     },
     {
       title: "Kəndini axtar",

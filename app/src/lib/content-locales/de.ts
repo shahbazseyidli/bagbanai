@@ -535,7 +535,7 @@ export const de: Record<string, string> = {
   "GUIDES.sahe-elave-et.where": "Felder → „Neues Feld“ (+-Taste)",
   "GUIDES.sahe-elave-et.steps.0.title": "Karte öffnen",
   "GUIDES.sahe-elave-et.steps.0.body": "Wechseln Sie in der unteren Navigation zu „Felder“ und drücken Sie unten rechts die „+“-Taste. Es öffnet sich eine Vollbildkarte.",
-  "GUIDES.sahe-elave-et.steps.0.screen": "Bildschirm: Satellitenkarte + unten die Leiste „Felder / Heute / Arbeiten“, unten rechts grünes „+“.",
+  "GUIDES.sahe-elave-et.steps.0.screen": "Bildschirm: Satellitenkarte + unten die Leiste „Karte / Felder / Wetter / Notizen / Konto“, unten rechts grünes „+“.",
   "GUIDES.sahe-elave-et.steps.1.title": "Ihr Dorf suchen",
   "GUIDES.sahe-elave-et.steps.1.body": "Geben Sie in das Suchfeld oben den Namen des Dorfes oder Bezirks ein. Die Karte springt in dieses Gebiet. Bei Bedarf mit zwei Fingern heranzoomen.",
   "GUIDES.sahe-elave-et.steps.1.screen": "Bildschirm: oben das Feld „Suchen…“, darunter das Satellitenbild mit den Konturen der Felder.",

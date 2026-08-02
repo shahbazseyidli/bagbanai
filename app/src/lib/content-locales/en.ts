@@ -535,7 +535,7 @@ export const en: Record<string, string> = {
   "GUIDES.sahe-elave-et.where": "Fields → “New field” (+ button)",
   "GUIDES.sahe-elave-et.steps.0.title": "Open the map",
   "GUIDES.sahe-elave-et.steps.0.body": "In the bottom navigation, go to “Fields” and press the “+” button at the bottom right. A full-screen map opens.",
-  "GUIDES.sahe-elave-et.steps.0.screen": "Screen: satellite map + a “Fields / Today / Tasks” bar at the bottom, a green “+” at the bottom right.",
+  "GUIDES.sahe-elave-et.steps.0.screen": "Screen: satellite map + a “Map / Fields / Weather / Notes / Account” bar at the bottom, a green “+” at the bottom right.",
   "GUIDES.sahe-elave-et.steps.1.title": "Search for your village",
   "GUIDES.sahe-elave-et.steps.1.body": "Type the name of your village or district into the search box at the top. The map jumps to that area. Zoom in with two fingers if you like.",
   "GUIDES.sahe-elave-et.steps.1.screen": "Screen: a “Search…” box at the top, below it a satellite image with the outlines of fields.",

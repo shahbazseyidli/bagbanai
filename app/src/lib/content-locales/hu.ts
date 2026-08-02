@@ -535,7 +535,7 @@ export const hu: Record<string, string> = {
   "GUIDES.sahe-elave-et.where": "Táblák → „Új tábla” (+ gomb)",
   "GUIDES.sahe-elave-et.steps.0.title": "Nyisd meg a térképet",
   "GUIDES.sahe-elave-et.steps.0.body": "Az alsó navigációban lépj a „Táblák”-ra, és nyomd meg a jobb alsó „+” gombot. Teljes képernyős térkép nyílik meg.",
-  "GUIDES.sahe-elave-et.steps.0.screen": "Képernyő: műholdas térkép + alul „Táblák / Ma / Munkák” sáv, jobb alul zöld „+”.",
+  "GUIDES.sahe-elave-et.steps.0.screen": "Képernyő: műholdas térkép + alul „Térkép / Táblák / Időjárás / Jegyzetek / Fiók” sáv, jobb alul zöld „+”.",
   "GUIDES.sahe-elave-et.steps.1.title": "Keresd meg a falud",
   "GUIDES.sahe-elave-et.steps.1.body": "A felső keresőmezőbe írd be a falu vagy a járás nevét. A térkép arra a területre ugrik. Ha akarod, két ujjal nagyíts rá.",
   "GUIDES.sahe-elave-et.steps.1.screen": "Képernyő: felül „Keresés…” mező, alatta műholdas kép a táblák kontúrjával.",

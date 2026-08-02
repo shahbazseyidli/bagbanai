@@ -82,8 +82,10 @@ async def org_subscription(org_id: str, user_id: str = Depends(get_current_user_
             "advice": {"used": advice_used, "limit": cfg["advice_per_month"]},
             "chat": {"used": chat_used, "limit": cfg["chat_per_month"]},
         },
-        "features": {k: cfg[k] for k in ("passport", "weather_alerts", "irrigation",
-                                         "email", "whatsapp", "pest_risk", "fertilizer")},
+        # "email" and "whatsapp" were dropped from TIERS on 2026-08-02 (no code ever gated a
+        # delivery channel by package), so naming them here would raise KeyError. Nothing on the
+        # frontend reads this block today — TrialBanner is the only caller and it uses tier/usage.
+        "features": {k: cfg[k] for k in ("passport", "pest_risk", "fertilizer")},
     }
 
 

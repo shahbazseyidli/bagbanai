@@ -26,7 +26,13 @@
 //
 // /more lost its slot to /weather and /notes. It is NOT unreachable: app/account/page.tsx carries a
 // labelled row to it (grep `more.title` there), and the desktop rail still lists it. Losing that
-// route would strand Kataloq, İcma, Bələdçi, Qiymətlər and Komanda on a phone.
+// route would strand Kataloq, Mesajlar, Bələdçi, Qiymətlər and Komanda on a phone.
+//
+// MESSAGES DELIBERATELY HAS NO SLOT HERE. /chat was renamed İcma → Mesajlar, but a rename is not a
+// promotion: this bar is exactly five equal flex-1 children and a sixth would break both the
+// uniform slot width and the ~73px label budget (see the geometry note above). The phone reaches
+// Messages through /account → /more, and /more's row carries the unread badge so the trip is not
+// blind — that badge is why the rename did not need a slot here.
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Map as MapIcon, Sprout, CloudSun, NotebookPen, Settings, type LucideIcon } from "lucide-react";

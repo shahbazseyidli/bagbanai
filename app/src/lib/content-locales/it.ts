@@ -535,7 +535,7 @@ export const it: Record<string, string> = {
   "GUIDES.sahe-elave-et.where": "Campi → «Nuovo campo» (pulsante +)",
   "GUIDES.sahe-elave-et.steps.0.title": "Apri la mappa",
   "GUIDES.sahe-elave-et.steps.0.body": "Nella navigazione in basso vai su «Campi» e premi il pulsante «+» in basso a destra. Si apre la mappa a schermo intero.",
-  "GUIDES.sahe-elave-et.steps.0.screen": "Schermata: mappa satellitare + in basso la barra «Campi / Oggi / Lavori», in basso a destra il «+» verde.",
+  "GUIDES.sahe-elave-et.steps.0.screen": "Schermata: mappa satellitare + in basso la barra «Mappa / Campi / Meteo / Note / Account», in basso a destra il «+» verde.",
   "GUIDES.sahe-elave-et.steps.1.title": "Cerca il tuo villaggio",
   "GUIDES.sahe-elave-et.steps.1.body": "Nella casella di ricerca in alto scrivi il nome del villaggio o del distretto. La mappa salta in quella zona. Se vuoi, ingrandisci con due dita.",
   "GUIDES.sahe-elave-et.steps.1.screen": "Schermata: in alto la casella «Cerca…», sotto l'immagine satellitare con i contorni dei campi.",

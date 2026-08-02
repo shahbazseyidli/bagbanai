@@ -535,7 +535,7 @@ export const tr: Record<string, string> = {
   "GUIDES.sahe-elave-et.where": "Tarlalar → «Yeni tarla» (+ düğmesi)",
   "GUIDES.sahe-elave-et.steps.0.title": "Haritayı aç",
   "GUIDES.sahe-elave-et.steps.0.body": "Alt gezinmede «Tarlalar»a geçin ve sağ alttaki «+» düğmesine basın. Tam ekran harita açılır.",
-  "GUIDES.sahe-elave-et.steps.0.screen": "Ekran: uydu haritası + altta «Tarlalar / Bugün / İşler» şeridi, sağ altta yeşil «+».",
+  "GUIDES.sahe-elave-et.steps.0.screen": "Ekran: uydu haritası + altta «Harita / Tarlalar / Hava / Notlar / Hesap» şeridi, sağ altta yeşil «+».",
   "GUIDES.sahe-elave-et.steps.1.title": "Köyünü ara",
   "GUIDES.sahe-elave-et.steps.1.body": "Üstteki arama kutusuna köyün ya da ilçenin adını yazın. Harita o bölgeye atlar. İsterseniz iki parmakla yakınlaştırın.",
   "GUIDES.sahe-elave-et.steps.1.screen": "Ekran: üstte «Ara…» kutusu, altında tarlaların konturlarıyla uydu görüntüsü.",

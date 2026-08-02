@@ -27,7 +27,7 @@
 //
 // MOBILE IS UNTOUCHED: this is `hidden md:flex`, BottomNav is `md:hidden`, so the two never coexist
 // and the phone renders exactly what it rendered before.
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -42,11 +42,12 @@ import {
   Sprout,
   type LucideIcon,
 } from "lucide-react";
-import { t } from "@/lib/i18n";
+import { api } from "@/lib/api";
+import { t, tf } from "@/lib/i18n";
 import { SHOW_MARKETPLACE_NAV } from "@/lib/navFlags";
 import { stripLocale } from "@/lib/stripLocale";
 
-type RailItem = { href: string; label: string; Icon: LucideIcon };
+type RailItem = { href: string; label: string; Icon: LucideIcon; badge?: number };
 
 // ── Collapse state ──────────────────────────────────────────────────────────────────────────────
 // THREE files have to agree on one number (the sidebar's width): this one draws it, AppShell insets
@@ -117,6 +118,48 @@ export function useSidebarCollapsed(): boolean {
   return collapsed;
 }
 
+// ── Unread messages ─────────────────────────────────────────────────────────────────────────────
+// GET /api/chat returns a per-thread `unread` count; the rail badge is their sum — that is the
+// whole rule, and it lives here rather than in a context because the rail is its only consumer.
+//
+// No auth guard: AppShell early-returns before rendering this component unless there is a signed-in
+// user on the app host, so by construction the request always carries a session cookie.
+//
+// 60s, the same cadence as NotificationBell, and deliberately not faster: a message is not an
+// alert, and this poller is mounted on EVERY desktop app screen. It is also gated on `enabled` —
+// with SHOW_MARKETPLACE_NAV false the Messages entry is not in the rail at all and polling for a
+// badge nobody can see would be pure cost.
+//
+// EXPORTED because /more carries the only route to Messages on a phone (the bottom bar has five
+// fixed slots and none of them is /chat), and a second copy of "sum the unread counts" in that file
+// is exactly the kind of duplicate that drifts. The cost of exporting it is that a DESKTOP visit to
+// /more runs this poller twice for as long as that screen is open — a known, bounded trade.
+export function useUnreadMessages(enabled: boolean): number {
+  const [unread, setUnread] = useState(0);
+  useEffect(() => {
+    if (!enabled) return;
+    let active = true;
+    const load = () =>
+      api
+        .get<Array<{ unread?: number }>>("/api/chat")
+        .then((rows) => {
+          // `unread` is absent on an API build that predates it (mid-deploy); treat that as zero
+          // rather than letting undefined poison the sum into NaN.
+          if (active) setUnread(rows.reduce((sum, r) => sum + (r.unread || 0), 0));
+        })
+        .catch(() => {
+          /* offline / expired session — keep the last known count rather than flashing to zero */
+        });
+    void load();
+    const timer = setInterval(load, 60000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [enabled]);
+  return unread;
+}
+
 // ── Geometry ────────────────────────────────────────────────────────────────────────────────────
 // WHOLE class literals, selected by ternary — never assembled from fragments, because Tailwind's
 // scanner only sees complete class names in the source text.
@@ -146,10 +189,14 @@ const SIDEBAR_BASE =
 // min-h-[var(--tap)] rather than the reference's 44px row: this codebase has a hard 48px touch floor
 // (--tap in globals.css) and the last shipped commit was about enforcing it on the controls that had
 // missed it. A desktop-only control is still a control.
+// `relative` is here for the unread badge, which is absolutely positioned in the row's top-right
+// corner. Harmless on every other row (a positioned flex item lays out identically), and putting it
+// in the shared literal keeps ONE row geometry instead of a badge-only variant that would then have
+// to be kept in sync with this one.
 const ROW_COMPACT =
-  "flex min-h-[var(--tap)] w-14 shrink-0 flex-col items-center justify-center gap-0.5 rounded-[13px] px-1 text-[10px] font-semibold leading-none transition-colors motion-reduce:transition-none";
+  "relative flex min-h-[var(--tap)] w-14 shrink-0 flex-col items-center justify-center gap-0.5 rounded-[13px] px-1 text-[10px] font-semibold leading-none transition-colors motion-reduce:transition-none";
 const ROW_EXPANDED =
-  "flex min-h-[var(--tap)] w-14 shrink-0 flex-col items-center justify-center gap-0.5 rounded-[13px] px-1 text-[10px] font-semibold leading-none transition-colors motion-reduce:transition-none xl:w-full xl:flex-row xl:justify-start xl:gap-3 xl:px-3 xl:text-[13.5px] xl:leading-5";
+  "relative flex min-h-[var(--tap)] w-14 shrink-0 flex-col items-center justify-center gap-0.5 rounded-[13px] px-1 text-[10px] font-semibold leading-none transition-colors motion-reduce:transition-none xl:w-full xl:flex-row xl:justify-start xl:gap-3 xl:px-3 xl:text-[13.5px] xl:leading-5";
 
 // The active vocabulary is FieldSectionMenu's, verbatim (grep `bg-mint-soft text-grass-deep` in
 // components/shell/FieldSectionMenu.tsx) — the two menus sit side by side on a field page and an
@@ -202,7 +249,7 @@ function SidebarLink({
   active: boolean;
   expanded: boolean;
 }) {
-  const { Icon, href, label } = item;
+  const { Icon, href, label, badge } = item;
   return (
     <Link
       href={href}
@@ -218,6 +265,21 @@ function SidebarLink({
         aria-hidden="true"
       />
       <span className={expanded ? LABEL_EXPANDED : LABEL_COMPACT}>{label}</span>
+      {/* Absolutely positioned in BOTH row shapes: at 72px the row is a stacked icon+caption and
+          the corner is the only free space, and at xl it still reads as a badge on the row. The
+          number is aria-hidden and paired with a sentence, because "7" alone tells a screen reader
+          nothing. */}
+      {badge ? (
+        <>
+          <span
+            aria-hidden="true"
+            className="absolute right-1 top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white"
+          >
+            {badge > 99 ? "99+" : badge}
+          </span>
+          <span className="sr-only">{tf("app.chat.unreadAria", { n: badge })}</span>
+        </>
+      ) : null}
     </Link>
   );
 }
@@ -226,15 +288,18 @@ export default function AppRail() {
   const pathname = usePathname() || "/";
   const collapsed = useSidebarCollapsed();
   const expanded = !collapsed;
+  const unread = useUnreadMessages(SHOW_MARKETPLACE_NAV);
 
   // Every href below is an existing route under app/src/app/ — verified against the directory, not
   // assumed. Labels are read on each render (t() is module-level state set by LocaleProvider) so a
   // locale switch re-labels the sidebar.
   //
-  // FIVE primary destinations: Bu gün (/) · Sahələr (/fields) · Kataloq (/catalog) · İcma (/chat) ·
-  // Daha çox (/more), then Bildirişlər (/notifications) · Hesab (/account) pinned to the bottom.
+  // FIVE primary destinations: Bu gün (/) · Sahələr (/fields) · Kataloq (/catalog) · Mesajlar
+  // (/chat) · Daha çox (/more), then Bildirişlər (/notifications) · Hesab (/account) pinned to the
+  // bottom. (/chat used to be called "İcma"; the KEY is still app.shell.appRail.community — see the
+  // note on that key in lib/i18n.ts for why the name was not renamed with the value.)
   //
-  // Kataloq / İcma stay behind SHOW_MARKETPLACE_NAV rather than being inlined: the flag is the
+  // Kataloq / Mesajlar stay behind SHOW_MARKETPLACE_NAV rather than being inlined: the flag is the
   // record of WHY they can be hidden again (both are built and routable but sparse), and inlining
   // them would delete that record. It is `true` as of 2026-07-27 — see lib/navFlags.ts.
   const PRIMARY: RailItem[] = [
@@ -248,7 +313,7 @@ export default function AppRail() {
     ...(SHOW_MARKETPLACE_NAV
       ? [
           { href: "/catalog", label: t("app.shell.appRail.catalog"), Icon: ShoppingBag },
-          { href: "/chat", label: t("app.shell.appRail.community"), Icon: MessageCircle },
+          { href: "/chat", label: t("app.shell.appRail.community"), Icon: MessageCircle, badge: unread },
         ]
       : []),
     { href: "/more", label: t("app.shell.appRail.more"), Icon: LayoutGrid },
