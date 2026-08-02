@@ -568,8 +568,9 @@ grep ilə yenidən yoxlanıb; bağlananlar üstündən xətt çəkilib, silinmə
 | SEO-T5 | CF «Always Use HTTPS» + `www→apex` 301 Redirect Rule — canlıda 4 variant da kanonikə 301 verir | ✅ 2026-08-02 |
 | SEO-T1b | Bing Webmaster Tools (GSC import) — OAuth/SSO icazəsi tələb edir, ayrıca təsdiqlə | ⏳ istifadəçi icazəsi |
 | SEO-T15 | PSI/CWV baseline ölçümü (keyless kvota açılanda) | ⬜ |
-| SEO-C1..C10 | Kontent Dalğa 1: 7 az + 3 en məqalə (SEO_PLAN §4-S2 cədvəli) | ⬜ növbəti addım |
-| SEO-C11..C20 | Kontent Dalğa 2: az/tr/ru | ⬜ |
+| SEO-C (Dalğa 1+2) | **35 məqalə CANLI**: 7 mövzu × 5 dil (az/en/ru/de/es) — `/blog` infra + registry + Article JSON-LD + məhdud hreflang; hər dil variantı bazar adaptasiyasıdır, tərcümə deyil (sahibin sifarişi ilə plan genişləndi: 3 en → 7×5) | ✅ 2026-08-02 (`40fd45b`+`3912702`) |
+| SEO-ES | **es locale CANLI** (sahibin qərarı — Q3 "sonra" qərarını qabaqladı): marketinq-öncə qismən, fallback `es→en→az`; QALAN: content-locales/es overlay, legal es, app-daxili açarlar, TR-dəki kimi tam paritet | 🚀 qismən |
+| SEO-C-next | Kontent Dalğa 3: TR məqalələri (7 mövcud slug-a tr variantı) + AZ uzun-quyruq (gübrə norması, bitki bələdçiləri) | ⬜ |
 | SEO-S3 | Kataloqlar (Product Hunt/Capterra/G2/Crunchbase/F6S) + AZ ekosistem linkləri | ⏳ istifadəçi hesabları |
 | — | Müəllif: **Sabir Ismayilbayli** + LinkedIn linki (`lib/author.ts`, byline + Article JSON-LD) | ✅ 2026-08-02 |
 | — | ES locale qərarı (hədəf 5-10 user/gün pilləsində) | ⏳ qərar |
