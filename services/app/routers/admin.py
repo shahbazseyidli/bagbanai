@@ -507,13 +507,17 @@ class FieldPatch(BaseModel):
     is_demo: bool
 
 
-def _demo_uid(value: str) -> str:
+def _admin_uid(value: str, detail: str = "field_not_found") -> str:
     """Canonicalise a path uuid. Mirrors shares.py::_uid — a malformed id is a 404, not a Postgres
-    22P02 surfacing as a 500."""
+    22P02 surfacing as a 500.
+
+    `detail` is a parameter because this is used by both the field and the user routes now, and a
+    bad USER id answering "field_not_found" sends whoever reads the log to the wrong table.
+    """
     try:
         return str(_uuid.UUID(str(value)))
     except (ValueError, AttributeError, TypeError):
-        raise HTTPException(status_code=404, detail="field_not_found")
+        raise HTTPException(status_code=404, detail=detail)
 
 
 @router.patch("/fields/{field_id}")
@@ -525,7 +529,7 @@ async def patch_field(field_id: str, body: FieldPatch,
     clear the old one FIRST — inside the same transaction, or a swap would be rejected halfway and
     leave the platform with no demo at all."""
     # A malformed id must 404, not reach Postgres and come back as a 22P02 → 500.
-    target = _demo_uid(field_id)
+    target = _admin_uid(field_id)
     async with connection(user_id) as conn:
         await require_platform_admin(conn, user_id)
         async with conn.transaction():
@@ -688,7 +692,7 @@ async def user_detail(user_id_target: str, user_id: str = Depends(get_current_us
     it is still a READ. Nothing here writes, and the routes that do write are separate and guarded
     one by one.
     """
-    target = _demo_uid(user_id_target)
+    target = _admin_uid(user_id_target, "user_not_found")
     async with connection(user_id) as conn:
         await require_platform_admin(conn, user_id)
 
@@ -834,7 +838,7 @@ async def close_user_account(user_id_target: str, body: UserDelete,
       * not an owner of an org with other active members — the same refusal the self-service route
         gives, because the consequence is the same: colleagues' fields behind a vanished owner.
     """
-    target = _demo_uid(user_id_target)
+    target = _admin_uid(user_id_target, "user_not_found")
     if target == user_id:
         raise HTTPException(status_code=400, detail="cannot_delete_self")
 
