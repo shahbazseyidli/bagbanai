@@ -69,8 +69,10 @@ async def emails_lifecycle_drain():
     if not notify.email_configured():
         return {"ok": False, "reason": "email_not_configured"}
     from ..ai.emails.lifecycle import run_lifecycle
-    async with connection(None) as conn:
-        return {"ok": True, **await run_lifecycle(conn)}
+    # No connection passed on purpose — run_lifecycle opens one short transaction for the candidate
+    # list and one per user. Holding this handler's transaction open across the whole drain (every
+    # Resend round-trip included) is exactly what that change removed.
+    return {"ok": True, **await run_lifecycle()}
 
 
 @router.post("/pipeline/run")
