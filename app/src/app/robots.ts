@@ -41,6 +41,7 @@ export default function robots(): MetadataRoute.Robots {
       },
     ],
     sitemap: `${SITE}/sitemap.xml`,
-    host: SITE,
+    // No `host` directive: it was Yandex-only, Yandex retired it in 2018 (301s decide the mirror
+    // now), and the URL form we emitted ("https://…") was invalid for it anyway.
   };
 }

@@ -6,6 +6,7 @@
 // languages of thirteen pages is 104 URLs, most of them reachable only by guessing a prefix.
 import type { MetadataRoute } from "next";
 import { PUBLIC_ROUTES, SITEMAP_LOCALES, urlFor } from "@/lib/publicRoutes";
+import { GUIDE_ORDER } from "@/components/guide/content";
 
 // Marketing lives on the apex regardless of which host renders this — same derivation as
 // app/layout.tsx, for the same reason: a sitemap pointing at app.agradex.com would list URLs that
@@ -13,15 +14,20 @@ import { PUBLIC_ROUTES, SITEMAP_LOCALES, urlFor } from "@/lib/publicRoutes";
 const SITE = `https://${(process.env.NEXT_PUBLIC_PANEL_HOST || "agradex.com").replace(/^(app|panel)\./, "")}`;
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  return PUBLIC_ROUTES.flatMap((route) =>
+  // Static marketing routes + the guide articles (from the same registry the pages render from, so
+  // a new article can never be published and missing from the sitemap at the same time).
+  const routes: string[] = [...PUBLIC_ROUTES, ...GUIDE_ORDER.map((slug) => `/guide/${slug}`)];
+  return routes.flatMap((route) =>
     SITEMAP_LOCALES.map((locale) => ({
       url: urlFor(SITE, locale, route),
-      // The `languages` map is what makes this a MULTILINGUAL sitemap rather than 104 unrelated
-      // pages: it repeats, per entry, the same alternates the page itself emits.
+      // The `languages` map is what makes this a MULTILINGUAL sitemap rather than unrelated pages:
+      // it repeats, per entry, the same alternates the page itself emits — x-default included,
+      // matching layout.tsx/pageAlternates exactly.
       alternates: {
-        languages: Object.fromEntries(
-          SITEMAP_LOCALES.map((l) => [l, urlFor(SITE, l, route)]),
-        ),
+        languages: {
+          ...Object.fromEntries(SITEMAP_LOCALES.map((l) => [l, urlFor(SITE, l, route)])),
+          "x-default": urlFor(SITE, "az", route),
+        },
       },
       // No lastModified and no priority, deliberately. Both would be invented — nothing here
       // tracks when a marketing page last changed, and a made-up date teaches a crawler to ignore

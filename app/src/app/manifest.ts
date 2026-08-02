@@ -25,11 +25,16 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
     display: "standalone",
     orientation: "portrait",
     background_color: "#f4f7f3",
-    theme_color: "#059669",
+    // Must match layout.tsx's viewport themeColor (#15803D) — they disagreed for a month and the
+    // installed-PWA chrome painted the pre-D1 green nothing else uses.
+    theme_color: "#15803D",
     lang: locale,
     icons: [
       { src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
       { src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "maskable" },
+      // Raster fallbacks: several Android launchers and install prompts skip SVG-only manifests.
+      { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { src: "/icon-512.png", sizes: "512x512", type: "image/png" },
     ],
   };
 }

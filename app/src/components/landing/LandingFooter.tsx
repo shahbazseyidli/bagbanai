@@ -1,8 +1,8 @@
 "use client";
 
 // W2 / E12 — closing CTA + footer of the approved landing redesign. Only routes that actually
-// exist are linked (no 404s): /signup, /login, /pricing, /catalog, the four /solutions/* pages
-// (built alongside this wave) and the in-page anchors.
+// exist AND are public are linked (no 404s, no login walls): /signup, /login, /pricing, /privacy,
+// /terms, the four /solutions/* pages, /guide and the in-page anchors.
 import Link from "next/link";
 import { ArrowRight, Leaf } from "lucide-react";
 import { t, type I18nKey } from "@/lib/i18n";
@@ -78,7 +78,10 @@ export default function LandingFooter() {
             </h5>
             <Link href="/signup" className="lp-flink">{t("mkt.footer.linkSignup")}</Link>
             <Link href="/login" className="lp-flink">{t("mkt.footer.linkLogin")}</Link>
-            <Link href="/catalog" className="lp-flink">{t("mkt.footer.linkCatalog")}</Link>
+            {/* /catalog was here — an app-host route: the link marched every marketing visitor
+                (and crawler) into the login wall, and robots.txt disallows it anyway. */}
+            <Link href="/privacy" className="lp-flink">{t("mkt.footer.linkPrivacy")}</Link>
+            <Link href="/terms" className="lp-flink">{t("mkt.footer.linkTerms")}</Link>
           </div>
         </div>
 

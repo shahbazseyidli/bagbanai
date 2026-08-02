@@ -134,7 +134,8 @@ export default function DemoPage() {
   if (!data) {
     return (
       <div className="mx-auto max-w-xl space-y-5 py-10 text-center">
-        <h1 className="font-display text-2xl font-bold text-ink">{t("mkt.demo.unavailableTitle")}</h1>
+        {/* h2, not h1 — the page's single h1 is server-rendered in app/demo/page.tsx. */}
+        <h2 className="font-display text-2xl font-bold text-ink">{t("mkt.demo.unavailableTitle")}</h2>
         <p className="text-[14px] leading-relaxed text-ink-soft">{t("mkt.demo.unavailableBody")}</p>
         <Link
           href={cta.href}
@@ -153,17 +154,9 @@ export default function DemoPage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-5 pb-10">
+      {/* The eyebrow/h1/subtitle moved to app/demo/page.tsx (Server Component) so crawlers get them
+          without JS; only the data-dependent chips stay here. */}
       <header className="space-y-3">
-        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-grass">
-          {t("mkt.demo.eyebrow")}
-        </p>
-        <h1 className="font-display text-[clamp(26px,4vw,40px)] font-bold leading-tight tracking-tight text-ink">
-          {t("mkt.demo.title")}
-        </h1>
-        <p className="max-w-[62ch] text-[15px] leading-relaxed text-ink-soft">
-          {t("mkt.demo.subtitle")}
-        </p>
-
         <div className="flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-mint-soft px-3 py-1 text-[13px] font-semibold text-grass-deep">
             <Leaf className="h-3.5 w-3.5" aria-hidden="true" />

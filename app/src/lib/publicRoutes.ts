@@ -4,6 +4,9 @@
 // App routes are deliberately absent. /fields, /account, /notes and the rest sit behind the auth
 // gate in middleware.ts, so a crawler following them gets a redirect to /login: listing them would
 // spend crawl budget on a wall and put a login page in the index.
+// /login and /signup are deliberately NOT here: they are real pages but thin ones, and a sitemap
+// entry is a recommendation to index — 16 near-empty auth URLs dilute what the sitemap says matters.
+// Guide ARTICLES are appended by sitemap.ts from GUIDE_ORDER (single source in guide/content.ts).
 export const PUBLIC_ROUTES = [
   "/",
   "/pricing",
@@ -11,13 +14,12 @@ export const PUBLIC_ROUTES = [
   "/solutions",
   "/solutions/farmer",
   "/solutions/lab",
+  "/solutions/consultant",
   "/solutions/supplier",
   "/guide",
   "/demo",
   "/privacy",
   "/terms",
-  "/login",
-  "/signup",
 ] as const;
 
 /** Locales that carry a URL prefix. `az` is the unprefixed default. */

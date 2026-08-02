@@ -17,6 +17,10 @@ const PREFIXED = ["en", "ru", "tr", "de", "hu", "it", "pl"]; // az is the defaul
 // briefly shipped as bare pages on agradex.com. When you add an app route, add it here.
 const APP_PREFIXES = ["/fields", "/farms", "/more", "/notifications", "/onboarding", "/team", "/admin",
   "/catalog", "/chat", "/account", "/provider", "/weather", "/notes"];
+// Crawlers and link-preview fetchers must see stable content at the URL they asked for — Google
+// explicitly recommends against Accept-Language redirects (its own crawler sends the header
+// inconsistently, mostly not at all). Humans still get the one-time convenience redirect below.
+const BOT_UA = /bot|crawl|spider|slurp|bingpreview|yandex|duckduck|baidu|petal|facebookexternalhit|whatsapp|telegram|linkedinbot|twitterbot/i;
 
 function isAppPath(path: string): boolean {
   return path === "/" || APP_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`));
@@ -54,7 +58,7 @@ export function middleware(req: NextRequest) {
     path = m[2] || "/"; // strip the prefix for internal routing
   } else if (!locale) {
     const al = (req.headers.get("accept-language") || "").slice(0, 2).toLowerCase();
-    if (PREFIXED.includes(al)) {
+    if (PREFIXED.includes(al) && !BOT_UA.test(req.headers.get("user-agent") || "")) {
       return NextResponse.redirect(new URL(`/${al}${url.pathname}${search}`, req.url));
     }
     locale = "az";
@@ -90,13 +94,17 @@ export function middleware(req: NextRequest) {
           path === "/privacy" || path === "/terms" ||
           path === "/demo" ||
           path.startsWith("/s/")) {
-        return NextResponse.redirect(new URL(`https://${apexHost}${prefix}${path}${search}`));
+        const r = NextResponse.redirect(new URL(`https://${apexHost}${prefix}${path}${search}`));
+        r.headers.set("X-Robots-Tag", "noindex");
+        return r;
       }
       // On the app host: anything but a real signed-in session goes to the marketing login.
       if (!hasAuth) {
         const u = new URL(`https://${apexHost}${prefix}/login`);
         if (path !== "/") u.searchParams.set("next", path);
-        return NextResponse.redirect(u);
+        const r = NextResponse.redirect(u);
+        r.headers.set("X-Robots-Tag", "noindex");
+        return r;
       }
     } else if (path !== "/" && isAppPath(path)) {
       // On the apex: real app paths jump to the app host. The home "/" ALWAYS stays marketing
@@ -118,6 +126,10 @@ export function middleware(req: NextRequest) {
   const res = m
     ? NextResponse.rewrite(new URL(`${path}${search}`, req.url), { request: { headers } })
     : NextResponse.next({ request: { headers } });
+  // The app host must never enter a search index: crawlers only ever see its redirects (tagged
+  // above), and this covers everything else belt-and-braces. Guarded on PANEL_HOST because with the
+  // split off EVERY host counts as the app host and this would noindex the marketing site itself.
+  if (PANEL_HOST && onAppHost) res.headers.set("X-Robots-Tag", "noindex");
   if (locale && req.cookies.get(LOCALE_COOKIE)?.value !== locale) {
     // Scoped to the shared parent domain (.agradex.com) so the language survives the marketing→app
     // hop; a host-only cookie made app.agradex.com fall back to browser detection every time.
