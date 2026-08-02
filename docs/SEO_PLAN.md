@@ -1,6 +1,6 @@
 # Agradex SEO Planı — audit, strategiya, icra (2026-08-02)
 
-> **Status: TƏKLİF — müzakirə gözləyir.** Heç bir kod dəyişikliyi edilməyib.
+> **Status: TƏSDİQLƏNDİ, S0 CANLI (2026-08-02).** Qərarlar: **Q1** = təsisçi imzası (ad yazılışı + LinkedIn URL təsdiqi gözlənilir — `app/src/lib/author.ts`) · **Q2** = məqalələri Claude yazır, sahib publish-dən əvvəl təsdiqləyir; infra = mövcud `/guide` naxışı · **Q3** = ES locale hədəfdən sonra · **Q4** = auto-redirect qalır + bot-istisna · **Q5** = GSC + GoAccess (`deploy/goaccess-report.sh`, server-log, cookie-siz). S0-ın bütün kod hissəsi canlıdadır (`033310d`-yarısı + `ca5aeaf`, canlı curl ilə doğrulanıb); istifadəçidə qalan: GSC + CF qaydaları + Bing (§7).
 > Mənbə: 4 paralel araşdırma axını (2026-08-02) — ① kod bazası auditi, ② canlı sayt auditi (agradex.com/app.agradex.com), ③ Google 2025-2026 siyasət tədqiqatı (ilkin mənbələrlə), ④ 10+ bazar üzrə keyword + rəqib tədqiqatı (real SERP yoxlamaları ilə).
 > **Hədəf:** SEO ilə gündə 1 istifadəçi = ayda ~30 organik klik, davamlı.
 
@@ -116,6 +116,8 @@ Hamısı ilkin mənbələrlə yoxlanıb (Search Central docs/blog, Search Status
 ## 4. İcra planı
 
 ### S0 — Texniki təməl (həftə 1; hamısı frontend `app/`, miqrasiya yoxdur, deploy = `update.sh`)
+
+> **İcra (2026-08-02): T2·T3·T4·T6·T7·T8·T9·T10·T11·T12·T13·T14 ✅ CANLI** — deploy `ca5aeaf`, hamısı canlı curl ilə doğrulandı (⚠️ dalğanın yarısı paralel sessiyanın `033310d` commit-inə süpürülmüşdü — bax CLAUDE.md "İş prinsipləri" xəbərdarlığı). **T1** (GSC/Bing) və **T5** (CF qaydaları) ⏳ istifadəçidə; **T15** (PSI) ⬜ kvota açılanda.
 
 | ID | İş | Fayl(lar) | Effort | DoD |
 |---|---|---|---|---|

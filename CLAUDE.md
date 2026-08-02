@@ -27,7 +27,7 @@ Bu CLAUDE.md **qısa iş konteksti**; dərin detal ayrı sənədlərdədir:
 - `docs/SESSION_2026-07-25.md` — **2026-07-25 sessiyasının detallı jurnalı**: Agradex rebrand, email sistemi (E1+E2 CANLI), panel split aktivləşməsi, UX (how-it-works, ingilis slug, dil→Settings), fermer ad-görünürlük məxfiliyi, admin, i18n boşluqları, bug fix-lər. Sonradan oxumaq üçün ən tam mənbə.
 - `docs/SESSION_2026-07-26.md` — **2026-07-26 sessiyasının detallı jurnalı**: E14 sahə bölmə taksonomiyası, E15 email konsolidasiyası, rus dili + sahə vahidləri, public demo turu, desktop iş masası, NDVI proqnozu, hesab öz-xidməti + hüquqi səhifələr, web push, və OneSoil/Terra Oracle teardown-larından çıxan qərarlar. **Deploy vəziyyəti və miqrasiya ardıcıllığı §1-dədir — ilk onu oxu.**
 - `docs/SESSION_2026-07-26.md` — **2026-07-26 sessiyasının detallı jurnalı**: E13 onboarding quiz, MapLibre fon-tab boş xəritə kök səbəbi, E14 sahə bölmə taksonomiyası + NASA UI-dan çıxarılması, E15 email konsolidasiyası, rus dili + sahə vahidləri, wellness proxy qaydası + backend proza kodları, /farm birləşməsi, rus canlı testindən 4 fix, plural i18n. Bu diapazon üçün ən tam mənbə.
-- `docs/SEO_PLAN.md` — **SEO audit + böyümə planı (2026-08-02, STATUS: TƏKLİF — müzakirə gözləyir):** sayt Google-da indekslənməyib (GSC yox), 6 route-da canonical/hreflang bug-u, S0-S4 icra planı (15 texniki task + 20 səhifəlik kontent təqvimi), 10 bazar üzrə keyword xəritəsi, "gündə 1 user" hədəfinin riyaziyyatı. Təsdiqdən sonra tasklar ROADMAP-a köçürüləcək.
+- `docs/SEO_PLAN.md` — **SEO audit + böyümə planı (təsdiqləndi 2026-08-02, S0 CANLI):** sayt Google-da indekslənməmişdi (GSC hələ istifadəçidədir); 6 route-luq canonical/hreflang bug-u + title-lar + sitemap + OG/favicon + JSON-LD + app-host noindex + `/demo` SSR hamısı düzəldilib deploy olundu (`ca5aeaf`). Qərarlar: təsisçi imzası (`app/src/lib/author.ts` — LinkedIn URL gözləyir), kontenti Claude yazır/sahib təsdiqləyir, GSC+GoAccess (`deploy/goaccess-report.sh`). Növbəti: kontent Dalğa 1 (10 məqalə), 10 bazarlıq keyword xəritəsi sənəddə.
 
 ## Dil qaydası
 - **8 dil CANLI:** `az` (default + I18nKey mənbəyi) · `en` `ru` `tr` `de` `hu` `it` `pl` (path-prefix routing `/en /ru /…`, `middleware.ts` PREFIXED). `az` tam həqiqət mənbəyidir, qalanları çatmayan açar üçün `az`-a düşür. Rus 8-ci dildir (`app/src/lib/locales/ru.ts` + `content-locales/ru.ts`).
@@ -57,6 +57,7 @@ Bu CLAUDE.md **qısa iş konteksti**; dərin detal ayrı sənədlərdədir:
 3. ~~**Domain agradex.com root** (subdomain yox).~~ — **ƏVƏZ OLUNDU (2026-07-25):** apex = marketing, `app.agradex.com` = tətbiq. Bax "Yerləşdirmə hədəfi".
 
 ## İş prinsipləri (MÜTLƏQ)
+- ⚠️ **Paralel sessiyalar eyni checkout-u paylaşır.** Başqa sessiyanın `git add -A` commit-i sənin yarımçıq fayllarını süpürə bilər (2026-08-02: SEO dalğasının yarısı `033310d` "fix(messages)" commit-inə düşdü və main müvəqqəti build-olunmaz qaldı). Commit-dən əvvəl `git status`-a bax — səninki olmayan dəyişiklik görsən, yalnız öz fayllarını stage et; deploy-dan əvvəl serverdə işləyən `update.sh` olub-olmadığını yoxla.
 - Fazalı gedişat (§28). Növbəti fazaya keçməzdən əvvəl DoD yoxla/göstər.
 - Hər atomik dəyişiklikdən sonra təsviri commit (`feat(scope): ...`) + push (SSH origin).
 - Multi-tenancy: hər cədvəldə `org_id`; giriş zənciri `field → farm → organization → membership`.

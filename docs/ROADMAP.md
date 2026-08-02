@@ -548,3 +548,27 @@ grep ilə yenidən yoxlanıb; bağlananlar üstündən xətt çəkilib, silinmə
   sətridir. Yeni model əlavə edən **başlanğıc tarixini də** verməlidir.
 - **`ai_usage.source` heç vaxt təxminlə doldurulmur** — köhnə sətirlər NULL qalır və nisbətlərdən
   çıxarılır. Uydurulmuş dəyər ölçülmüşdən seçilməz olur.
+
+## 2026-08-02 — SEO dalğası (plan + audit: `docs/SEO_PLAN.md`)
+
+- **S0 texniki təməl ✅ CANLI** (`033310d`-yarısı + `ca5aeaf`): canonical/hreflang bug-u 6 route-da
+  düzəldi (page-level `alternates` → `lib/seo.ts::pageAlternates` + `metadataBase`), per-locale
+  keyword title-lar (`mkt.meta.homeTitle` və b.), sitemap 104→152 URL (7 guide məqaləsi +
+  `/solutions/consultant` daxil; `/login`/`/signup` çıxdı; hər girişdə x-default), app-host
+  `X-Robots-Tag: noindex`, crawler-lər Accept-Language redirect-dən azad, OG/twitter şəkil +
+  favicon/icon dəsti, brendli lokallaşmış 404, Organization/WebSite/Article JSON-LD, guide
+  byline (müəllif: təsisçi, `lib/author.ts`), `/demo` SSR gövdəsi («pulsuz NDVI xəritəsi»
+  mövqeyi), HSTS/nosniff/referrer başlıqları. Hamısı canlı curl ilə doğrulandı.
+- **Analitika qərarı (Q5):** GSC + `deploy/goaccess-report.sh` (nginx log, cookie-siz) — privacy
+  policy-dəki «analitika yoxdur» vədi toxunulmaz qalır.
+
+| ID | İş | Status |
+|---|---|---|
+| SEO-T1 | GSC + Bing Webmaster qeydiyyatı, sitemap submit (CF-də DNS TXT) | ⏳ istifadəçi |
+| SEO-T5 | CF «Always Use HTTPS» + `www→apex` 301 redirect qaydası | ⏳ istifadəçi |
+| SEO-T15 | PSI/CWV baseline ölçümü (keyless kvota açılanda) | ⬜ |
+| SEO-C1..C10 | Kontent Dalğa 1: 7 az + 3 en məqalə (SEO_PLAN §4-S2 cədvəli) | ⬜ növbəti addım |
+| SEO-C11..C20 | Kontent Dalğa 2: az/tr/ru | ⬜ |
+| SEO-S3 | Kataloqlar (Product Hunt/Capterra/G2/Crunchbase/F6S) + AZ ekosistem linkləri | ⏳ istifadəçi hesabları |
+| — | `lib/author.ts`: ad yazılışının təsdiqi + LinkedIn URL | ⏳ istifadəçi |
+| — | ES locale qərarı (hədəf 5-10 user/gün pilləsində) | ⏳ qərar |
