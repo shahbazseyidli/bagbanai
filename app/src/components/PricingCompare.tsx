@@ -63,8 +63,10 @@ export default function PricingCompare() {
       cells: [{ on: true, note: t("mkt.compare.noteMon1") }, { on: true, note: t("mkt.compare.noteMon2") }, { on: true, note: t("mkt.compare.noteMon2") }],
     },
     {
+      // Same on all three: indices are not gated anywhere. routers/indices.py checks require_member
+      // only, tiers.py carries no index flag, and NDRE/CIre come with Sentinel-2 for every tier.
       label: t("mkt.compare.rowIndices"),
-      cells: [{ on: true, note: t("mkt.compare.noteIdx1") }, { on: true, note: t("mkt.compare.noteIdx2") }, { on: true, note: t("mkt.compare.noteIdx2") }],
+      cells: [{ on: true, note: t("mkt.compare.noteIdx1") }, { on: true, note: t("mkt.compare.noteIdx1") }, { on: true, note: t("mkt.compare.noteIdx1") }],
     },
     { label: t("mkt.compare.rowRaster"), cells: [YES, YES, YES] },
     { label: t("mkt.compare.rowWeather"), cells: [YES, YES, YES] },

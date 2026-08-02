@@ -36,7 +36,9 @@ const OFF: FeatureCell = { on: false };
 export const FEATURES: FeatureRow[] = [
   { labelKey: "mkt.compare.rowFields", tiers: [{ on: true, note: "mkt.compare.noteFields1" }, { on: true, note: "mkt.compare.noteFields2" }, { on: true, note: "mkt.compare.noteFields3" }] },
   { labelKey: "mkt.compare.rowMonitoring", tiers: [{ on: true, note: "mkt.compare.noteMon1" }, { on: true, note: "mkt.compare.noteMon2" }, { on: true, note: "mkt.compare.noteMon2" }] },
-  { labelKey: "mkt.compare.rowIndices", tiers: [ON, { on: true, note: "mkt.compare.noteIdx2" }, { on: true, note: "mkt.compare.noteIdx2" }] },
+  // Identical on every tier. routers/indices.py gates on require_member and nothing else, and
+  // tiers.py has no index flag at all — the red-edge pair arrives with Sentinel-2 for everyone.
+  { labelKey: "mkt.compare.rowIndices", tiers: [{ on: true, note: "mkt.compare.noteIdx1" }, { on: true, note: "mkt.compare.noteIdx1" }, { on: true, note: "mkt.compare.noteIdx1" }] },
   { labelKey: "mkt.compare.rowRaster", tiers: [ON, ON, ON] },
   { labelKey: "mkt.compare.rowWeather", tiers: [ON, ON, ON] },
   { labelKey: "mkt.compare.rowFieldMgmt", tiers: [ON, ON, ON] },
