@@ -312,7 +312,8 @@ function ChatInner() {
         {/* ── right: the AI thread, a human thread, or the people directory ── */}
         <div className={mode === "none" ? "hidden min-w-0 flex-col md:flex" : "flex min-w-0 flex-col"}>
           {mode === "ai" ? (
-            <AssistantPane fieldId={aiField || NO_FIELD} assistant={assistant} onBack={() => router.push("/chat")} />
+            <AssistantPane fieldId={aiField || NO_FIELD} assistant={assistant}
+                            assistantFailed={assistantFailed} onBack={() => router.push("/chat")} />
           ) : mode === "conv" && convId ? (
             <ConversationPane
               convId={convId}
@@ -511,8 +512,8 @@ function ConversationPane({
 interface LocalTurn { id: string; kind: "user" | "system"; body: string }
 
 function AssistantPane({
-  fieldId, assistant, onBack,
-}: { fieldId: string; assistant: Assistant | null; onBack: () => void }) {
+  fieldId, assistant, assistantFailed, onBack,
+}: { fieldId: string; assistant: Assistant | null; assistantFailed: boolean; onBack: () => void }) {
   const fmtArea = useFormatArea();
   const router = useRouter();
   const [thread, setThread] = useState<AiThread | null>(null);
