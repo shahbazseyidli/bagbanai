@@ -107,8 +107,20 @@ export default async function GuideArticlePage({
               {g.meta}
             </p>
             <p className="mt-1.5 text-[13px] text-[color:var(--brand-muted)]">
-              {t("mkt.guideSlug.authorLabel")}: {AUTHOR.name} ·{" "}
-              {t("mkt.guideSlug.updatedLabel")}:{" "}
+              {t("mkt.guideSlug.authorLabel")}:{" "}
+              {AUTHOR.url ? (
+                <a
+                  href={AUTHOR.url}
+                  rel="author noopener"
+                  target="_blank"
+                  className="underline decoration-dotted underline-offset-2 hover:text-teal"
+                >
+                  {AUTHOR.name}
+                </a>
+              ) : (
+                AUTHOR.name
+              )}{" "}
+              · {t("mkt.guideSlug.updatedLabel")}:{" "}
               {new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(GUIDES_MODIFIED))}
             </p>
           </div>

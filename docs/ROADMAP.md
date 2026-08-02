@@ -564,11 +564,12 @@ grep ilə yenidən yoxlanıb; bağlananlar üstündən xətt çəkilib, silinmə
 
 | ID | İş | Status |
 |---|---|---|
-| SEO-T1 | GSC + Bing Webmaster qeydiyyatı, sitemap submit (CF-də DNS TXT) | ⏳ istifadəçi |
-| SEO-T5 | CF «Always Use HTTPS» + `www→apex` 301 redirect qaydası | ⏳ istifadəçi |
+| SEO-T1 | GSC qeydiyyatı (CF DNS TXT ilə doğrulama), sitemap submit, 3 URL üçün indeksləmə tələbi — sahibin Chrome-u ilə icra edildi. GSC tapıntısı: Google 07-27-də crawl edib «Duplicate without user-selected canonical» vermişdi (K2/K4 təsdiqi) | ✅ 2026-08-02 |
+| SEO-T5 | CF «Always Use HTTPS» + `www→apex` 301 Redirect Rule — canlıda 4 variant da kanonikə 301 verir | ✅ 2026-08-02 |
+| SEO-T1b | Bing Webmaster Tools (GSC import) — OAuth/SSO icazəsi tələb edir, ayrıca təsdiqlə | ⏳ istifadəçi icazəsi |
 | SEO-T15 | PSI/CWV baseline ölçümü (keyless kvota açılanda) | ⬜ |
 | SEO-C1..C10 | Kontent Dalğa 1: 7 az + 3 en məqalə (SEO_PLAN §4-S2 cədvəli) | ⬜ növbəti addım |
 | SEO-C11..C20 | Kontent Dalğa 2: az/tr/ru | ⬜ |
 | SEO-S3 | Kataloqlar (Product Hunt/Capterra/G2/Crunchbase/F6S) + AZ ekosistem linkləri | ⏳ istifadəçi hesabları |
-| — | `lib/author.ts`: ad yazılışının təsdiqi + LinkedIn URL | ⏳ istifadəçi |
+| — | Müəllif: **Sabir Ismayilbayli** + LinkedIn linki (`lib/author.ts`, byline + Article JSON-LD) | ✅ 2026-08-02 |
 | — | ES locale qərarı (hədəf 5-10 user/gün pilləsində) | ⏳ qərar |
