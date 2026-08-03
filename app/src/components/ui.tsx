@@ -1,13 +1,14 @@
 "use client";
 
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle } from "lucide-react";
+import AgradexLoader from "@/components/brand/AgradexLoader";
 import type { ReactNode } from "react";
 import { t } from "@/lib/i18n";
 
 export function Spinner({ label }: { label?: string }) {
   return (
-    <div className="flex items-center gap-2 text-slate-500">
-      <Loader2 className="h-4 w-4 animate-spin" />
+    <div className="flex items-center gap-2 text-slate-500" role="status">
+      <AgradexLoader size={20} />
       <span className="text-sm">{label ?? t("common.loading")}</span>
     </div>
   );

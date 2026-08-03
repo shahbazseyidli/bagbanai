@@ -593,7 +593,7 @@ export const hu: Record<string, string> = {
   "GUIDES.ai-meslehetini-islet.steps.3.title": "Fotózd le a gyanús levelet",
   "GUIDES.ai-meslehetini-islet.steps.3.body": "Fotózd le a levelet, a gyümölcsöt vagy a talajt. Az AI kiolvassa a betegség/kártevő nyomát és elmagyarázza, mit kell tenned. A kép a tábla archívumában marad.",
   "GUIDES.ai-meslehetini-islet.steps.4.title": "Ha kell, elemezz újra",
-  "GUIDES.ai-meslehetini-islet.steps.4.body": "Ha az állapot megváltozott, az „Újraelemzés” gombbal kapj új tanácsot. Ha nehéz olvasni, a „Felolvasás” gombbal hallgasd meg.",
+  "GUIDES.ai-meslehetini-islet.steps.4.body": "Ha a helyzet megváltozott, kérjen új tanácsot az „Újraelemzés” gombbal.",
   "GUIDES.ai-meslehetini-islet.tips.0": "Az AI nem állít fel diagnózist és nem helyettesíti az agronómust — kibővíti azt, amit te látsz. Komoly esetekben vedd fel a kapcsolatot a katalógusbeli laboratóriummal vagy agronómussal.",
   "GUIDES.ai-meslehetini-islet.tips.1": "Amikor a modell nem biztos, pontosító kérdést tesz fel — válaszolj, hogy az ajánlás pontosodjon.",
   "GUIDES.ai-meslehetini-islet.tips.2": "Minden rögzített művelet pontosabbá teszi a következő elemzést.",

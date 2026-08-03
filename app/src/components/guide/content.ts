@@ -199,7 +199,7 @@ const aiMeslehet: Guide = {
     {
       title: "Lazım olsa yenidən analiz et",
       body:
-        "Vəziyyət dəyişibsə «Yenidən analiz et» düyməsi ilə yeni məsləhət alın. Oxumaq çətindirsə, «Səsləndir» düyməsi ilə dinləyin.",
+        "Vəziyyət dəyişibsə «Yenidən analiz et» düyməsi ilə yeni məsləhət alın.",
     },
   ],
   tips: [

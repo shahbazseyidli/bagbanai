@@ -593,7 +593,7 @@ export const it: Record<string, string> = {
   "GUIDES.ai-meslehetini-islet.steps.3.title": "Fotografa la foglia sospetta",
   "GUIDES.ai-meslehetini-islet.steps.3.body": "Fotografa la foglia, il frutto o il suolo. L'AI legge la traccia di malattia/parassita e spiega cosa devi fare. La foto resta nell'archivio del campo.",
   "GUIDES.ai-meslehetini-islet.steps.4.title": "Se serve, rianalizza",
-  "GUIDES.ai-meslehetini-islet.steps.4.body": "Se la situazione è cambiata, ottieni un nuovo consiglio con il pulsante «Rianalizza». Se leggere è difficile, ascolta con il pulsante «Leggi ad alta voce».",
+  "GUIDES.ai-meslehetini-islet.steps.4.body": "Se la situazione è cambiata, richieda un nuovo consiglio con il pulsante «Rianalizza».",
   "GUIDES.ai-meslehetini-islet.tips.0": "L'AI non fa diagnosi e non sostituisce l'agronomo — amplia ciò che vedi. Nei casi gravi contatta un laboratorio o un agronomo dal catalogo.",
   "GUIDES.ai-meslehetini-islet.tips.1": "Quando il modello non è sicuro pone una domanda di chiarimento — rispondi affinché il consiglio si affini.",
   "GUIDES.ai-meslehetini-islet.tips.2": "Ogni operazione registrata rende più accurata l'analisi successiva.",

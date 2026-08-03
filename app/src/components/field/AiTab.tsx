@@ -7,7 +7,7 @@ import { getLocale, t, tf } from "@/lib/i18n";
 import { Spinner } from "@/components/ui";
 import KnowledgePassport from "@/components/field/KnowledgePassport";
 import AdviceLangNote, { staleFrom } from "@/components/field/AdviceLangNote";
-import SpeakButton from "@/components/SpeakButton";
+import { MdText, mdInline } from "@/lib/mdLite";
 import { severityLabel } from "@/lib/wellnessText";
 import { track, markDone } from "@/lib/track";
 
@@ -182,16 +182,6 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
           <h3 className="flex items-center gap-2 font-semibold text-slate-800">
             <Sparkles className="h-4 w-4 text-emerald-600" /> {t("app.field.aiTab.adviceHeading")}
           </h3>
-          {advice && (
-            <SpeakButton
-              text={[
-                advice.summary,
-                ...(advice.risks ?? []).map((r) => `${r.title}. ${r.detail}`),
-                ...(advice.recommendations ?? []).map((r) => `${r.title}. ${r.detail}`),
-                ...(advice.next_steps ?? []),
-              ].filter(Boolean).join(". ")}
-            />
-          )}
         </div>
 
         {!advice ? (
@@ -205,7 +195,7 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
             ) : staleNote ? (
               <AdviceLangNote fieldId={fieldId} onDone={() => void reloadAdvice()} stale={staleNote} />
             ) : null}
-            <p className="text-slate-700">{advice.summary}</p>
+            <p className="text-slate-700">{mdInline(advice.summary)}</p>
 
             {advice.risks?.length > 0 && (
               <div>
@@ -216,7 +206,7 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
                       <span className={`h-fit rounded px-1.5 py-0.5 text-[11px] ${SEV_CLASS[r.severity] ?? "bg-slate-100 text-slate-600"}`}>
                         {severityLabel(r.severity)}
                       </span>
-                      <span className="text-slate-700"><b>{r.title}.</b> {r.detail}</span>
+                      <span className="text-slate-700"><b>{mdInline(r.title)}.</b> {mdInline(r.detail)}</span>
                     </li>
                   ))}
                 </ul>
@@ -228,7 +218,7 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
                 <h4 className="mb-1 font-medium text-slate-800">{t("app.field.aiTab.recommendationsHeading")}</h4>
                 <ul className="list-disc space-y-1 pl-5 text-slate-700">
                   {advice.recommendations.map((r, i) => (
-                    <li key={i}><b>{r.title}.</b> {r.detail}</li>
+                    <li key={i}><b>{mdInline(r.title)}.</b> {mdInline(r.detail)}</li>
                   ))}
                 </ul>
               </div>
@@ -238,7 +228,7 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
               <div>
                 <h4 className="mb-1 font-medium text-slate-800">{t("app.field.aiTab.nextStepsHeading")}</h4>
                 <ol className="list-decimal space-y-1 pl-5 text-slate-700">
-                  {advice.next_steps.map((s, i) => <li key={i}>{s}</li>)}
+                  {advice.next_steps.map((s, i) => <li key={i}>{mdInline(s)}</li>)}
                 </ol>
               </div>
             )}
@@ -269,7 +259,7 @@ export default function AiTab({ fieldId }: { fieldId: string }) {
             <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[85%] whitespace-pre-wrap rounded-lg px-3 py-2 text-sm ${
                 m.role === "user" ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-800"}`}>
-                {m.content}
+                {m.role === "assistant" ? <MdText text={m.content} /> : m.content}
               </div>
             </div>
           ))}

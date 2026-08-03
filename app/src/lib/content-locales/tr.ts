@@ -593,7 +593,7 @@ export const tr: Record<string, string> = {
   "GUIDES.ai-meslehetini-islet.steps.3.title": "Şüpheli yaprağı fotoğrafla",
   "GUIDES.ai-meslehetini-islet.steps.3.body": "Yaprağın, meyvenin ya da toprağın fotoğrafını çekin. AI hastalık/zararlı izini okur ve ne yapmanız gerektiğini açıklar. Fotoğraf tarlanın arşivinde kalır.",
   "GUIDES.ai-meslehetini-islet.steps.4.title": "Gerekirse yeniden analiz et",
-  "GUIDES.ai-meslehetini-islet.steps.4.body": "Durum değiştiyse «Yeniden analiz et» düğmesiyle yeni öneri alın. Okumak zorsa, «Seslendir» düğmesiyle dinleyin.",
+  "GUIDES.ai-meslehetini-islet.steps.4.body": "Durum değiştiyse «Yeniden analiz et» düğmesiyle yeni öneri alın.",
   "GUIDES.ai-meslehetini-islet.tips.0": "AI teşhis koymaz ve agronomun yerini almaz — o, sizin gördüğünüzü genişletir. Ciddi durumlarda katalogdaki laboratuvar ya da agronomla iletişime geçin.",
   "GUIDES.ai-meslehetini-islet.tips.1": "Model emin olmadığında netleştirici soru sorar — yanıtlayın ki öneri netleşsin.",
   "GUIDES.ai-meslehetini-islet.tips.2": "Kaydettiğiniz her işlem bir sonraki analizi daha doğru kılar.",

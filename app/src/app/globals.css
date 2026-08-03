@@ -181,3 +181,20 @@ body {
     animation-iteration-count: infinite !important;
   }
 }
+
+/* ── Brand loader (AgradexLoader) — pixel mark scan; see components/brand/AgradexLoader.tsx ── */
+.ax-loader rect { transform-box: fill-box; transform-origin: center; }
+.ax-loader .ax-p { animation: axScan 1.9s ease-in-out infinite; }
+.ax-loader .ax-g { fill: currentColor; opacity: 0.12; animation: axIdle 2.6s ease-in-out infinite; }
+@keyframes axScan {
+  0%, 10% { opacity: 0.14; transform: scale(0.68); }
+  20%, 58% { opacity: 1; transform: scale(1); }
+  72%, 100% { opacity: 0.14; transform: scale(0.68); }
+}
+@keyframes axIdle { 0%, 100% { opacity: 0.08; } 50% { opacity: 0.17; } }
+/* Reduced motion: freeze on the FULL mark (the global reset above would otherwise strand the
+   scan pixels at their faint keyframe) — same philosophy as the animate-spin exemption. */
+@media (prefers-reduced-motion: reduce) {
+  .ax-loader .ax-p { animation: none !important; opacity: 1; transform: none; }
+  .ax-loader .ax-g { animation: none !important; opacity: 0.12; }
+}

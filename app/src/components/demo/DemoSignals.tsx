@@ -9,6 +9,7 @@
 // else's AI budget for a stranger. Pre-generating the demo field's advice per locale is the
 // operational fix; a button is not.
 import { Sparkles } from "lucide-react";
+import { mdInline } from "@/lib/mdLite";
 import { Placeholder } from "@/components/ui";
 import { getLocale, t, tf, LOCALE_NAMES, type Locale } from "@/lib/i18n";
 import { severityLabel } from "@/lib/wellnessText";
@@ -84,7 +85,7 @@ export default function DemoSignals({
       )}
 
       {advice.summary && (
-        <p className="mb-3 text-[13.5px] leading-relaxed text-ink-soft">{advice.summary}</p>
+        <p className="mb-3 text-[13.5px] leading-relaxed text-ink-soft">{mdInline(advice.summary)}</p>
       )}
 
       {risks.length > 0 && (
@@ -103,9 +104,9 @@ export default function DemoSignals({
                   {severityLabel(r.severity)}
                 </span>
                 <span className="min-w-0">
-                  <b className="block text-[13.5px] font-bold text-ink">{r.title}</b>
+                  <b className="block text-[13.5px] font-bold text-ink">{mdInline(r.title)}</b>
                   {r.detail && (
-                    <span className="mt-0.5 block text-[12.5px] leading-snug text-ink-soft">{r.detail}</span>
+                    <span className="mt-0.5 block text-[12.5px] leading-snug text-ink-soft">{mdInline(r.detail)}</span>
                   )}
                 </span>
               </li>

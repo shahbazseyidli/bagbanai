@@ -7,6 +7,7 @@
 // there is no chat, and the "Tam sahə analizi" button hands off to the real section. Reads the same
 // GET /api/fields/{id}/advice, so no new endpoint and no extra load.
 import { useCallback, useEffect, useState } from "react";
+import { mdInline } from "@/lib/mdLite";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { api } from "@/lib/api";
 import { Placeholder, Spinner } from "@/components/ui";
@@ -110,7 +111,7 @@ export default function SignalsActions({
           ) : null}
 
           {advice.summary && (
-            <p className="mb-3 text-[13.5px] leading-relaxed text-ink-soft">{advice.summary}</p>
+            <p className="mb-3 text-[13.5px] leading-relaxed text-ink-soft">{mdInline(advice.summary)}</p>
           )}
 
           {risks.length > 0 && (

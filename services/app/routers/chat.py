@@ -312,40 +312,44 @@ async def directory(
         caller_role = await conn.fetchval(
             "select role::text from public.users where id=$1::uuid", user_id)
         farmers: list[DirectoryPersonOut] = []
-        if want_farmers and caller_role == "farmer" and (crops or region_list):
+        # 2026-08-03, owner decision: the directory lists EVERY farmer, not only crop/region
+        # matches — the community is small and an empty screen read as "the platform is deserted".
+        # What SURVIVES of the original design: the caller must be a farmer (providers still cannot
+        # enumerate growers — they are found in the catalog and written to first), names still pass
+        # through public_display_name, and crop/region now drive ORDERING instead of filtering
+        # (`scope` stays in the response so the UI can explain the sort).
+        if want_farmers and caller_role == "farmer":
             frows = await conn.fetch(
-                """select * from (
-                     select distinct on (u.id)
-                            u.id as uid, u.full_name, u.name_public,
-                            fm.crop_type as crop,
-                            coalesce(nullif(fm.region, ''), u.region) as region,
-                            (fm.crop_type = any($2::text[])) as crop_match
-                       from public.field_metadata fm
-                       join public.fields f  on f.id = fm.field_id and f.deleted_at is null
-                       join public.farms fa  on fa.id = f.farm_id
-                       join public.organization_members om
-                            on om.org_id = fa.org_id and om.status = 'active'
-                       join public.users u   on u.id = om.user_id
-                      where u.id <> $1::uuid
-                        and u.role = 'farmer'
-                        and u.deleted_at is null
-                        and (fm.crop_type = any($2::text[])
-                             or nullif(fm.region, '') = any($3::text[]))
-                        and ($4::text is null
-                             or fm.crop_type ilike $4 or fm.region ilike $4)
-                        and ($5::text is null
-                             or coalesce(fm.region, u.region, '') ilike $5)
-                      order by u.id, crop_match desc nulls last
-                   ) t
-                   order by t.crop_match desc nulls last, t.region nulls last, t.uid
-                   limit $6""",
+                """select u.id as uid, u.full_name, u.name_public,
+                          fm2.crop, coalesce(fm2.region, u.region) as region,
+                          coalesce(fm2.crop = any($2::text[]), false) as crop_match,
+                          coalesce(coalesce(fm2.region, u.region) = any($3::text[]), false) as region_match
+                     from public.users u
+                     left join lateral (
+                        select fm.crop_type as crop, nullif(fm.region, '') as region
+                          from public.field_metadata fm
+                          join public.fields f on f.id = fm.field_id and f.deleted_at is null
+                          join public.farms fa on fa.id = f.farm_id
+                          join public.organization_members om
+                               on om.org_id = fa.org_id and om.status = 'active' and om.user_id = u.id
+                         order by (fm.crop_type = any($2::text[])) desc nulls last
+                         limit 1) fm2 on true
+                    where u.id <> $1::uuid
+                      and u.role = 'farmer'
+                      and u.deleted_at is null
+                      and ($4::text is null
+                           or fm2.crop ilike $4 or coalesce(fm2.region, u.region, '') ilike $4)
+                      and ($5::text is null
+                           or coalesce(fm2.region, u.region, '') ilike $5)
+                    order by crop_match desc, region_match desc, u.created_at
+                    limit $6""",
                 user_id, crops, region_list, like, region_like, limit)
             for r in frows:
                 farmers.append(DirectoryPersonOut(
                     user_id=str(r["uid"]),
                     name=public_display_name(r["full_name"], "farmer", r["name_public"], r["uid"]),
                     role="farmer", crop=r["crop"], region=r["region"],
-                    match="crop" if r["crop_match"] else "region",
+                    match="crop" if r["crop_match"] else ("region" if r["region_match"] else None),
                     conversation_id=conv_by_user.get(str(r["uid"]))))
 
     return DirectoryOut(providers=providers, farmers=farmers,

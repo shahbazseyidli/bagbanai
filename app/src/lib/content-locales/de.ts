@@ -593,7 +593,7 @@ export const de: Record<string, string> = {
   "GUIDES.ai-meslehetini-islet.steps.3.title": "Verdächtiges Blatt fotografieren",
   "GUIDES.ai-meslehetini-islet.steps.3.body": "Fotografieren Sie Blatt, Frucht oder Boden. Die AI liest die Spur einer Krankheit/eines Schädlings und erklärt, was zu tun ist. Das Foto bleibt im Feldarchiv.",
   "GUIDES.ai-meslehetini-islet.steps.4.title": "Bei Bedarf neu analysieren",
-  "GUIDES.ai-meslehetini-islet.steps.4.body": "Hat sich die Lage geändert, holen Sie mit der Taste „Neu analysieren“ eine neue Beratung. Ist das Lesen schwer, hören Sie mit der Taste „Vorlesen“ zu.",
+  "GUIDES.ai-meslehetini-islet.steps.4.body": "Hat sich die Lage geändert, holen Sie mit „Neu analysieren“ einen neuen Rat ein.",
   "GUIDES.ai-meslehetini-islet.tips.0": "Die AI stellt keine Diagnose und ersetzt keinen Agronomen — sie erweitert, was Sie sehen. In ernsten Fällen kontaktieren Sie ein Labor oder einen Agronomen aus dem Katalog.",
   "GUIDES.ai-meslehetini-islet.tips.1": "Ist das Modell unsicher, stellt es eine Rückfrage — beantworten Sie sie, damit die Empfehlung präziser wird.",
   "GUIDES.ai-meslehetini-islet.tips.2": "Jede erfasste Maßnahme macht die nächste Analyse genauer.",

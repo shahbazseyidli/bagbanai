@@ -24,6 +24,7 @@
 // question — hence the picker in the thread header and the honest empty state when the caller owns
 // no fields at all.
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { MdText } from "@/lib/mdLite";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -668,7 +669,7 @@ function AssistantPane({
                     : "rounded-bl-sm border border-slate-200 bg-white"
               }`}
             >
-              {m.body}
+              {m.role === "assistant" ? <MdText text={m.body} /> : m.body}
             </span>
           </div>
         ))}

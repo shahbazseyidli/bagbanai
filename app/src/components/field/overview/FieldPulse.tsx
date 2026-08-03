@@ -19,7 +19,6 @@ import { wellnessHeadline, wellnessLabel, wellnessReason } from "@/lib/wellnessT
 // Tone colours + sub-score cut-offs are shared with the public /demo copy of this card so the two
 // can never disagree about what "healthy" looks like.
 import { TONE, WELLNESS_ORDER as ORDER, subTone, type Tone } from "@/lib/wellnessTone";
-import SpeakButton from "@/components/SpeakButton";
 import MetadataNudge from "./MetadataNudge";
 import type { FieldDetail } from "@/lib/types";
 
@@ -99,7 +98,6 @@ export default function FieldPulse({ field }: { field: FieldDetail }) {
       x.reason,
     );
   const worst = comps.length ? comps.reduce((a, b) => (a.score <= b.score ? a : b)) : null;
-  const speech = [headline, worst ? reasonOf(worst) : ""].filter(Boolean).join(". ");
 
   return (
     <section className={`rounded-2xl border-[1.5px] ${c.edge} ${c.wash} p-4 sm:p-5`}>
@@ -137,7 +135,6 @@ export default function FieldPulse({ field }: { field: FieldDetail }) {
             </p>
           )}
           <div className="mt-2.5 flex flex-wrap items-center gap-2">
-            {speech && <SpeakButton text={speech} />}
             <button
               onClick={() => void load(true)}
               disabled={busy}

@@ -10,7 +10,6 @@
 // .lp-flink class is defined inside PublicLanding's own <style> block and is not available here,
 // hence the explicit link classes below.
 import Link from "next/link";
-import { Leaf } from "lucide-react";
 import { getT } from "@/lib/i18n-server";
 import type { I18nKey } from "@/lib/i18n";
 
@@ -41,8 +40,9 @@ export default async function Footer() {
       <div className="mx-auto w-full max-w-[1180px] px-5 pb-9 pt-10 sm:px-6">
         <div className="grid gap-6 text-[13.5px] min-[920px]:grid-cols-[1.6fr_1fr_1fr_1fr]">
           <div>
-            <div className="mb-2.5 flex items-center gap-2 font-display text-[19px] font-bold text-white">
-              <Leaf className="h-6 w-6 text-mint" aria-hidden="true" /> Agradex
+            <div className="mb-2.5">
+              {/* eslint-disable-next-line @next/next/no-img-element -- static brand SVG */}
+              <img src="/brand/agradex-logo-dark.svg" alt="Agradex" className="h-8 w-auto" />
             </div>
             <p className="max-w-[320px] text-[13px] text-[#9cc3b1]">{t("mkt.footer.tagline")}</p>
           </div>

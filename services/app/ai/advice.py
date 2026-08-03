@@ -85,6 +85,7 @@ SYSTEM = (
     "  ORTA NDVI-si ağac çətiri ilə sıra-arası çılpaq torpağı birlikdə ortalayır, ona görə MÜTLƏQ "
     "  rəqəm əkin həndəsəsindən asılıdır. Belə sahədə TRENDƏ və sahənin öz tarixçəsinə əsaslan, "
     "  mütləq həddi başqa sahə ilə müqayisə etmə.\n"
+    "- Bütün mətn sahələri DÜZ MƏTN olsun — Markdown işarələri (**qalın**, *kursiv*, #) istifadə etmə.\n"
     "- Risk şiddəti yalnız: aşağı, orta, yüksək."
 )
 

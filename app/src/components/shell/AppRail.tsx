@@ -35,7 +35,6 @@ import {
   CloudSun,
   Home,
   LayoutGrid,
-  Leaf,
   MessageCircle,
   Settings,
   ShoppingBag,
@@ -336,17 +335,13 @@ export default function AppRail() {
           aria-label={`Agradex — ${t("app.shell.appRail.homeAria")}`}
           className="flex items-center gap-2.5 text-ink"
         >
-          <span
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-[#08331F]"
-            style={{ background: "linear-gradient(160deg, var(--mint), var(--green))" }}
-          >
-            <Leaf className="h-[22px] w-[22px]" strokeWidth={2} aria-hidden="true" />
-          </span>
-          {/* The wordmark only fits the 256px state; at 72px the tile alone is the brand. */}
-          {expanded && (
-            <span className="hidden font-display text-[19px] font-bold tracking-tight xl:inline">
-              {t("brand")}
-            </span>
+          {/* The full logo only fits the 256px state; at 72px the pixel mark alone is the brand. */}
+          {expanded ? (
+            /* eslint-disable-next-line @next/next/no-img-element -- static brand SVG */
+            <img src="/brand/agradex-logo-light.svg" alt="" aria-hidden="true" className="h-8 w-auto" />
+          ) : (
+            /* eslint-disable-next-line @next/next/no-img-element -- static brand SVG */
+            <img src="/brand/agradex-mark.svg" alt="" aria-hidden="true" className="h-9 w-9" />
           )}
         </Link>
       </div>

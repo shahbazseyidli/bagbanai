@@ -593,7 +593,7 @@ export const en: Record<string, string> = {
   "GUIDES.ai-meslehetini-islet.steps.3.title": "Photograph the suspect leaf",
   "GUIDES.ai-meslehetini-islet.steps.3.body": "Photograph a leaf, fruit or the soil. The AI reads the trace of disease/pest and explains what to do. The photo stays in the field's archive.",
   "GUIDES.ai-meslehetini-islet.steps.4.title": "Re-run the analysis if needed",
-  "GUIDES.ai-meslehetini-islet.steps.4.body": "If the situation has changed, get new advice with the “Re-analyze” button. If reading is hard, listen with the “Read aloud” button.",
+  "GUIDES.ai-meslehetini-islet.steps.4.body": "If the situation has changed, get new advice with the “Re-analyze” button.",
   "GUIDES.ai-meslehetini-islet.tips.0": "The AI doesn't make diagnoses or replace an agronomist — it extends what you see. In serious cases, contact a lab or agronomist from the catalog.",
   "GUIDES.ai-meslehetini-islet.tips.1": "When the model isn't sure it asks a clarifying question — answer it so the recommendation gets sharper.",
   "GUIDES.ai-meslehetini-islet.tips.2": "Every operation you record makes the next analysis more accurate.",

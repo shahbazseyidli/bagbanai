@@ -134,8 +134,14 @@ Sahibin tələbi: portal.terraoracle.ai-ın ciddiliyi, **bizim funksiyalarla**. 
 - **`SHOW_MARKETPLACE_NAV = true`** — Kataloq/İcma menyudadır. `/provider` `/more`-dadır, **rola görə** (`user.role !== "farmer"`), çünki o, təchizatçının öz profil redaktorudur.
 
 ## Brend identikliyi v2 (CANLI 2026-08-02 — sahibin branding zip-i)
+- **App-daxili tətbiq (2026-08-03):** AppRail brend blomu mark/logo SVG-ləri işlədir, legal Footer logo-dark, `ui.tsx::Spinner` → `components/brand/AgradexLoader` (piksel-skan animasiyası; keyframes globals.css-də, reduced-motion-da TAM nişanda donur — animate-spin istisnası ilə eyni fəlsəfə).
 - **NDVI-rampalı piksel nişan** yarpaq ikonunu əvəz etdi: `app/public/brand/` (logo-light/dark, mark), `public/icon.svg` = yeni appicon, favicon.ico/icon.png/apple-icon/icon-192/512 + OG/twitter şəkli (tünd «orbit» fonu) hamısı yeni nişandan PIL ilə render olunur (SVG-lər yalnız `<rect>`-dir — skript scratchpad-da idi, lazım olsa yenidən yaz). Nav + LandingFooter `<img src="/brand/...">` işlədir; brend rəngi #147049 (canopy).
 - ⚠️ **Tam token re-teması QƏSDƏN təxirə salınıb** (`agradex-tokens.css` + design-system.html + AgradexLoader zip-dədir, tətbiq olunmayıb): tünd tema + Inter Tight keçidi vizual-QA tələb edən ayrıca dizayn dalğasıdır. Manifest/viewport theme_color hələ köhnə #15803D-dir — re-tema dalğasında birlikdə dəyiş.
+
+
+## AI mətn qaydası + chat kataloqu (2026-08-03 sahib qərarları)
+- **AI çıxışında Markdown:** modellər qadağaya baxmayaraq `**` yazır; saxlanmış sətirlər regenerasiya olunmur → həll RENDER qatındadır: `lib/mdLite.tsx` (`mdInline`/`MdText`) AiTab + /chat AI bublları + SignalsActions + DemoSignals-da. Promptlara da DÜZ MƏTN qaydası əlavə olundu (ai/chat.py SYSTEM, ai/advice.py Qaydalar) — köhnə sətirlər üçün renderer, yenilər üçün prompt.
+- **/chat kataloqu bütün fermerləri göstərir** (chat.py::directory): crop/region artıq FİLTR yox, SIRALAMAdır; qorunanlar — caller yalnız fermer ola bilər (provayder enumeration-u bağlı qalır), adlar `public_display_name`-dən keçir. Şərh blokunda qərar tarixi ilə yazılıb.
 
 ## UX dalğası — Terra Oracle desktop + OneSoil mobil (a1b362e + 31b6e58, CANLI 2026-07-27)
 - **Desktop tam ekran:** `AppShell` artıq `main`-in 1152px oxu konteynerindən çıxır — `SHELL_BLEED = "xl:mx-[calc(50%_-_50vw)]"` + `SHELL_TRACK` (max 2200px). Ölçülən stage 1440-da **778 → 938px**. `isWideStage()` marşrutu təsnif edir: `/`, `/admin`, `/fields/{id}`, `/onboarding`, `*/fields/new` tam eni alır; qalanlar `DOC_STAGE = max-w-[1040px]` içində qalır (bir sütunlu sətir siyahılarını 1800px-ə dartmaq olmaz). ⚠️ **Marketinq toxunulmazdır konstruksiyaya görə** — bleed `AppShell`-in app-host erkən return-undan SONRA yaşayır.
