@@ -7,8 +7,9 @@
 > `CHANGELOG.md`. Qayda: UI 8 dildə (default `az`); kod/SQL/commit İngiliscə; Supabase yox
 > (self-hosted PG16 + öz JWT); main-ə push = **prod deploy** (hər push-dan əvvəl istifadəçidən təsdiq).
 >
-> **Son yenilənmə:** 2026-07-30 — HEAD **`decbdb2`** (git ilə yoxlanıb). **Heç bir branch-da
-> mənimsənilməmiş iş yoxdur** — sübut `HANDOFF.md`-də.
+> **Son yenilənmə:** 2026-08-04 — **§A.3 yeni dalğadır** (DeepSeek/Gemini keçidi, sahə səhifəsinin
+> ikinci kəsimi, mövsüm xülasəsi, Mesajlar, görmə kvotası, xəbərdarlığın həlli). Miqrasiya **0063**;
+> **növbəti boş nömrə `0064`**. Dalğanın diapazonu: **`580c22c..8247b39`** (9 commit).
 >
 > 2026-07-26 dalğası (`90829eb..84e5f28`) §A.1-dədir. **2026-07-27…30 dalğası (`c98943a..decbdb2`,
 > 15 commit, 155 fayl) §A.2-dədir** və bu roadmap-ın böyük hissəsini köhnəldir: sahibin qərarı ilə
@@ -16,7 +17,8 @@
 > OneSoil mobil (`03eb081`) və email-only qeydiyyat + magic link (`786bb4d`) gəldi.
 > Miqrasiyalar **0055** (`login_tokens`) · **0056** (`ai_usage.source`).
 > **Sadələşdirmənin ləğv etdiyi tasklar:** T7 · T16 · T20 (§C-də ❌, səbəbi ilə).
-> Yeni açıq işlər: **T32–T35**. E+T tək backlog (§C).
+> **§A.3-ün ləğv etdiyi tasklar:** T33 · T34 (DeepSeek keçidi ikisini də predmetsiz etdi).
+> Yeni açıq işlər: **T32** · **T35** · **T36** (dormant cədvəllərin ikinci nəsli). E+T tək backlog (§C).
 
 ## Status kodu (hər task bitəndə bu sətri yenilə)
 
@@ -31,9 +33,9 @@
 
 > **Necə yenilənir:** task bitəndə `Status` xanasını dəyiş (⬜→🔨→🚀→✅), commit hash + tarixi
 > `Qeyd`/`Status`-a yaz. Tam çıxarılan taskı ❌ ilə saxla (silmə — səbəbi görünsün). Yeni task əlavə
-> edəndə növbəti **T#** nömrəsini ver — **növbəti boş nömrə `T36`** (T3, T7, T14, T16, T20 çıxarılıb,
-> təkrar istifadə etmə). Status **iddiadır**: bundle/kod təsdiq etmirsə ✅ yazma — 🚀 (test gözləyir) və ya
-> açıq "doğrulanmayıb" qeydi ilə saxla.
+> edəndə növbəti **T#** nömrəsini ver — **növbəti boş nömrə `T37`** (T3, T7, T14, T16, T20, T33, T34
+> çıxarılıb, təkrar istifadə etmə). Status **iddiadır**: bundle/kod təsdiq etmirsə ✅ yazma —
+> 🚀 (test gözləyir) və ya açıq "doğrulanmayıb" qeydi ilə saxla.
 
 ---
 
@@ -47,12 +49,12 @@ Faza 1 tam canlı + üstünə düşən sprintlər. Detal `CHANGELOG.md` [1.0.0]�
 | Peyk | HLS 9-indeks pipeline + Sentinel-2 10m + **NDRE/CIre**, TiTiler raster overlay, async "hazırlanır" UX | **E0** | ✅ |
 | Xəritə | Basemap qalereyası, hillshade, Nominatim axtarış, compare/swipe, bulud filtri, ölç, GeoJSON/KML, **fırça/lasso** | v1.3.0 | ✅ |
 | Sahə UX | Sahə səhifəsi + edit/sil paneli. ⚠️ **İki dəfə köhnəldi:** (1) E14 (§A.1) NASA tabını sildi və `OverviewTab.tsx`+`WellnessCard.tsx`-i `FieldPulse`/`SatelliteGlance`/`SignalsActions`-a birləşdirdi; (2) sadələşdirmə (§A.2) bölmə sayını **16 → 12** endirdi, `03eb081` isə telefonda səhifəni **tabsız** etdi (tək skroll + «Daha çox» siyahısı). Desktop bölmə menyusunu saxlayır; hər ikisi `fieldSections.ts`-i oxuyur | v1.3.0 → **E14** → **§A.2** | ✅ |
-| AI | LLM adapter, **məsləhət (yalnız S2)** + chat (Claude aktiv), **Bilik Qatı M1–M8** | M1–M8 | ✅ |
+| AI | LLM adapter, **məsləhət (yalnız S2)** + chat + **mövsüm xülasəsi**, **Bilik Qatı M1–M8**. ⚠️ Mühərrik 2026-08-04-dən **DeepSeek (mətn) + Gemini (görmə)** — bax §A.3 | M1–M8 | ✅ |
 | Aqro-model | Saxton-Rawls pedotransfer TAW/RAW · çiləmə pəncərəsi + frost/heat/külək alert | **E1, E2** | ✅ |
 | Sərhəd | Toxun-tap avtomatik sahə (geoapi region-growing) | **E8a (C3)** | ✅ |
 | Billing | 3-paket gating + admin Abunələr + `/pricing` + **upgrade CTA** | v1.3.0 | ✅ |
 | ~~Subsidiya~~ | ~~Kalkulyator (117 tarif 2026), match+modifier engine, wizard~~ — **məhsuldan çıxarıldı** (v1.12.0: frontend + `routers/subsidy.py` silindi; `/api/subsidy/*` 404). 0008 `subsidy_*` cədvəlləri **dormant qalır** (drop olunmayıb) | §30 | ❌ |
-| Infra | Deploy (Compose+nginx+CF), **9 cron** (8 pipeline/knowledge + həftəlik email digest), DB backup, UFW+fail2ban, CF SSL Full(Strict). ⚠️ Əvvəl 10 idi — **A6 zones cron-u** sadələşdirmə ilə həm repodan (`deploy/process-zones.sh`), həm serverin crontab-ından silindi (`81660df`) | — | ✅ |
+| Infra | Deploy (Compose+nginx+CF), **10 cron** (8 pipeline/knowledge + həftəlik email digest + **günlük wellness süpürməsi**, §A.3), DB backup, UFW+fail2ban, CF SSL Full(Strict). ⚠️ **A6 zones cron-u** sadələşdirmə ilə həm repodan (`deploy/process-zones.sh`), həm serverin crontab-ından silindi (`81660df`) | — | ✅ |
 
 ### A.1 — 2026-07-26 dalğası (`90829eb..84e5f28`, 20 commit)
 
@@ -133,12 +135,51 @@ SELECT/INSERT edir. `update.sh` miqrasiya işlətmir.
 
 ---
 
+### A.3 — 2026-08-04 dalğası (AI provayder keçidi + ikinci kəsim). Miqrasiya **0063**
+
+> Bu dalğa iki ayrı şey etdi: **məhsulun AI mühərrikini dəyişdi** (Anthropic → DeepSeek mətn +
+> Gemini görmə, sahibin qərarı) və **sahə səhifəsini bir daha daraltdı**. Üstünə üç ölçülmüş nasazlıq
+> bağlandı: satılan diaqnoz kvotasını avtomatik etiketləmə yeyirdi, xəbərdarlıq heç vaxt bağlana
+> bilmirdi, qiymət səhifəsi kodun saxlamadığı beş şey satırdı.
+> Diapazon `580c22c..8247b39`. Sətirlər fayl yolu ilə göstərilib — bir dalğanın içində hansı
+> sətrin hansı commit-də olduğu, faylın özündən daha az faydalıdır.
+
+| Kod | Nə | Harada | Status |
+|---|---|---|---|
+| **AI-4 — DeepSeek/Gemini keçidi** | `LLM_PROVIDER=deepseek` · `LLM_MODEL=deepseek-v4-flash` · `VISION_PROVIDER=gemini`. `ai/llm.py` yenidən yazıldı: **model-prefiksinə görə marşrut**, **provayder-başına açar (çarpaz fallback YOX)**, ayrı `is_configured()`/`vision_available()`, açıq httpx timeout-ları + kor backoff, və sxem məcburiyyəti olmadığı üçün **məcburi tool çağırışı → JSON parse → Pydantic validate → məhdud repair retry** (həm cəhd sayı, həm **divar-saatı büdcəsi** ilə kəsilir). Yeni `LLMInvalidOutput` + `LLMTruncated`, hər ikisi `LLMUnavailable`-dan törəyir. `config.py` default-ları **qəsdən** `.env` ilə eynidir ki, kod məxfilik səhifəsi ilə ziddiyyət təşkil edə bilməsin | `services/app/ai/llm.py`, `services/app/config.py` | ✅ canlı ölçüldü |
+| **AI-4a — İki reasoning tələsi** | Hər ikisi **canlıda tapıldı**: reasoning **default AÇIQdır**, ona görə (1) məcburi tool çağırışı `HTTP 400 "Thinking mode does not support this tool_choice"` verirdi, (2) düz mətndə düşüncə tokenləri **completion büdcəsindən** yeyilir və chat prompt-u `finish_reason=length`-ə çatıb 503 verirdi. İndi hər DeepSeek çağırışında **açıq söndürülür**; opt-in `DEEPSEEK_THINKING` | `ai/llm.py` (`thinking: {"type": "disabled"}`) | ✅ |
+| **AI-4b — Görmə DeepSeek-ə getmir** | DeepSeek **heç bir endpoint-də** şəkil qəbul etmir: native API `image_url`-u 400 ilə rədd edir, Anthropic-uyğun endpoint isə bloku qəbul edib **HTTP 200** və hərfi `"[Unsupported Image]"` qaytarır — yəni yaşıl deploy + ölü funksiya + xəta yoxdur. `complete_vision_structured` deepseek üçün **bağlantı açmadan** atır | `ai/llm.py` | ✅ |
+| **AI-4c — Ölçmə** | Eyni kod, eyni sahələr: **advice $0.05360 → $0.00089 (60×)** · **chat $0.04432 → $0.00105 (42×)** · chat gecikməsi **20.3s → 5.2s**. Gemini görmə: `gemini-flash-latest` və `gemini-3.6-flash` sxemə + enum-a əməl edir, `gemini-2.5-flash`/`gemini-3.1-pro` bu hesabda **404**. `tiers.py`-dəki per-tier `model` açarı **SİLİNDİ** (`model_for()` → None) | `ai/llm.py`, `tiers.py` | ✅ |
+| **AI-4d — Məxfilik səhifəsi** | **9 dilin hamısı** iki subprosessoru adı ilə sadalayır, emal ölkəsini yazır, **heç bir fotonun DeepSeek-ə getmədiyini** deyir və üçüncü-ölkə ötürməsi qeydini xülasə qutusunda daşıyır | `app/src/app/privacy/legal/privacy.*.ts` | ✅ |
+| **S2 — Sahə səhifəsinin ikinci kəsimi** | **16 → 12 → 10 bölmə.** AI composer `/chat`-ə köçdü (sahə səhifəsi ora **link** verir, `?ai=<fieldId>`) · iki hava bloku (əl ilə yağış jurnalı + illər-arası yağıntı qrafiki) və onların üç route-u getdi, **`/frost-dates` QALDI** · skautinq **XƏRİTƏSİ** getdi (qeyd forması + siyahı + geolokasiya düyməsi qaldı, pinlər toxunulmadı) · **ƏMƏLİYYATLAR** bölməsi + `routers/mgmt.py` + son yazıcısı `POST /api/bulk/operations` getdi · **SƏNƏDLƏR** bölməsi getdi, `routers/documents.py` **tək route-a soyuldu** (`GET /api/photos/{id}/download` — `PhotosTab` hər miniatürü ondan alır), `ai/receipt.py` silindi | `app/src/lib/fieldSections.ts`, `routers/weather_history.py`, `routers/documents.py`, `routers/bulk.py` | ✅ canlı |
+| **S2 mühakimə** | ⚠️ **`81660df`-in «operations AI girişidir, ona görə QALIR» qərarı ƏVƏZ OLUNDU.** ⚠️ **Cədvəllər DROP EDİLMƏYİB, miqrasiya yoxdur** — `field_operations`, `field_documents`, `field_rain_log` yerindədir; `field_weather_daily`-ni hələ `ai/season.py` oxuyur. Eyni naxış (subsidiya → ERP → bu) — **→ T36** | — | ✅ |
+| **B — Mövsüm AI xülasəsi** | `ai/season_summary.py` + `SeasonSummaryCard.tsx` + `GET/POST /api/fields/{id}/season-summary[/generate]`. **Dörd rejim:** `none`/`single` **LLM çağırmır** (bir mövsüm üzərində müqayisə çətin sual deyil, **mümkünsüz** sualdır — model yenə cavab verir, müqayisə qrammatikasında) · `pair` fərqə icazə verir, **trend dilini qadağan edir** · `multi` (3+) hər ikisinə. Cari mövsüm **konstruksiyaya görə yarımçıqdır** → `partial`+`through_doy` həm faktlarda, həm prompt qaydası kimi. Keş `field_knowledge`, `block_type='season_summary'`, `input_hash` ilə — **GET heç vaxt LLM xərcləmir**. Kvota advice büdcəsinə qatılır | `ai/season_summary.py`, `routers/seasons.py` | ✅ canlı |
+| **B — Mövsüm feature-lərinin backfill-i** | ⚠️ `field_season_features` yalnız cari ili saxlayırdı (aylıq cron yalnız onu hesablayır) — **2021-2025 əl ilə** `POST /api/internal/season/compute?season_year=YYYY` ilə dolduruldu. İstinad sahə «fındıq bağım» indi **altı mövsüm** daşıyır və **2022 gözlə görünən pis ildir** (inteqral 81.6 vs ~200) | `routers/internal.py::compute_season` | ✅ ölçüldü |
+| **C — Mesajlar (əvvəl «İcma»)** | `/chat` hər yerdə **«Mesajlar»** (açar adları saxlanıldı, yalnız dəyər dəyişdi). **Agradex AI SİNTETİKDİR** — `public.users`-də sətri yoxdur (real sətir kataloqda görünərdi, yad adamlar yaza bilərdi, email istəyərdi, statistikaya düşərdi), `public.conversations`-da da yoxdur (`_assert_participant` guard-ı boşaldılmalı olardı); `ASSISTANT_ID` **uuid deyil** ki, real hesaba ünvanlana bilməsin. Yeni **`GET /api/chat/directory`** | `routers/chat.py` | ✅ |
+| **C — Kataloq mənbəyi** | Təchizatçılar `users`-dən **ROLA** görə gəlir, `provider_profiles`-a **LEFT JOIN** ilə: həmin cədvəldə istehsalatda **sıfır sətir** var, halbuki altı lab/konsultant/təchizatçı hesabı mövcuddur — yalnız profildən oxumaq **boş ekran** deploy etmək olardı. Fermerlər caller-in öz məhsul/regionlarına scope olunur, adlar `public_display_name`-dən keçir, fermer yarısı **caller-in fermer olmasına** gate-lənir (əks halda təchizatçı öz qeydiyyat regionundakı fermerləri sadalayardı) | `routers/chat.py::directory` | ✅ |
+| **E — Foto kvota deşiyi bağlandı** | Avtomatik etiketləmə **HƏR yükləmədə**, tier yoxlaması olmadan işləyirdi və `kind="photo"` yazırdı — **ödənişli diaqnozun gate olduğu eyni sayğac**. Qalereyanı doldurmaq qiymət səhifəsinin satdığı **30 diaqnozu** xərcləyirdi, free/pro isə tier-lərində olmayan funksiya üçün ödəyirdi. İndi öz limiti (`photo_label_per_month`, Business 60) + öz kind-i; `/soil-lab` **`soil_lab_per_month`** aldı (Business 10, əvvəl **limitsiz**); **üç görmə route-u da `vision_available()`-ə** gate olunur; `except Exception: pass` **getdi** | `routers/photos.py`, `routers/fields.py`, `tiers.py` | ✅ |
+| **F — Xəbərdarlıq bağlana bilir** | Migration **0063**. `alert_state.active` hər atəşdə true olurdu, **heç vaxt geri qayıtmırdı və heç kim oxumurdu** — ona görə «bu şərt hələ də doğrudurmu» sualı cavabsız idi və dashboard plitəsi «Yeni xəbərdarlıq» adlandırılıb **oxunmamış bildirişlərə** yönəldilmişdi. 0063: `last_match_at`/`last_clear_at`/`clear_streak`/`resolved_at`/`source`; **üç nəticə**, və həll **STREAK** tələb edir (`CLEAR_STREAK_TO_RESOLVE=2`) ki, sərhəddə salınan hədd nişanı yandırıb-söndürməsin. Yeni `routers/notifications.py` → `GET /api/alerts/summary` | `db/migrations/0063_alert_resolution.sql`, `rules/engine.py`, `routers/notifications.py` | ✅ canlı (bir run: evaluated 6, cleared 1, resolved 0) |
+| **F — YÜK DAŞIYAN QAYDA** | **SÜBUTUN YOXLUĞU HƏLL DEYİL** — mühərrikin **qiymətləndirə bilmədiyi** qayda (səhnə yox, proqnoz yox, emal olunmamış sahə) **toxunulmadan** qalır: nə təsdiqlənir, nə həll olunur. Oxu modelinin üç cavabı var: `open` · `resolved` · `unconfirmed`. Backfill **QƏSDƏN yoxdur** — mövcud sətirlərin hamısı `unconfirmed`-ə düşür, çünki dürüst oxunuş budur | `0063` başlığı + `routers/notifications.py` | ✅ doğrulandı |
+| **G — Qiymət səhifəsi düzəlişi** | Kodun saxlamadığı **beş ödənişli vəd** silindi: email + WhatsApp bildiriş pillələri (**belə kanal yoxdur** — `messaging/` yalnız `telegram.py`), çiləmə pəncərəsi və suvarma balansı (**hər ikisi pulsuzdur**), «+ NDRE / CIre» (indekslər heç yerdə gate olunmur). **Güzgü səhvi də düzəldildi:** foto diaqnoz, gübrə kalkulyatoru, regional benchmark və zərərverici pasportu **canlı olduğu halda «tezliklə»** yazılırdı. Test docstring-ə yazıldı: **bayrağın adı ilə `allows(` axtar** | `tiers.py`, `app/src/lib/pricing.ts` | ✅ |
+| **H — Sağlamlıq skoru gündəlik süpürülür** | `deploy/refresh-wellness.sh`, cron `20 4 * * *`. Sahə səhifəsi skoru **baxışda** hesablayırdı, siyahı isə **saxlanmış son sətri** oxuyurdu — canlıda bir sahə eyni anda siyahıya **89**, öz səhifəsinə **70** verirdi (89 iki günlük idi). Gündəlikdir, səhnə başına deyil: su və GDD komponentləri hava dəyişən hər gün tərpənir | `deploy/refresh-wellness.sh` | ✅ |
+| **H — Advice seçimi dil-şüurludur** | `GET /advice` artıq **oxucunun dilindəki ən yeni sətri** seçir (bir i18n test run-ı üç dəqiqədə bir sahəyə **yeddi dildə yeddi analiz** yazmışdı); dil yoxdursa yad dildəkinə düşür və `lang_mismatch`+`newer_other` qalır. Ən yeni sətir onsuz da oxucunun dilindədirsə **ikinci sorğu getmir**. Eyni tərcih `ai/context.py`, `ai/chat.py` və həftəlik digest-də | `routers/advice.py`, `ai/emails/weekly.py` | ✅ |
+| **H — Kiçik düzəlişlər** | Mesaj sıralamasına **determinist tiebreak** (sual və cavab `created_at`-i mikrosaniyəyə qədər paylaşır) · məhsul açarları **iki yerdə** xam i18n açarı kimi sızmağı dayandırdı · marketinq mətni **9 yerdə** təsərrüfat dəftərini vəd etməyi dayandırdı · «hər yeni peyk səhnəsindən sonra» **real 15 günlük throttle**-a düzəldildi | `routers/chat.py`, `app/src/lib/i18n.ts`, `ai/advice.py` | ✅ |
+
+**Bu dalğanın miqrasiyası:** yalnız `0063`. **Əlavəedicidir və image-dən ƏVVƏL tətbiq oluna bilər** —
+işləyən image `alert_state`-ə açıq sütun siyahısı ilə insert/select edir, ona görə yeni sütunları nə
+yazır, nə oxuyur. Default-lar sabitdir → cədvəl yenidən yazılmır, yazı yolu bloklanmır.
+⚠️ **`.env` dəyişikliyi var** (`LLM_PROVIDER`, `LLM_MODEL`, `VISION_PROVIDER`, `DEEPSEEK_API_KEY`,
+`GEMINI_API_KEY`) — `docker restart` **kifayət deyil**, konteyner yenidən yaradılmalıdır
+(`bash deploy/update.sh`). **Yeni cron sətri:** `20 4 * * * … deploy/refresh-wellness.sh`.
+
+---
+
 ## B. Bloklanıb — istifadəçi addımı lazımdır (⏳)
 
 | # | Task | İstifadəçi nə edir | Mən nə edirəm | Prioritet | Status |
 |---|---|---|---|---|---|
 | U1 | **EARTHDATA_TOKEN yenilə** (2026-08-30 bitir ⚠️) | urs.earthdata.nasa.gov → yeni bearer → `.env`+`.bak` → restart | Swap sonrası HLS COG 200 yoxla | **Yüksək** | ⏳ |
-| U2 | **LLM_API_KEY rotate** (bir dəfə açıq görünüb) | Yeni Anthropic açarı → `.env` → köhnəni ləğv → api restart | — | **Yüksək** | ⏳ |
+| U2 | **Köhnə Anthropic açarını LƏĞV ET** (bir dəfə açıq görünüb) ⚠️ **task dəyişdi:** §A.3-dən sonra məhsul artıq o açarı işlətmir (DeepSeek + Gemini), yəni **rotate lazım deyil — ləğv lazımdır**; açar hələ etibarlıdır və heç nəyi qorumur | console.anthropic.com → köhnə açarı revoke; `.env`-dən `LLM_API_KEY` sətrini təmizlə → `bash deploy/update.sh` (restart KİFAYƏT DEYİL) | — | **Yüksək** | ⏳ |
 | U3 | ~~**Email/OTP (Resend)**~~ — **BİTDİ 2026-07-25** | `RESEND_API_KEY` + `EMAIL_FROM` `.env`-dədir, agradex.com Resend-də verified | Email AKTİV: OTP + welcome + data_ready + həftəlik digest (E15). ⚠️ `.env`-də boşluqlu dəyər **dırnaqda** olmalıdır — `update.sh` faylı source edir | **Yüksək** | ✅ |
 | U4 | **Telegram bot token** (→ T22) | @BotFather → `TELEGRAM_BOT_TOKEN`/`_USERNAME`/`_WEBHOOK_SECRET` → sonra `POST /api/internal/telegram/setup` | **✅ KOD HAZIR (f71d1b8):** 0024 messaging_channels/message_log; telegram.py; /messaging/telegram + /telegram/webhook; dispatcher delivery; TelegramConnect kartı. Tokensiz dormant. | **Yüksək** | ⏳ token gözləyir |
 | U5 | ~~**app.agradex.com**~~ — **BİTDİ 2026-07-25** | CF A-record qoyuldu | Split AKTİV: `NEXT_PUBLIC_PANEL_HOST=app.agradex.com` + `COOKIE_DOMAIN=.agradex.com`; apex=marketinq, app=tətbiq. Bu dalğada üstünə: `x-app-host` header ilə **server-tərəfli** host həlli (6bf36a6) + public linklər apex üzərindən (fc3f9c7) | Orta | ✅ |
@@ -147,7 +188,7 @@ SELECT/INSERT edir. `update.sh` miqrasiya işlətmir.
 | U8 | **2FA + Tier-2 firewall** | Hetzner+CF 2FA; origin-IP CF aralığı qərarı | — (UFW+fail2ban var) | Orta | ⏳ |
 | U9 | **WhatsApp Business API** (T22 2-ci kanal) | Provayder + per-mesaj ödəniş | Telegram-dan sonra 2-ci kanal | Aşağı | ⏳ |
 | U10 | **Xudat crop_type=fındıq** (demo data) | UI-dən dəyiş (yoxsa M5/E0 generic, saxta "Zəif") | İstəsən DB update | Aşağı | ⏳ |
-| U11 | **Canlı smoke-test — E14 + sadələşdirmə + Terra Oracle sonrası** ⚠️ **yenidən yazıldı 2026-07-30**: köhnə mətndəki «16 bölmə» və «`/farm?tab=` 4 bölmə» **artıq mövcud deyil** (`81660df`) | Brauzer: `?tab=status` (FieldPulse + SatelliteGlance + SignalsActions) · 3 qrup / **12 bölmə** menyusu · `/farm` və `/reports` **404 verməlidir** · desktop sidebar 2xl-də etiketlənir və 1280px-də sahə səhnəsi ≥760px qalır · qrafik panelində proqnoz varkən «1H» **sönmür** · telefonda 5 tab + xəritə-ana-səhifə · sahə vahidi seçicisi · RU/EN cəm başlığı | Kod `main`-dədir; §A.2-də 🚀 olan hər sətir həm **deploy**, həm vizual yoxlama gözləyir | **Yüksək** | ⏳ |
+| U11 | **Canlı smoke-test** ⚠️ **yenidən yazıldı 2026-08-04**: köhnə mətndəki «16 bölmə», «12 bölmə» və «`/farm?tab=` 4 bölmə» **artıq mövcud deyil** | Brauzer: `?tab=status` (FieldPulse + SatelliteGlance + SignalsActions) · 3 qrup / **10 bölmə** menyusu · `?tab=operations` və `?tab=documents` səssizcə **status**-u açmalıdır · `/farm` və `/reports` **404** · sahə analizindən `/chat?ai=…`-ə ötürmə + orada sancılmış **Agradex AI** sapı · hava bölməsində **yağış jurnalı və illik qrafik olmamalıdır**, frost tarixləri **olmalıdır** · skautinq: xəritə yox, geolokasiya düyməsi var · foto yükləyəndə **diaqnoz sayğacı tərpənməməlidir** · qiymət səhifəsində email/WhatsApp/«+NDRE» **yoxdur**, foto diaqnoz və gübrə **«tezliklə» YAZMIR** · desktop sidebar 2xl-də etiketlənir və 1280px-də sahə səhnəsi ≥760px qalır · qrafik panelində proqnoz varkən «1H» **sönmür** · telefonda 5 tab + xəritə-ana-səhifə · sahə vahidi seçicisi · RU/EN cəm başlığı | Kod `main`-dədir; §A.2-də 🚀 olan hər sətir həm **deploy**, həm vizual yoxlama gözləyir | **Yüksək** | ⏳ |
 | U12 | **Kadastr + EKTIS/eagro.az + D3 L3** (→ T25) | Dövlət WMS/WFS/AKTA razılaşma + L3 kommersiya təsdiq | Yalnız texniki infra (giriş sonrası) | Aşağı | ⏳ |
 | U13 | ~~**Google ilə giriş**~~ — **BİTDİ 2026-08-01** | Açarlar `.env`-də; Google konsolunda redirect URI qeydiyyatdan keçib və tətbiq **In production**-dadır (canlı yoxlanıldı: `redirect_uri_mismatch` yox, `access_blocked` yox) | **✅ CANLI** (`645b2ed` + 0062). `providers` → `google:true`, `/google/start` → 302, düymə 8 dildə render olunur, `_safe_next()` açıq yönləndirməni bağlayır, callback 3 xəta halını `?err=` ilə qaytarır. ⚠️ **Qalıq: məxfilik siyasəti 8 dildə Google-u data emalçısı kimi əlavə etməlidir** | **Yüksək** | ✅ |
 
@@ -192,9 +233,10 @@ SELECT/INSERT edir. `update.sh` miqrasiya işlətmir.
 | **T30** | Digest AI məsləhətinin dili | E15/P0.3 | backend/email | S | 🟡 | 0049 | ✅ **`e48b8fa` (2026-07-31)** — `_advice()` artıq `order by ... (lang = $3) desc, generated_at desc` işlədir: oxucunun dili **rekordluqdan üstündür**. Dili olmayan oxucu boş bölmə əvəzinə yad dildə mətn alır — bu, kodda **qəsdən** yazılmış güzəştdir |
 | **T31** | `HLS_ENABLED` **"bir-boolean rollback" DEYİL** (dead-end): `sensors.ts`-dən kənarda `HLS_ENABLED`/`UI_SENSORS`/`sensorVisible()` heç yerdə istifadə olunmur; səhifə `sensor="S2"` hard-code edir, `SECTION_GROUPS`-da HLS bölməsi yoxdur. Ya rollback-ı doğrudan bağla, ya da şərhdəki iddianı düzəlt | E14 | frontend | S | ⚪ | yox | ✅ **2026-08-01 — iddia düzəldildi.** `sensors.ts` başlığı indi rollback üçün əlavə **3 şeyi adı ilə sadalayır** (bölmə girişi, `app.sensor.hls.*` açarları, sensor seçicisi) — heç biri bu flaqı oxumur. Bayraq da tam ölü qalmadı: səhifə `sensor="S2"` hard-code etmək əvəzinə `UI_SENSORS[0]` oxuyur. **Silinmiş UI-ni bayraq arxasında bərpa etmək qəsdən edilmədi** — HLS-in çıxarılması məhsul qərarı idi (E14.3) |
 | **T32** | **`ulkar@agradex.com` cavab qəbul etmir** — `786bb4d` göndərəni təkləşdirdi, amma `notify.py` başlığı açıq yazır ki, agradex.com **MX dərc etmir**: fermerin welcome/digest məktubuna cavabı bounce olur. Poçt qutusu + MX qeydi lazımdır (istifadəçi addımı, sonra kod tərəfdə heç nə) | E15/A4 | infra/email | S | 🔴 | istifadəçi (DNS) | ⬜ |
-| **T33** | **Bake-off nəticəsinə görə qərar** — `decbdb2` ölçdü ki, Anthropic-i `messages.parse` ilə çağırmaq eyni promptda Opus çıxışını **2146 → 1565 token** endirir (prodakşn onsuz da belə çağırır) və `18113e3` göstərdi ki, `research` düzəlişindən sonra qalan hesabın ~75%-i **advice**-dir. Növbəti qərar oradadır: **Batch API** (`ai_usage.source='auto'` sətirləri üçün 50% endirim) və/və ya tier-model seçiminin yenidən baxılması | AI/cost | ai | M | 🟡 | 0056 (data yığılmalıdır) | ⬜ |
-| **T34** | **Sonnet 5 qiymət artımı 2026-08-31** — `ai/pricing.py` sentyabr sətrini onsuz da saxlayır (kod hazır, əl işi lazım deyil), amma **tarif iki dəfə bahalaşır** ($2/$10 → $3/$15). O tarixdən əvvəl model seçimi yenidən qiymətləndirilməlidir (T33 ilə birlikdə) | AI/cost | ai | S | 🟡 | T33 | ⬜ |
-| **T35** | **Silinmiş ERP cədvəllərinin taleyi** — `81660df` 8 router və bütün UI-ni sildi, **cədvəllər isə qəsdən qaldı** (dəftər/satış/anbar/texnika/zonalar/tapşırıq/məhsuldarlıq + 0008 `subsidy_*`). Qərar tələb edir: dormant qalsın (cari vəziyyət), arxivləşdirilsin, yoxsa drop olunsun. **Qərarsız drop ETMƏ** — bu, geri-qaytarıla bilən olmaq üçün belə saxlanılıb | S1 | db | S | ⚪ | sahib qərarı | ⬜ |
+| **T33** | ~~Bake-off nəticəsinə görə qərar (Batch API / tier-model)~~ | AI/cost | ai | M | — | — | ❌ **§A.3 predmetini apardı.** Qərar tam başqa istiqamətdə verildi: mühərrik Anthropic-dən **DeepSeek v4-flash**-a keçdi və eyni kod üzərində ölçülən xərc **60× (advice) / 42× (chat)** düşdü. Batch API-nin 50% endirimi bu rəqəmlərin yanında mənasızdır, tier-model seçimi isə artıq **mövcud deyil** (`tiers.py`-dəki `model` açarı silindi, hər yerdə tək model). `ai_usage.source` (0056) faydalı qalır — ölçmə üçün, qərar üçün yox |
+| **T34** | ~~Sonnet 5 qiymət artımı 2026-08-31~~ | AI/cost | ai | S | — | — | ❌ **Predmetsiz** — məhsul artıq Sonnet işlətmir (§A.3). `ai/pricing.py`-dəki tarixli sətirlər **qalır və qalmalıdır**: `ai_usage`-dəki tarixi Anthropic sətirləri düzgün qiymətlənsin deyə. Anthropic-ə qayıtsaq bu task da qayıdır |
+| **T35** | **Silinmiş ERP cədvəllərinin taleyi** — `81660df` 8 router və bütün UI-ni sildi, **cədvəllər isə qəsdən qaldı** (dəftər/satış/anbar/texnika/zonalar/tapşırıq/məhsuldarlıq + 0008 `subsidy_*`). Qərar tələb edir: dormant qalsın (cari vəziyyət), arxivləşdirilsin, yoxsa drop olunsun. **Qərarsız drop ETMƏ** — bu, geri-qaytarıla bilən olmaq üçün belə saxlanılıb. ⚠️ **T36 ilə birlikdə qərar veriləsi** — indi üç nəsil yatmış cədvəl var | S1 | db | S | ⚪ | sahib qərarı | ⬜ |
+| **T36** | **Dormant cədvəllərin ÜÇÜNCÜ nəsli** (§A.3) — `public.field_operations`, `public.field_documents`, `public.field_rain_log`. UI və route-lar 2026-08-04-də getdi, **cədvəllər və disk faylları qaldı**: yüklənmiş hər lab hesabatı, kadastr çıxarışı, müqavilə və qəbz hələ `settings.object_storage_root` altındadır. Geri açmaq **miqrasiya deyil**, endpoint-ləri köhnə adları ilə bərpa etməkdir. ⚠️ `public.field_weather_daily` **bu siyahıda DEYİL** — onu hələ `ai/season.py` oxuyur (mövsüm yağıntısı + provenansı), yəni canlı asılılıqdır | S2 | db | S | ⚪ | sahib qərarı (T35 ilə birlikdə) | ⬜ |
 
 ### C.1 Task detalları (niyə / harada — kod ilə yoxlanmış)
 
@@ -222,8 +264,8 @@ SELECT/INSERT edir. `update.sh` miqrasiya işlətmir.
 - **T30** — `weekly._advice()` `distinct on (field_id) … summary, findings` seçir, `lang` predikatı yoxdur, xülasə birbaşa email-ə yerləşdirilir. 0049 mövcud sətirləri `'az'` ilə backfill etdiyi üçün RU/EN oxucu digest içində AZ proza görə bilər. Sahə səhifəsində bu `lang_mismatch` + `AdviceLangNote` ilə həll olunub — email-də olunmayıb.
 - **T31** — `sensors.ts:9-12` şərhi `HLS_ENABLED`-i "owner-in istədiyi bir-boolean rollback" adlandırır, amma grep göstərir ki, `HLS_ENABLED`/`UI_SENSORS`/`sensorVisible()` **fayldan kənarda istehlak olunmur**: `fields/[id]/page.tsx` `<SatelliteTab sensor="S2" />` hard-code edir və `SECTION_GROUPS`-da HLS bölməsi yoxdur. Həqiqi rollback üçün `fieldSections.ts`-də bölmə girişi + ikinci `SatelliteTab` nüsxəsi lazımdır. **Data qatına toxunma** — pipeline/cron/benchmark/A8/A6 hələ HLS oxuyur, `sensorFamily()` 's30'/'l30'-u həll etməyə davam etməlidir. ⚠️ Bu bənddəki «A6» istinadı köhnəldi — A6 zonaları `81660df`-də silindi; qalan HLS oxucuları pipeline/cron/benchmark/A8-dir.
 - **T32** — `services/app/ai/notify.py` başlığı `786bb4d`-də açıq yazır: dəyişiklik ünvanı **təkləşdirdi, amma çatılan etmədi** — agradex.com MX dərc etmir, ona görə `ulkar@agradex.com`-a gələn cavab bounce olur. Bu, tam **istifadəçi/DNS addımıdır** (poçt qutusu + MX qeydi); kod tərəfdə heç nə lazım deyil. Fermer welcome və ya həftəlik digest məktubuna cavab yazanda hazırda **heç kim görmür**.
-- **T33/T34** — `18113e3` + `decbdb2` ölçmə borcunu bağladı; qərar borcu qalır. Faktlar: `research` düzəlişindən (`7021a66`) sonra qalan hesabın ~75%-i **advice**-dir və advice **istifadəçi sayı ilə** böyüyür; `ai_usage.source` (0056) `auto`/`user` ayrımını **indi** yazmağa başladı, yəni Batch API qərarı (auto sətirlərə 50% endirim) bir neçə həftəlik data yığıldıqdan sonra rəqəmlə verilə bilər. Sərt tarix: **2026-08-31** Sonnet 5 introductory tarifi bitir ($2/$10 → $3/$15) — `pricing.py` bunu onsuz da bilir, amma model seçimi ondan əvvəl yenidən qiymətləndirilməlidir.
-- **T35** — `81660df` **qəsdən** cədvəl drop etmədi (commit mətni: «data yatmış və geri-qaytarıla bilən qalır, bu məhsul qərarıdır, sökülmə deyil»). Eyni naxış 0008 `subsidy_*` üçün v1.12.0-da tətbiq olunmuşdu. Yəni sxemdə indi **iki nəsil** yatmış cədvəl var. Qərar sahibindir; **qərarsız drop etmə** — geri-qaytarma yolu məhz budur.
+- **T33/T34** — ❌ **Hər ikisi §A.3-də predmetsiz qaldı.** Ölçmə borcu (`18113e3` + `decbdb2`) qərar borcunu doğurmuşdu; qərar isə tam başqa istiqamətdə verildi — **provayder dəyişdi**. Eyni kod, eyni sahələr üzərində ölçülən nəticə: advice **$0.05360 → $0.00089**, chat **$0.04432 → $0.00105**, chat gecikməsi **20.3s → 5.2s**. Batch API-nin 50% endirimi bu böyüklüklərin yanında qərar tələb etmir; tier-model seçimi isə artıq mövcud deyil. **`ai/pricing.py`-dəki tarixli Anthropic tarifləri SİLİNMƏMƏLİDİR** — `ai_usage`-dəki tarixi sətirlər onlarla qiymətlənir.
+- **T35/T36** — `81660df` **qəsdən** cədvəl drop etmədi (commit mətni: «data yatmış və geri-qaytarıla bilən qalır, bu məhsul qərarıdır, sökülmə deyil»). Eyni naxış 0008 `subsidy_*` üçün v1.12.0-da, sonra §A.3-də `field_operations`/`field_documents`/`field_rain_log` üçün təkrarlandı. Yəni sxemdə indi **üç nəsil** yatmış cədvəl var və qərar birdir. **Sənədlərdə xüsusi diqqət:** `field_documents` sətirlərinin arxasında **diskdə real fayllar** durur (`settings.object_storage_root`) — cədvəli drop etmək onları yetim qoyar, ona görə qərar «drop»dursa fayl təmizliyi də ona daxildir. ⚠️ `field_weather_daily` bu qrupa **aid deyil** (canlı oxucusu var). Qərar sahibindir; **qərarsız drop etmə**.
 - **T19** — geoio.ts yalnız GeoJSON+KML; shpjs/shp-write. Rəngli annotasiya alətı yox. ScaleControl (bir sətir).
 - **T20** — ❌ **Çıxarılıb.** Bir vaxt qurulmuş A6 zonaları (`routers/zones.py`, `ZonesTab`, `field_zone_runs`, `process-zones.sh`) `81660df`-də tamamilə silindi, `8f25630` isə VRA plitəsini **qəsdən qurmadı**: «bu məhsulda dəyişkən-doza funksiyası yoxdur, ona görə o referans plitəsinin dürüst mənbəyi yoxdur». Yenidən açmaq iki addımdır — əvvəl zona hesablaması, sonra prescription export. Cədvəllər dormant (→ T35).
 - **T21** — Faza-3/4 qrup: cost rollup dashboard yox; sensor_readings/api_keys/v1 router yox; SAR fusion təxirə; EUDR sənəd ən müstəqil parça (poliqonlar var).
@@ -280,9 +322,11 @@ SELECT/INSERT edir. `update.sh` miqrasiya işlətmir.
 | E11 | D3 L1+L2 | T25 | ⬜ |
 | E12 | C5 səs **+ C6 forum + D3 L3** | T15 **+ T26 + (U12/T21)** | ⬜ |
 | E13 | Landing onboarding quiz | §A.1 | ✅ (T29 **bağlandı** — task səhv yazılmışdı) |
-| E14 | Sahə bölmə taksonomiyası + NASA UI-dan | §A.1 → §A.2 | ✅ canlı (16→**12 bölmə**, telefonda tabsız); T31 qalıq |
-| E15 | Email konsolidasiyası (tək həftəlik digest) | §A.1 | 🚀 (T28/T30 qalıq; göndərən təkləşdi, **T32** MX gözləyir) |
-| — | ~~Hesabatlar (T7)~~ · ~~məhsuldarlıq korrelyasiyası (T16)~~ · ~~VRA/zonalar (T20)~~ | §A.2 (`81660df`) | ❌ **sadələşdirmə ləğv etdi** — səbəblər §C-də |
+| E14 | Sahə bölmə taksonomiyası + NASA UI-dan | §A.1 → §A.2 → §A.3 | ✅ canlı (16→12→**10 bölmə**, telefonda tabsız); T31 bağlandı |
+| E15 | Email konsolidasiyası (tək həftəlik digest) | §A.1 | ✅ (T28/T30 **bağlandı**; göndərən təkləşdi, **T32** MX gözləyir) |
+| — | ~~Hesabatlar (T7)~~ · ~~məhsuldarlıq korrelyasiyası (T16)~~ · ~~VRA/zonalar (T20)~~ | §A.2 (`81660df`) | ❌ **sadələşdirmə ləğv etdi** — səbəblər §C-də (T7 sonradan **QAYITDI**) |
+| — | ~~Batch API qərarı (T33)~~ · ~~Sonnet 5 tarif artımı (T34)~~ | §A.3 | ❌ **provayder keçidi ləğv etdi** — DeepSeek/Gemini, 60×/42× ucuz; səbəblər §C-də |
+| — | Mövsüm AI xülasəsi · Mesajlar + kataloq · görmə kvotası · xəbərdarlığın həlli (0063) | §A.3 | ✅ **yeni** — spec alt-kodu yoxdur, sahibin qərarı/canlı ölçmə ilə gəldi |
 
 ---
 
@@ -345,8 +389,8 @@ Tam plan və sübutlar: sessiya jurnalı. Aşağıda yalnız **status**.
 
 **Xəbərdarlıqların ÇIXAN kanalları:**
 - ✅ Telegram / web push / həftəlik digest **oxucunun dilindədir** (`e48b8fa`, migration 0057 —
-  bildirişlərə də `title_code`/`params`). ⚠️ Qalan borc: `weekly.py::_LABELS` yalnız **az/en/ru**
-  yazılıb, ona görə **tr/de/hu/it/pl digest-i ingiliscə alır** (fallback locale→en→az).
+  bildirişlərə də `title_code`/`params`). **Tərcümə borcu 2026-08-01-də bağlandı** (T28): `_LABELS`
+  səkkiz lokalın hamısında əl ilə yazılıb, `WEEKLY_EXTRA` tr/de/hu/it/pl-i də saxlayır.
 
 **Kiçik qalıqlar:**
 - ✅ `robots.txt` + `sitemap.xml` + `/az` — `0efac3b`. 104 URL tam hreflang dəsti ilə;
@@ -366,29 +410,26 @@ Tam plan və sübutlar: sessiya jurnalı. Aşağıda yalnız **status**.
 
 ---
 
-## D. Tövsiyə olunan növbə (sıra) — 2026-07-30 yenidən yazıldı
+## D. Tövsiyə olunan növbə (sıra) — 2026-08-04 yenidən yazıldı
 
 > Köhnə sıra (T0/T1/T2/T4/T5/T6/T8-T12 + T14) tamamilə bitib və ya çıxarılıb — silindi.
-> 2026-07-26 sırasının **1, 4 və 6-cı bəndləri də düşdü**: (1) 0046–0049 doğrulaması `4c7e9dd`-də
-> bağlandı · (4) T29 səhv yazılmış task idi · (6) T7 hesabatlar sadələşdirmə ilə ləğv olundu.
+> 2026-07-30 sırasının **3 və 6-cı bəndləri də düşdü**: (3) T28+T30 digest borcu bağlandı ·
+> (6) T33/T34 AI xərc qərarı provayder keçidi ilə predmetsiz qaldı.
 
-1. **Deploy borcu, hər şeydən əvvəl.** §A.2-də 🚀 olan sətirlərin **canlı olduğu repodan sübut
-   olunmur**: `8f25630` (Terra Oracle) və `03eb081` (OneSoil mobil) dalğalarının hər ikisinin ardınca
-   build düzəlişi commit-i gəlir (`c13ba8f`, `05c3870`), yəni o an `update.sh` **konteyner əvəz
-   etmədən** dayanmışdı; `786bb4d..decbdb2` dalğası isə heç yoxlanmayıb. Bu Mac-da node yoxdur →
-   yeganə TS gate serverin `docker build web`-idir. **Miqrasiya 0055/0056 image-dən ƏVVƏL.**
-2. **U11** canlı smoke-test (yenilənmiş siyahı §B-dədir — «16 bölmə» və `/farm` artıq yanlışdır).
-3. **T28** + **T30** — digest həm 5 dildə ingiliscə gedir, həm də AZ məsləhət mətnini sitat gətirir.
-   İlk Çərşənbə göndərişindən ƏVVƏL düzəlt, yoxsa səhv ilk təəssürat 8 dildən 5-inə çatır.
-4. **T32** MX qeydi — `ulkar@agradex.com` indi **hər dildə** göndərəndir, amma cavab qəbul etmir.
+1. **U11 canlı smoke-test — birinci.** §A.3 həm **UI-dan funksiya çıxardı**, həm **AI mühərrikini
+   dəyişdi**, yəni yanlışlığın iki müstəqil mənbəyi var. Yenilənmiş siyahı §B-dədir; «16 bölmə»,
+   «12 bölmə» və `/farm` artıq yanlışdır.
+2. **U2 — köhnə Anthropic açarını LƏĞV et.** Task mahiyyətcə dəyişdi: açar bir dəfə açıq görünüb və
+   indi **heç nəyi qorumur** (məhsul onu işlətmir), yəni rotate deyil, revoke lazımdır.
+3. **T32** MX qeydi — `ulkar@agradex.com` hər dildə göndərəndir, amma cavab qəbul etmir.
    Tək göndərənə keçmək bu boşluğu daha görünən etdi: bütün cavablar bir ünvana gedir və orada itir.
-5. **T27** cəm səthləri (S) + **T31** `HLS_ENABLED` dead-end (S) — hər ikisi təmiz, asılılıqsız.
-6. **T33/T34** AI xərc qərarı — `18113e3`/`decbdb2` ölçməni bağladı, qərar qalır; **2026-08-31**
-   Sonnet 5 tarif artımı sərt tarixdir.
-7. *Paralel — istifadəçi açanda:* **U1** EARTHDATA (sərt deadline) · **U2** LLM rotate · **U4** Telegram
-   token (→ T22 aktivləşir) · **U6** EPPO (→ T9 datası).
-8. Təxirə: **T15** səs · **T19** export/annotasiya qalığı · **T23** iki-tərəf bot ·
-   **T26** icma forumu · **T25** D3 L1+L2 · **T21** Faza-3/4 · **T35** dormant cədvəllərin taleyi.
+4. **T35 + T36 birlikdə** — sxemdə artıq **üç nəsil** dormant cədvəl var (subsidiya → ERP → §A.3).
+   Sahib qərarı; `field_documents`-in arxasında **diskdə real fayllar** durduğu üçün «drop» variantı
+   fayl təmizliyini də əhatə edir.
+5. **T15** səs · **T19** export/annotasiya qalığı — hər ikisi təmiz, asılılıqsız.
+6. *Paralel — istifadəçi açanda:* **U1** EARTHDATA (sərt deadline **2026-08-30**) · **U4** Telegram
+   token (→ T22 aktivləşir) · **U6** EPPO (**2026-09-01** köhnə API bağlanır, → T9 datası).
+7. Təxirə: **T23** iki-tərəf bot · **T26** icma forumu · **T25** D3 L1+L2 · **T21** Faza-3/4.
 
 ---
 
@@ -516,7 +557,7 @@ grep ilə yenidən yoxlanıb; bağlananlar üstündən xətt çəkilib, silinmə
 - **Email = TƏK həftəlik digest** (Çərşənbə 07:00 Bakı). Gündəlik heç nə yoxdur; kritik alertlər digest-ə qatlanır və dərhal yalnız **in-app + Telegram** ilə çatır. `rules/engine.py` və `ai/advice.py`-də silinmiş email yollarında açıq **"Do not re-add"** şərhi var — orada göndərmə `send_template`-i tam yan keçir (idempotentlik ledger-i yox, opt-out yox, unsubscribe linki yox). Yeni şablon əlavə etməzdən əvvəl sual: bu, həftəlik digest-in **variantı** deyilmi?
 - **Fındıq fokusu yoxdur** — platforma məhsul-ümumi mövqelənir.
 - **Heç bir dil atılmır** — strategiya hesabatının "lokal sayını azalt" təklifi rədd edildi (6bf36a6).
-- **4 ERP modulu tək `/farm` tabının içindədir** və park olunub; **Kataloq/İcma** məzmun gələnə qədər `SHOW_MARKETPLACE_NAV` arxasında gizlidir (route/API/komponentlər canlı, birbaşa link işləyir).
+- ~~4 ERP modulu tək `/farm` tabının içindədir və park olunub; Kataloq/İcma `SHOW_MARKETPLACE_NAV` arxasında gizlidir.~~ ⚠️ **İKİ DƏFƏ KÖHNƏLDİ:** `81660df` `/farm` konteynerini və dörd modulu **tamamilə sildi** (indi 404), `8f25630` isə `SHOW_MARKETPLACE_NAV`-ı **`true`** etdi — `/catalog` və `/chat` menyudadır və sonuncu artıq **«Mesajlar»** adlanır (§A.3).
 - **Hektar DB/API vahidi olaraq qalır** — çevirmə yalnız render kənarında (`lib/units.ts` `"use client"`; Server Component-lər `formatArea()` çağırmamalıdır). Sahə YAZAN yerlər `fromUnit()` ilə geri çevirməlidir (YieldsTab belə edir). **Hektar-başına dərəcələr** (t/ha, kq/ha dozalar) qəsdən hektar-başına qalır — normalar belə dərc olunur.
 - **Backend fermerə görünən mətni Python-da tərcümə ETMİR** — `*_code` + `*_params`, AZ cümlə yalnız köhnə sətirlər üçün fallback. Bir yol digərinin mətnini əvəz edirsə, **kodu da əvəz etməlidir** (bu, b2e973f-də düzəldilən real bug idi).
 
@@ -528,8 +569,11 @@ grep ilə yenidən yoxlanıb; bağlananlar üstündən xətt çəkilib, silinmə
   alınmalıdır**, təsadüfən yenidən qurulmamalıdır.
 - **Silinən funksiyaların DB cədvəlləri qəsdən qalır** — «yatmış və geri-qaytarıla bilən». Sxemdə ölü
   cədvəl görüb drop etmə (→ T35).
-- **`operations` mühasibat deyil, AI girişidir** — `ai/context.py` onu oxuyur. Növbəti sadələşdirmədə
-  «əməliyyat jurnalı da ERP-dir» deyib silmək məsləhətin keyfiyyətini azaldar.
+- ~~`operations` mühasibat deyil, AI girişidir — növbəti sadələşdirmədə silmək məsləhətin
+  keyfiyyətini azaldar.~~ ⚠️ **BU QƏRAR 2026-08-04-DƏ ƏVƏZ OLUNDU (§A.3):** əməliyyatlar bölməsi,
+  `routers/mgmt.py` və `POST /api/bulk/operations` sahibin qərarı ilə silindi. Cədvəl **dormant
+  qaldı** (→ T36), yəni geri qaytarmaq miqrasiya tələb etmir. Yuxarıdakı arqument hələ də doğrudur —
+  sadəcə **qərarla** üstələndi, unudulmaqla yox.
 - **Uydurmuş rəqəm yoxdur** (`8f25630`): MARKET INTELLIGENCE və VRA plitələri **qəsdən boş buraxıldı**,
   çünki mənbələri yoxdur. Naməlum = özünü izah edən tire. Bu qayda dashboard-a yeni plitə əlavə edən
   hər kəsə aiddir.
@@ -569,8 +613,8 @@ grep ilə yenidən yoxlanıb; bağlananlar üstündən xətt çəkilib, silinmə
 | SEO-T1b | Bing Webmaster Tools (GSC import) — OAuth/SSO icazəsi tələb edir, ayrıca təsdiqlə | ⏳ istifadəçi icazəsi |
 | SEO-T15 | PSI/CWV baseline ölçümü (keyless kvota açılanda) | ⬜ |
 | SEO-C (Dalğa 1+2) | **35 məqalə CANLI**: 7 mövzu × 5 dil (az/en/ru/de/es) — `/blog` infra + registry + Article JSON-LD + məhdud hreflang; hər dil variantı bazar adaptasiyasıdır, tərcümə deyil (sahibin sifarişi ilə plan genişləndi: 3 en → 7×5) | ✅ 2026-08-02 (`40fd45b`+`3912702`) |
-| SEO-ES | **es locale CANLI** (sahibin qərarı — Q3 "sonra" qərarını qabaqladı): marketinq-öncə qismən, fallback `es→en→az`; QALAN: content-locales/es overlay, legal es, app-daxili açarlar, TR-dəki kimi tam paritet | 🚀 qismən |
-| SEO-C-next | Kontent Dalğa 3: TR məqalələri (7 mövcud slug-a tr variantı) + AZ uzun-quyruq (gübrə norması, bitki bələdçiləri) | ⬜ |
+| SEO-ES | **es locale CANLI və TAM PARİTETDƏ** (aşağıdakı B4): UI lüğəti 2,824 açar + content-overlay 679 + legal privacy/terms; `/es` bütün səthlərdə ispancadır | ✅ 2026-08-02 gecə |
+| SEO-C-next | Kontent Dalğa 3: TR məqalələri + AZ uzun-quyruq — aşağıdakı **B1/B2**-də icra olundu (blog 14 slug / 49 səhifə) | ✅ 2026-08-02 gecə |
 | SEO-S3 | Kataloqlar (Product Hunt/Capterra/G2/Crunchbase/F6S) + AZ ekosistem linkləri | ⏳ istifadəçi hesabları |
 | — | Müəllif: **Sabir Ismayilbayli** + LinkedIn linki (`lib/author.ts`, byline + Article JSON-LD) | ✅ 2026-08-02 |
 | — | ES locale qərarı (hədəf 5-10 user/gün pilləsində) | ⏳ qərar |

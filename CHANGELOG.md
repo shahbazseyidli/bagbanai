@@ -3,6 +3,204 @@
 Bütün əhəmiyyətli dəyişikliklər burada qeyd olunur. Format [Keep a Changelog](https://keepachangelog.com/),
 versiyalar [SemVer](https://semver.org/).
 
+## [1.19.0] — 2026-08-04 — AI mühərriki dəyişdi (DeepSeek + Gemini), sahə səhifəsinin ikinci kəsimi, mövsüm xülasəsi, xəbərdarlıq bağlana bilir
+
+> Miqrasiya: yalnız **0063** (`alert_state` həll sütunları). **Əlavəedicidir və api image-dən ƏVVƏL
+> tətbiq oluna bilər** — işləyən image `alert_state`-ə açıq sütun siyahısı ilə insert/select edir,
+> ona görə yeni sütunları nə yazır, nə oxuyur; default-lar sabitdir, cədvəl yenidən yazılmır.
+> ⚠️ **`.env` DƏYİŞİKLİYİ VAR** (`LLM_PROVIDER`, `LLM_MODEL`, `VISION_PROVIDER`, `DEEPSEEK_API_KEY`,
+> `GEMINI_API_KEY`). `docker restart` **kifayət etmir** — `api` env-i `env_file:` ilə alır və o,
+> konteyner **yaradılanda** tətbiq olunur. **Konteyner yenidən yaradılmalıdır → `bash deploy/update.sh`.**
+> ⚠️ **Yeni cron sətri:** `20 4 * * * cd /opt/bagbanai && flock -n /tmp/bagban-wellness.lock bash
+> deploy/refresh-wellness.sh >> /var/log/bagban-wellness.log 2>&1`.
+> Bu buraxılışın commit-ləri (köhnədən yeniyə): `580c22c` altı bölmə + mövsüm xülasəsi · `a08e937` mövsüm promptu daxili sahə adı sızdırırdı · `b4a9554` skautinq kateqoriyası xam açar çap edirdi · `62c770f` DeepSeek + Gemini + 0063 xəbərdarlıq həlli · `febb7e3` və `1409897` düşünmə tələləri · `f6fc83b` «hər səhnədən sonra» → 15 günlük throttle · `9ff20e7` mənbəsiz araşdırma bayrağı · `8247b39` son-ehtiyat model adı.
+
+### Changed — AI mühərriki
+
+- **Mətn DeepSeek-ə, görmə Gemini-yə keçdi (sahibin qərarı).** `.env`-də `LLM_PROVIDER=deepseek`,
+  `LLM_MODEL=deepseek-v4-flash`, `VISION_PROVIDER=gemini`; `config.py` default-ları **qəsdən eyni
+  dəyərlərdir**, çünki məxfilik səhifəsi web image-ə bişirilmiş **statik mətndir** və orada iki
+  subprosessor adlanır — kod default-u `anthropic`-də qalsaydı, image çıxıb `.env` redaktə olunmayan
+  hər pəncərədə (o cümlədən nasaz `.env` `update.sh`-i konteyner əvəz etmədən dayandıranda) fermer
+  datası artıq adı çəkilməyən emalçıya gedərdi. **Sönmüş AI dürüst görünüb yalan olan bildirişdən
+  kiçik nasazlıqdır.**
+- **`ai/llm.py` yenidən yazıldı** — çağıran imzaları toxunulmadan: model-prefiksinə görə marşrut
+  (`claude-`/`deepseek`/`gemini` → provayder; **elan olunmuş** provaydere görə yox, ona görə tier
+  override-i yanlış vendora POST edə bilmir), **provayder-başına açar və çarpaz fallback YOX**, ayrı
+  `is_configured()`/`vision_available()`, açıq httpx timeout-ları və kor backoff (bu API rate-limit
+  başlığı dərc etmir).
+- **Struktur çıxış STATİSTİKDİR, sxem məcburiyyəti yoxdur** → hər strukturlu yol məcburi tool
+  çağırışı → JSON parse → Pydantic validate → **məhdud repair retry**-dir, həm cəhd sayı, həm
+  **divar-saatı büdcəsi** ilə kəsilir (fermer o biri ucda gözləyir). `finish_reason == "length"`
+  **heç vaxt parse edilmir** — səssiz kəsilmə bu API-nin default nasazlıq rejimidir və kəsilmiş JSON
+  opsional sahəli sxemi ötə bilər. Yeni `LLMInvalidOutput` və `LLMTruncated`, **hər ikisi
+  `LLMUnavailable`-dan törəyir**: qardaş exception mövcud handler-lərdən qaçıb 500 olardı.
+- **Ölçülmüş xərc, eyni kod və eyni sahələr üzərində:** advice **$0.05360 (Opus) → $0.00089
+  (v4-flash) = 60× ucuz** · chat **$0.04432 → $0.00105 = 42× ucuz** · chat gecikməsi
+  **20.3s → 5.2s**.
+- **`tiers.py`-dəki per-tier `model` açarı SİLİNDİ.** O, keyfiyyəti pulla almaq üçün vardı (Pro
+  sonnet, Business opus); indi hər mətn yolu tək modeldədir və v4-pro bizim promptlarda **eyni bal
+  yığıb 4-5× yavaş** işləyir, yəni satılacaq daha yaxşı model yoxdur. `model_for()` `None` qaytarır
+  = «`LLM_MODEL` nə deyirsə». Tier dict yenidən `model` qoya bilər və yenə qalib gəlir — **qapıdır,
+  bəzək deyil**.
+- **Web araşdırma** DeepSeek-in Anthropic-uyğun endpoint-i ilə işləyir və yalnız **səhifə
+  səviyyəsində mənbə** qaytarır — **iddia-başına sitat artıq yoxdur**.
+- **Məxfilik səhifələri 9 dilin hamısında** iki subprosessoru adı ilə sadalayır, emal ölkəsini yazır,
+  **heç bir fotonun DeepSeek-ə getmədiyini** deyir və üçüncü-ölkə ötürməsi qeydini xülasə qutusunda
+  daşıyır.
+
+### Fixed — kritik (hamısı canlıda tapıldı)
+
+- **DeepSeek-də iki reasoning tələsi.** Reasoning **default AÇIQdır**, ona görə (1) məcburi tool
+  çağırışı `HTTP 400 "Thinking mode does not support this tool_choice"` qaytarırdı və (2) düz mətndə
+  düşüncə tokenləri **completion büdcəsindən** yeyilir — chat prompt-u `finish_reason=length`-ə
+  çatıb **503** verirdi. İndi **hər DeepSeek çağırışında açıq söndürülür**; opt-in
+  `DEEPSEEK_THINKING` (default false).
+- **DeepSeek heç bir endpoint-də şəkil qəbul etmir.** Native `/chat/completions` `image_url`-u
+  **HTTP 400** ilə rədd edir; Anthropic-uyğun endpoint isə bloku **qəbul edir, HTTP 200 qaytarır və
+  yerinə hərfi `"[Unsupported Image]"` qoyur** — yəni yaşıl deploy, ölü funksiya və tapılacaq xəta
+  yoxdur. `complete_vision_structured` deepseek üçün **bağlantı açmadan** atır. Gemini canlı
+  doğrulandı: `gemini-flash-latest` və `gemini-3.6-flash` sxemə və enum-a əməl edir;
+  `gemini-2.5-flash` və `gemini-3.1-pro` bu hesabda **404**.
+- **Avtomatik foto etiketləmə satılan diaqnoz kvotasını yeyirdi.** O, **HƏR yükləmədə**, tier
+  yoxlaması olmadan işləyirdi və `kind="photo"` yazırdı — **ödənişli diaqnozun gate olduğu eyni
+  sayğac**. Nəticə iki tərəfli idi: qalereyanı doldurmaq qiymət səhifəsinin satdığı **30 diaqnozu**
+  xərcləyirdi, free/pro-da isə limit 0 olduğu halda çağırış yenə işləyir və yenə pul yeyirdi. Bir
+  sayğac eyni anda **satılan funksiyanı ölçə** və **avtomatik yan təsiri uda** bilməz. İndi öz limiti
+  (`photo_label_per_month`, Business **60**) və öz kind-i var; `/soil-lab` **`soil_lab_per_month`**
+  aldı (Business **10** — əvvəl **limitsiz** idi); **üç görmə route-u da `vision_available()`-ə**
+  gate olunur (`is_configured()` DEYİL — mətn provayderi qoşuludur, şəkil qəbul etmir). **Nasazlıq da
+  görünməz idi:** `except Exception: pass` — tam görmə kəsintisi heç nə yükləməyən fermerlə **eyni
+  görünürdü**. İndi udma getdi: `LLMUnavailable` ayrıca tutulur, qalan hər şey `log.exception`-a
+  düşür. Ölümcül OLMAMAĞI **qəsdən saxlanıldı** — fermer şəkli saxlamaq istəyir, etiketi yox.
+- **Sağlamlıq skoru iki fərqli rəqəm verirdi.** Sahə səhifəsi skoru **baxışda** hesablayıb saxlayır,
+  siyahı isə **saxlanmış son sətri** oxuyur — canlıda bir sahə eyni anda siyahıya **89**, öz
+  səhifəsinə **70** verirdi (89 iki günlük idi). Yeni `deploy/refresh-wellness.sh` (cron
+  `20 4 * * *` = 08:20 Bakı, peykdən və hava+GDD-dən sonra) gündəlik süpürür. Gündəlikdir, səhnə
+  başına deyil: su komponenti FAO-56 depletion-u, GDD komponenti temperatur seriyasını izləyir —
+  hər ikisi hava dəyişən hər gün tərpənir, sahə isə iki həftə yararlı səhnəsiz qala bilər.
+- **Mesaj sıralamasının determinist tiebreak-i.** Sual və cavab `created_at`-i **mikrosaniyəyə
+  qədər** paylaşa bilir; `order by created_at, (role = …) desc` ilə cüt həmişə eyni sıra ilə oxunur.
+- **Məhsul açarları iki yerdə xam i18n açarı kimi sızırdı.**
+
+### Added
+
+- **Xəbərdarlıq bağlana bilir (migration 0063).** `alert_state.active` (0016) **hər atəşdə true
+  olurdu, heç vaxt geri qayıtmırdı və heç bir oxucu onu seçmirdi** — yəni platforma «bu qayda
+  atəşləndimi» sualına cavab verirdi, «bu şərt hələ də doğrudurmu» sualına yox. Məhz buna görə
+  dashboard plitəsi «Yeni xəbərdarlıq» adlandırılıb **oxunmamış bildirişlərə** yönəldilmişdi — fermer
+  onu zəngə bir baxışla təmizləyir, istilik və aşağı nəmlik isə altda atəşlənməyə davam edir.
+  0063 əlavə edir: `last_match_at` · `last_clear_at` · `clear_streak` · `resolved_at` · `source`.
+  Qiymətləndirmənin **üç nəticəsi** var, və həll üçün **STREAK lazımdır**
+  (`CLEAR_STREAK_TO_RESOLVE = 2`), tək təmiz baxış yox — sərhəddə salınan hədd nişanı
+  yandırıb-söndürə bilməsin. `last_match_at` bildiriş saxlanılanda da (sakit saat, cooldown, mute)
+  irəliləyir və qəsdən `last_fired_at` DEYİL.
+  ⚠️ **YÜK DAŞIYAN QAYDA — SÜBUTUN YOXLUĞU HƏLL DEYİL:** mühərrikin **qiymətləndirə bilmədiyi**
+  qayda (səhnə yox, proqnoz yox, emal olunmamış sahə) **toxunulmadan** qalır — nə təsdiqlənir, nə
+  həll olunur. Backfill **qəsdən yoxdur**; mövcud sətirlərin hamısı `unconfirmed`-ə düşür, çünki
+  dürüst oxunuş budur. Yeni `routers/notifications.py` → `GET /api/alerts/summary[?org_id=]` açıq
+  xəbərdarlıqların oxu modelidir: **çağırış başına bir aqreqat sorğu**, sahə-başına fan-out yoxdur.
+  Canlı doğrulandı: bir run **evaluated 6, cleared 1, resolved 0** bildirdi və qiymətləndirilə
+  bilməyən sətirlərə toxunmadı.
+- **Mövsüm AI xülasəsi** (`ai/season_summary.py`, `SeasonSummaryCard.tsx`,
+  `GET/POST /api/fields/{id}/season-summary[/generate]`). Girişi `public.field_season_features`
+  (T16 / 0028) — advice-dən fərqli sual, fərqli data, fərqli nasazlıq rejimi, və nasazlıq rejimi bu
+  funksiyanın bütün dizayn problemidir. **Əksər sahədə bir mövsüm var** (yeni sahə ~60 gün geri emal
+  olunur), «keçən illərlə müqayisə et» isə orada çətin sual deyil, **mümkünsüz** sualdır — model
+  yenə cavab verir, **müqayisə qrammatikasında**, fermer isə oradan mövcud olmayan trend oxuyur.
+  Ona görə dörd rejim: `none` və `single` **LLM çağırmır** (proza nə generasiya olunur, nə saxlanılır,
+  yəni ikinci mövsümü ima edə biləcək cümlə mövcud olmur; UI backfill kartına — cavabı dəyişən
+  YEGANƏ hərəkətə — işarə edir) · `pair` fərqə icazə verir, **trend/tendensiya dilini qadağan edir**
+  (iki nöqtə fərqdir, istiqamət deyil) · `multi` (3+) hər ikisinə icazə verir.
+  ⚠️ **Cari mövsüm konstruksiyaya görə yarımçıqdır** — inteqralı, GDD-si və yağıntısı bu günə qədər
+  yığılır, yəni bitmiş mövsümdən **sırf arifmetik səbəbdən** kiçikdir; bu, funksiyanın ən asan
+  yanlış cümləsidir, ona görə **iki dəfə** deyilir: faktlarda (`partial`, `through_doy`) və ayrıca
+  prompt qaydası kimi. Keş `public.field_knowledge`, `block_type='season_summary'`, `input_hash`
+  ilə — **miqrasiya lazım deyil** və **GET heç vaxt LLM xərcləmir**. Kvota advice büdcəsinə qatılır
+  (`kind='advice'`): ayrıca kind eyni çağırışlar üçün **ikinci, icra olunmayan büdcə** olardı.
+  ⚠️ `field_season_features` əvvəllər yalnız **cari ili** saxlayırdı (aylıq cron yalnız onu
+  hesablayır) — **2021-2025 əl ilə** `POST /api/internal/season/compute?season_year=YYYY` ilə
+  dolduruldu; istinad sahə «fındıq bağım» indi altı mövsüm daşıyır və **2022 gözlə görünən pis
+  ildir** (inteqral **81.6** vs ~200).
+- **`GET /api/chat/directory`** — kimə yazmaq olar. **Təchizatçılar `users`-dən ROLA görə gəlir**,
+  `provider_profiles`-a **LEFT JOIN** ilə: həmin cədvəldə istehsalatda **sıfır sətir** var, halbuki
+  altı lab/konsultant/təchizatçı hesabı mövcuddur — yalnız profildən oxumaq **boş ekran** deploy
+  etmək olardı. Fermerlər caller-in **öz məhsul və regionlarına** scope olunur, hər ad
+  `display.public_display_name`-dən keçir, və fermer yarısı **caller-in fermer olmasına**
+  gate-lənir — əks halda təchizatçı öz qeydiyyat regionundakı fermerləri sadalaya bilərdi.
+
+### Changed — məhsul
+
+- **`/chat` hər yerdə «Mesajlar»** (əvvəl «İcma»). Açar adları qəsdən saxlanıldı
+  (`nav.community`, `app.shell.appRail.community`) — açarın adını dəyişmək 9 lüğəti təmiz qazanc
+  olmadan tərpətmək olardı.
+- **Agradex AI SİNTETİK sancılmış söhbətdir.** `public.users`-də sətri **yoxdur və olmamalıdır**:
+  real sətir bu kataloqda görünərdi, yad adamlar ona yaza bilərdi, email və parol hash-ı istəyərdi
+  və hər istifadəçi statistikasına düşərdi — bir prompt üçün. `public.conversations`-da da sətri
+  yoxdur, çünki `_assert_participant` caller-in `a_user_id`/`b_user_id` olduğunu yoxlayır və
+  assistent heç biri deyil — guard-ı **boşaltmaq** lazım gələrdi. Əvəzinə API assistenti *təsvir
+  edir* (`GET /chat/assistant`), klient isə onu adi sap kimi sancır. **`ASSISTANT_ID` uuid deyil**,
+  ona görə heç vaxt real hesaba ünvanlana bilməz. Transkript **eyni `public.ai_chat_messages`**
+  sətirlərindədir və **SAHƏYƏ görə** açarlanır, ona görə hər assistent route-u yolda `field_id`
+  daşıyır: sahə konteksti olmayan AI söhbəti sadəcə ümumi chatbot olardı.
+- **Advice seçimi dil-şüurludur.** `GET /advice` artıq **oxucunun dilindəki ən yeni sətri** seçir —
+  «ən yeni sətir qalib gəlir» qaydası bir i18n test run-ı üç dəqiqə ərzində bir sahəyə **yeddi dildə
+  yeddi analiz** yazandan sonra əvəz olundu. Həmin dildə sətir yoxdursa yad dildəkinə düşür,
+  `lang_mismatch` qalır və `newer_other` göstərmədiyimiz daha yeni analizin tarixini/dilini daşıyır.
+  Ən yeni sətir onsuz da oxucunun dilindədirsə **ikinci sorğu getmir**. Eyni tərcih `ai/context.py`,
+  `ai/chat.py` və həftəlik digest-dədir.
+- **Qiymət səhifəsi kodun saxladığını satır.** Beş ödənişli vəd silindi: **email və WhatsApp**
+  bildiriş pillələri (belə kanal **yoxdur** — `messaging/` yalnız `telegram.py` saxlayır), **çiləmə
+  pəncərəsi** və **suvarma balansı** (hər ikisi **pulsuzdur** — `knowledge.py` sahibin tarixli
+  qərarını daşıyır, `/water-balance` yalnız `require_member`-dir), və **«+ NDRE / CIre»** (indekslər
+  heç yerdə gate olunmur). Güzgü səhvi də düzəldildi: **foto diaqnoz, gübrə kalkulyatoru, regional
+  benchmark və zərərverici pasportu canlı olduğu halda «tezliklə»** yazılırdı. `tiers.py` beş ölü
+  bayrağı itirdi və test docstring-in içinə yazıldı: **bayrağın adı ilə `allows(` axtar** — heç bir
+  çağırış yerinin soruşmadığı bayraq yumşaq gate deyil, marketinq mətninin nə vaxtsa fakt sanacağı
+  **bəzəkdir**.
+- **Marketinq mətni artıq təsərrüfat dəftərini vəd etmir** (9 yerdə) və **«hər yeni peyk səhnəsindən
+  sonra»** ifadəsi real **15 günlük throttle**-a düzəldildi.
+
+### Removed — sahə səhifəsinin ikinci kəsimi (sahibin qərarı)
+
+> **16 → 12 → 10 bölmə.** Qalan taksonomiya: **Monitorinq** (status · satellite · analysis ·
+> weather) · **İşlər** (fertilizer · photos · scouting) · **Qeydlər** (season · soil · metadata).
+
+- **Sahə daxilindəki AI composer-i** — söhbət `/chat`-ə köçdü (sancılmış «Agradex AI» sapı + sahə
+  seçici, **eyni `public.ai_chat_messages` üzərində**); «Sahə analizi» indi ora **link verir**
+  (`/chat?ai=<fieldId>`). Bir söhbəti iki composer-də təklif etmək lazımsız idi.
+- **İki hava bloku** — əl ilə yağış jurnalı («Yağış yağdı → neçə mm?») və illər-arası yağıntı
+  qrafiki. `routers/weather_history.py`-dən `/rain`, `/weather/yearly`, `/weather/backfill` çıxdı;
+  **`/frost-dates` QALIR**.
+- **Skautinq XƏRİTƏSİ** — qeyd forması, qeyd siyahısı və **geolokasiya ilə koordinat tutan düymə**
+  qalır (o, xəritə deyil: sahədə dayanan fermer üçün bir toxunuş). Saxlanmış pinlərə toxunulmayıb.
+- **ƏMƏLİYYATLAR bölməsi tamamilə**, `routers/mgmt.py` ilə birlikdə; son yazıcısı
+  **`POST /api/bulk/operations`** da getdi — `BulkActions`-da yalnız toplu **məhsul** əməliyyatı
+  qaldı. ⚠️ Bu, `81660df`-in «operations AI girişidir, ona görə QALIR» qərarını **əvəz edir**.
+- **SƏNƏDLƏR bölməsi tamamilə**; `routers/documents.py` **sağ qalıb, tək route-a qədər soyulub** —
+  `GET /api/photos/{id}/download`, çünki `PhotosTab` hər miniatürü ondan render edir və modulu bütöv
+  silmək foto bölməsini sındırardı. Fayl adı qəsdən dəyişmədi (`main.py` və işləyən konteyner
+  `routers.documents` import edir). `ai/receipt.py` silindi.
+- ⚠️ **CƏDVƏLLƏR DROP EDİLMƏYİB, MİQRASİYA YOXDUR** — `public.field_operations`,
+  `public.field_documents`, `public.field_rain_log` yerindədir; yüklənmiş hər lab hesabatı, kadastr
+  çıxarışı, müqavilə və qəbz hələ diskdə və cədvəldədir. **Subsidiya kalkulyatoru və ERP kəsimi ilə
+  eyni naxış** — data yatmış və geri-qaytarıla bilən qalır. Geri açmaq **endpoint-ləri köhnə adları
+  ilə bərpa etməkdir, miqrasiya deyil**. (`public.field_weather_daily` bu siyahıda **DEYİL** — onu
+  hələ `ai/season.py` oxuyur.)
+- **Köhnə `?tab=` link-i sınmır, xəbərdarlıq da vermir:** `?tab=operations`/`?tab=documents`
+  **səssizcə** «Sahənin vəziyyəti»ni açır (`resolveSection()` tanımadığı dəyəri `DEFAULT_SECTION`-a
+  salır) — alias cədvəli **qəsdən yoxdur**.
+
+### Bilinən açıq işlər
+
+- **Web araşdırmada iddia-başına sitat yoxdur** — DeepSeek yalnız səhifə səviyyəsində mənbə qaytarır.
+- **Üç nəsil dormant cədvəl** (subsidiya → ERP → bu kəsim) qərar gözləyir → ROADMAP **T35 + T36**.
+  `field_documents` sətirlərinin arxasında **diskdə real fayllar** durur, ona görə «drop» variantı
+  fayl təmizliyini də əhatə edir.
+- **Köhnə Anthropic açarı hələ etibarlıdır və artıq heç nəyi qorumur** — məhsul onu işlətmir, yəni
+  task **rotate deyil, revoke**-dur (ROADMAP U2).
+- **Toxun-və-tap 45–60 s** — dəyişmədi; kök səbəb `segment.py`-də sənədləşdirilib, çöl testi gözləyir.
+
 ## [1.18.0] — 2026-07-31 — OneSoil korpus analizi: peyk OOM-i, çap hesabatı, keçid təqvimi, sahə-səviyyəli paylaşım
 
 > Mənbə: `becc1f1..7eff57f` (33 commit, 129 fayl, +7279/−2331). Miqrasiyalar **0057–0061**.
