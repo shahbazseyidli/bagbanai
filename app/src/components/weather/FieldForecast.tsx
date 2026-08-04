@@ -5,7 +5,7 @@
 // SOURCE — the keyless Open-Meteo `forecast` endpoint at the FIELD CENTROID, which is exactly the
 // call components/home/WeatherBar and the public landing hero already make, widened to hourly and
 // daily. No new dependency, no new secret, no backend change: I read every router first and there is
-// no hourly/daily endpoint of ours to use instead — only rain-nowcast, frost-dates, weather/yearly
+// no hourly/daily endpoint of ours to use instead — only rain-nowcast, frost-dates, frost-dates
 // and rain exist, and none of them answers "what is the temperature this afternoon".
 //
 // NOTHING HERE IS INVENTED. A variable Open-Meteo omits renders an em-dash carrying the reason as a

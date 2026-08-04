@@ -86,8 +86,8 @@ export const privacyPl: PrivacyDoc = {
             "Granica pola narysowana na mapie i jego powierzchnia (w bazie zawsze w hektarach — wybór jednostki wpływa tylko na wyświetlanie).",
             "Nazwy pola, gospodarstwa i organizacji.",
             "Karta pola: uprawa, odmiana, daty siewu i zbioru, typ gleby i pH, sposób nawadniania, faza rozwojowa, przedplon, notatki.",
-            "Obserwacje z lustracji, przesłane zdjęcia, zabiegi polowe, zapisy plonów, zadania i sezony.",
-            "Wpisy księgi, sprzedaży, magazynu i maszyn oraz przesłane dokumenty.",
+            "Obserwacje z lustracji, przesłane zdjęcia i sezony.",
+            "Starsze zapisy, których już nie zbieramy, ale przechowujemy: zabiegi polowe, zapisy plonów, zadania, wpisy księgi, sprzedaży, magazynu i maszyn oraz wcześniej przesłane dokumenty. Te sekcje usunięto z produktu; Twoje zapisy nie zostały skasowane i są anonimizowane wraz z resztą przy zamknięciu konta.",
             "Laboratoryjne analizy gleby — przesłany skan i odczytane z niego przez OCR wartości.",
           ],
         },
@@ -150,7 +150,7 @@ export const privacyPl: PrivacyDoc = {
               v:
                 "Porada SI, czat, diagnoza ze zdjęcia i warstwa badawcza. Co wychodzi: nazwa " +
                 "pola, powierzchnia, karta uprawy (wraz z notatkami), trendy wskaźników, pogoda, " +
-                "ostatnie obserwacje, zabiegi, otwarte zadania, ostatnie zapisy plonów, " +
+                "ostatnie obserwacje, zabiegi, " +
                 "streszczenie poprzedniej porady, ostatnie tury czatu oraz zdjęcie wysłane do " +
                 "diagnozy. Co nie wychodzi: e-mail, nazwisko, skrót hasła.",
             },

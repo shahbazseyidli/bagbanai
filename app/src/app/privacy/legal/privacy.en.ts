@@ -85,8 +85,8 @@ export const privacyEn: PrivacyDoc = {
             "The field boundary drawn on the map and its area (always stored in hectares — the unit setting only affects display).",
             "Field, farm and organisation names.",
             "The field passport: crop, variety, planting and harvest dates, soil type and pH, irrigation method, growth stage, previous crop, free-text notes.",
-            "Scouting observations, photos you upload, field operations, yield records, tasks and seasons.",
-            "Ledger, sales, inventory and equipment rows, and documents you upload.",
+            "Scouting observations, photos you upload, and seasons.",
+            "Older records we no longer collect but still store: field operations, yield records, tasks, ledger/sales/inventory/equipment rows and documents you uploaded previously. Those sections were removed from the product; your existing records were not deleted, and they are anonymised with the rest when you close your account.",
             "Soil laboratory analyses — the scan you upload and the values read out of it by OCR.",
           ],
         },
@@ -147,7 +147,7 @@ export const privacyEn: PrivacyDoc = {
               v:
                 "AI advice, chat, photo diagnosis and the research layer. What goes: field name, " +
                 "area, crop passport (including notes), index trends, weather, recent scouting " +
-                "notes, operations, open tasks, recent yield records, a summary of the previous " +
+                "notes, operations, a summary of the previous " +
                 "advice, the last chat turns, and the photo you send for diagnosis. What does " +
                 "not: your email, your name, your password hash.",
             },

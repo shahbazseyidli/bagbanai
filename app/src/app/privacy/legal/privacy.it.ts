@@ -87,8 +87,8 @@ export const privacyIt: PrivacyDoc = {
             "Il confine del campo disegnato sulla mappa e la sua superficie (nel database sempre in ettari — la scelta dell'unità riguarda solo la visualizzazione).",
             "Nomi di campo, azienda e organizzazione.",
             "La scheda del campo: coltura, varietà, date di semina e raccolta, tipo di suolo e pH, metodo di irrigazione, fase fenologica, coltura precedente, note libere.",
-            "Osservazioni di scouting, foto caricate, operazioni colturali, registrazioni di resa, attività e stagioni.",
-            "Righe di registro, vendite, magazzino e macchine, e i documenti che carichi.",
+            "Osservazioni di scouting, foto che carichi e stagioni.",
+            "Dati più vecchi che non raccogliamo più ma conserviamo: operazioni di campo, registrazioni di resa, attività, righe di registro/vendite/magazzino/attrezzature e documenti caricati in precedenza. Quelle sezioni sono state rimosse dal prodotto; i tuoi dati esistenti non sono stati cancellati e vengono anonimizzati con gli altri alla chiusura dell'account.",
             "Analisi di laboratorio del suolo — la scansione caricata e i valori letti da essa tramite OCR.",
           ],
         },
@@ -150,8 +150,8 @@ export const privacyIt: PrivacyDoc = {
               v:
                 "Consiglio dell'IA, chat, diagnosi da foto e livello di ricerca. Che cosa parte: " +
                 "nome del campo, superficie, scheda della coltura (note comprese), andamento " +
-                "degli indici, meteo, ultime osservazioni, operazioni, attività aperte, ultime " +
-                "rese, sintesi del consiglio precedente, ultimi turni di chat e la foto che invii " +
+                "degli indici, meteo, ultime osservazioni, operazioni, " +
+                "sintesi del consiglio precedente, ultimi turni di chat e la foto che invii " +
                 "per la diagnosi. Che cosa non parte: email, nome, hash della password.",
             },
             {

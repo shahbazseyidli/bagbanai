@@ -1,16 +1,20 @@
 "use client";
 
-// Scouting notes, and their pins on the field map (6.5).
+// Scouting notes — two blocks: write a note, and read the notes already written.
 //
-// The map is NOT in this file. FieldMapCard is mounted by the field page, above the section nav,
-// so that it survives a section change; this tab reaches it through the `map` bridge the page
-// hands down (scouting/useScoutMap.ts). Building a second MapLibre map here would put two WebGL
-// contexts on a phone to show one field.
+// THE MAP IS GONE (owner decision, 2026-08-04). What went with it: the pin layer on FieldMapCard,
+// the "pick the spot on the map" reticle and its placement bar, the "show on the map" jump from a
+// note, and the bridge hook that carried all three up to the field page.
+//
+// THE PIN DATA DID NOT GO. Migration 0054's scouting_observations.lat/lon columns, every coordinate
+// already stored and the colour on each row are untouched: the list still prints a note's
+// coordinates and still draws its colour dot, and a NEW note can still carry a coordinate — the
+// geolocation button below is not a map, it is one tap for a farmer standing on the spot. Editing a
+// note through ScoutNoteSheet leaves lat/lon alone as it always did; nothing here ever clears them.
 //
 // The add-form is kept as it was, deliberately: it carries the offline outbox path (T12), which is
-// the one write in this section that works with no signal, and rewriting it would have been the
-// largest and least necessary part of this change.
-import { useEffect, useRef, useState } from "react";
+// the one write in this section that works with no signal.
+import { useEffect, useState } from "react";
 import { MapPin, Plus } from "lucide-react";
 import { api, apiAsset, azError } from "@/lib/api";
 import { t, tf, type I18nKey } from "@/lib/i18n";
@@ -18,9 +22,7 @@ import { ErrorNote, Field as FormField, Placeholder } from "@/components/ui";
 import PhotoInput from "@/components/field/PhotoInput";
 import PinPicker from "@/components/field/scouting/PinPicker";
 import ScoutNoteSheet from "@/components/field/scouting/ScoutNoteSheet";
-import ScoutPlacementBar from "@/components/field/scouting/ScoutPlacementBar";
-import { DEFAULT_PIN_COLOR, isResolved, pinHex, toMapPins } from "@/components/field/scouting/pins";
-import type { ScoutMap } from "@/components/field/scouting/useScoutMap";
+import { DEFAULT_PIN_COLOR, isResolved, pinHex } from "@/components/field/scouting/pins";
 import { queueScouting, flushQueue } from "@/lib/offlineQueue";
 import type { Scouting } from "@/lib/types";
 
@@ -30,7 +32,7 @@ function catLabel(c: string): string {
   return t(`scout.cat.${c}` as I18nKey);
 }
 
-export default function ScoutingTab({ fieldId, map }: { fieldId: string; map?: ScoutMap }) {
+export default function ScoutingTab({ fieldId }: { fieldId: string }) {
   const [items, setItems] = useState<Scouting[]>([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -44,13 +46,8 @@ export default function ScoutingTab({ fieldId, map }: { fieldId: string; map?: S
   const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
   const [geoErr, setGeoErr] = useState("");
   const [offlineMsg, setOfflineMsg] = useState("");
-  // ONE flag for the list and the map. Two independent filters would let the two surfaces disagree
-  // about what is on screen, and nothing tells the farmer which of them is lying.
   const [showResolved, setShowResolved] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-
-  const hasMap = !!map?.present;
-  const placing = !!map?.placing;
 
   async function load() {
     try {
@@ -76,54 +73,6 @@ export default function ScoutingTab({ fieldId, map }: { fieldId: string; map?: S
     return () => window.removeEventListener("online", flush);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fieldId]);
-
-  // --- the map bridge ---------------------------------------------------------
-  // Held through refs so the unmount cleanup below can reach the setters without listing the whole
-  // bridge as a dependency (which would re-run it on every centre report while placing).
-  const bridgeRef = useRef<ScoutMap | undefined>(map);
-  bridgeRef.current = map;
-
-  useEffect(() => {
-    bridgeRef.current?.setPins(toMapPins(items, showResolved));
-  }, [items, showResolved]);
-
-  // Leaving the section must take the pins and the placement mode with it: the card stays mounted
-  // across a section change, so anything left behind would be drawn over "Gübrə" or "Tapşırıqlar".
-  useEffect(() => {
-    return () => {
-      bridgeRef.current?.setPins([]);
-      bridgeRef.current?.setPlacing(false);
-    };
-  }, []);
-
-  // A pin tap opens that note. `seq` is in the dependency list so a second tap on the SAME pin,
-  // after the panel was closed, opens it again.
-  const tappedId = map?.tapped?.id;
-  const tappedSeq = map?.tapped?.seq;
-  useEffect(() => {
-    if (!tappedId) return;
-    setSelectedId(tappedId);
-    bridgeRef.current?.clearTapped();
-  }, [tappedId, tappedSeq]);
-
-  function showOnMap(lon: number, lat: number) {
-    bridgeRef.current?.focus(lon, lat);
-  }
-
-  function startPlacing() {
-    setGeoErr("");
-    bridgeRef.current?.setPlacing(true);
-    // The reticle is on the card at the TOP of the page; this button is a screen and a half below
-    // it. Without this the farmer taps "place on map" and nothing visible happens. Same pattern the
-    // camera FAB already uses to reach #photo-diagnose.
-    document.getElementById("field-map-card")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
-  function confirmPlacement() {
-    const c = bridgeRef.current?.center;
-    if (c) setCoords({ lat: c.lat, lon: c.lng });
-    bridgeRef.current?.setPlacing(false);
-  }
 
   // --- the add form -----------------------------------------------------------
 
@@ -193,20 +142,10 @@ export default function ScoutingTab({ fieldId, map }: { fieldId: string; map?: S
 
   const openCount = items.filter((s) => !isResolved(s)).length;
   const visible = showResolved ? items : items.filter((s) => !isResolved(s));
-  const pinned = toMapPins(items, showResolved).length;
   const selected = selectedId ? items.find((s) => s.id === selectedId) ?? null : null;
 
   return (
     <div className="space-y-6">
-      {/* Placement bar first, because it belongs to the map directly above it. */}
-      {hasMap && placing && (
-        <ScoutPlacementBar
-          center={map?.center ?? null}
-          onConfirm={confirmPlacement}
-          onCancel={() => bridgeRef.current?.setPlacing(false)}
-        />
-      )}
-
       {/* `selected` is derived from `items`, never copied out of it: a deleted note disappears from
           the list on the next load and takes the panel with it, and an edited one re-renders with
           the saved values — neither needs a second code path here. */}
@@ -218,14 +157,7 @@ export default function ScoutingTab({ fieldId, map }: { fieldId: string; map?: S
             setFlash(message);
             void load();
           }}
-          onShowOnMap={hasMap ? showOnMap : undefined}
         />
-      )}
-
-      {hasMap && (
-        <p className="text-xs text-slate-500">
-          {pinned > 0 ? t("app.field.scouting.legend") : t("app.field.scouting.mapEmpty")}
-        </p>
       )}
 
       <form onSubmit={onSubmit} className="card space-y-3">
@@ -256,23 +188,11 @@ export default function ScoutingTab({ fieldId, map }: { fieldId: string; map?: S
           </FormField>
           <div>
             <label className="label">&nbsp;</label>
-            {/* Two ways to put a note on the ground, and they are not redundant: geolocation is the
-                one-tap path for a farmer standing on the spot, the reticle is for the note written
-                back at the house about a corner they walked past this morning. */}
+            {/* The one remaining way to put a note on the ground, and the one that never needed a
+                map: the farmer is standing on the spot. */}
             <button type="button" className="btn-secondary w-full" onClick={useGeolocation}>
               <MapPin className="h-4 w-4" /> {t("scout.geo")}
             </button>
-            {hasMap && (
-              <button
-                type="button"
-                className="btn-secondary mt-2 w-full"
-                onClick={startPlacing}
-                disabled={placing}
-              >
-                <MapPin className="h-4 w-4" />{" "}
-                {coords ? t("app.field.scouting.placeChange") : t("app.field.scouting.place")}
-              </button>
-            )}
             {coords && (
               <div className="mt-1 flex flex-wrap items-center gap-2">
                 <p className="text-xs tabular-nums text-slate-500">
@@ -286,6 +206,8 @@ export default function ScoutingTab({ fieldId, map }: { fieldId: string; map?: S
                   onClick={() => setCoords(null)}
                   className="min-h-9 text-xs font-medium text-slate-500 hover:text-slate-700"
                 >
+                  {/* placeClear ("Remove the spot") survives the map removal — it clears the
+                      coordinate the geolocation button captured, which is still a real action. */}
                   {t("app.field.scouting.placeClear")}
                 </button>
               </div>
@@ -336,7 +258,8 @@ export default function ScoutingTab({ fieldId, map }: { fieldId: string; map?: S
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       {/* The dot is the list's half of the colour code: a farmer who paints
-                          irrigation blue has to be able to read that back without the map. */}
+                          irrigation blue has to be able to read that back — and with the map gone,
+                          this is now the ONLY place the colour is visible. */}
                       <span
                         className="h-3 w-3 shrink-0 rounded-full ring-1 ring-black/15"
                         style={{ background: pinHex(s.color) }}
@@ -367,15 +290,6 @@ export default function ScoutingTab({ fieldId, map }: { fieldId: string; map?: S
                       >
                         {t("app.field.scouting.edit")}
                       </button>
-                      {hasMap && s.lat != null && s.lon != null && (
-                        <button
-                          type="button"
-                          onClick={() => showOnMap(s.lon as number, s.lat as number)}
-                          className="min-h-9 text-xs font-semibold text-emerald-700 hover:underline"
-                        >
-                          {t("app.field.scouting.showOnMap")}
-                        </button>
-                      )}
                     </div>
                   </div>
                   {s.photos && s.photos.length > 0 && (

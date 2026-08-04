@@ -191,16 +191,11 @@ export interface Scouting {
   resolved_at?: string | null;
 }
 
-/** One pin on the field map. The hex is already resolved — FieldMapCard/DisplayMap never map a
- *  colour name to a colour. */
-export interface MapPin {
-  id: string;
-  lng: number;
-  lat: number;
-  color: string;
-  /** Faded rendering (a resolved note). Still tappable. */
-  dim?: boolean;
-}
+// MapPin lived here: one point on the field map, with its colour already resolved to a hex. Its
+// only two consumers were DisplayMap's `pins` prop and FieldMapCard's pass-through of it, and both
+// went with the scouting map on 2026-08-04. `Scouting.color` (above) still carries the colour NAME
+// — scouting/pins.ts maps it to a hex for the note list, which is now the only place a pin colour
+// is painted.
 
 export interface Task {
   id: string;
@@ -216,33 +211,11 @@ export interface Task {
   notes?: string | null;
 }
 
-export interface Operation {
-  id: string;
-  field_id: string;
-  type: string;
-  performed_on: string;
-  inputs?: Array<Record<string, unknown>> | null;
-  cost?: number | null;
-  currency?: string | null;
-  phi_days?: number | null;
-  notes?: string | null;
-}
-
-export interface SpraySafetyItem {
-  id: string;
-  type: string;
-  performed_on: string;
-  phi_days: number;
-  safe_date: string;
-  days_left: number;
-  safe: boolean;
-  products: string[];
-}
-
-export interface SpraySafety {
-  active: SpraySafetyItem | null;
-  sprays: SpraySafetyItem[];
-}
+// Operation / SpraySafetyItem / SpraySafety lived here. They were the response shapes of
+// routers/mgmt.py — the field operation log and the pre-harvest-interval spray check — which was
+// deleted on 2026-08-04 with the "Əməliyyatlar" section, and the last writer (POST
+// /api/bulk/operations) went with it. public.field_operations is NOT dropped: ai/context.py and
+// routers/reports.py still read those rows server-side. Nothing in the browser does any more.
 
 export interface Yield {
   id: string;

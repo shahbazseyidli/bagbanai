@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import { Layers, Search, Ruler, Mountain, X } from "lucide-react";
 import { length as turfLength, area as turfArea, simplify as turfSimplify } from "@turf/turf";
-import type { MapPin, Polygon } from "@/lib/types";
+import type { Polygon } from "@/lib/types";
 import { t, tf, getLocale } from "@/lib/i18n";
 import { formatArea, useAreaUnit } from "@/lib/units";
 import { useMapReady } from "@/lib/useMapReady";
@@ -507,6 +507,14 @@ export function DrawMap({ onPolygon, importedPolygon, importSeq = 0, detectMode 
 
 // Read-only display of a single polygon (field detail overview). Optionally overlays a
 // satellite index raster (TiTiler XYZ template) under the field outline.
+//
+// 6.5 left five props here — pins / onPinClick / reticle / onCenterChange / flyTo — and the pin
+// layer, the placement crosshair and the centre-reporting effect that served them. The scouting map
+// was removed on 2026-08-04 (owner decision) and no caller passed any of them afterwards; being
+// optional, they compiled forever as dead weight on the component every other map surface uses.
+// Gone with them: the `scout-pins` source/layer, the click-time pin hit test, and the
+// reticle-vs-ruler mode arbitration. Scouting still captures coordinates — from the geolocation
+// button, not from the map.
 export function DisplayMap({
   polygon,
   rasterUrl,
@@ -514,11 +522,6 @@ export function DisplayMap({
   rasterOpacity = 0.85,
   heightClass = "h-64",
   fill = false,
-  pins,
-  onPinClick,
-  reticle = false,
-  onCenterChange,
-  flyTo,
 }: {
   polygon: Polygon | null | undefined;
   rasterUrl?: string | null;
@@ -527,17 +530,6 @@ export function DisplayMap({
   /** Fill a sized, positioned parent instead of using a fixed height. The parent must be
    *  `relative` and must already have a height — the map is built once, at that size. */
   fill?: boolean;
-  /** Point markers drawn above the raster and the field outline (6.5 scouting notes). */
-  pins?: MapPin[];
-  onPinClick?: (id: string) => void;
-  /** Placement mode: a crosshair fixed to the centre of the canvas, which the farmer pans the map
-   *  UNDER. Not a MapLibre Marker — a marker is anchored to the ground and would slide away with
-   *  the pan, which is exactly the behaviour this avoids. */
-  reticle?: boolean;
-  /** Map centre, reported on `moveend` and once when `reticle` turns on. */
-  onCenterChange?: (lng: number, lat: number) => void;
-  /** Imperative recentre. Bump `seq` to re-apply the same coordinates. */
-  flyTo?: { lng: number; lat: number; seq: number } | null;
   /** Date of the index layer drawn on top, shown beside the basemap credit so the basemap's own
    *  age can never be mistaken for the product's. */
   layerDate?: string | null;
@@ -563,43 +555,6 @@ export function DisplayMap({
   const [mStats, setMStats] = useState<{ dist: number; area: number | null }>({ dist: 0, area: null });
   // P1.2 — the ruler reports the measured area in the farmer's own unit.
   const areaUnit = useAreaUnit();
-
-  // 6.5 — pins. Everything the load handler and the click handler need has to be a ref: both are
-  // installed once, inside the [ready] effect, so anything read out of the render closure there
-  // would be frozen at the value it had when the map was built.
-  const pinsRef = useRef<MapPin[]>([]);
-  pinsRef.current = pins ?? [];
-  const onPinClickRef = useRef(onPinClick);
-  onPinClickRef.current = onPinClick;
-  const reticleRef = useRef(false);
-  reticleRef.current = reticle;
-  const onCenterRef = useRef(onCenterChange);
-  onCenterRef.current = onCenterChange;
-
-  // Opacity travels in the feature properties rather than a ["case"] paint expression: it lets the
-  // three states (solid / faded-because-resolved / dimmed-because-placing) be one number computed
-  // in JS, so there is a single code path and no paint property to keep in sync with the data.
-  function pinData(): GeoJSON.FeatureCollection {
-    const placing = reticleRef.current;
-    const features: GeoJSON.Feature[] = pinsRef.current.map((p) => ({
-      type: "Feature",
-      geometry: { type: "Point", coordinates: [p.lng, p.lat] },
-      properties: {
-        id: p.id,
-        color: p.color,
-        // While placing, every existing pin steps back: the farmer is aiming at the reticle, and
-        // solid pins would read as targets for the tap that is about to happen.
-        opacity: placing ? 0.28 : p.dim ? 0.4 : 0.95,
-      },
-    }));
-    return { type: "FeatureCollection", features };
-  }
-
-  function applyPins() {
-    const map = mapRef.current;
-    if (!map || !loadedRef.current) return;
-    (map.getSource("scout-pins") as maplibregl.GeoJSONSource | undefined)?.setData(pinData());
-  }
 
   function reapplyHillshade(map: maplibregl.Map) {
     const before = map.getLayer("field-fill") ? "field-fill" : undefined;
@@ -690,51 +645,12 @@ export function DisplayMap({
       map.addLayer({ id: "measure-line", type: "line", source: "measure", paint: { "line-color": "#f59e0b", "line-width": 2, "line-dasharray": [2, 1] } });
       map.addSource("measure-pts", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       map.addLayer({ id: "measure-pts", type: "circle", source: "measure-pts", paint: { "circle-radius": 4, "circle-color": "#f59e0b", "circle-stroke-width": 1.5, "circle-stroke-color": "#fff" } });
-      // 6.5 — the pin source and layer are added HERE, unconditionally and empty, and are only
-      // ever setData'd afterwards. Adding a layer from an effect that can run before the style has
-      // loaded is how the raster-overlay bug class starts; one layer with data-driven paint also
-      // means seven colours cost one layer, not seven. Added last → above index-overlay (which is
-      // inserted before field-line) and above the outline itself.
-      map.addSource("scout-pins", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-      map.addLayer({
-        id: "scout-pins",
-        type: "circle",
-        source: "scout-pins",
-        paint: {
-          "circle-radius": 8,
-          "circle-color": ["get", "color"],
-          "circle-opacity": ["get", "opacity"],
-          // The white ring is what separates a pin from the imagery underneath it — every one of
-          // the seven hues sits on something dark green, brown or ramp-coloured.
-          "circle-stroke-width": 2,
-          "circle-stroke-color": "#ffffff",
-          "circle-stroke-opacity": ["get", "opacity"],
-        },
-      });
       loadedRef.current = true;
       reapplyHillshade(map);
       applyRaster(rasterUrl ?? null);
-      applyPins();
     });
 
     map.on("click", (e) => {
-      // Placement mode owns the map: the centre IS the answer, so a tap is part of panning and
-      // must neither open a pin nor drop a measure vertex.
-      if (reticleRef.current) return;
-      // A pin is 8px and a finger is not. Query a padded box, and do it BEFORE the measure branch —
-      // otherwise tapping a pin with the ruler on adds a vertex instead of opening the note.
-      if (map.getLayer("scout-pins") && onPinClickRef.current) {
-        const box: [[number, number], [number, number]] = [
-          [e.point.x - 10, e.point.y - 10],
-          [e.point.x + 10, e.point.y + 10],
-        ];
-        const hit = map.queryRenderedFeatures(box, { layers: ["scout-pins"] })[0];
-        const id = hit?.properties?.id;
-        if (typeof id === "string" && id) {
-          onPinClickRef.current(id);
-          return;
-        }
-      }
       if (!measureRef.current) return;
       mPtsRef.current = [...mPtsRef.current, [e.lngLat.lng, e.lngLat.lat]];
       renderMeasure();
@@ -793,49 +709,6 @@ export function DisplayMap({
     const map = mapRef.current;
     if (map) map.getCanvas().style.cursor = measure ? "crosshair" : "";
   }, [measure]);
-
-  // 6.5 — pins. `reticle` is a dependency because it changes how they are DRAWN (see pinData), not
-  // only whether they are clickable.
-  useEffect(() => {
-    applyPins();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pins, reticle, ready]);
-
-  // Placing and measuring both claim the map's clicks, so placement wins and the ruler switches
-  // off — leaving it armed under a mode that swallows every tap is a trap.
-  useEffect(() => {
-    if (reticle) setMeasure(false);
-  }, [reticle]);
-
-  // Report the centre while placing. `moveend`, never `move`: the reticle is itself the live
-  // feedback (it is physically fixed on screen), so a setState per animation frame would buy
-  // nothing and cost real milliseconds on the phones this feature exists for. The first emit is
-  // immediate so the readout is populated before the farmer touches anything.
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !reticle) return;
-    const emit = () => {
-      const c = map.getCenter();
-      onCenterRef.current?.(c.lng, c.lat);
-    };
-    emit();
-    map.on("moveend", emit);
-    return () => {
-      map.off("moveend", emit);
-    };
-    // `ready` is in here because the map does not exist until it flips; without it, a component
-    // mounted with reticle already true would bail once and never subscribe.
-  }, [reticle, ready]);
-
-  // Imperative recentre ("show on the map"). The object identity changes on every request, so a
-  // second tap on the same note re-flies instead of doing nothing.
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !flyTo) return;
-    map.flyTo({ center: [flyTo.lng, flyTo.lat], zoom: Math.max(map.getZoom(), 16) });
-    // `ready` is in the deps for the reason the centre-emit effect two blocks up documents: a
-    // request made before the map exists would otherwise be dropped and never retried.
-  }, [flyTo, ready]);
 
   function changeBasemap(bm: Basemap) {
     setBasemap(bm);
@@ -905,23 +778,6 @@ export function DisplayMap({
           </div>
         )}
       </div>
-      {/* 6.5 — placement reticle. A DOM crosshair pinned to the CENTRE OF THIS ROOT, which is the
-          map's box in both `fill` (absolute inset-0) and plain mode (relative, the map div is the
-          only in-flow child). Deliberately not a maplibregl.Marker: a marker is anchored to the
-          ground and would slide out from under the pan, and the whole interaction is "the map
-          moves, the target does not". pointer-events-none so it never eats a pan gesture, and
-          aria-hidden because it is a graphic — the coordinates it represents are announced as
-          polite live text in the bar below the map (ScoutPlacementBar). */}
-      {reticle && (
-        <div
-          className="pointer-events-none absolute left-1/2 top-1/2 z-20 h-10 w-10 -translate-x-1/2 -translate-y-1/2"
-          aria-hidden="true"
-        >
-          <span className="absolute left-1/2 top-0 h-full w-[2px] -translate-x-1/2 rounded-full bg-white/90 shadow-[0_0_0_1px_rgba(15,23,42,0.55)]" />
-          <span className="absolute left-0 top-1/2 h-[2px] w-full -translate-y-1/2 rounded-full bg-white/90 shadow-[0_0_0_1px_rgba(15,23,42,0.55)]" />
-          <span className="absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-[2.5px] border-amber-400 bg-amber-400/25" />
-        </div>
-      )}
       {/* The search box is an in-flow block rendered after the map, so under `fill` (root is
           absolute inset-0, map is h-full) it would overflow the stage. It is also the wrong tool
           there: a filled map is a viewer for one known field, not a place finder. */}

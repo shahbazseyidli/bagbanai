@@ -3,7 +3,16 @@
 // A5 — Mövsüm müqayisəsi: one NDVI line per season on a shared day-of-year axis, plus the same-DOY
 // verdict against last season ("Keçən ilin bu vaxtından 12% geridəsiniz"). Cloud gaps stay gaps —
 // the backend bins weekly and never zero-fills, and the chart connects across missing weeks only
-// visually. Inline AZ copy (T18 extracts later).
+// visually.
+//
+// This file is also what MOUNTS the AI season summary above the chart. The field page renders this
+// component first in the season section, and the page belongs to a different slice, so the summary
+// is composed here rather than by editing that page — a component nobody renders is a feature that
+// ships dead. The two are siblings, not nested: the chart keeps its own card and its own fetch.
+//
+// The metric switch (NDVI curve / total growth) is gone. It changed the same lines between a value
+// a farmer reads and an accumulated NDVI-day integral that needs explaining, and the integral is
+// still on screen — as a column in the table below, and as the thing the AI summary reasons over.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CartesianGrid,
@@ -20,6 +29,7 @@ import { api, azError } from "@/lib/api";
 import { ErrorNote, Placeholder, Spinner } from "@/components/ui";
 import { t, tf } from "@/lib/i18n";
 import { seasonCompareSentence } from "@/lib/wellnessText";
+import SeasonSummaryCard from "@/components/field/SeasonSummaryCard";
 
 interface SeasonRow {
   season_year: number;
@@ -54,8 +64,6 @@ interface CompareResponse {
   verdict: Verdict;
 }
 
-type Metric = "ndvi" | "integral";
-
 // Short month names live in the dictionary (one comma-joined key), so the axis labels follow the
 // reader's locale instead of being Azerbaijani for everyone.
 const monthsShort = (): string[] => tf("app.date.monthsShort").split(",").map((s) => s.trim());
@@ -71,15 +79,25 @@ function doyLabel(doy: number): string {
 const COLORS = ["#15803D", "#0EA5E9", "#F59E0B", "#A855F7", "#EF4444", "#64748B"];
 
 export default function SeasonCompareChart({ fieldId }: { fieldId: string }) {
+  return (
+    <div className="space-y-6">
+      <SeasonSummaryCard fieldId={fieldId} />
+      <CompareChart fieldId={fieldId} />
+    </div>
+  );
+}
+
+function CompareChart({ fieldId }: { fieldId: string }) {
   const [data, setData] = useState<CompareResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [metric, setMetric] = useState<Metric>("ndvi");
 
   const load = useCallback(async () => {
     setError("");
     try {
-      setData(await api.get<CompareResponse>(`/api/fields/${fieldId}/season-compare?years=3`));
+      // Five seasons, matching ai/season_summary.YEARS_BACK. One window for both: a summary that
+      // cites a year the chart above it does not draw reads as a contradiction, not as depth.
+      setData(await api.get<CompareResponse>(`/api/fields/${fieldId}/season-compare?years=5`));
     } catch (err) {
       setError(azError(err));
     } finally {
@@ -97,15 +115,14 @@ export default function SeasonCompareChart({ fieldId }: { fieldId: string }) {
   const rows = useMemo(() => {
     const byDoy = new Map<number, Record<string, number>>();
     withData.forEach((s) => {
-      const pairs = metric === "ndvi" ? s.curve : s.integral;
-      pairs.forEach(([doy, val]) => {
+      s.curve.forEach(([doy, val]) => {
         const cur: Record<string, number> = byDoy.get(doy) ?? { doy };
         cur[`y${s.season_year}`] = val;
         byDoy.set(doy, cur);
       });
     });
     return Array.from(byDoy.values()).sort((a, b) => a.doy - b.doy);
-  }, [withData, metric]);
+  }, [withData]);
 
   if (loading) {
     return (
@@ -129,36 +146,13 @@ export default function SeasonCompareChart({ fieldId }: { fieldId: string }) {
 
   return (
     <div className="card space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h3 className="flex items-center gap-2 font-semibold text-slate-800">
-            <CalendarRange className="h-4 w-4 text-emerald-700" /> {t("app.field.seasonCompareChart.title")}
-          </h3>
-          <p className="mt-0.5 text-xs text-slate-500">
-            {t("app.field.seasonCompareChart.subtitle")}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          {(
-            [
-              ["ndvi", t("app.field.seasonCompareChart.ndviCurve")],
-              ["integral", t("app.field.seasonCompareChart.totalGrowth")],
-            ] as [Metric, string][]
-          ).map(([key, label]) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setMetric(key)}
-              className={`h-11 rounded-lg border px-3 text-sm ${
-                metric === key
-                  ? "border-emerald-600 bg-emerald-50 font-medium text-emerald-700"
-                  : "border-slate-200 text-slate-600 hover:bg-slate-50"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+      <div>
+        <h3 className="flex items-center gap-2 font-semibold text-slate-800">
+          <CalendarRange className="h-4 w-4 text-emerald-700" /> {t("app.field.seasonCompareChart.title")}
+        </h3>
+        <p className="mt-0.5 text-xs text-slate-500">
+          {t("app.field.seasonCompareChart.subtitle")}
+        </p>
       </div>
 
       <ErrorNote message={error} />
@@ -200,13 +194,13 @@ export default function SeasonCompareChart({ fieldId }: { fieldId: string }) {
                 <YAxis
                   tick={{ fontSize: 11 }}
                   width={52}
-                  domain={metric === "ndvi" ? [0, 1] : ["auto", "auto"]}
-                  tickFormatter={(y: number) => (metric === "ndvi" ? Number(y).toFixed(1) : String(Math.round(Number(y))))}
+                  domain={[0, 1]}
+                  tickFormatter={(y: number) => Number(y).toFixed(1)}
                 />
                 <Tooltip
                   labelFormatter={(d) => doyLabel(Number(d))}
                   formatter={(value, name) => [
-                    metric === "ndvi" ? Number(value).toFixed(2) : Number(value).toFixed(1),
+                    Number(value).toFixed(2),
                     String(name).replace(/^y/, ""),
                   ]}
                 />

@@ -68,15 +68,19 @@ class AdviceResult(BaseModel):
 SYSTEM = (
     "Sən Azərbaycan fermerləri üçün təcrübəli aqronomsan. Sənə bir sahənin NASA/Sentinel peyk "
     "indeksləri (NDVI bitki sağlamlığı, NDMI bitki nəmliyi, NDWI su, EVI, SAVI, NBR), məhsul "
-    "metadatası, görülmüş işlər (skautinq, əməliyyatlar, tapşırıqlar) və `knowledge_passport` "
+    "metadatası, görülmüş işlər (skautinq, varsa əməliyyatlar) və `knowledge_passport` "
     "(bitki-spesifik normalar, fenologiya, zərərvericilər, torpaq profili, fermer cavabları) "
     "JSON kimi verilir. Bu məlumatlara ƏSASLANARAQ praktiki məsləhət ver.\n"
     "Qaydalar:\n"
     "- Yalnız verilən dataya əsaslan; məlumat yoxdursa uydurma, çatışmazlığı qeyd et.\n"
     "- İndeksləri AYRI-AYRI yox, BİRLİKDƏ oxu (çarpaz sintez): məs. NDVI orta + NDMI aşağı + "
     "  enən trend → su stresinin başlanğıcı; NDVI yüksək + NDMI yüksək → sağlam.\n"
-    "- Səbəb-nəticə diaqnostikası üçün `operations`-dan istifadə et: məs. son 10 gündə suvarma "
-    "  qeyd olunub, amma NDMI hələ düşürsə → suvarma sistemini yoxlamağı təklif et.\n"
+    # `operations` is no longer sent when the field has none (see ai/context.py). The rule is
+    # therefore phrased as conditional — an unconditional "use `operations`" pointed at a key that
+    # is usually absent, which is exactly the interpretation load this wording avoids.
+    "- `operations` VARSA, səbəb-nəticə diaqnostikası üçün ondan istifadə et: məs. son 10 gündə "
+    "  suvarma qeyd olunub, amma NDMI hələ düşürsə → suvarma sistemini yoxlamağı təklif et. "
+    "  Bu açar yoxdursa, görülmüş iş qeydi yoxdur — bunu çatışmazlıq kimi qeyd etmə.\n"
     "- `knowledge_passport` varsa, indeksi bitki-spesifik normalarla müqayisə et (universal həddlə yox); "
     "  fenoloji mərhələ və zona zərərvericilərini nəzərə al. Passport boşdursa peyk datasına əsaslan.\n"
     "- Konkret rəqəm (doza, gün) yalnız passport/dataya əsaslanırsa yaz; yoxsa ümumi tövsiyə ver.\n"

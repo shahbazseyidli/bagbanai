@@ -84,8 +84,8 @@ export const privacyTr: PrivacyDoc = {
             "Haritada çizilen tarla sınırı ve alanı (veritabanında her zaman hektar olarak tutulur — birim tercihi yalnızca gösterimi etkiler).",
             "Tarla, işletme ve organizasyon adları.",
             "Tarla pasaportu: ürün, çeşit, ekim ve hasat tarihleri, toprak tipi ve pH, sulama yöntemi, gelişme dönemi, önceki ürün, serbest notlar.",
-            "Tarla gözlemleri, yüklediğiniz fotoğraflar, tarla işlemleri, verim kayıtları, görevler ve sezonlar.",
-            "Defter, satış, depo ve makine kayıtları, yüklediğiniz belgeler.",
+            "Tarla gözlemleri, yüklediğiniz fotoğraflar ve sezonlar.",
+            "Artık toplamadığımız ama sakladığımız eski kayıtlar: tarla işlemleri, verim kayıtları, görevler, defter, satış, stok ve ekipman satırları ve daha önce yüklediğiniz belgeler. Bu bölümler üründen kaldırıldı; kayıtlarınız silinmedi ve hesabınızı kapattığınızda diğerleriyle birlikte anonimleştirilir.",
             "Toprak laboratuvar analizleri — yüklediğiniz tarama ve OCR ile okunan değerler.",
           ],
         },
@@ -146,7 +146,7 @@ export const privacyTr: PrivacyDoc = {
               v:
                 "Yapay zekâ tavsiyesi, sohbet, fotoğraf teşhisi ve araştırma katmanı. Giden: " +
                 "tarla adı, alan, ürün pasaportu (notlar dâhil), indeks eğilimleri, hava durumu, " +
-                "son gözlemler, işlemler, açık görevler, son verim kayıtları, önceki tavsiyenin " +
+                "son gözlemler, işlemler, önceki tavsiyenin " +
                 "özeti, son sohbet turları ve teşhis için gönderdiğiniz fotoğraf. Gitmeyen: " +
                 "e-posta, ad, parola özeti.",
             },

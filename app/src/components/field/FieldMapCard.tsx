@@ -37,7 +37,7 @@ import { SENSOR_INDICES, sensorFamily } from "@/lib/sensors";
 import LayerPicker, { LayerButton, type PickerVariant } from "./layers/LayerPicker";
 import { scenePreviewUrl } from "./layers/previewUrl";
 import type { LayerPreview } from "./layers/useLayerPreviews";
-import type { FieldDetail, MapPin, RasterScene, RasterScenes } from "@/lib/types";
+import type { FieldDetail, RasterScene, RasterScenes } from "@/lib/types";
 
 // All ten Sentinel-2 layers, not the old NDVI/NDMI/NDRE chip row.
 //
@@ -158,11 +158,6 @@ export default function FieldMapCard({
   fullscreen,
   onOpenFullscreen,
   onCloseFullscreen,
-  pins,
-  onPinClick,
-  reticle = false,
-  onCenterChange,
-  flyTo,
   pickerVariant = "sheet",
 }: {
   field: FieldDetail;
@@ -171,15 +166,11 @@ export default function FieldMapCard({
   fullscreen: boolean;
   onOpenFullscreen: () => void;
   onCloseFullscreen: () => void;
-  // 6.5 — the section currently on screen can put its own points on this map. Five optional props,
-  // passed straight through to DisplayMap, which owns the layer: the alternative was a second map
-  // for the scouting section, and two MapLibre contexts on a phone is not a trade worth making.
-  // Scouting is the only caller today.
-  pins?: MapPin[];
-  onPinClick?: (id: string) => void;
-  reticle?: boolean;
-  onCenterChange?: (lng: number, lat: number) => void;
-  flyTo?: { lng: number; lat: number; seq: number } | null;
+  // 6.5 let the section on screen put its own points on this map — five optional props (pins,
+  // onPinClick, reticle, onCenterChange, flyTo) forwarded to DisplayMap, with scouting as the only
+  // caller. The scouting map went on 2026-08-04 and took the last caller with it, so both this
+  // pass-through and DisplayMap's end of it are gone. A section that needs its own geometry again
+  // will have to re-add them here rather than build a second MapLibre context.
   /**
    * Which surface the layer picker opens as. Decided by the PAGE, from the stage width it already
    * measures — this card must not measure a second time: the page's number is the one that decided
@@ -210,13 +201,6 @@ export default function FieldMapCard({
   const triggerRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => setMounted(true), []);
-
-  // Asking to place a point ON THE MAP is itself a request for the map, so the data saver's
-  // withheld state steps aside for it. Without this the farmer taps "pick the spot on the map" and
-  // gets a placement bar over a grey box with a "load the picture" button in it.
-  useEffect(() => {
-    if (reticle) setShowRaster(true);
-  }, [reticle]);
 
   useEffect(() => {
     let active = true;
@@ -302,12 +286,11 @@ export default function FieldMapCard({
       ? tf("app.field.glance.previousMark", { value: olderValue.toFixed(2) })
       : undefined;
 
-  // 6.5 — pins are the SECTION's own data, not satellite data. A field whose scenes failed or have
-  // not been processed yet still has scouting notes, and a placement reticle needs something to
-  // aim at, so either one keeps the map where the satellite empty state would have taken it. The
-  // data-saver gate is untouched: withholding tiles is a consent decision, not a content one.
-  const needMap = (pins?.length ?? 0) > 0 || reticle;
-  const emptyState = (failed || (!loading && scenes.length === 0)) && !needMap;
+  // 6.5 had a `needMap` escape hatch here: scouting pins and the placement reticle were the
+  // SECTION's own data, so either one kept the map alive where the satellite empty state would
+  // otherwise have replaced it. With the scouting map gone this card shows satellite data and
+  // nothing else, so the empty state is once again purely a question of scenes.
+  const emptyState = failed || (!loading && scenes.length === 0);
   const mapShown = !emptyState && rasterVisible && scenes.length > 0;
   const vGrad = verticalGrad(legend.grad);
 
@@ -373,17 +356,12 @@ export default function FieldMapCard({
               {failed ? t("app.field.glance.failed") : t("app.field.glance.preparing")}
             </Placeholder>
           </div>
-        ) : rasterVisible && (scenes.length > 0 || needMap) ? (
+        ) : rasterVisible && scenes.length > 0 ? (
           <DisplayMap
             polygon={field.geom}
             rasterUrl={active?.tile_url ?? null}
             layerDate={active?.date ?? null}
             fill
-            pins={pins}
-            onPinClick={onPinClick}
-            reticle={reticle}
-            onCenterChange={onCenterChange}
-            flyTo={flyTo}
           />
         ) : (
           // Basemap tiles are bytes too, so the saver withholds the whole map, not just the index
@@ -415,8 +393,7 @@ export default function FieldMapCard({
         {loading && (
           <div
             // pointer-events-none, or the map cannot be panned for the length of every /scenes
-            // round-trip — and in placement mode this sits ABOVE the reticle, so the farmer gets a
-            // crosshair they cannot aim.
+            // round-trip.
             className="pointer-events-none absolute inset-0 z-30 animate-pulse bg-paper-2/85"
             aria-hidden="true"
           />

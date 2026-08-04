@@ -6,12 +6,12 @@
 // hex is a design decision and lives here, so a palette tweak is an edit to this file rather than
 // a data migration.
 //
-// Seven hues chosen to stay legible on what is underneath them — satellite imagery, which is dark
-// green, brown and grey, often with an NDVI ramp painted over it. No white and no pale grey: both
-// vanish into cloud, into bare soil and into the top of the vegetation ramp. Every one of these
-// carries a white 2px stroke on the map, which is what actually separates them from the basemap.
+// Seven hues, originally chosen to stay legible over satellite imagery — dark green, brown and
+// grey, often with an NDVI ramp painted over it — which is why there is no white and no pale grey
+// here. The map is gone (2026-08-04); the palette is kept as it is because the names are what the
+// database stores and the dots in the note list read perfectly well on paper-white too.
 import { t, type I18nKey } from "@/lib/i18n";
-import type { MapPin, Scouting } from "@/lib/types";
+import type { Scouting } from "@/lib/types";
 
 export const PIN_COLORS = [
   { name: "red", hex: "#dc2626" },
@@ -42,21 +42,7 @@ export function isResolved(s: Scouting): boolean {
   return s.status === "resolved";
 }
 
-/**
- * Scouting rows → map pins.
- *
- * `showResolved` governs the MAP and the LIST from one flag on purpose (ScoutingTab owns it): two
- * independent filters would let the map and the list disagree about what is on screen, and the
- * farmer has no way to tell which one is lying. Resolved notes are faded here, never dropped —
- * they are still tappable, because "resolved" is a record, not a deletion.
- */
-export function toMapPins(items: Scouting[], showResolved: boolean): MapPin[] {
-  const out: MapPin[] = [];
-  for (const s of items) {
-    if (s.lat == null || s.lon == null) continue;
-    const resolved = isResolved(s);
-    if (resolved && !showResolved) continue;
-    out.push({ id: s.id, lng: s.lon, lat: s.lat, color: pinHex(s.color), dim: resolved });
-  }
-  return out;
-}
+// toMapPins() lived here and turned scouting rows into MapPin markers. The scouting map was removed
+// on 2026-08-04 and it had no other caller, so it went with the map. The colour table above did
+// NOT: the note list draws the same hex as a dot, and 0054's scouting_color_chk still keeps the
+// seven names honest in the database.

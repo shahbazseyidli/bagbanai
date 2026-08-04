@@ -28,10 +28,7 @@ import FertilizerTab from "@/components/field/FertilizerTab";
 import PhotosTab from "@/components/field/PhotosTab";
 import PeerSuggest from "@/components/field/PeerSuggest";
 import ScoutingTab from "@/components/field/ScoutingTab";
-import { useScoutMap } from "@/components/field/scouting/useScoutMap";
-import OperationsTab from "@/components/field/OperationsTab";
 import SeasonTab from "@/components/field/SeasonTab";
-import DocumentsTab from "@/components/field/DocumentsTab";
 import WeatherHistoryTab from "@/components/field/WeatherHistoryTab";
 import SeasonCompareChart from "@/components/field/SeasonCompareChart";
 import BackfillCard from "@/components/field/BackfillCard";
@@ -194,24 +191,20 @@ function FieldDetailInner() {
   // values (which resolveSection folds onto "status", i.e. onto the feed) all land where they did.
   const narrow = layout === "narrow";
   const feedMode = narrow && tab === DEFAULT_SECTION;
-  // 6.5 — "scouting" is the one exception to the wide rule. Its notes ARE map data: pins with no
-  // map is a feature with its output removed, and the workbench only renders on the status
-  // section, so a wide stage would otherwise leave this section mapless. Everywhere else the wide
-  // answer is still "the workbench owns the map".
-  const showCard =
-    stageW !== null && !SECTION_OWNS_MAP.has(tab) && (!wide || tab === "scouting");
+  // The scouting section used to be an exception here — it kept the card on a wide stage so its
+  // pins had somewhere to draw. The scouting map was removed by owner decision (2026-08-04), so the
+  // rule is once again uniform: wide → the workbench owns the map, narrow → the card, except on the
+  // sections that build their own.
+  const showCard = stageW !== null && !SECTION_OWNS_MAP.has(tab) && !wide;
   // W4 — and the SAME number decides how the layer picker opens, for both surfaces that have one.
   // Neither of them may measure again: this is the measurement that already decided whether the
   // card is on screen at all, and a component that re-measures its own box can disagree with the
   // page about which room it is in. Left to themselves they got it backwards — the card opened a
-  // fixed inset-0 overlay on a 1440px desktop (it survives there for the scouting section), while
-  // the satellite section pushed ~1250px of in-flow tiles between the button and the chart on a
-  // 375px phone, with no way out but scrolling back up.
+  // fixed inset-0 overlay on a 1440px desktop, while the satellite section pushed ~1250px of
+  // in-flow tiles between the button and the chart on a 375px phone, with no way out but scrolling
+  // back up. ("panel" is now only ever reached by the satellite section's own picker: with the
+  // scouting exception gone, the card itself no longer renders on a wide stage.)
   const pickerVariant: PickerVariant = wide ? "panel" : "sheet";
-  // The scouting section's pins have to reach a card mounted ABOVE the section, so the state that
-  // joins them lives here, in their only common ancestor. Called unconditionally and before every
-  // early return below — hook order has to be identical on every render.
-  const scout = useScoutMap(showCard);
 
   function openEdit() {
     if (field) setEditName(field.name);
@@ -563,10 +556,8 @@ function FieldDetailInner() {
           <BackfillCard fieldId={field.id} />
         </div>
       )}
-      {tab === "documents" && <DocumentsTab fieldId={field.id} />}
       {tab === "metadata" && <MetadataTab fieldId={field.id} />}
-      {tab === "scouting" && <ScoutingTab fieldId={field.id} map={scout} />}
-      {tab === "operations" && <OperationsTab fieldId={field.id} />}
+      {tab === "scouting" && <ScoutingTab fieldId={field.id} />}
     </div>
   );
 
@@ -607,7 +598,6 @@ function FieldDetailInner() {
                 onOpenFullscreen={openFullscreen}
                 onCloseFullscreen={closeFullscreen}
                 pickerVariant={pickerVariant}
-                {...scout.card}
               />
             ) : undefined
           }

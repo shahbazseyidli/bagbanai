@@ -6,9 +6,10 @@
 //
 // Honesty rules baked in:
 //  * every step maps to something the product actually ships today (peyk overlay, AI advice,
-//    operations + scouting log, fertilizer plan, share link, soil-analysis OCR). No invented
-//    buttons or fake numbers. The ledger and prepared-report guides were rewritten when those
-//    modules left the product (81660df) — do not reintroduce them from an old draft.
+//    scouting log, fertilizer plan, share link, soil-analysis OCR). No invented buttons or fake
+//    numbers. The ledger and prepared-report guides were rewritten when those modules left the
+//    product (81660df), and the operations chapter was rewritten as a scouting chapter when the
+//    Operations section left (2026-08-04) — do not reintroduce either from an old draft.
 //  * the "screen" field is a described mock — plain text the page renders in a faux-UI box; no
 //    external images are referenced (the CSP and offline-first PWA forbid remote assets).
 //
@@ -167,17 +168,17 @@ const peykOxu: Guide = {
 const aiMeslehet: Guide = {
   slug: "ai-meslehetini-islet",
   title: "AI aqronom məsləhətini işlətmək",
-  summary: "Hazır analizi oxu, söhbətdə soruş, şübhəli yarpağı foto ilə tanıt.",
+  summary: "Hazır analizi oxu, «Mesajlar»da soruş, şübhəli yarpağı foto ilə tanıt.",
   icon: "brain",
-  meta: "5 addım · ~3 dəq",
+  meta: "4 addım · ~3 dəq",
   intro:
-    "AI aqronom boş yerdən danışmır: sahənizin son peyk oxunuşları, hava tarixçəsi, torpaq profili, əkin tarixi, əməliyyat jurnalı və çəkdiyiniz şəkillər ona kontekst kimi verilir. Nəticə ümumi məsləhət deyil — məhz sizin sahənizin bu həftəki vəziyyəti üçün risklər, tövsiyələr və növbəti addımlardır. Qərar həmişə sizindir; hər cavabın altında bu barədə xəbərdarlıq var.",
+    "AI aqronom boş yerdən danışmır: sahənizin son peyk oxunuşları, hava tarixçəsi, torpaq profili, əkin tarixi, skautinq qeydləri və çəkdiyiniz şəkillər ona kontekst kimi verilir. Nəticə ümumi məsləhət deyil — məhz sizin sahənizin bu həftəki vəziyyəti üçün risklər, tövsiyələr və növbəti addımlardır. Qərar həmişə sizindir; hər cavabın altında bu barədə xəbərdarlıq var.",
   where: "Sahə → «Sahə analizi»",
   steps: [
     {
       title: "«Sahə analizi» bölməsini aç",
       body:
-        "Sahənin içində «Sahə analizi» bölməsinə keçin. Hər yeni peyk səhnəsindən sonra analiz avtomatik yenilənir, ona görə adətən hazır kart sizi gözləyir.",
+        "Sahənin içində «Sahə analizi» bölməsinə keçin. Analiz yeni peyk səhnələri gəldikcə özü yenilənir, amma 15 gündə bir dəfədən çox yox — daha təzəsini istəsəniz, kartdakı yeniləmə düyməsini basın.",
     },
     {
       title: "Məsləhət kartını oxu",
@@ -186,69 +187,72 @@ const aiMeslehet: Guide = {
       screen: "Ekran: «Risklər» başlığı, altında qırmızı «yüksək» nişanlı sətir və izahı.",
     },
     {
-      title: "Söhbətdə soruş",
+      // The in-field composer was removed on 2026-08-04; the AI thread lives on the Messages
+      // screen, and this section links to it with the field preselected (/chat?ai=<fieldId>).
+      title: "Sualını «Mesajlar»da ver",
       body:
-        "Anlamadığınız yer varsa aşağıdakı söhbətdə sual verin — məsələn «bu zonada nə edim?». Söhbət sahənizin kontekstini və son 12 növbəni xatırlayır.",
-      screen: "Ekran: söhbət xanası «Sualınızı yazın…» və «Göndər» düyməsi.",
+        "Anlamadığınız yer varsa kartın altındakı «Sahən haqqında sual ver» keçidinə basın — «Mesajlar» ekranında Agradex AI söhbəti həmin sahə seçilmiş halda açılır. Söhbət sahənizin kontekstini və son növbələri xatırlayır.",
+      screen: "Ekran: məsləhət kartının altında «Sahən haqqında sual ver» keçidi.",
     },
     {
       title: "Şübhəli yarpağı foto çək",
       body:
         "Yarpağın, meyvənin və ya torpağın şəklini çəkin. AI xəstəlik/zərərverici izini oxuyur və nə etməli olduğunuzu izah edir. Şəkil sahənin arxivində qalır.",
     },
-    {
-      title: "Lazım olsa yenidən analiz et",
-      body:
-        "Vəziyyət dəyişibsə «Yenidən analiz et» düyməsi ilə yeni məsləhət alın.",
-    },
   ],
   tips: [
     "AI diaqnoz qoymur və aqronomu əvəz etmir — o, sizin gördüyünüzü genişləndirir. Ciddi hallarda kataloqdakı laboratoriya və ya aqronomla əlaqə saxlayın.",
     "Model əmin olmayanda dəqiqləşdirici sual verir — cavablayın ki, tövsiyə dəqiqləşsin.",
-    "Qeyd etdiyiniz hər əməliyyat növbəti analizi daha dəqiq edir.",
+    "Analiz yeni səhnələr gəldikcə özü yenilənir (15 gündə bir dəfəyə qədər) — kartın altında son yenilənmə tarixi yazılır.",
   ],
   related: ["peyk-melumatini-oxu", "is-ve-emeliyyat-qeyd-et"],
 };
 
-/* ---------------------------------------------- 4. əməliyyat / müşahidə */
+/* ------------------------------------------------ 4. skautinq müşahidəsi */
 
+// The Operations section left the product on 2026-08-04 and this chapter was rewritten around the
+// half that stayed: scouting notes and photos. THE SLUG DELIBERATELY DID NOT CHANGE. A new slug
+// would 404 the old URL — app/guide/[slug]/page.tsx calls notFound() on an unknown slug, there is
+// no redirect layer (next.config.ts declares none), /sitemap.xml has been publishing this URL in
+// eight languages, and three other chapters cross-link it in `related`. A stale word inside a URL
+// is cheaper than a dead page; the title, summary, steps and tips below describe only what ships.
 const isVeEmeliyyat: Guide = {
   slug: "is-ve-emeliyyat-qeyd-et",
-  title: "Əməliyyat və müşahidə qeyd etmək",
-  summary: "Çiləmə və gübrələməni yaz, müşahidəni xəritədə işarələ, gözləmə müddətini izlə.",
+  title: "Müşahidə və şəkil qeyd etmək",
+  summary: "Sahədə gördüyünü yaz, yerini telefonun GPS-i ilə tut, şəklini əlavə et.",
   icon: "clipboard",
   meta: "4 addım · ~2 dəq",
   intro:
-    "Sahə qeydləri sahənin yaddaşıdır. Yazdığınız hər əməliyyat AI-nin növbəti cavabına daxil olur — «10 gün əvvəl suvarma qeyd olunub, nəmlik hələ də düşür» cümləsi məhz buradan yaranır. «İşlər» qrupu gübrəni, fotonu, skautinqi və əməliyyatları bir yerə toplayır.",
-  where: "Sahə → İşlər → «Əməliyyatlar»",
+    "Skautinq qeydləri sahənin yaddaşıdır. Yazdığınız hər müşahidə AI-nin növbəti cavabına daxil olur — «keçən həftə bu sahədə zərərverici qeyd olunub» cümləsi məhz buradan yaranır. «İşlər» qrupu gübrəni, fotonu və skautinqi bir yerə toplayır.",
+  where: "Sahə → İşlər → «Skautinq»",
   steps: [
     {
-      title: "«Əməliyyatlar» bölməsini aç",
+      title: "«Skautinq» bölməsini aç",
       body:
-        "Sahəni açın və «İşlər» qrupundan «Əməliyyatlar»a keçin. Keçmiş qeydlər tarix sırası ilə görünür.",
-      screen: "Ekran: «Əməliyyat növü», «Preparat», «Doza», «Tarix» sahələri və altında qeydlərin siyahısı.",
+        "Sahəni açın və «İşlər» qrupundan «Skautinq»a keçin. Yuxarıda yeni qeyd forması, altında isə keçmiş qeydlərin siyahısı var.",
+      screen: "Ekran: «Kateqoriya», «Şiddət (1-5)», «Qeyd», «Rəng» sahələri və altında qeydlərin siyahısı.",
     },
     {
-      title: "Əməliyyatı qeyd et",
+      title: "Gördüyünü yaz",
       body:
-        "Çiləmə, gübrələmə, suvarma və ya becərmə seçin; preparatı, dozanı və tarixi yazın. Qeyd sahəyə bağlanır və növbəti analizə daxil olur.",
+        "Kateqoriyanı seçin — zərərverici, xəstəlik, alaq otu, qida çatışmazlığı, su stresi, zədə — şiddəti 1-5 arasında qiymətləndirin və qısaca nə gördüyünüzü yazın. Qeydə rəng də verə bilərsiniz; siyahıda hər qeydin yanında həmin rəng görünür.",
     },
     {
-      title: "Gözləmə müddətini (PHI) yaz",
+      title: "Yerini və şəklini əlavə et",
       body:
-        "Çiləmədə dərman etiketindəki yığıma qədər gün sayını daxil edin — sayğac avtomatik başlayır və müddət bitməmiş xəbərdarlıq görünür.",
-      screen: "Ekran: «Yığıma icazə: 6 gün sonra» sarı xəbərdarlıq zolağı.",
+        "Tarlada dayandığınız yerdə «Cari yeri əlavə et» düyməsinə basın — telefonun GPS-i koordinatı qeydə yazır. Şübhəli yarpağın şəklini də elə həmin formadan əlavə edin: AI xəstəlik və ya zərərverici izini oxuyur.",
+      screen: "Ekran: «Cari yeri əlavə et» düyməsi, altında «Yer: 40.36129, 48.51204» və «Yeri sil».",
     },
     {
-      title: "Müşahidəni və şəkli əlavə et",
+      title: "İş bitəndə qeydi bağla",
       body:
-        "«Skautinq» bölməsində gördüyünüzü yazın və yerini xəritədə işarələyin; «Foto» bölməsində şəkli əlavə edin — AI xəstəlik və ya zərərverici izini oxuyur.",
+        "Problem həll olunanda qeydi açıb «Həll olundu kimi işarələ» seçin. Siyahının başında «Açıq» qeydlərin sayı yazılır, həll olunanlar isə yalnız «Həll olunanları göstər» seçiləndə görünür.",
     },
   ],
   tips: [
+    "İnternet yoxdursa mətn qeydiniz telefonda gözləyir və bağlantı qayıdanda özü göndərilir; şəkil isə canlı bağlantı tələb edir.",
     "Qeyd nə qədər dəqiq olsa, AI-nin növbəti analizi bir o qədər dəqiq olur.",
-    "Skautinq nöqtəsi xəritədə qalır — növbəti dəfə eyni yerə baxmaq asan olur.",
-    "Çiləmədən sonra gözləmə müddətini yazmağı unutmayın; sayğac yalnız o zaman işləyir.",
+    "Rəngi öz sisteminiz üçün ayırın — məsələn qırmızı təcili, mavi suvarma; siyahıda qeydi bir baxışda tanıyırsınız.",
   ],
   related: ["gubre-plani", "sahe-paylas"],
 };
@@ -262,7 +266,7 @@ const gubrePlani: Guide = {
   icon: "sprout",
   meta: "4 addım · ~2 dəq",
   intro:
-    "Gübrə bölməsi tətbiq qrafikinizi saxlayır və hər tətbiqi sahənin əməliyyat jurnalına bağlayır. AI doza təklifi isə boş rəqəm deyil — NDVI trendi, məhsul normaları və (yükləmisinizsə) laboratoriya analizinə söykənir.",
+    "Gübrə bölməsi tətbiq qrafikinizi saxlayır və hər tətbiqi sahənin tarixçəsinə bağlayır. AI doza təklifi isə boş rəqəm deyil — NDVI trendi, məhsul normaları və (yükləmisinizsə) laboratoriya analizinə söykənir.",
   where: "Sahə → İşlər → «Gübrə»",
   steps: [
     {
@@ -285,7 +289,7 @@ const gubrePlani: Guide = {
     {
       title: "Tətbiqi qeyd et",
       body:
-        "Gübrəni tətbiq edəndə onu qeyd edin. Tətbiq əməliyyat jurnalına düşür və növbəti AI analizinə daxil olur.",
+        "Gübrəni tətbiq edəndə onu qeyd edin. Tətbiq sahənin tarixçəsində qalır və növbəti AI analizinə daxil olur.",
     },
   ],
   tips: [

@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
 from .db import close_pool, init_pool
 from .routers import (admin, advice, analytics, auth, backfill, bulk, chat, demo, documents,
-                      email_prefs, events, farms, fertilizer, fields, geo, grants, health, indices, internal, knowledge, messaging, mgmt,
+                      email_prefs, events, farms, fertilizer, fields, geo, grants, health, indices, internal, knowledge, messaging,
                       nowcast, oauth, orgs, photos, providers, push, reports, scouting,
                       seasons, shares, uploads, weather_history)
 
@@ -40,7 +40,10 @@ def create_app() -> FastAPI:
     app.include_router(indices.router)
     app.include_router(indices.org_router)
     app.include_router(scouting.router)
-    app.include_router(mgmt.router)
+    # routers/mgmt.py (the field operation log + spray safety) was removed on 2026-08-04 with the
+    # "Əməliyyatlar" section. public.field_operations is NOT dropped — the rows are still read by
+    # ai/context.py and routers/reports.py. There is NO write path left: POST /api/bulk/operations
+    # went the same day, so this table is now read-only history — which is exactly why it was kept.
     app.include_router(uploads.router)
     app.include_router(advice.router)
     app.include_router(knowledge.router)

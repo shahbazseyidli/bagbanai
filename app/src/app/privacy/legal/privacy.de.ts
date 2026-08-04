@@ -87,8 +87,8 @@ export const privacyDe: PrivacyDoc = {
             "Die auf der Karte gezeichnete Feldgrenze und die Fläche (in der Datenbank immer in Hektar — die Einheitswahl betrifft nur die Anzeige).",
             "Namen von Feld, Betrieb und Organisation.",
             "Der Feldpass: Kultur, Sorte, Saat- und Erntetermine, Bodenart und pH-Wert, Bewässerungsverfahren, Entwicklungsstadium, Vorfrucht, freie Notizen.",
-            "Feldbegehungen, hochgeladene Fotos, Feldarbeiten, Ertragsaufzeichnungen, Aufgaben und Saisons.",
-            "Einträge aus Journal, Verkauf, Lager und Technik sowie hochgeladene Dokumente.",
+            "Feldbegehungen, hochgeladene Fotos und Saisons.",
+            "Ältere Daten, die wir nicht mehr erheben, aber weiterhin speichern: Feldarbeiten, Ertragsaufzeichnungen, Aufgaben, Journal-, Verkaufs-, Lager- und Technik-Einträge sowie früher hochgeladene Dokumente. Diese Bereiche wurden aus dem Produkt entfernt; Ihre vorhandenen Daten wurden nicht gelöscht und werden bei Kontoschließung mit anonymisiert.",
             "Bodenlaboranalysen — der hochgeladene Scan und die per OCR daraus gelesenen Werte.",
           ],
         },
@@ -151,7 +151,7 @@ export const privacyDe: PrivacyDoc = {
               v:
                 "KI-Empfehlung, Chat, Fotodiagnose und die Recherche-Ebene. Es gehen: Feldname, " +
                 "Fläche, Kulturpass (inklusive Notizen), Indextrends, Wetter, letzte " +
-                "Beobachtungen, Arbeiten, offene Aufgaben, letzte Ertragsaufzeichnungen, die " +
+                "Beobachtungen, Arbeiten, die " +
                 "Zusammenfassung der vorherigen Empfehlung, die letzten Chatbeiträge und das zur " +
                 "Diagnose gesendete Foto. Es gehen nicht: E-Mail, Name, Passwort-Hash.",
             },

@@ -26,7 +26,7 @@ export const post: BlogPost = {
     {
       heading: "Where Agradex takes a different path",
       paragraphs: [
-        "Agradex starts from the assumption that most farmers do not want to interpret a color map — they want to know what to do. So every index layer ships with a plain-language explanation, a 0-100 field condition score summarizes the picture, and the AI agronomist writes its advice from your field's actual context: satellite trends, weather, the operations and scouting notes you logged. The interface runs in 9 languages, including several that large platforms rarely prioritize — Azerbaijani, Hungarian, Polish among them.",
+        "Agradex starts from the assumption that most farmers do not want to interpret a color map — they want to know what to do. So every index layer ships with a plain-language explanation, a 0-100 field condition score summarizes the picture, and the AI agronomist writes its advice from your field's actual context: satellite trends, weather, and the scouting notes you logged. The interface runs in 9 languages, including several that large platforms rarely prioritize — Azerbaijani, Hungarian, Polish among them.",
         "Two smaller differences matter day to day. First, honesty about gaps: Agradex records cloudy satellite passes and shows when the next pass is expected, so \"why is there no new image\" always has an answer. Second, the demo: you can open a live demo field — a real farmer's field with live data — without creating an account.",
       ],
     },

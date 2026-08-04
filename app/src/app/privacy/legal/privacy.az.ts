@@ -94,8 +94,8 @@ export const privacyAz: PrivacyDoc = {
             "Sahənin xəritədə çəkilmiş sərhədi və sahəsi (bazada həmişə hektarla saxlanılır — vahid seçimi yalnız göstərişə təsir edir).",
             "Sahə, təsərrüfat və təşkilat adları.",
             "Sahə pasportu: məhsul, sort, əkin və məhsul yığımı tarixləri, torpaq tipi və pH, suvarma üsulu, inkişaf mərhələsi, əvvəlki məhsul, sərbəst qeydlər.",
-            "Skautinq müşahidələri, yüklədiyiniz şəkillər, sahə əməliyyatları, məhsuldarlıq qeydləri, tapşırıqlar və mövsümlər.",
-            "Dəftər, satış, anbar və texnika yazıları, yüklədiyiniz sənədlər.",
+            "Skautinq müşahidələri, yüklədiyiniz şəkillər və mövsümlər.",
+            "Artıq yığmadığımız, lakin saxladığımız köhnə yazılar: sahə əməliyyatları, məhsuldarlıq qeydləri, tapşırıqlar, dəftər/satış/anbar/texnika sətirləri və əvvəllər yüklədiyiniz sənədlər. Bu bölmələr məhsuldan çıxarılıb; mövcud yazılarınız silinməyib və hesabınızı bağladıqda onlar da anonimləşdirilir.",
             "Torpaq laboratoriya analizləri — skan etdiyiniz sənəd və ondan OCR ilə oxunan göstəricilər.",
           ],
         },
@@ -160,7 +160,7 @@ export const privacyAz: PrivacyDoc = {
               v:
                 "AI məsləhəti, söhbət, foto diaqnozu və araşdırma qatı. Gedən: sahənin adı, " +
                 "sahəsi, məhsul pasportu (qeydlər daxil), indeks trendləri, hava, son skautinq " +
-                "qeydləri, əməliyyatlar, açıq tapşırıqlar, son məhsuldarlıq yazıları, əvvəlki " +
+                "qeydləri, əməliyyatlar, əvvəlki " +
                 "məsləhətin xülasəsi, son söhbət növbələri və diaqnoz üçün göndərdiyiniz şəkil. " +
                 "Getməyən: e-poçt, ad, parol hash-ı.",
             },

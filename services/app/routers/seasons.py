@@ -8,18 +8,30 @@ audit ("when did it move to Yığım").
 Gating is server-side: field-scoped routes resolve the org from the field, season-scoped routes
 resolve it through the season's field. RLS is defence-in-depth only.
 
+Also home to the AI SEASON SUMMARY pair at the bottom of the file (GET .../season-summary and
+POST .../season-summary/generate). They live here rather than in routers/analytics.py because they
+are about the field's seasons; the reasoning, the one-season refusal and the cache all sit in
+services/app/ai/season_summary.py, which is where to read before changing them.
+
 Request models are declared here on purpose (isolated from ..schemas)."""
 from datetime import date
 from decimal import Decimal
 from typing import Optional
 
 import asyncpg
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field, field_validator
 
+from .. import tiers
+from ..ai import llm
+from ..ai import season_summary as season_ai
 from ..db import connection
 from ..deps import ROLES_WRITE, get_current_user_id, require_member, require_role
 from .fields import _org_of_field
+# The one place the "which language does prose get written in" precedence lives (body → X-Locale
+# header → cookie → az). Imported rather than re-derived: a second copy of that rule is how the
+# interface ended up in one language and the AI prose in another.
+from .advice import _resolve_locale
 
 router = APIRouter(prefix="/api", tags=["seasons"])
 
@@ -374,3 +386,99 @@ async def delete_season(season_id: str, user_id: str = Depends(get_current_user_
                      order by season_year desc, created_at desc limit 1)
                    returning id""", field_id)
     return {"ok": True, "promoted_id": str(promoted) if promoted else None}
+
+
+# ---------- AI season summary (ai/season_summary.py) ----------
+# Two endpoints, and the split is the point: READING never costs an LLM call, WRITING is always an
+# explicit act. The numbers come from the satellite record and are computed on every GET; the prose
+# is generated once, cached in the field_knowledge block store, and refreshed only when the farmer
+# asks. See the module docstring for the one-season rule.
+def _summary_payload(facts: dict, cached: dict | None, locale: str,
+                     configured: bool, used: int, limit: int) -> dict:
+    comparable = facts["mode"] in (season_ai.MODE_PAIR, season_ai.MODE_MULTI)
+    summary = None
+    # Prose is served ONLY while the data still supports a comparison. A cached paragraph is a claim
+    # about several seasons; if the field no longer has them, the honest render is the numbers plus
+    # the reason, not last month's sentence.
+    if cached and comparable:
+        lang = cached.get("lang") or "az"
+        summary = {
+            "headline": cached.get("headline") or "",
+            "comparison": cached.get("comparison") or "",
+            "watch": cached.get("watch") or [],
+            "disclaimer": cached.get("disclaimer") or "",
+            "model": cached.get("model"),
+            "years": cached.get("years") or [],
+            "mode": cached.get("mode"),
+            "lang": lang,
+            # Same contract as GET /fields/{id}/advice: prose is never translated on read, so say
+            # when the reader and the writer disagree and let the UI offer a rewrite.
+            "lang_mismatch": lang != locale,
+            "generated_at": cached.get("generated_at"),
+            # The inputs moved since this was written (a new scene, a backfilled season, a crop
+            # change). Not an error and not auto-refreshed — just disclosed.
+            "stale": cached.get("input_hash") != season_ai.facts_hash(facts),
+        }
+    return {
+        **{k: facts[k] for k in ("mode", "current_year", "seasons", "comparable_years",
+                                 "thin_years", "min_scenes")},
+        "summary": summary,
+        "configured": configured,
+        "can_generate": comparable and configured,
+        "quota": {"used": used, "limit": limit},
+    }
+
+
+@router.get("/fields/{field_id}/season-summary")
+async def get_season_summary(field_id: str, request: Request,
+                             user_id: str = Depends(get_current_user_id)):
+    """Season facts (always) + the cached AI comparison (when one exists and still applies)."""
+    locale = _resolve_locale(request, None)
+    async with connection(user_id) as conn:
+        org_id = await _org_of_field(conn, field_id)
+        await require_member(conn, user_id, org_id)
+        facts = await season_ai.collect(conn, field_id)
+        cached = await season_ai.load_cached(conn, field_id)
+        tier = await tiers.org_tier(conn, org_id)
+        used = await tiers.month_count(conn, org_id, "advice")
+        limit = tiers.limit(tier, "advice_per_month")
+    return _summary_payload(facts, cached, locale, llm.is_configured(), used, limit)
+
+
+@router.post("/fields/{field_id}/season-summary/generate")
+async def generate_season_summary(field_id: str, request: Request,
+                                  user_id: str = Depends(get_current_user_id)):
+    """Write (or rewrite) the field's season comparison, in the caller's language.
+
+    Refusals get status codes rather than a 200 carrying a flag — that mistake was made once with
+    advice, where every caller read the quota refusal as success and the farmer saw a button that
+    span and changed nothing."""
+    locale = _resolve_locale(request, None)
+    async with connection(user_id) as conn:
+        org_id = await _org_of_field(conn, field_id)
+        # require_member, matching POST /fields/{id}/advice/generate — the sibling AI write. The
+        # real control on this route is the org's monthly quota, not the member's role, and gating
+        # it harder than advice would mean the button renders for a viewer and then 403s, which the
+        # client cannot predict from the payload.
+        await require_member(conn, user_id, org_id)
+        result = await season_ai.generate_and_store(
+            conn, field_id, org_id, lang=locale, user_id=user_id)
+        if result.get("ok"):
+            facts = result["facts"]
+            cached = await season_ai.load_cached(conn, field_id)
+            tier = await tiers.org_tier(conn, org_id)
+            used = await tiers.month_count(conn, org_id, "advice")
+            limit = tiers.limit(tier, "advice_per_month")
+    if result.get("ok"):
+        return _summary_payload(facts, cached, locale, True, used, limit)
+    reason = result.get("reason")
+    if reason == "not_configured":
+        raise HTTPException(status_code=503, detail="ai_not_configured")
+    if reason == "quota_exceeded":
+        raise HTTPException(status_code=429, detail="advice_quota_exceeded")
+    if reason == "not_comparable":
+        # 409, not 400: the request is well-formed and will succeed unchanged once the field has a
+        # second season. The client never offers this button in that state, so reaching it means a
+        # stale page — the code says which one it is.
+        raise HTTPException(status_code=409, detail="season_not_comparable")
+    raise HTTPException(status_code=503, detail="ai_unavailable")

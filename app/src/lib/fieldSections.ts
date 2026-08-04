@@ -11,16 +11,27 @@
 // rename, and a compatibility shim for a compatibility problem we do not have would outlive anyone
 // who remembers why it exists. An unknown value still resolves to the first section — that is
 // ordinary robustness against a truncated or hand-edited URL, not legacy support.
+//
+// "operations" and "documents" were removed by owner decision (2026-08-04) and fall under the same
+// rule: an old ?tab=operations or ?tab=documents bookmark opens "Sahənin vəziyyəti" rather than
+// erroring. The DB tables (public.field_operations, public.field_documents) are NOT dropped — same
+// precedent as the subsidy calculator and the ERP strip, the data stays recoverable.
 import type { I18nKey } from "@/lib/i18n";
 
 export type SectionKey =
   | "status" | "satellite" | "analysis" | "weather"
-  | "fertilizer" | "photos" | "scouting" | "operations"
-  | "season" | "soil" | "metadata" | "documents";
+  | "fertilizer" | "photos" | "scouting"
+  | "season" | "soil" | "metadata";
 
 export type GroupKey = "monitoring" | "work" | "records";
 
-/** Icon name resolved to a component by the menu — kept as a string so this file stays pure data. */
+/** Icon name resolved to a component by the menu — kept as a string so this file stays pure data.
+ *
+ *  Deliberately a SUPERSET of the icons the sections above actually use: "zones"/"tasks"/"yields"/
+ *  "harvest" outlived their sections in the July strip, and "operations"/"documents" outlive theirs
+ *  now. Both consumers (shell/FieldSectionMenu, mobile/sectionIcons) declare a
+ *  `Record<IconName, ...>`, so shrinking this union means editing two files that are not part of
+ *  the taxonomy for no behavioural gain — an unused key in those maps renders nothing. */
 export type IconName =
   | "pulse" | "satellite" | "analysis" | "weather" | "zones" | "tasks" | "fertilizer" | "photos"
   | "scouting" | "operations" | "yields" | "harvest" | "season" | "soil" | "metadata" | "documents";
@@ -72,7 +83,6 @@ export const SECTION_GROUPS: SectionGroup[] = [
       { key: "fertilizer", labelKey: "field.tab.fertilizer", icon: "fertilizer", primary: false },
       { key: "photos", labelKey: "field.tab.photos", icon: "photos", primary: false },
       { key: "scouting", labelKey: "field.tab.scouting", icon: "scouting", primary: false },
-      { key: "operations", labelKey: "field.tab.operations", icon: "operations", primary: false },
     ],
   },
   {
@@ -82,7 +92,6 @@ export const SECTION_GROUPS: SectionGroup[] = [
       { key: "season", labelKey: "field.tab.season", icon: "season", primary: false },
       { key: "soil", labelKey: "field.tab.soil", icon: "soil", primary: false },
       { key: "metadata", labelKey: "field.tab.metadata", icon: "metadata", primary: false },
-      { key: "documents", labelKey: "field.tab.documents", icon: "documents", primary: false },
     ],
   },
 ];

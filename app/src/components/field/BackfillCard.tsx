@@ -1,13 +1,22 @@
 "use client";
 
 // A8 — retrospective backfill of past seasons. HLS reaches back to 2015, but a new field only
-// gets the last ~60 days, so multi-season features (A5 compare) and productivity zones (A6)
-// have nothing to chew on until the farmer asks for history. This card is that ask.
+// gets the last ~60 days, so the season comparison and the AI season summary have nothing to chew
+// on until the farmer asks for history. This card is that ask, and the AI summary above links
+// straight to it (BACKFILL_ANCHOR) when a field has only one season.
+//
+// SIMPLIFIED (2026-08-04): the two year inputs are gone. A farmer thinks "the last few years", not
+// "2021 to 2026", and the pair of number fields could be typed into an invalid range that the API
+// then rejected — a 400 for a question the UI should never have asked. Three chips resolve to a
+// range here, always inside [min_year, max_year] and never longer than the server's max_span, so
+// the invalid state cannot be expressed. The resolved years are printed next to the chips: the
+// farmer still sees exactly what will be loaded.
 import { useCallback, useEffect, useState } from "react";
 import { History, Loader2 } from "lucide-react";
 import { api, azError } from "@/lib/api";
 import { t } from "@/lib/i18n";
-import { ErrorNote, Field as FormField } from "@/components/ui";
+import { ErrorNote } from "@/components/ui";
+import { BACKFILL_ANCHOR } from "@/components/field/SeasonSummaryCard";
 
 interface Job {
   id: string;
@@ -31,6 +40,8 @@ interface Resp {
   covered_years: Coverage[];
 }
 
+type Span = "3" | "5" | "all";
+
 // status codes ("queued"/"running"/"done"/"failed") are API enum values — kept as-is; only the
 // human labels are translated, and at render time so the active locale is honored.
 function statusLabel(status: string): string {
@@ -43,22 +54,22 @@ function statusLabel(status: string): string {
   }
 }
 
-/** `forZones` also requests peak-season NDVI rasters, which productivity zones (A6) need —
- *  a plain stats-only backfill can never unblock them. */
-export default function BackfillCard({ fieldId, forZones = false }:
-  { fieldId: string; forZones?: boolean }) {
+/** Chip → concrete year range, clamped by the archive floor and the server's span cap. */
+function resolveRange(span: Span, d: Resp): { from: number; to: number } {
+  const years = span === "all" ? d.max_span : Number(span);
+  const capped = Math.min(years, d.max_span);
+  return { from: Math.max(d.min_year, d.max_year - capped + 1), to: d.max_year };
+}
+
+export default function BackfillCard({ fieldId }: { fieldId: string }) {
   const [data, setData] = useState<Resp | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
+  const [span, setSpan] = useState<Span>("3");
 
   const load = useCallback(async () => {
     try {
-      const d = await api.get<Resp>(`/api/fields/${fieldId}/backfill`);
-      setData(d);
-      setFrom((prev) => prev || String(Math.max(d.min_year, d.max_year - 4)));
-      setTo((prev) => prev || String(d.max_year));
+      setData(await api.get<Resp>(`/api/fields/${fieldId}/backfill`));
     } catch (err) {
       setError(azError(err));
     }
@@ -77,14 +88,15 @@ export default function BackfillCard({ fieldId, forZones = false }:
   }, [data?.current?.status, load]);
 
   async function start() {
+    if (!data) return;
     setBusy(true);
     setError("");
     try {
+      const { from, to } = resolveRange(span, data);
       await api.post(`/api/fields/${fieldId}/backfill`, {
-        year_from: Number(from),
-        year_to: Number(to),
+        year_from: from,
+        year_to: to,
         sensor: "hls",
-        for_zones: forZones,
       });
       await load();
     } catch (err) {
@@ -98,16 +110,23 @@ export default function BackfillCard({ fieldId, forZones = false }:
   const cur = data.current;
   const running = cur?.status === "queued" || cur?.status === "running";
   const pct = cur && cur.years_total > 0 ? Math.round((cur.years_done / cur.years_total) * 100) : 0;
+  const range = resolveRange(span, data);
+
+  const spanOptions: { value: Span; label: string }[] = [
+    { value: "3", label: t("app.field.backfillCard.range3") },
+    { value: "5", label: t("app.field.backfillCard.range5") },
+    { value: "all", label: t("app.field.backfillCard.rangeAll") },
+  ];
 
   return (
-    <div className="card">
+    // The id the single-season summary above links to; scroll-mt keeps the heading off the top edge.
+    <div id={BACKFILL_ANCHOR} className="card scroll-mt-4">
       <div className="mb-2 flex items-center gap-2">
         <History className="h-5 w-5 text-emerald-600" />
         <h3 className="font-semibold text-slate-800">{t("app.field.backfillCard.title")}</h3>
       </div>
       <p className="text-sm text-slate-500">
         {t("app.field.backfillCard.archivePre")}{data.min_year}{t("app.field.backfillCard.archivePost")}
-        {forZones && t("app.field.backfillCard.forZonesNote")}
       </p>
 
       {data.covered_years.length > 0 && (
@@ -139,34 +158,36 @@ export default function BackfillCard({ fieldId, forZones = false }:
               {cur.scenes_written > 0 && ` · ${cur.scenes_written} ${t("app.field.backfillCard.sceneWord")}`}
             </p>
           )}
-          <div className="grid grid-cols-2 gap-3">
-            <FormField label={t("app.field.backfillCard.startYearLabel")}>
-              <input
-                className="input"
-                type="number"
-                min={data.min_year}
-                max={data.max_year}
-                value={from}
-                onChange={(e) => setFrom(e.target.value)}
-              />
-            </FormField>
-            <FormField label={t("app.field.backfillCard.endYearLabel")}>
-              <input
-                className="input"
-                type="number"
-                min={data.min_year}
-                max={data.max_year}
-                value={to}
-                onChange={(e) => setTo(e.target.value)}
-              />
-            </FormField>
+          <div>
+            <p className="mb-1.5 text-sm font-medium text-slate-700">
+              {t("app.field.backfillCard.rangeLabel")}
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              {spanOptions.map((o) => {
+                const on = span === o.value;
+                return (
+                  <button
+                    key={o.value}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => setSpan(o.value)}
+                    className={`min-h-[var(--tap)] rounded-full border-[1.5px] px-3 py-1.5 text-sm font-medium ${
+                      on
+                        ? "border-emerald-500 bg-emerald-50 text-emerald-800"
+                        : "border-slate-300 bg-white text-slate-600 hover:border-emerald-300"
+                    }`}
+                  >
+                    {o.label}
+                  </button>
+                );
+              })}
+              <span className="text-sm tabular-nums text-slate-500">{range.from}–{range.to}</span>
+            </div>
           </div>
           <button className="btn-primary" onClick={start} disabled={busy}>
             {busy ? t("app.field.backfillCard.sending") : t("app.field.backfillCard.loadButton")}
           </button>
-          <p className="text-xs text-slate-400">
-            {t("app.field.backfillCard.maxSpanPre")}{data.max_span}{t("app.field.backfillCard.maxSpanPost")}
-          </p>
+          <p className="text-xs text-slate-400">{t("app.field.backfillCard.backgroundNote")}</p>
         </div>
       )}
       <ErrorNote message={error} />

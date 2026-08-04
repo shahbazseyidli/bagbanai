@@ -3,6 +3,25 @@
 // B3 — mövsüm (əkin) kartoteksi. Hər əkinin öz ili, məhsulu, tarixləri və həyat dövrü statusu var
 // (public.field_seasons / 0034). Bütün istifadəçi mətni t() ilə həll olunur — T18 çıxarışı bitib,
 // burada inline AZ sətir qalmayıb (statusLabel/cycleOptions render vaxtı, modul yüklənəndə yox).
+//
+// SIMPLIFIED (2026-08-04, owner: "mövsüm hissəsini sadələşdir"). Recording a season is untouched —
+// what left is the bookkeeping that lived beside it:
+//
+//   • THREE FORM INPUTS REMOVED — growth stage, seeding density, target yield. All three already
+//     exist at FIELD level in "Sahə pasportu" (field_metadata), which is where the rest of the
+//     product reads them from: ai/fertilizer.py takes target_yield from field_metadata, and
+//     ai/knowledge.py's dependency map keys off the field-level seeding_density and growth_stage.
+//     The season-level copies were written by this form and read by this form. Asking a farmer the
+//     same three questions twice, in two places, with only one of the answers connected to
+//     anything, is the bookkeeping feel the season model is accused of.
+//     The COLUMNS STAY (same precedent as the subsidy and ERP removals — no migration, nothing
+//     dropped): rows created before today keep their values, PUT /api/seasons/{id} still accepts
+//     them, and the printable report still prints target_yield for the seasons that have one.
+//   • The per-season "N gün keçib / N gün qalıb" counters are down to ONE — the harvest countdown.
+//     Days since planting is the planting date minus today, already on the line above it.
+//   • The status picker offers the four states a farmer distinguishes in the field. 'preparation'
+//     and 'fallow' are still rendered as chips on any season that holds them (and the API still
+//     accepts all six) — they are just not offered as taps.
 import { useEffect, useState } from "react";
 import { CalendarDays, ChevronDown, ChevronUp, Plus, Sprout, Star, Trash2 } from "lucide-react";
 import { api, azError } from "@/lib/api";
@@ -25,14 +44,10 @@ interface Season {
   emergence_date: string | null;
   expected_harvest: string | null;
   actual_harvest_date: string | null;
-  growth_stage: string | null;
-  seeding_density: number | null;
-  target_yield: number | null;
   area_ha: number | null;
   is_current: boolean;
   source: string;
   notes: string | null;
-  days_since_planting: number | null;
   days_to_harvest: number | null;
 }
 
@@ -41,14 +56,9 @@ interface StatusMeta {
   active: string;
 }
 
-const STATUS_ORDER: SeasonStatus[] = [
-  "preparation",
-  "planted",
-  "vegetation",
-  "harvest",
-  "fallow",
-  "closed",
-];
+/** What the picker offers. NOT the full vocabulary: the API and the chips below still know
+ *  'preparation' and 'fallow', they are simply not worth a tap target each. */
+const STATUS_CHOICES: SeasonStatus[] = ["planted", "vegetation", "harvest", "closed"];
 
 const STATUS: Record<string, StatusMeta> = {
   preparation: {
@@ -82,6 +92,8 @@ function statusMeta(s: string): StatusMeta {
 }
 
 // Localized status label (resolved at render time, not module load, so locale switches apply).
+// Still covers all six stored values — an older season sitting in 'preparation' must not render
+// its raw code just because the picker no longer offers it.
 function statusLabel(s: string): string {
   switch (s) {
     case "preparation": return t("app.field.seasonTab.statusPreparation");
@@ -116,19 +128,16 @@ export default function SeasonTab({ fieldId }: { fieldId: string }) {
   const [cycle, setCycle] = useState("annual");
   const [plantingDate, setPlantingDate] = useState("");
   const [expectedHarvest, setExpectedHarvest] = useState("");
-  const [growthStage, setGrowthStage] = useState("");
-  const [density, setDensity] = useState("");
-  const [targetYield, setTargetYield] = useState("");
   const [notes, setNotes] = useState("");
   const [makeCurrent, setMakeCurrent] = useState(true);
 
   /** Open the new-season form already filled in from the season above it.
    *
-   *  The form used to open completely blank while last year's crop, variety, cycle, density and
-   *  target yield sat on screen one card below — so "start next season" meant re-typing what the
-   *  product already knew. The season model is the concept farmers understand least (the research
-   *  document calls it out by name), and an empty form is what makes it feel like bookkeeping
-   *  rather than carrying the field forward.
+   *  The form used to open completely blank while last year's crop, variety and cycle sat on screen
+   *  one card below — so "start next season" meant re-typing what the product already knew. The
+   *  season model is the concept farmers understand least (the research document calls it out by
+   *  name), and an empty form is what makes it feel like bookkeeping rather than carrying the field
+   *  forward.
    *
    *  Only ever a PREFILL: every value stays editable, and anything already typed wins because
    *  this runs on open, not on every render. The year is bumped past the newest season rather
@@ -142,8 +151,6 @@ export default function SeasonTab({ fieldId }: { fieldId: string }) {
     if (!crop) setCrop(last.crop_type || "");
     if (!variety) setVariety(last.variety || "");
     if (last.crop_cycle) setCycle(last.crop_cycle);
-    if (!density) setDensity(last.seeding_density != null ? String(last.seeding_density) : "");
-    if (!targetYield) setTargetYield(last.target_yield != null ? String(last.target_yield) : "");
   }
 
   const cycleOptions = [
@@ -178,9 +185,6 @@ export default function SeasonTab({ fieldId }: { fieldId: string }) {
         crop_cycle: cycle || undefined,
         planting_date: plantingDate || undefined,
         expected_harvest: expectedHarvest || undefined,
-        growth_stage: growthStage.trim() || undefined,
-        seeding_density: density ? Number(density) : undefined,
-        target_yield: targetYield ? Number(targetYield) : undefined,
         notes: notes.trim() || undefined,
         is_current: makeCurrent,
         status: plantingDate ? "planted" : "preparation",
@@ -189,9 +193,6 @@ export default function SeasonTab({ fieldId }: { fieldId: string }) {
       setVariety("");
       setPlantingDate("");
       setExpectedHarvest("");
-      setGrowthStage("");
-      setDensity("");
-      setTargetYield("");
       setNotes("");
       setOpen(false);
       await load();
@@ -293,6 +294,9 @@ export default function SeasonTab({ fieldId }: { fieldId: string }) {
             <FormField label={t("app.field.seasonTab.varietyLabel")}>
               <input className="input" value={variety} onChange={(e) => setVariety(e.target.value)} />
             </FormField>
+            {/* Kept while density/target/stage went: 'perennial' changes how the AI reads this
+                field's NDVI (an orchard's mean averages canopy with bare inter-row soil), so it is
+                an input to the analysis rather than a record of it. */}
             <FormField label={t("app.field.seasonTab.cycleLabel")}>
               <ChoiceChips value={cycle} onChange={setCycle} options={cycleOptions} />
             </FormField>
@@ -310,32 +314,6 @@ export default function SeasonTab({ fieldId }: { fieldId: string }) {
                 type="date"
                 value={expectedHarvest}
                 onChange={(e) => setExpectedHarvest(e.target.value)}
-              />
-            </FormField>
-            <FormField label={t("app.field.seasonTab.growthStageLabel")}>
-              <input
-                className="input"
-                value={growthStage}
-                onChange={(e) => setGrowthStage(e.target.value)}
-                placeholder={t("app.field.seasonTab.growthStagePlaceholder")}
-              />
-            </FormField>
-            <FormField label={t("app.field.seasonTab.densityLabel")}>
-              <input
-                className="input"
-                type="number"
-                step="any"
-                value={density}
-                onChange={(e) => setDensity(e.target.value)}
-              />
-            </FormField>
-            <FormField label={t("app.field.seasonTab.targetYieldLabel")}>
-              <input
-                className="input"
-                type="number"
-                step="any"
-                value={targetYield}
-                onChange={(e) => setTargetYield(e.target.value)}
               />
             </FormField>
           </div>
@@ -426,25 +404,14 @@ export default function SeasonTab({ fieldId }: { fieldId: string }) {
                     {fmtDate(s.actual_harvest_date ?? s.expected_harvest)}
                     {s.actual_harvest_date ? t("app.field.seasonTab.actualSuffix") : ""}
                   </span>
-                </div>
-
-                <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
-                  {s.days_since_planting != null && (
-                    <span>
-                      {s.days_since_planting >= 0
-                        ? `${t("app.field.seasonTab.daysSincePlantingPre")}${s.days_since_planting}${t("app.field.seasonTab.daysSincePlantingPost")}`
-                        : `${t("app.field.seasonTab.daysToPlantingPre")}${Math.abs(s.days_since_planting)}${t("app.field.seasonTab.daysToPlantingPost")}`}
-                    </span>
-                  )}
+                  {/* The one counter left: how long until (or how far past) the harvest. */}
                   {s.days_to_harvest != null && (
-                    <span>
+                    <span className="text-xs text-slate-500">
                       {s.days_to_harvest >= 0
                         ? `${t("app.field.seasonTab.daysToHarvestPre")}${s.days_to_harvest}${t("app.field.seasonTab.daysToHarvestPost")}`
                         : `${t("app.field.seasonTab.harvestLatePre")}${Math.abs(s.days_to_harvest)}${t("app.field.seasonTab.harvestLatePost")}`}
                     </span>
                   )}
-                  {s.growth_stage && <span>{t("app.field.seasonTab.stageLabel")} {s.growth_stage}</span>}
-                  {s.target_yield != null && <span>{t("app.field.seasonTab.targetLabel")} {s.target_yield}</span>}
                 </div>
 
                 {s.notes && <p className="mt-2 text-sm text-slate-700">{s.notes}</p>}
@@ -476,7 +443,7 @@ export default function SeasonTab({ fieldId }: { fieldId: string }) {
                   <div className="mt-3 border-t border-emerald-200 pt-3">
                     <p className="mb-2 text-xs font-medium text-slate-500">{t("app.field.seasonTab.stagePickerLabel")}</p>
                     <div className="flex flex-wrap gap-2">
-                      {STATUS_ORDER.map((st) => {
+                      {STATUS_CHOICES.map((st) => {
                         const m = statusMeta(st);
                         const on = s.status === st;
                         return (

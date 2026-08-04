@@ -94,6 +94,9 @@ async def build_field_context(conn, field_id: str, lang: str | None = None) -> d
         """select category, severity, note, observed_at::date as date
            from public.scouting_observations where field_id=$1::uuid
            order by observed_at desc limit 8""", field_id)
+    # Kept after the "Əməliyyatlar" section was removed (2026-08-04). A field may already hold rows,
+    # and although nothing writes new ones any more, the stored rows are live history, not
+    # a leftover. What DID change is what happens when there are none — see the `ctx` dict below.
     operations = await conn.fetch(
         """select type, performed_on as date, notes
            from public.field_operations where field_id=$1::uuid
@@ -148,6 +151,14 @@ async def build_field_context(conn, field_id: str, lang: str | None = None) -> d
     def rows(rs):
         return [dict(r) for r in (rs or [])]
 
+    # `operations` is OMITTED from the prompt when the field has none, rather than sent as an empty
+    # array. Before the section was removed an empty list read as "this farmer has not logged
+    # anything yet"; now that most fields will never gain a row, a permanent `"operations": []` is a
+    # key the model has to interpret every single call — and the SYSTEM prompt's cause-effect rule
+    # points straight at it. Absent means absent. `scouting` is deliberately NOT treated this way:
+    # that section is alive, so an empty list there is real information.
+    ops = rows(operations)
+
     # AI reasons over Sentinel-2 (10m) trends ONLY — never HLS (product decision).
     s2_trends = await index_trends(conn, field_id, sensor="S2")
 
@@ -157,7 +168,7 @@ async def build_field_context(conn, field_id: str, lang: str | None = None) -> d
         "satellite_status": None if s2_trends else "Sentinel-2 məlumatı hələ hazırlanır",
         "satellite_indices": s2_trends,
         "scouting": rows(scouting),
-        "operations": rows(operations),
+        **({"operations": ops} if ops else {}),
         "soil_analysis": dict(soil) if soil else None,
         "recent_photos": rows(photos),
         "fertilizer_plan": rows(fert),

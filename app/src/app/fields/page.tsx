@@ -204,7 +204,7 @@ export default function FieldsListPage() {
   const { user, loading } = useAuth();
   const [fields, setFields] = useState<Field[] | null>(null);
   const [error, setError] = useState("");
-  // B14 — multi-select drives the bulk task/operation bar.
+  // B14 — multi-select drives the bulk crop bar (the task and operation actions are gone).
   const [orgId, setOrgId] = useState("");
   // The agronomist's real workaround is one ORG PER CLIENT, so this screen must be switchable.
   // /, /notes and /team already had a switcher; this one and /weather were pinned to orgs[0], so

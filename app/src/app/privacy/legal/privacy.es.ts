@@ -88,8 +88,8 @@ export const privacyEs: PrivacyDoc = {
             "El límite del campo dibujado en el mapa y su superficie (siempre almacenada en hectáreas; el ajuste de unidad solo afecta la visualización).",
             "Los nombres del campo, de la finca y de la organización.",
             "El pasaporte del campo: cultivo, variedad, fechas de siembra y cosecha, tipo de suelo y pH, método de riego, etapa de crecimiento, cultivo anterior, notas de texto libre.",
-            "Observaciones de campo, fotos que usted sube, labores de campo, registros de rendimiento, tareas y temporadas.",
-            "Filas del libro contable, de ventas, de inventario y de equipos, y documentos que usted sube.",
+            "Observaciones de campo, fotos que usted sube y temporadas.",
+            "Registros antiguos que ya no recopilamos pero seguimos almacenando: labores de campo, registros de rendimiento, tareas, filas de libro, ventas, inventario y equipos, y documentos que subió antes. Esas secciones se retiraron del producto; sus registros no se eliminaron y se anonimizan junto con el resto al cerrar la cuenta.",
             "Análisis de laboratorio de suelo: el escaneo que usted sube y los valores extraídos de él por OCR.",
           ],
         },
@@ -154,7 +154,7 @@ export const privacyEs: PrivacyDoc = {
                 "Consejo de IA, chat, diagnóstico por foto y la capa de investigación. Qué se " +
                 "envía: nombre del campo, superficie, pasaporte del cultivo (incluidas las " +
                 "notas), tendencias de los índices, clima, notas de campo recientes, labores, " +
-                "tareas abiertas, registros de rendimiento recientes, un resumen del consejo " +
+                "un resumen del consejo " +
                 "anterior, los últimos turnos del chat y la foto que usted envía para " +
                 "diagnóstico. Qué no se envía: su correo electrónico, su nombre, el hash de su " +
                 "contraseña.",

@@ -1,12 +1,12 @@
 "use client";
 
-// One scouting note, opened by tapping its pin on the map or its row in the list (6.5).
+// One scouting note, opened from its row in the list (6.5). It used to open from its pin as well;
+// the scouting map was removed on 2026-08-04, so the list is now the only way in.
 //
-// Rendered INLINE at the top of the section, not as a fixed or sticky overlay. Two reasons: the
-// map card sits directly above, so an inline panel keeps the pin and its note on screen together
-// instead of covering the picture the farmer just tapped; and this project's map rules are
-// unforgiving about position — a sticky ancestor leaves a MapLibre canvas blank until something
-// forces a resize, and a fixed sheet at z-40 would fight BottomNav for the same layer.
+// Rendered INLINE at the top of the section, not as a fixed or sticky overlay — a fixed sheet at
+// z-40 would fight BottomNav for the same layer. It never writes lat/lon: the PATCH body carries
+// category, severity, note, colour and status, so a coordinate a row already holds survives every
+// edit made here.
 //
 // Every write here is online-only, and the panel says so rather than pretending. lib/offlineQueue
 // can only replay a POST of a NEW note; queueing a PATCH against a row the server may never have
@@ -35,14 +35,11 @@ export default function ScoutNoteSheet({
   note,
   onClose,
   onChanged,
-  onShowOnMap,
 }: {
   note: Scouting;
   onClose: () => void;
   /** Reload the list — the panel does not own the data, only this one edit. */
   onChanged: (message: string) => void;
-  /** Undefined when no map is on screen; the button is then not offered at all. */
-  onShowOnMap?: (lng: number, lat: number) => void;
 }) {
   const [category, setCategory] = useState(note.category);
   const [severity, setSeverity] = useState(note.severity != null ? String(note.severity) : "");
@@ -219,15 +216,9 @@ export default function ScoutNoteSheet({
               })
             : t("app.field.scouting.noCoords")}
         </span>
-        {onShowOnMap && note.lat != null && note.lon != null && (
-          <button
-            type="button"
-            onClick={() => onShowOnMap(note.lon as number, note.lat as number)}
-            className="min-h-9 font-semibold text-emerald-700 hover:underline"
-          >
-            {t("app.field.scouting.showOnMap")}
-          </button>
-        )}
+        {/* "Show on the map" used to sit here. The scouting map was removed on 2026-08-04, so the
+            coordinate is now printed and nothing more — the value is still stored, still edited
+            through this panel untouched, and still shown; there is simply nowhere to jump to. */}
       </div>
 
       <ErrorNote message={error} />

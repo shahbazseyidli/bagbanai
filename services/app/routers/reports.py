@@ -13,7 +13,8 @@ button. The browser is the PDF engine. Same decision the deleted module made, an
 escaping, table/kv builders, RFC 5987 filename and BOM'd CSV writer are reused verbatim rather than
 rewritten — they were correct, and re-deriving them would have reintroduced the bugs they fixed.
 
-Everything it reads is alive: field_metadata, field_seasons, field_operations,
+Everything it reads still holds data: field_metadata, field_seasons, field_operations
+(dormant since 2026-08-04 — historical rows only, and the section is skipped when there are none),
 scouting_observations, index_stats, advice, field_wellness.
 
 SECURITY: every user-supplied string (field name, notes, free-text crop) goes through html.escape()
@@ -301,13 +302,19 @@ async def field_report(field_id: str, format: Optional[str] = Query("html"),
           _d(s["actual_harvest_date"])] for s in seasons],
         empty="Mövsüm qeydi yoxdur."))
 
-    parts.append("<h2>Əməliyyatlar</h2>")
-    parts.append(_table(
-        [("Tarix", False), ("Növ", False), ("Xərc", True), ("Qeyd", False)],
-        [[_d(o["performed_on"]), label(_OPTYPE_AZ, o["type"]),
-          (f'{_dec(o["cost"])} {o["currency"] or ""}'.strip() if o["cost"] is not None else "—"),
-          o["notes"]] for o in ops],
-        empty="Əməliyyat qeydi yoxdur."))
+    # Only when there is something to show. The Operations section was removed from the product on
+    # 2026-08-04 and its last writer (POST /api/bulk/operations) went with it, so no field created
+    # from that day on can ever have a row here — and a headed chapter reading "no operations
+    # recorded" on every new report advertises a feature that is gone. Fields that DID log work keep
+    # printing it: those rows are real history, which is why the table was never dropped.
+    if ops:
+        parts.append("<h2>Əməliyyatlar</h2>")
+        parts.append(_table(
+            [("Tarix", False), ("Növ", False), ("Xərc", True), ("Qeyd", False)],
+            [[_d(o["performed_on"]), label(_OPTYPE_AZ, o["type"]),
+              (f'{_dec(o["cost"])} {o["currency"] or ""}'.strip() if o["cost"] is not None else "—"),
+              o["notes"]] for o in ops],
+            empty="Əməliyyat qeydi yoxdur."))
 
     parts.append("<h2>Skautinq qeydləri</h2>")
     parts.append(_table(

@@ -1,26 +1,20 @@
 "use client";
 
-// B18 + B19 — regional frost climatology (Open-Meteo archive, cached per rayon) and the farmer's
-// own rain log next to the observed year-over-year precipitation. Types are declared locally on
-// purpose (lib/types.ts is shared and owned elsewhere).
+// B18 — regional frost climatology (Open-Meteo archive, cached per rayon). Types are declared
+// locally on purpose (lib/types.ts is shared and owned elsewhere).
+//
+// Two blocks were removed from this section on 2026-08-04 by owner decision: the manual rain log
+// ("Yağış yağdı → neçə mm?") and the year-over-year precipitation chart. Their endpoints
+// (/api/fields/{id}/rain, /api/fields/{id}/weather/yearly, .../weather/backfill) were removed from
+// routers/weather_history.py in the same wave once nothing called them; /frost-dates stays. The
+// TABLES were not dropped, so any rain a farmer already logged is still in the database.
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Bar,
-  CartesianGrid,
-  ComposedChart,
-  Legend,
-  Line,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import { CloudRain, Download, RefreshCw, Snowflake, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { RefreshCw, Snowflake } from "lucide-react";
 import { api, azError } from "@/lib/api";
 import { t, tf, tp } from "@/lib/i18n";
 import { frostSentence } from "@/lib/wellnessText";
-import { ErrorNote, Field as FormField, Placeholder, Spinner } from "@/components/ui";
+import { ErrorNote, Placeholder, Spinner } from "@/components/ui";
 
 interface FrostStat {
   p50_doy: number | null;
@@ -59,47 +53,9 @@ interface FrostDates {
   sentence_params?: Record<string, unknown> | null;
 }
 
-interface MonthRow {
-  year: number;
-  month: number;
-  precip_mm: number;
-  t_min_mean: number | null;
-  t_max_mean: number | null;
-  days: number;
-}
-
-interface RainMonthRow {
-  year: number;
-  month: number;
-  amount_mm: number;
-  entries: number;
-}
-
-interface YearlyResp {
-  years: number[];
-  rain_years: number[];
-  months: MonthRow[];
-  rain_log: RainMonthRow[];
-  has_archive: boolean;
-  last_date: string | null;
-}
-
-interface RainEntry {
-  id: string;
-  observed_on: string;
-  amount_mm: number;
-  note: string | null;
-  created_at: string;
-}
-
 // Short month names come from the dictionary (one comma-joined key) so a Turkish or Russian reader
 // does not get Azerbaijani abbreviations glued onto a localized date.
 const monthsShort = (): string[] => tf("app.date.monthsShort").split(",").map((s) => s.trim());
-/** Same list, capitalised for chart axis ticks. */
-const monthsAxis = (): string[] =>
-  monthsShort().map((m) => (m ? m.charAt(0).toLocaleUpperCase() + m.slice(1) : m));
-const LINE_COLORS = ["#15803D", "#0EA5E9", "#F59E0B", "#8B5CF6", "#EF4444", "#0F766E", "#DB2777"];
-const YEAR_CHOICES = [3, 5, 10];
 
 /** "04-12" → "12 apr" in the active locale. */
 function mmddAz(v: string | null | undefined): string {
@@ -125,18 +81,6 @@ export default function WeatherHistoryTab({ fieldId }: { fieldId: string }) {
   const [frostErr, setFrostErr] = useState("");
   const [frostBusy, setFrostBusy] = useState(false);
 
-  const [yearly, setYearly] = useState<YearlyResp | null>(null);
-  const [rain, setRain] = useState<RainEntry[]>([]);
-  const [years, setYears] = useState(5);
-
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");        // rain-log form
-  const [chartErr, setChartErr] = useState("");  // archive / backfill
-
-  const [observedOn, setObservedOn] = useState(() => new Date().toISOString().slice(0, 10));
-  const [amount, setAmount] = useState("");
-
   const loadFrost = useCallback(
     async (refresh = false) => {
       setFrostErr("");
@@ -152,99 +96,9 @@ export default function WeatherHistoryTab({ fieldId }: { fieldId: string }) {
     [fieldId],
   );
 
-  const loadYearly = useCallback(async () => {
-    setYearly(await api.get<YearlyResp>(`/api/fields/${fieldId}/weather/yearly?years=${years}`));
-  }, [fieldId, years]);
-
-  const loadRain = useCallback(async () => {
-    setRain(await api.get<RainEntry[]>(`/api/fields/${fieldId}/rain?limit=60`));
-  }, [fieldId]);
-
   useEffect(() => {
     void loadFrost();
   }, [loadFrost]);
-
-  useEffect(() => {
-    let alive = true;
-    setLoading(true);
-    Promise.all([loadYearly(), loadRain()])
-      .catch((err) => {
-        if (alive) setChartErr(azError(err));
-      })
-      .finally(() => {
-        if (alive) setLoading(false);
-      });
-    return () => {
-      alive = false;
-    };
-  }, [loadYearly, loadRain]);
-
-  const logYear = useMemo(() => {
-    if (!yearly || yearly.rain_years.length === 0) return null;
-    return yearly.rain_years[yearly.rain_years.length - 1];
-  }, [yearly]);
-
-  const chartData = useMemo(() => {
-    if (!yearly) return [];
-    return monthsAxis().map((label, i) => {
-      const row: Record<string, string | number | null> = { month: label };
-      yearly.years.forEach((y) => {
-        const m = yearly.months.find((x) => x.year === y && x.month === i + 1);
-        row[`y${y}`] = m ? m.precip_mm : null;
-      });
-      const log = logYear
-        ? yearly.rain_log.find((r) => r.year === logYear && r.month === i + 1)
-        : undefined;
-      row.log = log ? log.amount_mm : null;
-      return row;
-    });
-  }, [yearly, logYear]);
-
-  async function runBackfill() {
-    setChartErr("");
-    setBusy(true);
-    try {
-      await api.post(`/api/fields/${fieldId}/weather/backfill`, { years: Math.max(years, 5) });
-      await loadYearly();
-    } catch (err) {
-      setChartErr(azError(err));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function saveRain(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    setBusy(true);
-    try {
-      await api.post(`/api/fields/${fieldId}/rain`, {
-        observed_on: observedOn,
-        amount_mm: Number(amount),
-      });
-      setAmount("");
-      await Promise.all([loadRain(), loadYearly()]);
-    } catch (err) {
-      setError(azError(err));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function removeRain(id: string) {
-    setError("");
-    try {
-      await api.del(`/api/fields/${fieldId}/rain/${id}`);
-      await Promise.all([loadRain(), loadYearly()]);
-    } catch (err) {
-      setError(azError(err));
-    }
-  }
-
-  const rainTotal = useMemo(
-    () => Math.round(rain.reduce((s, r) => s + r.amount_mm, 0) * 10) / 10,
-    [rain],
-  );
 
   return (
     <div className="space-y-6">
@@ -334,152 +188,6 @@ export default function WeatherHistoryTab({ fieldId }: { fieldId: string }) {
         ) : (
           <Placeholder>{t("app.field.weatherHistoryTab.frostNotCalculated")}</Placeholder>
         )}
-      </div>
-
-      {/* ===== B19 — quick rain log ===== */}
-      <form onSubmit={saveRain} className="card space-y-3">
-        <h3 className="flex items-center gap-2 font-semibold text-slate-800">
-          <CloudRain className="h-4 w-4 text-sky-600" /> {t("app.field.weatherHistoryTab.rainLogHeading")}
-        </h3>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <FormField label={t("app.field.weatherHistoryTab.dateLabel")}>
-            <input
-              className="input"
-              type="date"
-              value={observedOn}
-              required
-              onChange={(e) => setObservedOn(e.target.value)}
-            />
-          </FormField>
-          <FormField label={t("app.field.weatherHistoryTab.amountLabel")}>
-            <input
-              className="input"
-              type="number"
-              step="any"
-              min="0"
-              inputMode="decimal"
-              value={amount}
-              required
-              placeholder={t("app.field.weatherHistoryTab.amountPlaceholder")}
-              onChange={(e) => setAmount(e.target.value)}
-            />
-          </FormField>
-        </div>
-        <button className="btn-primary min-h-[44px]" type="submit" disabled={busy || amount === ""}>
-          <CloudRain className="h-4 w-4" /> {busy ? t("app.field.weatherHistoryTab.saving") : t("app.field.weatherHistoryTab.saveRain")}
-        </button>
-        <ErrorNote message={error} />
-
-        {rain.length > 0 && (
-          <div>
-            <p className="mb-2 text-xs text-slate-500">
-              {tf("app.field.weatherHistoryTab.recentEntriesSummary", {
-                mm: rainTotal,
-                days: rain.length,
-                dayUnit: tp("app.plural.days", rain.length),
-              })}
-            </p>
-            <ul className="space-y-2">
-              {rain.slice(0, 8).map((r) => (
-                <li
-                  key={r.id}
-                  className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2"
-                >
-                  <span className="text-sm text-slate-700">{r.observed_on}</span>
-                  <span className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-slate-900">{r.amount_mm} mm</span>
-                    <button
-                      type="button"
-                      className="btn-ghost min-h-[44px] text-red-600"
-                      aria-label={t("app.field.weatherHistoryTab.delete")}
-                      onClick={() => void removeRain(r.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </form>
-
-      {/* ===== B19 — year-over-year precipitation ===== */}
-      <div className="card space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="font-semibold text-slate-800">{t("app.field.weatherHistoryTab.yearlyPrecipHeading")}</h3>
-          <div className="flex gap-2">
-            {YEAR_CHOICES.map((y) => (
-              <button
-                key={y}
-                type="button"
-                onClick={() => setYears(y)}
-                className={`min-h-[44px] rounded-lg border px-3 text-sm ${
-                  years === y
-                    ? "border-emerald-600 bg-emerald-50 font-medium text-emerald-800"
-                    : "border-slate-200 text-slate-600"
-                }`}
-              >
-                {y} {t("app.field.weatherHistoryTab.yearUnit")}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {loading ? (
-          <Spinner label={t("app.field.weatherHistoryTab.weatherHistoryLoading")} />
-        ) : yearly?.has_archive ? (
-          <>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} width={44} />
-                  <Tooltip formatter={(v) => `${v} mm`} />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                  {logYear && (
-                    <Bar
-                      dataKey="log"
-                      name={`${t("app.field.weatherHistoryTab.yourMeasurement")}${logYear})`}
-                      fill="#94A3B8"
-                      radius={[4, 4, 0, 0]}
-                    />
-                  )}
-                  {yearly.years.map((y, i) => (
-                    <Line
-                      key={y}
-                      type="monotone"
-                      dataKey={`y${y}`}
-                      name={String(y)}
-                      stroke={LINE_COLORS[i % LINE_COLORS.length]}
-                      strokeWidth={2}
-                      dot={false}
-                      connectNulls
-                    />
-                  ))}
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
-            <p className="text-xs text-slate-500">
-              {t("app.field.weatherHistoryTab.monthlyPrecipNoteStart")}
-              {yearly.last_date ? `${t("app.field.weatherHistoryTab.lastDayPrefix")}${yearly.last_date}` : ""}). {t("app.field.weatherHistoryTab.monthlyPrecipNoteEnd")}
-            </p>
-            <button type="button" className="btn-secondary min-h-[44px]" onClick={() => void runBackfill()} disabled={busy}>
-              <Download className="h-4 w-4" /> {busy ? t("app.field.weatherHistoryTab.loading") : t("app.field.weatherHistoryTab.refreshArchive")}
-            </button>
-          </>
-        ) : (
-          <>
-            <Placeholder>
-              {t("app.field.weatherHistoryTab.archiveNotLoaded")}
-            </Placeholder>
-            <button type="button" className="btn-primary min-h-[44px]" onClick={() => void runBackfill()} disabled={busy}>
-              <Download className="h-4 w-4" /> {busy ? t("app.field.weatherHistoryTab.loading") : t("app.field.weatherHistoryTab.loadWeatherArchive")}
-            </button>
-          </>
-        )}
-        <ErrorNote message={chartErr} />
       </div>
     </div>
   );

@@ -6,7 +6,12 @@
 //
 // Honesty rules baked into the copy:
 //  * every capability claim maps to something the product actually ships today; the few
-//    forward-looking items carry `soon: true` and render with a visible "Yaxında" badge;
+//    forward-looking items carry `soon: true` and render with a visible "Yaxında" badge.
+//    The 2026-08-04 removal (Operations section, Documents section, the scouting map, the
+//    in-field chat composer) was swept out of this file and its eight content-locales: no card
+//    sells an operations journal, an on-map observation pin, a post-spray pre-harvest counter or
+//    a document archive any more. Fertilizer, scouting, photos and soil analysis all survive —
+//    those claims were trimmed, not deleted. Do not restore the old wording from a draft;
 //  * no invented measured results — the proof block is explicitly framed as an illustrative
 //    scenario ("nümunə"), and the hero previews are labelled as sample UI;
 //  * pricing applies to FARMERS ONLY (1 ay pulsuz, then Paket 1/2/3). Labs, consultants and
@@ -165,7 +170,7 @@ const farmer: Segment = {
   cardBullets: [
     "Peykdən sahə sağlamlığı — NDVI, NDMI, NDRE və 6 başqa indeks",
     "AI aqronom: risklər, tövsiyələr, foto ilə diaqnoz",
-    "Skautinq, əməliyyat və torpaq analizi — bir sahə tarixçəsində",
+    "Skautinq, foto və torpaq analizi — bir sahə tarixçəsində",
   ],
   valueTitle: "Niyə fermerlər Agradex seçir",
   valueSub:
@@ -179,12 +184,12 @@ const farmer: Segment = {
     {
       title: "Aqronom cavabı gecə saat 11-də də",
       body:
-        "Sahənizin son peyk oxunuşları, hava tarixçəsi, torpaq analizi, əkin tarixi, əməliyyat jurnalı və çəkdiyiniz şəkillər AI aqronoma kontekst kimi verilir. Cavab ümumi məsləhət deyil — məhz sizin sahənizin bu həftəki vəziyyəti üçün risklər, tövsiyələr və növbəti addımlar siyahısıdır.",
+        "Sahənizin son peyk oxunuşları, hava tarixçəsi, torpaq analizi, əkin tarixi, skautinq qeydləri və çəkdiyiniz şəkillər AI aqronoma kontekst kimi verilir. Cavab ümumi məsləhət deyil — məhz sizin sahənizin bu həftəki vəziyyəti üçün risklər, tövsiyələr və növbəti addımlar siyahısıdır.",
     },
     {
       title: "Sahənin yaddaşı bir yerdə qalır",
       body:
-        "Suvarma, çiləmə, gübrələmə, skautinq müşahidəsi, çəkdiyiniz şəkil, laboratoriya analizi və sənədlər — hamısı həmin sahəyə bağlanır. Bir mövsümdən sonra bu, arxiv deyil, iş alətidir: hər qeyd növbəti AI analizinə daxil olur, mövsüm müqayisəsi isə bu ili keçən illərlə eyni təqvim günündə yan-yana qoyur.",
+        "Gübrə tətbiqi, skautinq müşahidəsi, çəkdiyiniz şəkil və laboratoriya analizi — hamısı həmin sahəyə bağlanır. Bir mövsümdən sonra bu, arxiv deyil, iş alətidir: hər qeyd növbəti AI analizinə daxil olur, mövsüm müqayisəsi isə bu ili keçən illərlə eyni təqvim günündə yan-yana qoyur.",
     },
     {
       title: "Başlamaq üçün heç bir data lazım deyil",
@@ -219,17 +224,17 @@ const farmer: Segment = {
     {
       title: "Vəziyyəti gör və AI-dan soruş",
       body:
-        "Sahə üzərində piksel-səviyyəli rəngli xəritə, tarix zolağı, mövsüm müqayisəsi və sağlamlıq balı. Anlamadığınız yer varsa — söhbətdə soruşun, şübhəli yarpağın şəklini çəkin, AI tanısın.",
+        "Sahə üzərində piksel-səviyyəli rəngli xəritə, tarix zolağı, mövsüm müqayisəsi və sağlamlıq balı. Anlamadığınız yer varsa — «Mesajlar»da AI-dan soruşun, şübhəli yarpağın şəklini çəkin, AI tanısın.",
     },
     {
       title: "Qeyd et və müqayisə et",
       body:
-        "Əməliyyatları qeyd edin, dərmandan sonra yığıma qədər gözləmə sayğacını izləyin, şübhəli yerin şəklini əlavə edin — hər qeyd növbəti AI analizinə daxil olur, mövsüm müqayisəsi isə bu ili keçən illərlə yan-yana qoyur.",
+        "Skautinq müşahidənizi yazın, şübhəli yerin şəklini əlavə edin, gübrə tətbiqini qeyd edin — hər qeyd növbəti AI analizinə daxil olur, mövsüm müqayisəsi isə bu ili keçən illərlə yan-yana qoyur.",
     },
   ],
   featuresTitle: "Sizə lazım olan hər şey — bir yerdə",
   featuresSub:
-    "Ayrı-ayrı proqramlar, dəftərçə və WhatsApp qrupları əvəzinə tək platforma. Hər modul digərini qidalandırır: qeyd etdiyiniz hər əməliyyat AI-nin cavabını dəqiqləşdirir.",
+    "Ayrı-ayrı proqramlar, dəftərçə və WhatsApp qrupları əvəzinə tək platforma. Hər modul digərini qidalandırır: qeyd etdiyiniz hər müşahidə AI-nin cavabını dəqiqləşdirir.",
   features: [
     {
       icon: "satellite",
@@ -259,7 +264,7 @@ const farmer: Segment = {
       icon: "sprout",
       title: "Gübrə planı və AI doza təklifi",
       body:
-        "Gübrələmə qrafikinizi yazın; NDVI trendi, məhsul normaları və (varsa) laboratoriya analizinə əsaslanan doza təklifini AI-dən alın. Hər tətbiq əməliyyat jurnalına düşür və növbəti analizə daxil olur.",
+        "Gübrələmə qrafikinizi yazın; NDVI trendi, məhsul normaları və (varsa) laboratoriya analizinə əsaslanan doza təklifini AI-dən alın. Hər tətbiq sahənin tarixçəsində qalır və növbəti analizə daxil olur.",
     },
     {
       icon: "chart",
@@ -269,15 +274,15 @@ const farmer: Segment = {
     },
     {
       icon: "map",
-      title: "Skautinq qeydləri və əməliyyat jurnalı",
+      title: "Skautinq qeydləri",
       body:
-        "Sahədə gördüyünüzü qeyd edin və yerini xəritədə işarələyin. Suvarma, çiləmə, gübrələmə və becərmə jurnala düşür; dərmandan sonra yığıma qədər gözləmə müddəti sayğacla izlənir.",
+        "Sahədə gördüyünüzü kateqoriya, şiddət və rənglə qeyd edin; tarlada dayandığınız yerdə bir toxunuşla koordinatı, şübhəli yarpağın şəklini də əlavə edin. Qeyd sahənin tarixçəsində qalır və növbəti AI analizinə daxil olur.",
     },
     {
       icon: "flask",
-      title: "Torpaq analizi və sənəd arxivi",
+      title: "Torpaq analizi",
       body:
-        "Laboratoriya sənədinin şəklini və ya PDF-ini yükləyin — pH, NPK və üzvi maddə oxunub torpaq pasportuna yazılır. Sənədlərin özü də sahənin arxivində qalır.",
+        "Laboratoriya sənədinin şəklini və ya PDF-ini yükləyin — pH, NPK və üzvi maddə oxunub torpaq pasportuna yazılır və AI-nin gübrə tövsiyəsinə daxil olur.",
     },
     {
       icon: "report",
@@ -301,7 +306,7 @@ const farmer: Segment = {
       icon: "bell",
       title: "Bildirişlər — yalnız vacib olanda",
       body:
-        "Sahə vəziyyəti pisləşəndə, şaxta riski yaranmanda və ya yığıma qədər gözləmə müddəti bitəndə xəbər gəlir. Sakit saatlar var — gecə narahat etmirik.",
+        "Sahə vəziyyəti pisləşəndə, şaxta riski yaranmanda və ya yeni peyk analizi hazır olanda xəbər gəlir. Sakit saatlar var — gecə narahat etmirik.",
     },
   ],
   twoCol: {
@@ -314,16 +319,16 @@ const farmer: Segment = {
       "Nə vaxt nə edildiyi ayrı-ayrı dəftərçələrdə və yaddaşda qalır",
       "Aqronom məsləhəti üçün gözləmək, yaxud heç kimə çatmamaq",
       "Laboratoriya, gübrə satıcısı və aqronom tanış-tanış vasitəsilə axtarılır",
-      "Dərmandan sonra neçə gün keçdiyi yaddaşda saxlanılır",
+      "Keçən mövsümün hansı gündə necə getdiyi yaddaşda qalmır",
     ],
     rightTitle: "Agradex ilə",
     rightItems: [
       "Zəifləyən zona xəritədə hələ kiçik ləkə ikən görünür",
       "Su balansı, hava proqnozu və indeks trendi qərarı əsaslandırır",
-      "Hər əməliyyat sahəyə bağlıdır və növbəti AI analizinə daxil olur",
+      "Hər müşahidə və şəkil sahəyə bağlıdır və növbəti AI analizinə daxil olur",
       "AI aqronom analizi hər yeni peyk səhnəsindən sonra hazır olur",
       "Kataloqda region üzrə provayder tapılır və birbaşa yazılır",
-      "Yığım məhdudiyyəti sayğacla izlənir və ekranda xəbərdarlıq verir",
+      "Mövsüm müqayisəsi bu ili keçən illərlə eyni təqvim günündə tutuşdurur",
     ],
   },
   proof: {
@@ -335,8 +340,8 @@ const farmer: Segment = {
       { when: "Bazar ertəsi", what: "Yeni Sentinel-2 səhnəsi düşür. Bağın şimal-qərb küncündə NDVI qonşu zonalardan nəzərəçarpacaq dərəcədə aşağıdır." },
       { when: "Bazar ertəsi, 10 dəqiqə sonra", what: "AI analizi hazırdır: nəmlik indeksi də eyni yerdə düşüb — ehtimal olunan səbəblər arasında suvarma çatışmazlığı və kök zonası problemi göstərilir, yoxlama addımları verilir." },
       { when: "Çərşənbə axşamı", what: "Fermer həmin küncə gedir, şübhəli yarpaqların şəklini çəkir. Foto diaqnoz zərərverici izini oxuyur və izah edir." },
-      { when: "Çərşənbə", what: "Kataloqdan yaxın rayondakı təchizatçı tapılır, birbaşa yazışma ilə preparat sifariş olunur. Əməliyyat qeyd edilir, yığım məhdudiyyəti sayğacı avtomatik başlayır." },
-      { when: "Növbəti həftə", what: "Yeni səhnədə həmin küncün indeksi bərpa olunmağa başlayır; müqayisə qrafiki fərqi göstərir. Əməliyyat jurnalda qalır — növbəti analizdə nəzərə alınır." },
+      { when: "Çərşənbə", what: "Kataloqdan yaxın rayondakı təchizatçı tapılır, birbaşa yazışma ilə preparat sifariş olunur. Müşahidə həmin küncün koordinatı ilə skautinq qeydinə yazılır." },
+      { when: "Növbəti həftə", what: "Yeni səhnədə həmin küncün indeksi bərpa olunmağa başlayır; müqayisə qrafiki fərqi göstərir. Qeyd sahənin tarixçəsində qalır — növbəti analizdə nəzərə alınır." },
     ],
     note:
       "Platforma diaqnoz qoymur və aqronomu əvəz etmir — o, sizin gördüyünüzü genişləndirir və qərarı əsaslandırır. Bütün AI cavabları məsləhət xarakterlidir.",
@@ -361,7 +366,7 @@ const farmer: Segment = {
       icon: "brain",
       title: "AI aqronom qatı",
       body:
-        "Model boş yerdən danışmır: sahənin indeks trendləri, hava tarixçəsi, torpaq profili, əkin tarixi, əməliyyat və skautinq qeydləri, şəkillər və aktiv yığım məhdudiyyəti kontekst kimi verilir. Nəticə strukturlu şəkildə qayıdır — risklər, tövsiyələr, növbəti addımlar.",
+        "Model boş yerdən danışmır: sahənin indeks trendləri, hava tarixçəsi, torpaq profili, əkin tarixi, skautinq qeydləri və şəkillər kontekst kimi verilir. Nəticə strukturlu şəkildə qayıdır — risklər, tövsiyələr, növbəti addımlar.",
       bullets: [
         "Hər yeni peyk səhnəsindən sonra avtomatik yenilənən analiz",
         "Sahə kontekstini xatırlayan söhbət",
@@ -373,12 +378,12 @@ const farmer: Segment = {
       icon: "map",
       title: "Sahə qeydləri qatı",
       body:
-        "Əməliyyat, gübrə tətbiqi, skautinq müşahidəsi, şəkil, laboratoriya analizi və sənəd — hamısı eyni sahəyə bağlanır. Nəticədə arxiv yox, AI-nin oxuduğu bir tarixçə alınır.",
+        "Gübrə tətbiqi, skautinq müşahidəsi, şəkil və laboratoriya analizi — hamısı eyni sahəyə bağlanır. Nəticədə arxiv yox, AI-nin oxuduğu bir tarixçə alınır.",
       bullets: [
-        "Əməliyyat jurnalı: suvarma, çiləmə, gübrələmə, becərmə",
-        "Skautinq müşahidəsi xəritədə nöqtə ilə",
-        "Dərmandan sonra yığıma qədər gözləmə sayğacı",
-        "Torpaq pasportu və sənəd arxivi",
+        "Gübrə qrafiki və tətbiq qeydləri",
+        "Skautinq müşahidəsi: kateqoriya, şiddət, rəng və GPS koordinatı",
+        "Foto diaqnoz — şəkillər sahənin tarixçəsində qalır",
+        "Torpaq pasportu: laboratoriya göstəriciləri",
       ],
     },
     {
@@ -741,7 +746,7 @@ const consultant: Segment = {
     {
       title: "Tövsiyənin nəticəsi rəqəmlə görünür",
       body:
-        "Mövsüm müqayisəsi eyni təqvim günündə keçən illə fərqi göstərir, sağlamlıq balı vəziyyəti izah edir, əməliyyat jurnalı isə nə vaxt nə edildiyini saxlayır. «Yaxşı oldu» əvəzinə konkret mənzərə təqdim edirsiniz.",
+        "Mövsüm müqayisəsi eyni təqvim günündə keçən illə fərqi göstərir, sağlamlıq balı vəziyyəti izah edir, skautinq jurnalı isə nə vaxt nə görüldüyünü saxlayır. «Yaxşı oldu» əvəzinə konkret mənzərə təqdim edirsiniz.",
     },
     {
       title: "Yeni müştəri kataloqdan gəlir",
@@ -751,7 +756,7 @@ const consultant: Segment = {
     {
       title: "Uzaqdan da işləyir",
       body:
-        "Sahəni görmək üçün hər dəfə yola düşmək lazım deyil. Peyk xəritəsi, fermerin çəkdiyi şəkillər, hava tarixçəsi və əməliyyat jurnalı ilk qiymətləndirməni uzaqdan aparmağa imkan verir — səfər isə həqiqətən lazım olanda edilir.",
+        "Sahəni görmək üçün hər dəfə yola düşmək lazım deyil. Peyk xəritəsi, fermerin çəkdiyi şəkillər, hava tarixçəsi və skautinq qeydləri ilk qiymətləndirməni uzaqdan aparmağa imkan verir — səfər isə həqiqətən lazım olanda edilir.",
     },
   ],
   stats: [
@@ -775,7 +780,7 @@ const consultant: Segment = {
     {
       title: "Sübut et",
       body:
-        "Mövsüm müqayisəsi, sağlamlıq balı və əməliyyat jurnalı tövsiyənizin nəticəsini görünən edir.",
+        "Mövsüm müqayisəsi, sağlamlıq balı və skautinq jurnalı tövsiyənizin nəticəsini görünən edir.",
     },
     {
       title: "Saxla",
@@ -830,9 +835,9 @@ const consultant: Segment = {
     },
     {
       icon: "clock",
-      title: "Əməliyyat jurnalı",
+      title: "Gübrə planı və tətbiqlər",
       body:
-        "Müştərinin qeyd etdiyi suvarma, çiləmə və gübrələmə tarixləri sizdə də görünür; dərmandan sonra yığıma qədər gözləmə müddəti sayğacla izlənir.",
+        "Müştərinin yazdığı gübrələmə qrafiki, tətbiq tarixləri və AI doza təklifi sizdə də görünür — nə vaxt nə verildiyi eyni tarixçədə qalır.",
     },
     {
       icon: "message",
@@ -862,7 +867,7 @@ const consultant: Segment = {
     rightItems: [
       "Aqronom sahəni bir baxışda görür — izahat vaxtı qısalır",
       "Tövsiyələr yazılı qalır və tarixçədə saxlanılır",
-      "Razılaşdırılan iş əməliyyat jurnalına yazılır, unudulmur",
+      "Razılaşdırılan iş sahənin qeydlərində yazılı qalır, unudulmur",
       "Mövsüm sonunda nəticə rəqəmlə görünür",
       "Aqronomla eyni ekranda danışırlar — anlaşılmazlıq azalır",
     ],
@@ -876,7 +881,7 @@ const consultant: Segment = {
       { when: "Bazar ertəsi səhər", what: "Bütün müştəri təşkilatları gözdən keçirilir; vəziyyəti pisləşən sahələr önə çıxır." },
       { when: "Bazar ertəsi günorta", what: "Hər problemli sahə üçün hazır AI analizi oxunur, öz təcrübəsi ilə düzəliş edilir və müştəriyə göndərilir." },
       { when: "Çərşənbə axşamı", what: "Yalnız həqiqətən yerində baxılmalı olan iki sahəyə səfər planlaşdırılır — qalanı uzaqdan həll olunur." },
-      { when: "Cümə", what: "Razılaşdırılan addımlar əməliyyat jurnalına yazılır; sahənin qısa kartı paylaşma linki ilə göndərilir." },
+      { when: "Cümə", what: "Razılaşdırılan addımlar sahənin qeydlərinə yazılır; sahənin qısa kartı paylaşma linki ilə göndərilir." },
       { when: "Mövsüm sonu", what: "Mövsüm müqayisəsi və sağlamlıq balı ilə tövsiyələrin nəticəsi təqdim edilir." },
     ],
     note:
@@ -901,7 +906,7 @@ const consultant: Segment = {
       icon: "brain",
       title: "Analiz axını",
       body:
-        "Peyk səhnəsi düşəndə sahə üçün analiz avtomatik yenilənir. Analiz sahənin bütün kontekstini — hava, torpaq, əməliyyat, şəkillər — nəzərə alır.",
+        "Peyk səhnəsi düşəndə sahə üçün analiz avtomatik yenilənir. Analiz sahənin bütün kontekstini — hava, torpaq, skautinq qeydləri, şəkillər — nəzərə alır.",
       bullets: [
         "Risklər şiddət dərəcəsi ilə",
         "Tövsiyələr və növbəti addımlar",
@@ -913,11 +918,11 @@ const consultant: Segment = {
       icon: "report",
       title: "Sübut və paylaşma",
       body:
-        "Mövsüm müqayisəsi, sağlamlıq balı və əməliyyat jurnalı birlikdə müştəri üçün başa düşülən mənzərə verir.",
+        "Mövsüm müqayisəsi, sağlamlıq balı və skautinq jurnalı birlikdə müştəri üçün başa düşülən mənzərə verir.",
       bullets: [
         "Mövsüm müqayisəsi — eyni təqvim günündə keçən illə fərq",
         "İzahlı sağlamlıq balı",
-        "Əməliyyat və skautinq jurnalı",
+        "Skautinq jurnalı və foto arxivi",
         "Paylaşma linki ilə qısa sahə kartı",
       ],
     },
@@ -949,7 +954,7 @@ const consultant: Segment = {
     {
       q: "Nəticəni müştəriyə necə sübut edirəm?",
       a:
-        "Mövsüm müqayisəsi (eyni təqvim günündə keçən illə fərq), izahlı sağlamlıq balı və əməliyyat jurnalı ilə. Sahənin qısa kartını paylaşma linki ilə də göndərə bilərsiniz.",
+        "Mövsüm müqayisəsi (eyni təqvim günündə keçən illə fərq), izahlı sağlamlıq balı və skautinq jurnalı ilə. Sahənin qısa kartını paylaşma linki ilə də göndərə bilərsiniz.",
     },
     {
       q: "Öz müştərilərimi platformaya necə gətirim?",
@@ -1006,7 +1011,7 @@ const supplier: Segment = {
     {
       title: "Bir satış deyil, bütün mövsüm",
       body:
-        "Fermer platformada gündəlik işləyir: sahəni izləyir, gübrə planını yazır, əməliyyatları qeyd edir. Profiliniz və yazışma tarixçəniz orada qaldığı üçün növbəti ehtiyacda axtarış yenidən başlamır.",
+        "Fermer platformada gündəlik işləyir: sahəni izləyir, gübrə planını yazır, müşahidələrini qeyd edir. Profiliniz və yazışma tarixçəniz orada qaldığı üçün növbəti ehtiyacda axtarış yenidən başlamır.",
     },
     {
       title: "Kataloqu özünüz idarə edirsiniz",
@@ -1118,7 +1123,7 @@ const supplier: Segment = {
       "Lazım olan məhsulu doğru vaxtda tapır",
       "Yaxın və etibarlı təchizatçı ilə birbaşa danışır",
       "Sifariş və məsləhət eyni platformada",
-      "Alınan materialın tətbiqi əməliyyat jurnalına düşür",
+      "Alınan materialın tətbiqi sahənin qeydlərinə düşür",
       "Tətbiq növbəti AI analizində nəzərə alınır",
     ],
   },
@@ -1132,7 +1137,7 @@ const supplier: Segment = {
       { when: "Addım 2", what: "Gübrələmə qrafikini yazır və doza təklifini alır — nə lazım olduğu artıq aydındır." },
       { when: "Addım 3", what: "Kataloqu açıb öz regionunda uyğun ixtisaslı təchizatçıları görür və profilinizə keçir." },
       { when: "Addım 4", what: "Birbaşa yazır: məhsul, həcm, çatdırılma vaxtı. Yazışma platformada qalır." },
-      { when: "Addım 5", what: "Materialı tətbiq edəndən sonra əməliyyatı jurnala yazır — tətbiq növbəti analizdə nəzərə alınır. Növbəti ehtiyacda sizi yenidən tapır." },
+      { when: "Addım 5", what: "Materialı tətbiq edəndən sonra qeydini yazır — tətbiq növbəti analizdə nəzərə alınır. Növbəti ehtiyacda sizi yenidən tapır." },
     ],
     note:
       "Platforma ödəniş və çatdırılma prosesinə qarışmır: razılaşma birbaşa sizinlə fermer arasındadır.",

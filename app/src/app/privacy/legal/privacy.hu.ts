@@ -85,8 +85,8 @@ export const privacyHu: PrivacyDoc = {
             "A térképen megrajzolt táblahatár és a terület (az adatbázisban mindig hektárban — az egységválasztás csak a megjelenítést érinti).",
             "Tábla, gazdaság és szervezet nevei.",
             "A tábla adatlapja: kultúra, fajta, vetés és betakarítás dátuma, talajtípus és pH, öntözési mód, fejlődési fázis, elővetemény, szabad szöveges jegyzetek.",
-            "Táblabejárási megfigyelések, feltöltött fényképek, tábla-műveletek, termésadatok, feladatok és szezonok.",
-            "Napló-, értékesítési, raktár- és géptételek, feltöltött dokumentumok.",
+            "Táblabejárási megfigyelések, feltöltött fényképek és szezonok.",
+            "Régebbi adatok, amelyeket már nem gyűjtünk, de tárolunk: tábla-műveletek, termésadatok, feladatok, főkönyvi, értékesítési, készlet- és géptételek, valamint korábban feltöltött dokumentumok. Ezek a részek kikerültek a termékből; a meglévő adatai nem törlődtek, és a fiók lezárásakor a többivel együtt anonimizálódnak.",
             "Talajlabor-vizsgálatok — a feltöltött szkennelt lap és a belőle OCR-rel kiolvasott értékek.",
           ],
         },
@@ -147,8 +147,8 @@ export const privacyHu: PrivacyDoc = {
               v:
                 "MI-tanács, csevegés, fotódiagnózis és a kutatási réteg. Ami elmegy: a tábla " +
                 "neve, területe, a kultúra adatlapja (a jegyzetekkel együtt), indextrendek, " +
-                "időjárás, legutóbbi megfigyelések, műveletek, nyitott feladatok, legutóbbi " +
-                "termésadatok, az előző tanács összefoglalója, a legutóbbi csevegésfordulók és a " +
+                "időjárás, legutóbbi megfigyelések, műveletek, " +
+                "az előző tanács összefoglalója, a legutóbbi csevegésfordulók és a " +
                 "diagnózisra küldött fénykép. Ami nem: e-mail-cím, név, jelszókivonat.",
             },
             {
