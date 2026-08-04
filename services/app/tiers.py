@@ -2,8 +2,21 @@
 
 Single source of truth for gating. Tier stored in public.org_subscriptions.tier
 (free|pro|business); org_is_paid() already exists for RLS. Billing (Payriff) is deferred —
-the admin sets a tier manually for now. AI model is chosen per tier for cost control:
-Pro → claude-sonnet-5 (≈3× cheaper), Business → claude-opus-4-8 (best quality).
+the admin sets a tier manually for now.
+
+THE PER-TIER `model` KEY IS GONE (2026-07-30, DeepSeek migration). It existed to buy quality with
+money: Pro answered on claude-sonnet-5, Business on claude-opus-4-8 at roughly 3× the token price.
+That trade no longer exists — the owner's decision puts every text path on deepseek-v4-flash, and
+v4-pro was measured to score identically on our prompts while running 4-5× slower, so there is no
+better model to sell. Leaving the key behind set to the same string three times would have been the
+exact kind of decoration this file has already been cleaned of once (see the five dead flags above):
+the next person to read it would take "Business gets the good model" as a fact and the pricing page
+would eventually repeat it.
+
+So model_for() now returns None, meaning "whatever LLM_MODEL is configured", and the tiers
+differentiate on the thing that still differs: monthly quotas and feature flags. A tier dict MAY
+reintroduce a "model" key and it will win again — that is a door, not a decoration, because it only
+exists when someone puts it there.
 
 FIVE FLAGS ARE GONE (2026-08-02). `email` and `whatsapp` described a per-tier notification ladder
 that no code has ever enforced: `allows()` was never called with either name, E15 deleted per-alert
@@ -41,10 +54,11 @@ TIERS: dict[str, dict] = {
         "advice_per_month": 1,             # 1 taste/month
         "chat_per_month": 0,
         "photo_per_month": 0,
+        "photo_label_per_month": 0,
+        "soil_lab_per_month": 0,
         "passport": False,
         "pest_risk": False, "fertilizer": False, "benchmark": False,
         "research_depth": "regional",      # global + regional, no local
-        "model": "claude-sonnet-5",
     },
     "pro": {
         "label_az": "Pro", "price_azn": 10,
@@ -53,10 +67,11 @@ TIERS: dict[str, dict] = {
         "advice_per_month": 8,
         "chat_per_month": 50,
         "photo_per_month": 0,
+        "photo_label_per_month": 0,
+        "soil_lab_per_month": 0,
         "passport": True,
         "pest_risk": False, "fertilizer": False, "benchmark": False,
         "research_depth": "regional",
-        "model": "claude-sonnet-5",
     },
     "business": {
         "label_az": "Business", "price_azn": 25,
@@ -64,11 +79,18 @@ TIERS: dict[str, dict] = {
         "sensors": ["hls", "s2"],
         "advice_per_month": 30,
         "chat_per_month": 300,
-        "photo_per_month": 30,
+        # THREE SEPARATE VISION BUDGETS, and they are separate for a reason found live: the photo
+        # auto-label ran on EVERY upload with no tier check at all and recorded kind='photo', the
+        # same counter diagnose_field gates on. So a Business farmer who uploaded 30 pictures to the
+        # gallery had spent the 30 diagnoses the pricing page sells them, without ever asking for
+        # one — and on free/pro, where the limit is 0, the call still ran and still cost money.
+        # One counter cannot both meter a paid feature and absorb an automatic side effect.
+        "photo_per_month": 30,          # farmer-requested disease/pest diagnosis (the sold number)
+        "photo_label_per_month": 60,    # automatic gallery labels: cheaper call, fires per upload
+        "soil_lab_per_month": 10,       # lab-report OCR; rare by nature, but it was UNCAPPED
         "passport": True,
         "pest_risk": True, "fertilizer": True, "benchmark": True,
         "research_depth": "local",
-        "model": "claude-opus-4-8",
     },
 }
 
@@ -95,8 +117,13 @@ def limit(tier: str | None, key: str) -> int:
     return int(tier_config(tier).get(key, 0))
 
 
-def model_for(tier: str | None) -> str:
-    return tier_config(tier).get("model", "claude-sonnet-5")
+def model_for(tier: str | None) -> str | None:
+    """The model this tier must use, or None for "the configured default" (LLM_MODEL).
+
+    None is the answer today for every tier — see the module docstring. Callers pass the result
+    straight to ai/llm.py, which treats None as "use LLM_MODEL", so nothing here has to know a
+    model id at all."""
+    return tier_config(tier).get("model") or None
 
 
 async def _subscription_row(conn, org_id: str):
@@ -184,7 +211,11 @@ async def trial_state(conn, org_id: str) -> dict:
 
 
 async def month_count(conn, org_id: str, kind: str) -> int:
-    """How many AI calls of `kind` (advice|chat|photo) this calendar month for the org."""
+    """How many AI calls of `kind` this calendar month for the org.
+
+    `kind` is the ai_usage.kind written at the call site: advice | chat | photo (diagnosis) |
+    photo_label (automatic gallery labelling) | soil_lab | research. It must match exactly — a
+    counter and a limit that disagree about the spelling is a quota that never fires."""
     return int(await conn.fetchval(
         """select count(*) from public.ai_usage
            where org_id=$1::uuid and kind=$2

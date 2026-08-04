@@ -9,7 +9,7 @@ export const privacyPl: PrivacyDoc = {
     "jak jest, co system o Tobie zbiera, gdzie to przechowuje, komu przekazuje i co się dzieje, " +
     "gdy zamkniesz konto.",
   summary: [
-    "Wszystkie dane są w UE — na jednym serwerze w Helsinkach (Finlandia), w bazie Postgres, którą sami prowadzimy.",
+    "Wszystkie dane są w UE — na jednym serwerze w Helsinkach (Finlandia), w bazie Postgres, którą sami prowadzimy. Jeden wyjątek: tekst i zdjęcia wysyłane do analizy AI opuszczają UE na czas przetwarzania — zobacz „Podprzetwarzający” poniżej.",
     "Nie ma trackerów reklamowych, pikseli analitycznych ani plików cookie stron trzecich; dlatego nie ma też banera zgody.",
     "Do SI trafiają dane pola, a nie dane konta: imię, e-mail i skrót hasła nigdy nie są wysyłane do dostawcy modelu.",
     "Jedyna cykliczna wiadomość to cotygodniowe podsumowanie (w środy); wypisujesz się jednym kliknięciem.",
@@ -146,13 +146,24 @@ export const privacyPl: PrivacyDoc = {
           kind: "kv",
           rows: [
             {
-              k: "Anthropic (Claude)",
+              k: "DeepSeek (model tekstowy)",
               v:
-                "Porada SI, czat, diagnoza ze zdjęcia i warstwa badawcza. Co wychodzi: nazwa " +
+                "Porada SI, czat i warstwa badawcza. Co wychodzi: nazwa " +
                 "pola, powierzchnia, karta uprawy (wraz z notatkami), trendy wskaźników, pogoda, " +
                 "ostatnie obserwacje, zabiegi, " +
-                "streszczenie poprzedniej porady, ostatnie tury czatu oraz zdjęcie wysłane do " +
-                "diagnozy. Co nie wychodzi: e-mail, nazwisko, skrót hasła.",
+                "streszczenie poprzedniej porady i ostatnie tury czatu. " +
+                "Co nie wychodzi: e-mail, nazwisko, skrót hasła — ani żadne zdjęcie, bo ten model " +
+                "w ogóle nie potrafi czytać obrazów. Przetwarzanie odbywa się na własnych " +
+                "serwerach DeepSeek (firma jest zarejestrowana w Chinach).",
+            },
+            {
+              k: "Google (Gemini — tylko obrazy)",
+              v:
+                "Opisywanie zdjęć, diagnoza chorób/szkodników i odczyt raportu z laboratorium " +
+                "glebowego. Co wychodzi: przesłany przez Ciebie obraz i uprawa pola. Uwaga: to, " +
+                "co widnieje na skanie, wychodzi razem z nim — nazwa laboratorium, Twoje " +
+                "nazwisko, adres; w odróżnieniu od kontekstu tekstowego to nie my wybieramy " +
+                "zawartość obrazu. Do modelu tekstowego nie trafia żadne zdjęcie.",
             },
             {
               k: "Resend",
@@ -222,9 +233,13 @@ export const privacyPl: PrivacyDoc = {
         {
           kind: "p",
           text:
-            "Porady, czat i diagnoza ze zdjęcia działają na modelach Claude firmy Anthropic. " +
+            "Porady, czat i badania działają na modelu tekstowym DeepSeek, a obrazy — opis " +
+            "zdjęcia, diagnoza chorób i odczyt raportu laboratoryjnego — na modelu Gemini firmy " +
+            "Google, ponieważ model tekstowy nie przyjmuje obrazów i żaden tam nie trafia. " +
             "Kontekst wysyłany do modelu dotyczy pola, a nie Twojej tożsamości — kod, który go " +
-            "składa, nie czyta żadnej kolumny z tabeli kont.",
+            "składa, nie czyta żadnej kolumny z tabeli kont. Wyjątkiem jest samo zdjęcie: to, co " +
+            "się na nim znajduje, wychodzi razem z nim, a zeskanowany raport laboratoryjny jest " +
+            "tego oczywistym przykładem.",
         },
         {
           kind: "p",

@@ -2477,11 +2477,12 @@ export const it: Dict = {
   "app.home.stats.scoreLabel": "Salute media",
   "app.home.stats.scoreNone": "Punteggio non ancora calcolato",
   "app.home.stats.scoreStale": "Alcuni punteggi sono di giorni precedenti",
-  "app.home.stats.alertsLabel": "Nuovi avvisi",
-  "app.home.stats.alertsSeen": "Tutti visti",
+  "app.home.stats.alertsLabel": "Avvisi aperti",
   "app.home.stats.alertsCritical": "Critici: {n}",
+  "app.home.stats.alertsUnconfirmed": "Non confermati: {n}",
+  "app.home.stats.alertsUnconfirmedNote": "Per questi avvisi non sono arrivati nuovi dati: non sono né confermati né chiusi.",
+  "app.home.stats.alertsNone": "Nessun avviso aperto",
   "app.home.stats.alertsUnknown": "Avvisi non caricati",
-  "app.home.stats.alertsCapped": "Conteggiate solo le notifiche recenti",
   "app.home.instrument.railAria": "Pannello attenzione",
   "app.home.alerts.seeAll": "Vedi tutte le notifiche",
 
@@ -2541,6 +2542,7 @@ export const it: Dict = {
 
   "app.home.feed.title": "Feed informativo",
   "app.home.feed.alerts": "Avvisi aperti",
+  "app.home.feed.alertsUnread": "Nuove notifiche",
   "app.home.feed.weather": "Meteo",
   "app.home.feed.health": "Salute dei campi",
   "app.home.feed.healthEmpty": "Non è ancora stato calcolato alcun punteggio per nessun campo.",

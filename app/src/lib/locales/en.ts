@@ -2520,11 +2520,12 @@ export const en: Dict = {
   "app.home.stats.scoreLabel": "Average health",
   "app.home.stats.scoreNone": "Score not computed yet",
   "app.home.stats.scoreStale": "Some scores are from earlier days",
-  "app.home.stats.alertsLabel": "New alerts",
-  "app.home.stats.alertsSeen": "All seen",
+  "app.home.stats.alertsLabel": "Open alerts",
   "app.home.stats.alertsCritical": "Critical: {n}",
+  "app.home.stats.alertsUnconfirmed": "Unconfirmed: {n}",
+  "app.home.stats.alertsUnconfirmedNote": "No new data has reached these alerts — they are neither confirmed nor closed.",
+  "app.home.stats.alertsNone": "No open alerts",
   "app.home.stats.alertsUnknown": "Alerts did not load",
-  "app.home.stats.alertsCapped": "Only recent notifications counted",
   "app.home.instrument.railAria": "Attention panel",
   "app.home.alerts.seeAll": "See all notifications",
 
@@ -2584,6 +2585,7 @@ export const en: Dict = {
 
   "app.home.feed.title": "Insights feed",
   "app.home.feed.alerts": "Open alerts",
+  "app.home.feed.alertsUnread": "New notifications",
   "app.home.feed.weather": "Weather",
   "app.home.feed.health": "Field health",
   "app.home.feed.healthEmpty": "No score has been computed for any field yet.",

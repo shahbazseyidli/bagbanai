@@ -48,6 +48,7 @@ export default function IntelligenceFeed({
   worst,
   worstScore,
   alerts,
+  openAlerts,
   alertsMore,
   satellite,
   fields,
@@ -57,8 +58,18 @@ export default function IntelligenceFeed({
   weather: { lat: number; lon: number; label: string; fieldId: string } | null;
   worst: FieldToday | null;
   worstScore?: FieldScore;
+  /** UNREAD rows whose rule is not currently open — "you have not seen this yet". */
   alerts: TodayAlert[];
-  /** How many unread alerts the list is not showing — drives AlertList's "see all" link. */
+  /**
+   * Rows whose RULE IS STILL MATCHING (public.alert_state, 0063), read or not.
+   *
+   * The two groups answer different questions and must not be merged: unread is about the reader,
+   * open is about the field. Merging them is how the old single group came to be headed "Open
+   * alerts" while listing unread notifications — a farmer who read everything saw an empty panel
+   * while the low-moisture rule was still firing.
+   */
+  openAlerts: TodayAlert[];
+  /** How many unread alerts neither list is showing — drives AlertList's "see all" link. */
   alertsMore: number;
   /** null = GET /api/fields/geo failed; the group then stays out rather than claiming zeros. */
   satellite: SatelliteSummary | null;
@@ -107,15 +118,29 @@ export default function IntelligenceFeed({
           </div>
         )}
 
-        {/* 2 — unread critical/warning notifications, each deep-linking to its field. */}
-        {alerts.length > 0 && (
+        {/* 2 — conditions that are STILL TRUE, whether or not the farmer has read them. Above the
+            unread group on purpose: "your field is still dry" outranks "here is something you have
+            not opened". Both deep-link to the field. */}
+        {openAlerts.length > 0 && (
           <div className="space-y-2 px-4 py-3">
             <GroupTitle>{t("app.home.feed.alerts")}</GroupTitle>
+            <AlertList alerts={openAlerts} compact />
+          </div>
+        )}
+
+        {/* 3 — unread critical/warning notifications whose rule is NOT currently open: either it has
+            resolved, or nothing has been able to confirm it since. They are still worth reading —
+            they are simply not evidence about the field right now, so they get their own heading
+            rather than being counted as open. The "see all" link hangs here, on the group whose
+            overflow it describes. */}
+        {alerts.length > 0 && (
+          <div className="space-y-2 px-4 py-3">
+            <GroupTitle>{t("app.home.feed.alertsUnread")}</GroupTitle>
             <AlertList alerts={alerts} compact more={alertsMore} />
           </div>
         )}
 
-        {/* 3 — live conditions over the field currently in scope (keyless Open-Meteo + nowcast).
+        {/* 4 — live conditions over the field currently in scope (keyless Open-Meteo + nowcast).
             The heading is passed INTO WeatherBar rather than wrapped around it: the bar renders
             nothing at all when neither of its two sources answers, and a "HAVA" heading left
             standing over that gap would be a labelled empty landmark — worse than no landmark. */}
@@ -131,7 +156,7 @@ export default function IntelligenceFeed({
           </div>
         )}
 
-        {/* 4 — the pipeline breakdown the KPI tile can only summarise in one line. Every non-zero
+        {/* 5 — the pipeline breakdown the KPI tile can only summarise in one line. Every non-zero
             bucket appears here, so a failure is never hidden behind a larger "preparing" count. */}
         {satRows.length > 0 && (
           <div className="space-y-2 px-4 py-3">
@@ -151,7 +176,7 @@ export default function IntelligenceFeed({
           </div>
         )}
 
-        {/* 5 — one row per field that HAS a stored wellness score, worst first. A field with no
+        {/* 6 — one row per field that HAS a stored wellness score, worst first. A field with no
             stored row is left out entirely and the coverage line below says how many that is; there
             is no bar drawn from a number we do not have.
             NO TREND ARROW: the read model returns the latest score only, so an arrow would have to
@@ -216,7 +241,7 @@ export default function IntelligenceFeed({
           )}
         </div>
 
-        {/* 6 — four destinations that exist. Labels reuse the navigation's own words so the panel
+        {/* 7 — four destinations that exist. Labels reuse the navigation's own words so the panel
             cannot invent a route or rename one. */}
         <div className="space-y-2 px-4 py-3">
           <GroupTitle>{t("app.home.feed.quick")}</GroupTitle>

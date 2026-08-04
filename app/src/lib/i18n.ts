@@ -2631,8 +2631,13 @@ export const az = {
   "app.clarify.opt.unknown": "Bilmirəm",
 
   // Today — summary metric strip. Each tile carries a second line that says what the number does
-  // NOT cover (unmeasured area, stale scores, capped alert count), because a bare figure over
-  // partial data reads as a fact about the whole farm.
+  // NOT cover (unmeasured area, stale scores, alerts nothing could confirm), because a bare figure
+  // over partial data reads as a fact about the whole farm.
+  //
+  // The alert tile counts OPEN CONDITIONS (public.alert_state, 0063), not unread rows — hence
+  // "Açıq xəbərdarlıq" rather than the old "Yeni xəbərdarlıq", which a farmer could empty by
+  // glancing at the bell. `alertsUnconfirmed` is the third state and must stay its own line: it is
+  // neither open nor resolved, and folding it into either would be a lie in one direction.
   "app.home.stats.regionAria": "Xülasə göstəriciləri",
   "app.home.stats.fieldsLabel": "Sahələr",
   "app.home.stats.fieldsAllGood": "Hamısı qaydasındadır",
@@ -2643,11 +2648,12 @@ export const az = {
   "app.home.stats.scoreLabel": "Orta sağlamlıq",
   "app.home.stats.scoreNone": "Bal hələ hesablanmayıb",
   "app.home.stats.scoreStale": "Bəzi ballar əvvəlki günlərə aiddir",
-  "app.home.stats.alertsLabel": "Yeni xəbərdarlıq",
-  "app.home.stats.alertsSeen": "Hamısına baxılıb",
+  "app.home.stats.alertsLabel": "Açıq xəbərdarlıq",
   "app.home.stats.alertsCritical": "Kritik: {n}",
+  "app.home.stats.alertsUnconfirmed": "Təsdiqlənməyib: {n}",
+  "app.home.stats.alertsUnconfirmedNote": "Bu xəbərdarlıqlar üçün yeni məlumat gəlmədi — nə təsdiqləndi, nə də bağlandı.",
+  "app.home.stats.alertsNone": "Açıq xəbərdarlıq yoxdur",
   "app.home.stats.alertsUnknown": "Bildirişlər yüklənmədi",
-  "app.home.stats.alertsCapped": "Yalnız son bildirişlər sayılıb",
   "app.home.instrument.railAria": "Diqqət paneli",
   "app.home.alerts.seeAll": "Bütün bildirişlərə bax",
 
@@ -2734,6 +2740,7 @@ export const az = {
   // word a column heading and a button differently.
   "app.home.feed.title": "Məlumat lenti",
   "app.home.feed.alerts": "Açıq xəbərdarlıqlar",
+  "app.home.feed.alertsUnread": "Yeni bildirişlər",
   "app.home.feed.weather": "Hava",
   "app.home.feed.health": "Sahə sağlamlığı",
   "app.home.feed.healthEmpty": "Hələ heç bir sahə üçün bal hesablanmayıb.",

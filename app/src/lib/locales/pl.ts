@@ -2496,11 +2496,12 @@ export const pl: Dict = {
   "app.home.stats.scoreLabel": "Średnia kondycja",
   "app.home.stats.scoreNone": "Wynik jeszcze nie obliczony",
   "app.home.stats.scoreStale": "Część wyników pochodzi z wcześniejszych dni",
-  "app.home.stats.alertsLabel": "Nowe alerty",
-  "app.home.stats.alertsSeen": "Wszystkie przejrzane",
+  "app.home.stats.alertsLabel": "Otwarte alerty",
   "app.home.stats.alertsCritical": "Krytyczne: {n}",
+  "app.home.stats.alertsUnconfirmed": "Niepotwierdzone: {n}",
+  "app.home.stats.alertsUnconfirmedNote": "Do tych alertów nie dotarły nowe dane — nie są ani potwierdzone, ani zamknięte.",
+  "app.home.stats.alertsNone": "Brak otwartych alertów",
   "app.home.stats.alertsUnknown": "Nie udało się wczytać alertów",
-  "app.home.stats.alertsCapped": "Policzono tylko ostatnie powiadomienia",
   "app.home.instrument.railAria": "Panel uwagi",
   "app.home.alerts.seeAll": "Zobacz wszystkie powiadomienia",
 
@@ -2560,6 +2561,7 @@ export const pl: Dict = {
 
   "app.home.feed.title": "Panel informacji",
   "app.home.feed.alerts": "Otwarte alerty",
+  "app.home.feed.alertsUnread": "Nowe powiadomienia",
   "app.home.feed.weather": "Pogoda",
   "app.home.feed.health": "Kondycja pól",
   "app.home.feed.healthEmpty": "Dla żadnego pola nie obliczono jeszcze wyniku.",

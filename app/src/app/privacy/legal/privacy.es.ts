@@ -10,7 +10,7 @@ export const privacyEs: PrivacyDoc = {
     "explica, tal como es, qué recopila el sistema sobre usted, dónde lo guarda, a quién se " +
     "envía y qué ocurre cuando usted cierra su cuenta.",
   summary: [
-    "Todos los datos se almacenan dentro de la UE: en un único servidor en Helsinki, Finlandia, en una base de datos Postgres que administramos nosotros mismos.",
+    "Todos los datos se almacenan dentro de la UE — en un único servidor en Helsinki, Finlandia, en una base Postgres que gestionamos nosotros. Una excepción: el texto y las imágenes enviados al análisis de IA salen de la UE mientras se procesan — vea “Subencargados” más abajo.",
     "No hay ningún rastreador publicitario, ningún píxel de analítica ni cookies de terceros; por eso no hay banner de consentimiento.",
     "Los datos del campo van a la IA, los datos de la cuenta no: su nombre, su correo electrónico y el hash de su contraseña nunca se envían al proveedor del modelo.",
     "El único correo recurrente es un resumen semanal (los miércoles); un clic basta para darse de baja.",
@@ -149,15 +149,27 @@ export const privacyEs: PrivacyDoc = {
           kind: "kv",
           rows: [
             {
-              k: "Anthropic (Claude)",
+              k: "DeepSeek (el modelo de texto)",
               v:
-                "Consejo de IA, chat, diagnóstico por foto y la capa de investigación. Qué se " +
+                "Consejo de IA, chat y la capa de investigación. Qué se " +
                 "envía: nombre del campo, superficie, pasaporte del cultivo (incluidas las " +
                 "notas), tendencias de los índices, clima, notas de campo recientes, labores, " +
                 "un resumen del consejo " +
-                "anterior, los últimos turnos del chat y la foto que usted envía para " +
-                "diagnóstico. Qué no se envía: su correo electrónico, su nombre, el hash de su " +
-                "contraseña.",
+                "anterior y los últimos turnos del chat. " +
+                "Qué no se envía: su correo electrónico, su nombre, el hash de su " +
+                "contraseña — ni ninguna fotografía, porque este modelo no puede leer imágenes en " +
+                "absoluto. El procesamiento ocurre en los servidores de DeepSeek (la empresa " +
+                "tiene su sede en China).",
+            },
+            {
+              k: "Google (Gemini — solo imágenes)",
+              v:
+                "Etiquetado de fotos, diagnóstico de enfermedades/plagas y lectura de informes " +
+                "de laboratorio de suelo. Qué se envía: la imagen que usted sube y el cultivo del " +
+                "campo. Tenga en cuenta que lo que aparece impreso en un escaneo viaja con él: el " +
+                "nombre del laboratorio, su nombre, una dirección; a diferencia del contexto de " +
+                "texto, nosotros no elegimos qué contiene la imagen. Al modelo de texto no se le " +
+                "envía ninguna fotografía.",
             },
             {
               k: "Resend",
@@ -237,9 +249,14 @@ export const privacyEs: PrivacyDoc = {
         {
           kind: "p",
           text:
-            "El consejo, el chat y el diagnóstico por foto funcionan sobre los modelos Claude de " +
-            "Anthropic. El contexto que se envía al modelo trata sobre el campo, no sobre su " +
-            "identidad: el código que lo compone no lee ninguna columna de la tabla de cuentas.",
+            "El consejo, el chat y la investigación funcionan sobre el modelo de texto de " +
+            "DeepSeek; las imágenes —la etiqueta de la foto, el diagnóstico de enfermedades y la " +
+            "lectura del informe de laboratorio— sobre Gemini de Google, porque el modelo de " +
+            "texto no acepta imágenes y allí no se envía ninguna. " +
+            "El contexto que se envía al modelo trata sobre el campo, no sobre su " +
+            "identidad: el código que lo compone no lee ninguna columna de la tabla de cuentas. " +
+            "La excepción es la propia imagen: lo que haya en ella viaja con ella, y un informe " +
+            "de laboratorio escaneado es el caso evidente.",
         },
         {
           kind: "p",

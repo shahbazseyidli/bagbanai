@@ -31,10 +31,36 @@ class Settings(BaseSettings):
     # Satellite / weather / AI / storage (used in later steps)
     stac_url: str = "https://cmr.earthdata.nasa.gov/stac/LPCLOUD"
     open_meteo_base: str = "https://api.open-meteo.com/v1"
-    # AI advice + chat (provider-agnostic; default Claude). Key added to .env by the user.
-    llm_provider: str = "anthropic"
-    llm_model: str = "claude-opus-4-8"
+    # AI advice + chat. Provider-agnostic seam; the default names the provider the product actually
+    # uses, and .env supplies the key.
+    #
+    # THE DEFAULT MUST MATCH THE PRIVACY PAGE, which is why it moved. That page is static text baked
+    # into the web image and it now names DeepSeek (text, servers in China) and Google Gemini
+    # (images) as the subprocessors. Leaving the code default on anthropic meant any window where
+    # the image had shipped but .env had not been edited — including the documented case where a
+    # malformed .env aborts update.sh without replacing containers — would send farmer data to a
+    # processor the published notice no longer names. A disabled AI is a smaller failure than a
+    # truthful-looking notice that is false: with no DEEPSEEK/LLM key, is_configured() returns False
+    # and advice/chat/research degrade the way they already do when the key is absent.
+    llm_provider: str = "deepseek"
+    llm_model: str = "deepseek-v4-flash"
     llm_api_key: str = ""
+    # Per-provider keys. llm_api_key serves ONLY the provider named by llm_provider; these two exist
+    # so the vision provider (a different vendor entirely) can be keyed at the same time as the text
+    # provider, without either key ever standing in for the other — see ai/llm.py::_key_for.
+    deepseek_api_key: str = ""
+    gemini_api_key: str = ""
+    # Vision is a SEPARATE provider choice, because DeepSeek accepts no images on any endpoint: its
+    # native API rejects image blocks outright, and its Anthropic-compatible endpoint returns HTTP
+    # 200 with the literal string "[Unsupported Image]" substituted for the picture. Pointing the
+    # text provider at photos would therefore deploy green and diagnose nothing. Default is gemini
+    # for the same reason the text default moved: it is what the privacy page says.
+    # vision_model empty = that provider's default (see ai/llm.py::_vision_model).
+    vision_provider: str = "gemini"
+    vision_model: str = ""
+    # DeepSeek reasoning. OFF by default and force-disabled on every structured call: a forced
+    # function call with thinking enabled is an HTTP 400 from this API, measured.
+    deepseek_thinking: bool = False
     # EPPO Data Services token; added to .env by the operator; empty → pest data degrades.
     eppo_token: str = ""
     # Knowledge layer (M3): web-search provider for zone research. 'anthropic' folds search into

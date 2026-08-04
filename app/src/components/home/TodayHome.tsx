@@ -107,21 +107,26 @@ const READ_COL = "w-full max-w-[1040px]";
  *
  * services/app/routers/advice.py::list_notifications reads `order by created_at desc limit 60` from
  * SQL, runs the per-user notification matrix over those 60 rows, then slices the survivors to 30.
- * A 30-row response therefore means the count we can show is a floor, not a total — TodayStats
- * renders it as "30+".
+ * A 30-row response therefore means this list is a PAGE, not a tally — and the 60-row SQL cut behind
+ * it is not even observable from the response.
  *
- * The 60-row SQL cut is the REAL ceiling and it is invisible from here. When the matrix filters
- * heavily (a farmer who muted weather during a stormy week), the endpoint can return 12 rows out of
- * 60 read: `capped` is false, the tile prints an exact-looking "12", and unread criticals older than
- * those 60 rows were never sent to the browser at all. Knowing the true total needs a count endpoint
- * the API does not have — deliberately out of scope — so read this number as "at least this many",
- * and do NOT add UI that presents it as a complete tally.
+ * That ceiling is exactly why the KPI tile no longer counts these rows: it reads GET
+ * /api/alerts/summary, which counts open conditions in SQL with no limit at all. Everything derived
+ * from the list below (the strips, the map colouring, the feed groups) is a VIEW of recent rows and
+ * must never be presented as a total — including `openAlerts`, which is "the open alerts among the
+ * last 30 notifications", not "every open alert".
  */
 const NOTIF_LIMIT = 30;
 
 /** The alert row as the API sends it. `read` is the one field the strip itself does not render, so
- *  it lives here rather than in AlertList's display type. */
-type NotifRow = TodayAlert & { read?: boolean };
+ *  it lives here rather than in AlertList's display type.
+ *
+ *  `open` (0063) is the other axis and answers a different question: `read` is about the reader,
+ *  `open` is about the field — the rule behind this row was observed still matching. A row can be
+ *  read and open (the farmer saw it, the drought did not stop), or unread and closed (it fired last
+ *  week, cleared since, and nobody looked). The feed groups on `open`; the map still colours from
+ *  unread, which is a separate, weaker claim it already discloses. */
+type NotifRow = TodayAlert & { read?: boolean; open?: boolean };
 
 /** GET /api/fields/geo also returns the PostGIS centroid — used to place the weather bar. */
 interface GeoFieldFull extends GeoField {
@@ -192,6 +197,17 @@ export default function TodayHome() {
   // stats tile can render a dash and say why instead of publishing a confident "0 alerts".
   const [alertsAll, setAlertsAll] = useState<TodayAlert[] | null>(null);
   const [alertsCapped, setAlertsCapped] = useState(false);
+  /** Notifications whose underlying rule is STILL matching — read or not. The feed leads with these. */
+  const [openAlerts, setOpenAlerts] = useState<TodayAlert[]>([]);
+  /**
+   * The open/critical/unconfirmed counts behind the KPI tile (GET /api/alerts/summary).
+   *
+   * A separate request from /api/notifications on purpose: that endpoint returns at most 30 rows
+   * after a per-user filter, so counting its rows could only ever produce a floor, and the tile
+   * would go on printing exact-looking numbers over a page ceiling. This one counts in SQL over the
+   * whole open set. It stays null until it resolves AND when it fails — the tile renders a dash.
+   */
+  const [alertSummary, setAlertSummary] = useState<AlertSummary | null>(null);
   const [error, setError] = useState("");
   const [stageRef, stageW] = useStageWidth();
 
@@ -220,10 +236,13 @@ export default function TodayHome() {
           // unread ones set this true with a total of 0, which is why TodayStats suppresses the
           // "+" at zero instead of rendering the nonsense string "0+".
           setAlertsCapped(rows.length >= NOTIF_LIMIT);
-          // Stored WHOLE — the stat tile needs the true count, the strips slice at render.
+          // Stored WHOLE — the strips slice at render.
           setAlertsAll(
             rows.filter((n) => !n.read && (n.severity === "critical" || n.severity === "warning")),
           );
+          // NOT filtered on `read`: an open alert the farmer already opened is still a condition on
+          // their field, and dropping it here would rebuild the exact bug this change removes.
+          setOpenAlerts(rows.filter((n) => n.open));
         }
       } catch { /* best-effort — alertsAll stays null, which the tile reports honestly */ }
     })();
@@ -239,6 +258,14 @@ export default function TodayHome() {
     setScores({});
     setGeoFields(null);
     setGeoError(false);
+    setAlertSummary(null);
+    // Org-scoped, unlike /api/notifications: the dashboard shows one organization at a time, so the
+    // tile must count that organization's open conditions and not an agronomist's whole book.
+    // Fired OUTSIDE the sequential chain below — it is one aggregate query and nothing on the screen
+    // waits for it, so it must not sit in front of the field list.
+    api.get<AlertSummary>(`/api/alerts/summary?org_id=${orgId}`)
+      .then((a) => { if (active && a && typeof a.open === "number") setAlertSummary(a); })
+      .catch(() => { /* the tile renders a dash and says the alerts did not load */ });
     (async () => {
       try {
         const farms = await api.get<Farm[]>(`/api/farms?org_id=${orgId}`);
@@ -386,16 +413,8 @@ export default function TodayHome() {
 
   // Both consumers are handed `alertsAll` WHOLE and slice for themselves: the dashboard feed has its
   // own row budget and its map has to colour from every unread row, and the phone's field sheet has
-  // a different budget again. The tile needs the true total either way.
-  const alertSummary: AlertSummary | null =
-    alertsAll == null
-      ? null
-      : {
-          total: alertsAll.length,
-          critical: alertsAll.filter((n) => n.severity === "critical").length,
-          capped: alertsCapped,
-        };
-
+  // a different budget again. The KPI tile no longer derives anything from this list — it reads
+  // `alertSummary`, which counts CONDITIONS in SQL rather than rows in a capped page.
   const greeting = user?.full_name ? `${t("app.home.todayHome.greeting")}${user.full_name.split(" ")[0]}` : null;
 
   // Wide-only now: the phone home has no header to hang it on, so MapHome renders the same control
@@ -499,6 +518,7 @@ export default function TodayHome() {
               worstScore={worst ? scores[worst.field.id] : undefined}
               alertsAll={alertsAll}
               alertsCapped={alertsCapped}
+              openAlerts={openAlerts}
               satellite={satellite}
             />
           </>

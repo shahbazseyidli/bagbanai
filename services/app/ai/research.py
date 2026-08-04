@@ -277,6 +277,11 @@ async def research_field(conn, field_id: str, blocks: Optional[list[str]] = None
                         {"summary": b["summary"], "details": b["details"]},
                         citations, season_context=sc, confidence=b.get("confidence"))
                     written.append(f"zone:{b['block_type']}")
+            except llm.LLMInvalidOutput:
+                # Not a configuration problem. DeepSeek structured output is statistical, so this is
+                # the failure that will fire most often — labelling it "not configured" would send
+                # every future investigation at a key that is working.
+                degraded.append("synthesis:llm_invalid_output")
             except llm.LLMUnavailable:
                 degraded.append("synthesis:llm_not_configured")
             except Exception as exc:  # noqa: BLE001
@@ -316,6 +321,11 @@ async def research_field(conn, field_id: str, blocks: Optional[list[str]] = None
                     total_usage["output_tokens"] += norms_usage["output_tokens"]
                 else:
                     total_usage = norms_usage
+        except llm.LLMInvalidOutput:
+            # Not a configuration problem. DeepSeek structured output is statistical, so this is
+            # the failure that will fire most often — labelling it "not configured" would send
+            # every future investigation at a key that is working.
+            degraded.append("index_norms:llm_invalid_output")
         except llm.LLMUnavailable:
             degraded.append("index_norms:llm_not_configured")
         except Exception as exc:  # noqa: BLE001

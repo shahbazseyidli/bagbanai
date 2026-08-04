@@ -2479,11 +2479,12 @@ export const de: Dict = {
   "app.home.stats.scoreLabel": "Durchschnittliche Gesundheit",
   "app.home.stats.scoreNone": "Wert noch nicht berechnet",
   "app.home.stats.scoreStale": "Einige Werte stammen von früheren Tagen",
-  "app.home.stats.alertsLabel": "Neue Warnungen",
-  "app.home.stats.alertsSeen": "Alle gesehen",
+  "app.home.stats.alertsLabel": "Offene Warnungen",
   "app.home.stats.alertsCritical": "Kritisch: {n}",
+  "app.home.stats.alertsUnconfirmed": "Unbestätigt: {n}",
+  "app.home.stats.alertsUnconfirmedNote": "Zu diesen Warnungen sind keine neuen Daten eingegangen — weder bestätigt noch geschlossen.",
+  "app.home.stats.alertsNone": "Keine offenen Warnungen",
   "app.home.stats.alertsUnknown": "Warnungen nicht geladen",
-  "app.home.stats.alertsCapped": "Nur aktuelle Benachrichtigungen gezählt",
   "app.home.instrument.railAria": "Aufmerksamkeitsbereich",
   "app.home.alerts.seeAll": "Alle Benachrichtigungen ansehen",
 
@@ -2543,6 +2544,7 @@ export const de: Dict = {
 
   "app.home.feed.title": "Info-Feed",
   "app.home.feed.alerts": "Offene Warnungen",
+  "app.home.feed.alertsUnread": "Neue Benachrichtigungen",
   "app.home.feed.weather": "Wetter",
   "app.home.feed.health": "Feldgesundheit",
   "app.home.feed.healthEmpty": "Für kein Feld wurde bisher ein Wert berechnet.",

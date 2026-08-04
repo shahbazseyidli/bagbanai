@@ -8,7 +8,7 @@ export const privacyHu: PrivacyDoc = {
     "figyeli a táblákat. Ez az oldal nem jogi sablon — úgy, ahogy van, elmondja, mit gyűjt " +
     "önről a rendszer, hol tárolja, kinek adja tovább, és mi történik, ha bezárja a fiókját.",
   summary: [
-    "Minden adat az EU-n belül van — egyetlen helsinki (Finnország) szerveren, saját üzemeltetésű Postgres adatbázisban.",
+    "Minden adat az EU-n belül van — egyetlen helsinki (Finnország) szerveren, saját üzemeltetésű Postgres adatbázisban. Egy kivétel: az MI-elemzésre küldött szöveg és képek a feldolgozás idejére elhagyják az EU-t — lásd lent az „Alfeldolgozók” részt.",
     "Nincs hirdetési nyomkövető, analitikai pixel és harmadik féltől származó süti; ezért nincs hozzájárulási sáv sem.",
     "Az MI-hez tábla-adatok jutnak el, fiókadatok nem: a nevét, e-mail-címét és jelszókivonatát soha nem küldjük el a modell szolgáltatójának.",
     "Az egyetlen ismétlődő levél a heti összefoglaló (szerdánként); egy kattintással leiratkozhat.",
@@ -143,13 +143,24 @@ export const privacyHu: PrivacyDoc = {
           kind: "kv",
           rows: [
             {
-              k: "Anthropic (Claude)",
+              k: "DeepSeek (a szöveges modell)",
               v:
-                "MI-tanács, csevegés, fotódiagnózis és a kutatási réteg. Ami elmegy: a tábla " +
+                "MI-tanács, csevegés és a kutatási réteg. Ami elmegy: a tábla " +
                 "neve, területe, a kultúra adatlapja (a jegyzetekkel együtt), indextrendek, " +
                 "időjárás, legutóbbi megfigyelések, műveletek, " +
-                "az előző tanács összefoglalója, a legutóbbi csevegésfordulók és a " +
-                "diagnózisra küldött fénykép. Ami nem: e-mail-cím, név, jelszókivonat.",
+                "az előző tanács összefoglalója és a legutóbbi csevegésfordulók. " +
+                "Ami nem: e-mail-cím, név, jelszókivonat — és egyetlen fénykép sem, mert ez a " +
+                "modell képet egyáltalán nem tud olvasni. A feldolgozás a DeepSeek saját " +
+                "szerverein történik (a cég Kínában van bejegyezve).",
+            },
+            {
+              k: "Google (Gemini — csak képek)",
+              v:
+                "Fotócímkézés, betegség-/kártevődiagnózis és a talajlaboratóriumi jelentés " +
+                "kiolvasása. Ami elmegy: az ön által feltöltött kép és a tábla kultúrája. " +
+                "Vegye figyelembe: ami a beolvasott lapon szerepel, azzal együtt megy — a labor " +
+                "neve, az ön neve, egy cím; a szöveges kontextussal ellentétben nem mi választjuk " +
+                "meg, mi van a képen. A szöveges modellnek egyetlen fénykép sem megy el.",
             },
             {
               k: "Resend",
@@ -219,9 +230,14 @@ export const privacyHu: PrivacyDoc = {
         {
           kind: "p",
           text:
-            "A tanács, a csevegés és a fotódiagnózis az Anthropic Claude modelljeivel működik. A " +
+            "A tanács, a csevegés és a kutatás a DeepSeek szöveges modelljével működik, a képek " +
+            "— a fotócímke, a betegségdiagnózis és a laborjelentés kiolvasása — pedig a Google " +
+            "Gemini modelljével, mert a szöveges modell képet nem fogad, és oda egyetlen fénykép " +
+            "sem jut el. A " +
             "modellnek küldött kontextus a tábláról szól, nem az ön személyéről — az a kód, " +
-            "amelyik összeállítja, egyetlen oszlopot sem olvas ki a fiókok táblájából.",
+            "amelyik összeállítja, egyetlen oszlopot sem olvas ki a fiókok táblájából. A kivétel " +
+            "maga a kép: ami rajta van, azzal együtt megy, erre a beolvasott laborjelentés a " +
+            "kézenfekvő példa.",
         },
         {
           kind: "p",

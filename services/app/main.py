@@ -8,7 +8,7 @@ from .config import settings
 from .db import close_pool, init_pool
 from .routers import (admin, advice, analytics, auth, backfill, bulk, chat, demo, documents,
                       email_prefs, events, farms, fertilizer, fields, geo, grants, health, indices, internal, knowledge, messaging,
-                      nowcast, oauth, orgs, photos, providers, push, reports, scouting,
+                      notifications, nowcast, oauth, orgs, photos, providers, push, reports, scouting,
                       seasons, shares, uploads, weather_history)
 
 
@@ -46,6 +46,10 @@ def create_app() -> FastAPI:
     # went the same day, so this table is now read-only history — which is exactly why it was kept.
     app.include_router(uploads.router)
     app.include_router(advice.router)
+    # The open-alert read model (0063). Separate from advice.router, which owns the notification
+    # LIST: this one answers "which conditions are still true", which is a different question from
+    # "what have I not read yet" — that is the whole reason it exists.
+    app.include_router(notifications.router)
     app.include_router(knowledge.router)
     app.include_router(internal.router)
     app.include_router(messaging.router)

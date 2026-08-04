@@ -21,13 +21,12 @@
 //   • "Hamısı qaydasındadır" requires a verdict for EVERY field, not merely for some. A per-field
 //     fetch that never resolves (404, timeout) would otherwise leave attn at 0 forever and publish
 //     an all-clear over a field nobody evaluated; short coverage falls back to the fraction instead.
-//   • The alert count admits the ceiling it can SEE, and no more. GET /api/notifications
-//     (services/app/routers/advice.py::list_notifications) reads 60 rows from SQL, applies the
-//     per-user notification matrix, and returns at most 30 — so a 30-row response renders "30+".
-//     The 60-row SQL cut is NOT observable from the response: a heavily muted week can come back
-//     with 12 rows out of 60 read, `capped` false, and this tile printing an exact-looking "12"
-//     while older unread criticals were never sent. `capped` is a floor marker, never a totality
-//     proof. The "+" is suppressed at zero, because "0+" is not a number anyone can read.
+//   • The alert count says what is TRUE, not what has been read. It comes from
+//     GET /api/alerts/summary (services/app/routers/notifications.py) over public.alert_state, so it
+//     falls when a rule stops matching — not when the farmer opens the bell. It used to count unread
+//     notifications, which meant one glance at the bell emptied a tile while the heat rule kept
+//     firing underneath. Alerts we could not judge are reported separately as `unconfirmed` and are
+//     never folded into either the count or the green tone.
 //   • Averages iterate `fields` and look UP the score, never the other way round, so a stale read-
 //     model row belonging to a deleted field cannot leak into the mean.
 //   • A stale contributing score is disclosed in the VISIBLE sub-line, not only in a tooltip. This
@@ -41,20 +40,29 @@ import type { FieldScore } from "./ScoreBadge";
 import type { Tone } from "@/lib/indexStatus";
 import type { Field } from "@/lib/types";
 
-/** What the alerts tile is allowed to say. `null` (not this shape with zeros) means "not loaded". */
+/**
+ * What the alerts tile is allowed to say. `null` (not this shape with zeros) means "not loaded".
+ *
+ * OPEN CONDITIONS, NOT UNREAD ROWS (0063). This tile used to count unread notifications and was
+ * therefore called "New alerts": a farmer emptied it by glancing at the bell once, while the heat
+ * and low-moisture rules kept firing underneath. It now comes from GET /api/alerts/summary, which
+ * reads public.alert_state — so the number falls when the CONDITION stops, not when the farmer
+ * looks. Nothing on this screen can clear it.
+ *
+ * `open` is an exact SQL count, not a page of rows, so there is no ceiling and no "+" any more.
+ */
 export interface AlertSummary {
-  /** Unread critical + warning rows the bell itself would show. */
-  total: number;
+  /** Rules observed still matching within the last OPEN_MAX_AGE_HOURS (rules/engine.py). */
+  open: number;
+  /** How many of `open` last fired at critical severity. */
   critical: number;
   /**
-   * The RESPONSE came back at its 30-row ceiling, so `total` may understate — rendered as "30+".
-   *
-   * Independent of `total`, because it is measured before the unread/severity filter: a page of 30
-   * already-read rows sets this true with a `total` of 0. That is why the "+" is suppressed at zero
-   * instead of printing "0+". It also cannot see the 60-row SQL cut behind the notification matrix,
-   * so `false` means "the response was not full", never "you are seeing everything".
+   * Fired once and never confirmed either way since — no fresh scene, no fresh forecast, or a
+   * producer that cannot report what it evaluated (pest). NOT open and NOT resolved, and it has to
+   * stay its own number: adding it to `open` would invent conditions, and hiding it would let
+   * "0 open" mean "we stopped looking" without saying so.
    */
-  capped: boolean;
+  unconfirmed: number;
 }
 
 /**
@@ -281,8 +289,32 @@ export default function TodayStats({
       ? t("app.home.stats.scoreNone")
       : [coverageSub(covered), staleNote].filter(Boolean).join(" · ") || null;
 
+  // Green is a CLAIM — "no rule on your farm is currently matching" — so it needs an empty open set
+  // AND nothing left unconfirmed. With unconfirmed rows present the tile still shows 0, because 0
+  // open is true, but it stays toneless and the sub-line says how many we could not judge.
   const alertsTone: Tone | undefined =
-    alerts == null ? undefined : alerts.critical > 0 ? "bad" : alerts.total > 0 ? "warn" : "good";
+    alerts == null
+      ? undefined
+      : alerts.critical > 0
+        ? "bad"
+        : alerts.open > 0
+          ? "warn"
+          : alerts.unconfirmed > 0
+            ? undefined
+            : "good";
+
+  // Order matters: critical outranks everything, then the unconfirmed disclosure, and only a clean
+  // zero on both gets to say "no open alerts".
+  const alertsSub =
+    alerts == null
+      ? t("app.home.stats.alertsUnknown")
+      : alerts.critical > 0
+        ? tf("app.home.stats.alertsCritical", { n: alerts.critical })
+        : alerts.unconfirmed > 0
+          ? tf("app.home.stats.alertsUnconfirmed", { n: alerts.unconfirmed })
+          : alerts.open === 0
+            ? t("app.home.stats.alertsNone")
+            : null;
 
   // ── ATTENTION ───────────────────────────────────────────────────────────────────────────────
   // "Hamısı qaydasındadır" is a claim about EVERY field, so it needs a verdict for every field —
@@ -378,27 +410,19 @@ export default function TodayStats({
         title={staleNote ?? undefined}
       />
 
+      {/* An EXACT count of conditions that are currently true — no ceiling, no "+", and reading the
+          bell does not move it. A zero here is a real all-clear only when nothing is unconfirmed,
+          which is what the tone and the sub-line above are careful about. */}
       <Tile
         icon={Bell}
         label={t("app.home.stats.alertsLabel")}
-        // "+" means "at least"; on zero there is nothing for it to be more than, and "0+" is not a
-        // readable number. `capped` can be true with a total of 0 (a full page of already-read rows).
-        value={alerts == null ? DASH : `${alerts.total}${alerts.capped && alerts.total > 0 ? "+" : ""}`}
+        value={alerts == null ? DASH : String(alerts.open)}
         tone={alertsTone}
-        sub={
-          alerts == null
-            ? t("app.home.stats.alertsUnknown")
-            : alerts.critical > 0
-              ? tf("app.home.stats.alertsCritical", { n: alerts.critical })
-              // A bare "0" under a tile called "New alerts" reads as "nothing is wrong with your
-              // fields", which is a stronger claim than this number can make: the conditions may
-              // still hold, the farmer has simply already looked. Say which one it is.
-              : alerts.total === 0
-                ? t("app.home.stats.alertsSeen")
-                : null
-        }
+        sub={alertsSub}
         href="/notifications"
-        title={alerts?.capped ? t("app.home.stats.alertsCapped") : undefined}
+        title={
+          alerts && alerts.unconfirmed > 0 ? t("app.home.stats.alertsUnconfirmedNote") : undefined
+        }
       />
 
       {/* ── row 2 ───────────────────────────────────────────────────────────────────────────── */}

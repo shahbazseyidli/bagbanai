@@ -2475,11 +2475,12 @@ export const ru: Dict = {
   "app.home.stats.scoreLabel": "Средний балл здоровья",
   "app.home.stats.scoreNone": "Балл ещё не рассчитан",
   "app.home.stats.scoreStale": "Часть баллов рассчитана в предыдущие дни",
-  "app.home.stats.alertsLabel": "Новые оповещения",
-  "app.home.stats.alertsSeen": "Все просмотрены",
+  "app.home.stats.alertsLabel": "Открытые оповещения",
   "app.home.stats.alertsCritical": "Критических: {n}",
+  "app.home.stats.alertsUnconfirmed": "Не подтверждено: {n}",
+  "app.home.stats.alertsUnconfirmedNote": "По этим оповещениям не поступало новых данных — они не подтверждены и не закрыты.",
+  "app.home.stats.alertsNone": "Открытых оповещений нет",
   "app.home.stats.alertsUnknown": "Оповещения не загрузились",
-  "app.home.stats.alertsCapped": "Учтены только недавние уведомления",
   "app.home.instrument.railAria": "Панель внимания",
   "app.home.alerts.seeAll": "Все уведомления",
 
@@ -2539,6 +2540,7 @@ export const ru: Dict = {
 
   "app.home.feed.title": "Лента данных",
   "app.home.feed.alerts": "Открытые оповещения",
+  "app.home.feed.alertsUnread": "Новые уведомления",
   "app.home.feed.weather": "Погода",
   "app.home.feed.health": "Состояние полей",
   "app.home.feed.healthEmpty": "Балл пока не рассчитан ни для одного поля.",

@@ -2468,11 +2468,12 @@ export const hu: Dict = {
   "app.home.stats.scoreLabel": "Átlagos egészség",
   "app.home.stats.scoreNone": "A pontszám még nincs kiszámítva",
   "app.home.stats.scoreStale": "Néhány pontszám korábbi napokból származik",
-  "app.home.stats.alertsLabel": "Új riasztások",
-  "app.home.stats.alertsSeen": "Mind megnézve",
+  "app.home.stats.alertsLabel": "Nyitott riasztások",
   "app.home.stats.alertsCritical": "Kritikus: {n}",
+  "app.home.stats.alertsUnconfirmed": "Nem megerősített: {n}",
+  "app.home.stats.alertsUnconfirmedNote": "Ezekhez a riasztásokhoz nem érkezett új adat — sem megerősítve, sem lezárva nincsenek.",
+  "app.home.stats.alertsNone": "Nincs nyitott riasztás",
   "app.home.stats.alertsUnknown": "A riasztások nem töltődtek be",
-  "app.home.stats.alertsCapped": "Csak a legutóbbi értesítések számítanak",
   "app.home.instrument.railAria": "Figyelem panel",
   "app.home.alerts.seeAll": "Összes értesítés megtekintése",
 
@@ -2532,6 +2533,7 @@ export const hu: Dict = {
 
   "app.home.feed.title": "Információs sáv",
   "app.home.feed.alerts": "Nyitott riasztások",
+  "app.home.feed.alertsUnread": "Új értesítések",
   "app.home.feed.weather": "Időjárás",
   "app.home.feed.health": "Táblák egészsége",
   "app.home.feed.healthEmpty": "Egyetlen táblához sem számítottunk még pontszámot.",

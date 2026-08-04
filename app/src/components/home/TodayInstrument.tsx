@@ -61,6 +61,7 @@ export default function TodayInstrument({
   worstScore,
   alertsAll,
   alertsCapped,
+  openAlerts,
   satellite,
 }: {
   /** Every field in the org — the feed's health list covers all of them, geometry or not. */
@@ -81,6 +82,9 @@ export default function TodayInstrument({
    *  null means the request failed, which is not the same as "no alerts". */
   alertsAll: TodayAlert[] | null;
   alertsCapped: boolean;
+  /** Rows whose RULE is still matching, read or not — the feed leads with these, the map does not
+   *  use them (it colours from unread severity and says so in its own legend caveat). */
+  openAlerts: TodayAlert[];
   satellite: SatelliteSummary | null;
 }) {
   const [selected, setSelected] = useState("");
@@ -117,8 +121,17 @@ export default function TodayInstrument({
   const scopeValue = scoped ? scoped.id : "";
   const drawn = scoped ? [scoped] : mappable;
 
-  const shownAlerts = (alertsAll ?? []).slice(0, FEED_ALERTS);
-  const alertsMore = (alertsAll?.length ?? 0) - shownAlerts.length;
+  // The feed's two alert groups get separate budgets: an OPEN condition outranks an unread row that
+  // may already be over, so it must never be pushed out of the panel by three notifications the
+  // farmer simply has not opened yet.
+  const shownOpen = openAlerts.slice(0, FEED_ALERTS);
+  const openIds = new Set(shownOpen.map((a) => a.id));
+  const shownAlerts = (alertsAll ?? []).filter((a) => !openIds.has(a.id)).slice(0, FEED_ALERTS);
+  // Counted by id over the unread list, not by subtracting lengths: the two groups overlap (an open
+  // alert is usually also unread) and openAlerts may contain rows that are not in alertsAll at all
+  // (already read), so arithmetic on the lengths can undercount and even go negative.
+  const shownIds = new Set([...openIds, ...shownAlerts.map((a) => a.id)]);
+  const alertsMore = (alertsAll ?? []).filter((a) => !shownIds.has(a.id)).length;
   const scopedWeather = scoped ? weatherFor(scoped.id) : weather;
   const satRowCount = satellite
     ? [satellite.ready, satellite.partial, satellite.preparing, satellite.failed, satellite.notStarted]
@@ -130,7 +143,8 @@ export default function TodayInstrument({
   // empty state and the quick actions). With nothing mappable AND nothing substantive to say, this
   // whole row steps aside and the field grid moves up — the behaviour the rail had before.
   const hasSubstance =
-    worst != null || shownAlerts.length > 0 || scopedWeather != null || satRowCount > 0 || scoredCount > 0;
+    worst != null || shownOpen.length > 0 || shownAlerts.length > 0 || scopedWeather != null ||
+    satRowCount > 0 || scoredCount > 0;
   if (!hasGeom && !hasSubstance) return null;
 
   // COMPLETE literals, mirrored from FieldWorkbench so the product's two wide screens agree instead
@@ -150,6 +164,7 @@ export default function TodayInstrument({
       worst={worst}
       worstScore={worstScore}
       alerts={shownAlerts}
+      openAlerts={shownOpen}
       alertsMore={alertsMore}
       satellite={satellite}
       fields={fields}

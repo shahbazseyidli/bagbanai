@@ -9,7 +9,7 @@ export const privacyDe: PrivacyDoc = {
     "es ist, was das System über Sie erfasst, wo es das speichert, an wen es geht und was " +
     "passiert, wenn Sie Ihr Konto schließen.",
   summary: [
-    "Alle Daten liegen in der EU — auf einem einzigen Server in Helsinki (Finnland), in einer Postgres-Datenbank, die wir selbst betreiben.",
+    "Alle Daten werden in der EU gespeichert — auf einem einzigen Server in Helsinki, Finnland, in einer Postgres-Datenbank, die wir selbst betreiben. Eine Ausnahme: Text und Bilder, die zur KI-Analyse gesendet werden, verlassen die EU während der Verarbeitung — siehe „Unterauftragsverarbeiter“ unten.",
     "Es gibt keinen Werbetracker, kein Analyse-Pixel und kein Drittanbieter-Cookie; deshalb gibt es auch kein Einwilligungsbanner.",
     "Zur KI gehen Felddaten, keine Kontodaten: Name, E-Mail und Passwort-Hash werden nie an den Modellanbieter übermittelt.",
     "Die einzige wiederkehrende E-Mail ist die Wochenübersicht (mittwochs); ein Klick genügt zum Abbestellen.",
@@ -147,13 +147,24 @@ export const privacyDe: PrivacyDoc = {
           kind: "kv",
           rows: [
             {
-              k: "Anthropic (Claude)",
+              k: "DeepSeek (das Textmodell)",
               v:
-                "KI-Empfehlung, Chat, Fotodiagnose und die Recherche-Ebene. Es gehen: Feldname, " +
+                "KI-Empfehlung, Chat und die Recherche-Ebene. Es gehen: Feldname, " +
                 "Fläche, Kulturpass (inklusive Notizen), Indextrends, Wetter, letzte " +
                 "Beobachtungen, Arbeiten, die " +
-                "Zusammenfassung der vorherigen Empfehlung, die letzten Chatbeiträge und das zur " +
-                "Diagnose gesendete Foto. Es gehen nicht: E-Mail, Name, Passwort-Hash.",
+                "Zusammenfassung der vorherigen Empfehlung und die letzten Chatbeiträge. " +
+                "Es gehen nicht: E-Mail, Name, Passwort-Hash — und kein einziges Foto, denn " +
+                "dieses Modell kann Bilder überhaupt nicht lesen. Die Verarbeitung findet auf " +
+                "DeepSeeks eigenen Servern statt (das Unternehmen sitzt in China).",
+            },
+            {
+              k: "Google (Gemini — nur Bilder)",
+              v:
+                "Foto-Beschriftung, Krankheits-/Schädlingsdiagnose und das Auslesen von " +
+                "Bodenlaborberichten. Es gehen: das von Ihnen hochgeladene Bild und die Kultur " +
+                "des Feldes. Beachten Sie: Was auf einem Scan steht, geht mit — der Name des " +
+                "Labors, Ihr Name, eine Anschrift; anders als beim Textkontext wählen nicht wir " +
+                "aus, was auf dem Bild steht. An das Textmodell geht kein Foto.",
             },
             {
               k: "Resend",
@@ -225,9 +236,14 @@ export const privacyDe: PrivacyDoc = {
         {
           kind: "p",
           text:
-            "Empfehlung, Chat und Fotodiagnose laufen über die Claude-Modelle von Anthropic. Der " +
+            "Empfehlung, Chat und Recherche laufen über das Textmodell von DeepSeek; Bilder — die " +
+            "Foto-Beschriftung, die Krankheitsdiagnose und das Auslesen des Laborberichts — über " +
+            "Googles Gemini, denn das Textmodell nimmt keine Bilder entgegen und es geht auch " +
+            "keines dorthin. Der " +
             "an das Modell gesendete Kontext betrifft das Feld, nicht Ihre Identität — der Code, " +
-            "der ihn zusammenstellt, liest keine Spalte der Kontentabelle.",
+            "der ihn zusammenstellt, liest keine Spalte der Kontentabelle. Die Ausnahme ist das " +
+            "Bild selbst: Was darauf zu sehen ist, geht mit, ein gescannter Laborbericht ist der " +
+            "offensichtliche Fall.",
         },
         {
           kind: "p",

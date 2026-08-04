@@ -6,6 +6,8 @@ Email is not sent per advice change (that fired every 2-3 days per field); the w
 Wednesday digest reads the same change signal and reports it once."""
 from __future__ import annotations
 
+import logging
+
 import json
 from datetime import datetime, timedelta, timezone
 from typing import Literal, Optional
@@ -14,6 +16,8 @@ from pydantic import BaseModel, Field
 
 from . import llm, usage as ai_usage
 from .context import build_field_context
+
+log = logging.getLogger(__name__)
 
 DISCLAIMER = ("Bu məsləhətlər peyk və sahə məlumatlarına əsaslanan avtomatik təhlildir; "
               "yekun qərar üçün sahəni yerində yoxlayın.")
@@ -145,7 +149,14 @@ async def generate_and_store(conn, field_id: str, force: bool = False,
     try:
         result, usage = await llm.complete_structured(
             SYSTEM + _lang_clause(lang), user, AdviceResult, model=tier_model)
-    except llm.LLMUnavailable:
+    except llm.LLMInvalidOutput as exc:
+        # Distinct from "no key": the model answered three times and never matched the schema.
+        # routers/internal.py turns a None into {"ok": true}, so without this line the auto-advice
+        # pipeline reports success while producing nothing and leaves no trace to find.
+        log.warning("advice: model gave no valid output for field %s (%s)", field_id, exc)
+        return None
+    except llm.LLMUnavailable as exc:
+        log.info("advice: unavailable for field %s (%s)", field_id, exc)
         return None
 
     provider, model = llm.model_info()
@@ -181,6 +192,7 @@ async def generate_and_store(conn, field_id: str, force: bool = False,
         await ai_usage.record_usage(
             conn, kind="advice", provider=usage["provider"], model=usage["model"],
             input_tokens=usage["input_tokens"], output_tokens=usage["output_tokens"],
+            cache_read_tokens=int(usage.get("cache_read_tokens") or 0),
             org_id=org_id, user_id=str(owner_id) if owner_id else None, field_id=field_id,
             # Advice is the ONE kind generated both ways, and only the caller can tell them apart:
             # the pipeline fires this after every satellite scene with nobody watching, while

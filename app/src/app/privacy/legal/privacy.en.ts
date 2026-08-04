@@ -9,7 +9,7 @@ export const privacyEn: PrivacyDoc = {
     "system collects about you, where it keeps it, who it is sent to, and what happens when you " +
     "close your account.",
   summary: [
-    "All data is stored inside the EU — on a single server in Helsinki, Finland, in a Postgres database we run ourselves.",
+    "All data is stored inside the EU — on a single server in Helsinki, Finland, in a Postgres database we run ourselves. One exception: the text and images sent for AI analysis leave the EU while they are processed — see “Subprocessors” below.",
     "There is no advertising tracker, no analytics pixel and no third-party cookie; that is why there is no consent banner.",
     "Field data goes to the AI, account data does not: your name, email and password hash are never sent to the model provider.",
     "The only recurring email is a weekly digest (Wednesdays); one click unsubscribes you.",
@@ -143,13 +143,24 @@ export const privacyEn: PrivacyDoc = {
           kind: "kv",
           rows: [
             {
-              k: "Anthropic (Claude)",
+              k: "DeepSeek (the text model)",
               v:
-                "AI advice, chat, photo diagnosis and the research layer. What goes: field name, " +
+                "AI advice, chat and the research layer. What goes: field name, " +
                 "area, crop passport (including notes), index trends, weather, recent scouting " +
                 "notes, operations, a summary of the previous " +
-                "advice, the last chat turns, and the photo you send for diagnosis. What does " +
-                "not: your email, your name, your password hash.",
+                "advice and the last chat turns. What does " +
+                "not: your email, your name, your password hash — nor any photograph, because " +
+                "this model cannot read images at all. Processing happens on DeepSeek's own " +
+                "servers (the company is based in China).",
+            },
+            {
+              k: "Google (Gemini — photographs only)",
+              v:
+                "Photo labelling, disease/pest diagnosis and reading soil-laboratory reports. " +
+                "What goes: the picture you upload and the field's crop type. Note that whatever " +
+                "is printed in a scan goes with it — the laboratory's name, your name, an " +
+                "address — because unlike the text context, we do not choose what the picture " +
+                "contains. No photograph is sent to the text model.",
             },
             {
               k: "Resend",
@@ -220,9 +231,12 @@ export const privacyEn: PrivacyDoc = {
         {
           kind: "p",
           text:
-            "Advice, chat and photo diagnosis run on Anthropic's Claude models. The context sent " +
+            "Advice, chat and research run on DeepSeek's text model; photographs — the auto-label, " +
+            "the disease diagnosis and the lab-report reading — run on Google's Gemini, because " +
+            "the text model takes no images and none is ever sent to it. The context sent " +
             "to the model is about the field, not about your identity — the code that assembles " +
-            "it reads no column from the accounts table.",
+            "it reads no column from the accounts table. The picture itself is the exception: " +
+            "whatever it contains travels with it, a scanned lab report being the obvious case.",
         },
         {
           kind: "p",

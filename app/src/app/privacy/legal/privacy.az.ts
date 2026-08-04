@@ -13,7 +13,7 @@ export const privacyAz: PrivacyDoc = {
     "topladığını, onu harada saxladığını, kimə ötürdüyünü və hesabınızı bağlayanda nə baş " +
     "verdiyini olduğu kimi izah edir.",
   summary: [
-    "Bütün məlumat Aİ daxilində — Helsinkidəki (Finlandiya) tək serverdə, öz idarə etdiyimiz Postgres bazasında saxlanılır.",
+    "Bütün məlumat Aİ daxilində — Helsinkidəki (Finlandiya) tək serverdə, öz idarə etdiyimiz Postgres bazasında saxlanılır. İstisna: AI təhlili üçün göndərilən mətn və şəkillər emal zamanı Aİ-dən kənara çıxır — ətraflı aşağıdakı «Subprosessorlar» bölməsində.",
     "Reklam izləyicisi, analitika pikseli və üçüncü tərəf kuki yoxdur; ona görə razılıq banneri də yoxdur.",
     "AI təhlilinə sahə məlumatı gedir, hesab məlumatı yox: adınız, e-poçtunuz və parol hash-ınız model provayderinə heç vaxt ötürülmür.",
     "Təkrarlanan yeganə məktub həftəlik icmaldır (çərşənbə günü); ondan bir kliklə imtina edə bilərsiniz.",
@@ -156,13 +156,24 @@ export const privacyAz: PrivacyDoc = {
           kind: "kv",
           rows: [
             {
-              k: "Anthropic (Claude)",
+              k: "DeepSeek (mətn modeli)",
               v:
-                "AI məsləhəti, söhbət, foto diaqnozu və araşdırma qatı. Gedən: sahənin adı, " +
+                "AI məsləhəti, söhbət və araşdırma qatı. Gedən: sahənin adı, " +
                 "sahəsi, məhsul pasportu (qeydlər daxil), indeks trendləri, hava, son skautinq " +
                 "qeydləri, əməliyyatlar, əvvəlki " +
-                "məsləhətin xülasəsi, son söhbət növbələri və diaqnoz üçün göndərdiyiniz şəkil. " +
-                "Getməyən: e-poçt, ad, parol hash-ı.",
+                "məsləhətin xülasəsi və son söhbət növbələri. " +
+                "Getməyən: e-poçt, ad, parol hash-ı. Şəkil də getmir — bu model təsviri " +
+                "ümumiyyətlə oxuya bilmir. Emal DeepSeek-in öz serverlərində aparılır (şirkət " +
+                "Çində qeydiyyatdadır).",
+            },
+            {
+              k: "Google (Gemini — yalnız şəkillər)",
+              v:
+                "Foto etiketləmə, xəstəlik/zərərverici diaqnozu və torpaq laboratoriya " +
+                "hesabatının oxunması. Gedən: yüklədiyiniz şəkil və sahənin məhsul növü. " +
+                "Diqqət: skanda nə yazılıbsa (laboratoriyanın adı, sizin adınız, ünvan) şəklin " +
+                "bir hissəsi kimi gedir — mətn kontekstindən fərqli olaraq şəkli biz seçmirik. " +
+                "Mətn modelinə heç bir şəkil göndərilmir.",
             },
             {
               k: "Resend",
@@ -232,9 +243,13 @@ export const privacyAz: PrivacyDoc = {
         {
           kind: "p",
           text:
-            "Məsləhət, söhbət və foto diaqnozu Anthropic-in Claude modelləri ilə işləyir. Modelə " +
-            "göndərilən kontekst sahə haqqındadır, sizin şəxsiyyətiniz haqqında deyil — kontekst " +
-            "qurulan kod hesab cədvəlindən heç bir sütun oxumur.",
+            "Məsləhət, söhbət və araşdırma DeepSeek-in mətn modeli ilə işləyir; şəkillər " +
+            "(foto etiketi, xəstəlik diaqnozu, laboratoriya hesabatının oxunması) isə Google-un " +
+            "Gemini modeli ilə — çünki mətn modeli təsvir qəbul etmir və heç bir şəkil ora " +
+            "göndərilmir. Modelə göndərilən kontekst sahə haqqındadır, sizin şəxsiyyətiniz " +
+            "haqqında deyil — kontekst qurulan kod hesab cədvəlindən heç bir sütun oxumur. " +
+            "İstisna şəklin özüdür: onun içində nə varsa o da gedir, laboratoriya hesabatının " +
+            "skanı buna misaldır.",
         },
         {
           kind: "p",

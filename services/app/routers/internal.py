@@ -113,6 +113,7 @@ async def drain_research(limit: int = 1):
                         await ai_usage.record_usage(
                             conn, kind="research", provider=usage["provider"], model=usage["model"],
                             input_tokens=usage["input_tokens"], output_tokens=usage["output_tokens"],
+                            cache_read_tokens=int(usage.get("cache_read_tokens") or 0),
                             org_id=result["org_id"], user_id=None, field_id=job["field_id"],
                             # Always the queue worker (deploy/process-research.sh, every 3 min), so
                             # nobody is ever waiting on this one — the clearest batch candidate we

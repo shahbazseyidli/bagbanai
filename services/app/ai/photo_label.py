@@ -1,8 +1,15 @@
-"""Field photo auto-labeling via Claude vision (HYBRID_PLAN E10, 0031). A farmer snaps any field /
+"""Field photo auto-labeling via the vision model (HYBRID_PLAN E10, 0031). A farmer snaps any field /
 crop / tree / leaf photo; the vision model identifies WHAT it is (subject) + a coarse condition. The
 photo + label are stored in field_photos and later feed the advice context, so AI recommendations
 factor the visual state. Lighter than the T5 disease diagnosis: identification + condition only, no
-treatment advice."""
+treatment advice.
+
+Vision runs on Gemini after the 2026-07-30 migration (DeepSeek accepts no images anywhere) — but
+this module names no provider: ai/llm.py routes on VISION_PROVIDER and is the only file that knows.
+
+METERED AS kind='photo_label', NOT 'photo'. Diagnosis owns 'photo', and that is the counter the
+pricing page's "30 per month" refers to; when this automatic call shared it, filling the gallery
+silently spent the diagnoses the farmer paid for."""
 from __future__ import annotations
 
 import json
@@ -42,9 +49,13 @@ async def label_and_store(conn, field_id: str, org_id: str, photo_path: str,
     try:
         from . import usage as ai_usage
         await ai_usage.record_usage(
-            conn, kind="photo", provider=usage["provider"], model=usage["model"],
+            conn, kind="photo_label", provider=usage["provider"], model=usage["model"],
             input_tokens=usage["input_tokens"], output_tokens=usage["output_tokens"],
-            org_id=org_id, user_id=None, field_id=field_id)
+            cache_read_tokens=usage.get("cache_read_tokens", 0),
+            org_id=org_id, user_id=None, field_id=field_id,
+            # The farmer pressed "upload", not "label this" — the labelling is our idea, so it is
+            # 'auto' for the batch-API question (0056) even though a human is on the other end.
+            source="auto")
     except Exception:  # noqa: BLE001 — usage accounting is best-effort
         pass
     return {"id": str(row["id"]), "field_id": field_id, "photo_path": photo_path,

@@ -3,11 +3,15 @@ prior conversation. Every turn is stored in public.ai_chat_messages so later tur
 (and analyses) stay aware of the history."""
 from __future__ import annotations
 
+import logging
+
 import json
 from typing import Optional
 
 from . import llm, usage as ai_usage
 from .context import build_field_context
+
+log = logging.getLogger(__name__)
 
 # Persona is language-neutral; the reply language is decided per turn by _lang_directive so a farmer
 # gets answers in whatever language they write (Phase 4 — 7 locales).
@@ -123,7 +127,11 @@ async def answer(conn, field_id: str, user_id: str, message: str, locale: str = 
 
     try:
         reply, usage = await llm.complete_text(system, msgs, model=tier_model)
-    except llm.LLMUnavailable:
+    except llm.LLMInvalidOutput as exc:
+        log.warning("chat: model returned nothing usable for field %s (%s)", field_id, exc)
+        return None
+    except llm.LLMUnavailable as exc:
+        log.info("chat: unavailable for field %s (%s)", field_id, exc)
         return None
 
     # Persist both turns (context_snapshot only on the user turn to keep rows lean).
@@ -141,6 +149,7 @@ async def answer(conn, field_id: str, user_id: str, message: str, locale: str = 
         await ai_usage.record_usage(
             conn, kind="chat", provider=usage["provider"], model=usage["model"],
             input_tokens=usage["input_tokens"], output_tokens=usage["output_tokens"],
+            cache_read_tokens=int(usage.get("cache_read_tokens") or 0),
             org_id=org_id, user_id=user_id, field_id=field_id,
             # A farmer typed this and is watching for the reply. Never batch it.
             source="user")

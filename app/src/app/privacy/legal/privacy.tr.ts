@@ -9,7 +9,7 @@ export const privacyTr: PrivacyDoc = {
     "nerede sakladığını, kime gönderdiğini ve hesabınızı kapattığınızda ne olduğunu olduğu gibi " +
     "anlatır.",
   summary: [
-    "Tüm veriler AB içinde — Helsinki'deki (Finlandiya) tek bir sunucuda, kendi işlettiğimiz Postgres veritabanında saklanır.",
+    "Tüm veriler AB içinde — Helsinki'deki (Finlandiya) tek sunucuda, kendi işlettiğimiz Postgres veritabanında saklanır. Bir istisna: AI analizi için gönderilen metin ve görseller işlenirken AB dışına çıkar — ayrıntı aşağıdaki “Alt işleyiciler” bölümünde.",
     "Reklam izleyicisi, analitik pikseli ve üçüncü taraf çerezi yoktur; bu yüzden onay bandı da yoktur.",
     "Yapay zekâya tarla verisi gider, hesap verisi gitmez: adınız, e-postanız ve parola özetiniz model sağlayıcısına asla gönderilmez.",
     "Tekrarlayan tek e-posta haftalık özettir (çarşamba günleri); tek tıkla çıkabilirsiniz.",
@@ -142,13 +142,23 @@ export const privacyTr: PrivacyDoc = {
           kind: "kv",
           rows: [
             {
-              k: "Anthropic (Claude)",
+              k: "DeepSeek (metin modeli)",
               v:
-                "Yapay zekâ tavsiyesi, sohbet, fotoğraf teşhisi ve araştırma katmanı. Giden: " +
+                "Yapay zekâ tavsiyesi, sohbet ve araştırma katmanı. Giden: " +
                 "tarla adı, alan, ürün pasaportu (notlar dâhil), indeks eğilimleri, hava durumu, " +
                 "son gözlemler, işlemler, önceki tavsiyenin " +
-                "özeti, son sohbet turları ve teşhis için gönderdiğiniz fotoğraf. Gitmeyen: " +
-                "e-posta, ad, parola özeti.",
+                "özeti ve son sohbet turları. Gitmeyen: " +
+                "e-posta, ad, parola özeti — ve hiçbir fotoğraf, çünkü bu model görüntüyü hiç " +
+                "okuyamaz. İşleme DeepSeek'in kendi sunucularında yapılır (şirket Çin'de kayıtlı).",
+            },
+            {
+              k: "Google (Gemini — yalnızca görseller)",
+              v:
+                "Fotoğraf etiketleme, hastalık/zararlı teşhisi ve toprak laboratuvarı raporunun " +
+                "okunması. Giden: yüklediğiniz görsel ve tarlanın ürün türü. Dikkat: taramada ne " +
+                "yazıyorsa onunla birlikte gider — laboratuvarın adı, sizin adınız, adres: metin " +
+                "bağlamının aksine görselin içeriğini biz seçmiyoruz. Metin modeline hiçbir " +
+                "fotoğraf gönderilmez.",
             },
             {
               k: "Resend",
@@ -218,9 +228,13 @@ export const privacyTr: PrivacyDoc = {
         {
           kind: "p",
           text:
-            "Tavsiye, sohbet ve fotoğraf teşhisi Anthropic'in Claude modelleriyle çalışır. " +
+            "Tavsiye, sohbet ve araştırma DeepSeek'in metin modeliyle; görseller — fotoğraf " +
+            "etiketi, hastalık teşhisi ve laboratuvar raporunun okunması — Google'ın Gemini " +
+            "modeliyle çalışır, çünkü metin modeli görüntü kabul etmez ve oraya hiçbir fotoğraf " +
+            "gitmez. " +
             "Modele gönderilen bağlam tarlayla ilgilidir, kimliğinizle değil — bağlamı kuran kod " +
-            "hesap tablosundan hiçbir sütun okumaz.",
+            "hesap tablosundan hiçbir sütun okumaz. İstisna görselin kendisidir: içinde ne varsa " +
+            "onunla birlikte gider, taranmış bir laboratuvar raporu bunun açık örneğidir.",
         },
         {
           kind: "p",

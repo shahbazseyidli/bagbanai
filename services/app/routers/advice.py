@@ -1,7 +1,7 @@
 """AI advice + per-field chatbot + notifications (§AI advice/chat)."""
 import json
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -31,6 +31,9 @@ from ..ai import chat as chat_svc
 from ..ai import llm
 from ..db import connection
 from ..deps import get_current_user_id, require_member
+# ONE definition of "how recently must a rule have matched to still count as open" — the tile, the
+# bell and the dispatcher that writes last_match_at must not each pick their own number.
+from ..rules.engine import OPEN_MAX_AGE_HOURS
 from .fields import _org_of_field
 
 router = APIRouter(prefix="/api", tags=["ai"])
@@ -185,17 +188,37 @@ async def list_notifications(user_id: str = Depends(get_current_user_id)):
 
     The SQL limit is 60 rather than 30 because the filter runs after it: cutting at 30 first would
     shrink the bell for exactly the farmers who muted something noisy.
+
+    `open` (0063) is the OTHER axis, and it is not the same as unread: unread is about the reader,
+    open is about the field. It comes from public.alert_state — true when the rule behind this
+    notification was observed still matching within OPEN_MAX_AGE_HOURS. False therefore covers three
+    different things (resolved, unconfirmed, and "this row is not a rule alert at all" — data_ready
+    and ai_advice have no alert_state row by construction), so a client may use it to PROMOTE a row,
+    never to dismiss one.
+
+    notifications has no dedup_key, so the join is (field_id, rule_type) only. Every producer in
+    rules/engine.py writes dedup_key='', so today that is exact; a future producer that keys its rows
+    would turn this into "any open alert of this type on this field", which is still true enough for
+    a badge but no longer identifies the individual alert.
     """
     async with connection(user_id) as conn:
         prefs = await notify_prefs.load(conn, user_id)
         rows = await conn.fetch(
             """select n.id, n.field_id, n.source, n.type, n.severity, n.title, n.body,
                       n.title_code, n.title_params, n.body_code, n.body_params,
-                      n.created_at, n.read_at
+                      n.created_at, n.read_at,
+                      exists (
+                        select 1 from public.alert_state a
+                        where a.field_id = n.field_id and a.rule_type = n.type
+                          and a.resolved_at is null
+                          and (a.muted_until is null or a.muted_until <= now())
+                          and a.last_match_at is not null
+                          and a.last_match_at >= now() - $2::interval) as still_open
                from public.notifications n
                join public.organization_members m
                  on m.org_id = n.org_id and m.user_id = $1::uuid
-               order by n.created_at desc limit 60""", user_id)
+               order by n.created_at desc limit 60""",
+            user_id, timedelta(hours=OPEN_MAX_AGE_HOURS))
     visible = [r for r in rows
                if notify_prefs.allows_notification(prefs, r["source"], r["type"], "inapp")][:30]
     return {"notifications": [
@@ -206,7 +229,9 @@ async def list_notifications(user_id: str = Depends(get_current_user_id)):
          # renders in the READER's language rather than the writer's.
          "title_code": r["title_code"], "title_params": _jsonb(r["title_params"]),
          "body_code": r["body_code"], "body_params": _jsonb(r["body_params"]),
-         "created_at": r["created_at"].isoformat(), "read": r["read_at"] is not None}
+         "created_at": r["created_at"].isoformat(), "read": r["read_at"] is not None,
+         # The condition behind this row, not the row itself — see the docstring.
+         "open": bool(r["still_open"])}
         for r in visible]}
 
 

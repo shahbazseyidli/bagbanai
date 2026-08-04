@@ -52,6 +52,8 @@ unenforced budget of the same LLM calls. The cost row still carries field_id and
 """
 from __future__ import annotations
 
+import logging
+
 import json
 from datetime import date
 from typing import Any, Optional
@@ -59,6 +61,8 @@ from typing import Any, Optional
 from pydantic import BaseModel, Field
 
 from . import knowledge as kb, llm, usage as ai_usage
+
+log = logging.getLogger(__name__)
 # One table of language names for the whole product; advice.py owns it. Re-declaring it here is how
 # auth.py::_effective_area_unit came to be a duplicate that has to be edited twice — don't repeat it.
 from .advice import DISCLAIMERS, LANG_NAMES
@@ -361,6 +365,9 @@ async def generate_and_store(conn, field_id: str, org_id: str, lang: str = "az",
     try:
         result, usage = await llm.complete_structured(
             system, user, SeasonSummaryOut, max_tokens=1500, model=tiers.model_for(tier))
+    except llm.LLMInvalidOutput as exc:
+        log.warning("season summary: no valid output for field %s (%s)", field_id, exc)
+        raise
     except llm.LLMUnavailable:
         return {"ok": False, "reason": "unavailable"}
 
@@ -383,6 +390,7 @@ async def generate_and_store(conn, field_id: str, org_id: str, lang: str = "az",
         await ai_usage.record_usage(
             conn, kind="advice", provider=usage["provider"], model=usage["model"],
             input_tokens=usage["input_tokens"], output_tokens=usage["output_tokens"],
+            cache_read_tokens=int(usage.get("cache_read_tokens") or 0),
             org_id=org_id, user_id=user_id, field_id=field_id,
             # Always 'user': there is no automatic trigger for this summary — a farmer pressed a
             # button and is waiting, which is exactly what source='user' means (0056).

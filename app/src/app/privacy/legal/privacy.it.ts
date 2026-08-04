@@ -9,7 +9,7 @@ export const privacyIt: PrivacyDoc = {
     "com'è, che cosa il sistema raccoglie su di te, dove lo conserva, a chi lo invia e che cosa " +
     "succede quando chiudi l'account.",
   summary: [
-    "Tutti i dati restano nell'UE — su un unico server a Helsinki (Finlandia), in un database Postgres che gestiamo noi.",
+    "Tutti i dati sono conservati nell'UE — su un unico server a Helsinki, Finlandia, in un database Postgres che gestiamo noi. Un'eccezione: il testo e le immagini inviati all'analisi AI escono dall'UE durante l'elaborazione — vedi “Subresponsabili” più sotto.",
     "Non c'è alcun tracker pubblicitario, pixel di analisi o cookie di terze parti; per questo non c'è nemmeno il banner di consenso.",
     "All'IA vanno i dati del campo, non quelli dell'account: nome, email e hash della password non vengono mai inviati al fornitore del modello.",
     "L'unica email ricorrente è il riepilogo settimanale (il mercoledì); ti disiscrivi con un clic.",
@@ -146,13 +146,25 @@ export const privacyIt: PrivacyDoc = {
           kind: "kv",
           rows: [
             {
-              k: "Anthropic (Claude)",
+              k: "DeepSeek (il modello testuale)",
               v:
-                "Consiglio dell'IA, chat, diagnosi da foto e livello di ricerca. Che cosa parte: " +
+                "Consiglio dell'IA, chat e livello di ricerca. Che cosa parte: " +
                 "nome del campo, superficie, scheda della coltura (note comprese), andamento " +
                 "degli indici, meteo, ultime osservazioni, operazioni, " +
-                "sintesi del consiglio precedente, ultimi turni di chat e la foto che invii " +
-                "per la diagnosi. Che cosa non parte: email, nome, hash della password.",
+                "sintesi del consiglio precedente e ultimi turni di chat. " +
+                "Che cosa non parte: email, nome, hash della password — e nessuna fotografia, " +
+                "perché questo modello non è in grado di leggere immagini. L'elaborazione avviene " +
+                "sui server di DeepSeek (l'azienda ha sede in Cina).",
+            },
+            {
+              k: "Google (Gemini — solo immagini)",
+              v:
+                "Etichettatura delle foto, diagnosi di malattie/parassiti e lettura dei referti " +
+                "di laboratorio del suolo. Che cosa parte: l'immagine che carichi e la coltura " +
+                "del campo. Attenzione: quello che è scritto su una scansione parte insieme a " +
+                "essa — il nome del laboratorio, il tuo nome, un indirizzo: a differenza del " +
+                "contesto testuale, non siamo noi a scegliere che cosa contiene l'immagine. Al " +
+                "modello testuale non viene inviata alcuna fotografia.",
             },
             {
               k: "Resend",
@@ -224,9 +236,14 @@ export const privacyIt: PrivacyDoc = {
         {
           kind: "p",
           text:
-            "Consigli, chat e diagnosi da foto funzionano con i modelli Claude di Anthropic. Il " +
+            "Consigli, chat e ricerca funzionano con il modello testuale di DeepSeek; le immagini " +
+            "— l'etichetta della foto, la diagnosi delle malattie e la lettura del referto di " +
+            "laboratorio — con Gemini di Google, perché il modello testuale non accetta immagini " +
+            "e nessuna vi viene inviata. Il " +
             "contesto inviato al modello riguarda il campo, non la tua identità: il codice che lo " +
-            "compone non legge nessuna colonna della tabella degli account.",
+            "compone non legge nessuna colonna della tabella degli account. L'eccezione è " +
+            "l'immagine stessa: quello che contiene parte con essa, e un referto scansionato ne è " +
+            "l'esempio evidente.",
         },
         {
           kind: "p",

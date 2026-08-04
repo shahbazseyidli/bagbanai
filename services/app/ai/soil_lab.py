@@ -1,6 +1,7 @@
 """Lab soil-analysis OCR (T24 / E1b). A farmer or agronomist uploads a photo/scan of a soil
-laboratory report; Claude vision extracts the structured values (pH, humus, N/P/K, texture, EC,
-CaCO3). Reuses the T5 vision path (llm.complete_vision_structured). The parsed profile is stored in
+laboratory report; the vision model extracts the structured values (pH, humus, N/P/K, texture, EC,
+CaCO3) — on Gemini since the 2026-07-30 migration, though this module names no provider: ai/llm.py
+routes on VISION_PROVIDER. Reuses the T5 vision path (llm.complete_vision_structured). The parsed profile is stored in
 soil_profiles AND promoted to the field_knowledge 'soil_profile' block with source='lab', which the
 knowledge passport / advice prefer over SoilGrids (precedence: lab > manual > soilgrids)."""
 from __future__ import annotations
@@ -71,7 +72,10 @@ async def parse_and_store(conn, field_id: str, org_id: str, images: list[tuple[s
         await ai_usage.record_usage(
             conn, kind="soil_lab", provider=usage["provider"], model=usage["model"],
             input_tokens=usage["input_tokens"], output_tokens=usage["output_tokens"],
-            org_id=org_id, user_id=None, field_id=field_id)
+            cache_read_tokens=usage.get("cache_read_tokens", 0),
+            org_id=org_id, user_id=None, field_id=field_id,
+            # Someone uploaded a report and is watching for the extracted numbers.
+            source="user")
     except Exception:  # noqa: BLE001 — usage accounting must never fail the upload
         pass
 

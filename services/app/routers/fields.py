@@ -329,11 +329,15 @@ async def restore_field(field_id: str, user_id: str = Depends(get_current_user_i
 @router.post("/{field_id}/diagnose")
 async def diagnose_field(field_id: str, file: UploadFile = File(...),
                          user_id: str = Depends(get_current_user_id)):
-    """Photo disease/pest diagnosis via Claude vision (T5). Business-tier + monthly quota."""
+    """Photo disease/pest diagnosis via the vision model (T5). Business-tier + monthly quota.
+
+    Gated on vision_available(), not is_configured(): after the DeepSeek migration the text provider
+    can be perfectly healthy while no model in the configuration can read an image, and answering
+    "ai_not_configured" is closer to the truth than sending a photograph nobody will look at."""
     from .. import tiers
     from ..ai import diagnose as diag
     from ..ai import llm
-    if not llm.is_configured():
+    if not llm.vision_available():
         raise HTTPException(status_code=503, detail="ai_not_configured")
     data = await file.read()
     if not data:
@@ -355,6 +359,8 @@ async def diagnose_field(field_id: str, file: UploadFile = File(...),
             return await diag.diagnose_photo(conn, field_id, org_id, [(media, data)],
                                              model=tiers.model_for(tier))
         except llm.LLMUnavailable as exc:
+            # Covers the typed subclasses too (LLMInvalidOutput / LLMTruncated) — they inherit from
+            # LLMUnavailable precisely so handlers like this one keep working unchanged.
             raise HTTPException(status_code=503, detail=f"ai_unavailable: {exc}")
 
 
@@ -362,11 +368,11 @@ async def diagnose_field(field_id: str, file: UploadFile = File(...),
 async def upload_soil_lab(field_id: str, file: UploadFile = File(...),
                           user_id: str = Depends(get_current_user_id)):
     """Lab soil-analysis OCR (T24): vision-parse an uploaded soil-report image into structured
-    values, store it, and promote it to the field's soil passport (lab > SoilGrids). Business tier
-    (shares the vision feature gate); AI must be configured."""
+    values, store it, and promote it to the field's soil passport (lab > SoilGrids). Business tier;
+    vision must be available."""
     from .. import tiers
     from ..ai import llm, soil_lab
-    if not llm.is_configured():
+    if not llm.vision_available():
         raise HTTPException(status_code=503, detail="ai_not_configured")
     data = await file.read()
     if not data:
@@ -380,8 +386,14 @@ async def upload_soil_lab(field_id: str, file: UploadFile = File(...),
         org_id = await _org_of_field(conn, field_id)
         await require_member(conn, user_id, org_id)
         tier = await tiers.org_tier(conn, org_id)
-        if tiers.limit(tier, "photo_per_month") <= 0:  # vision features = business tier
+        # This route had a PLAN flag but no monthly cap — the only vision endpoint that could be
+        # called all day. It now meters like the others: its own limit, its own ledger kind
+        # ('soil_lab', already what parse_and_store records), same two error codes.
+        cap = tiers.limit(tier, "soil_lab_per_month")
+        if cap <= 0:
             raise HTTPException(status_code=402, detail="soil_lab_not_in_plan")
+        if await tiers.month_count(conn, org_id, "soil_lab") >= cap:
+            raise HTTPException(status_code=402, detail="soil_lab_quota_exceeded")
         try:
             return await soil_lab.parse_and_store(conn, field_id, org_id, [(media, data)],
                                                   model=tiers.model_for(tier))

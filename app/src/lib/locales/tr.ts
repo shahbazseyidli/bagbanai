@@ -2467,11 +2467,12 @@ export const tr: Dict = {
   "app.home.stats.scoreLabel": "Ortalama sağlık",
   "app.home.stats.scoreNone": "Puan henüz hesaplanmadı",
   "app.home.stats.scoreStale": "Bazı puanlar önceki günlere ait",
-  "app.home.stats.alertsLabel": "Yeni uyarı",
-  "app.home.stats.alertsSeen": "Hepsi görüldü",
+  "app.home.stats.alertsLabel": "Açık uyarı",
   "app.home.stats.alertsCritical": "Kritik: {n}",
+  "app.home.stats.alertsUnconfirmed": "Doğrulanmadı: {n}",
+  "app.home.stats.alertsUnconfirmedNote": "Bu uyarılar için yeni veri gelmedi — ne doğrulandı ne de kapandı.",
+  "app.home.stats.alertsNone": "Açık uyarı yok",
   "app.home.stats.alertsUnknown": "Uyarılar yüklenemedi",
-  "app.home.stats.alertsCapped": "Yalnızca son bildirimler sayıldı",
   "app.home.instrument.railAria": "Dikkat paneli",
   "app.home.alerts.seeAll": "Tüm bildirimleri gör",
 
@@ -2531,6 +2532,7 @@ export const tr: Dict = {
 
   "app.home.feed.title": "Bilgi akışı",
   "app.home.feed.alerts": "Açık uyarılar",
+  "app.home.feed.alertsUnread": "Yeni bildirimler",
   "app.home.feed.weather": "Hava durumu",
   "app.home.feed.health": "Tarla sağlığı",
   "app.home.feed.healthEmpty": "Henüz hiçbir tarla için puan hesaplanmadı.",

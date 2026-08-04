@@ -1,4 +1,7 @@
-"""Photo disease/pest diagnosis via Claude vision (T5 / E7 / C1).
+"""Photo disease/pest diagnosis via the vision model (T5 / E7 / C1).
+
+Vision runs on Gemini after the 2026-07-30 migration (DeepSeek accepts no images anywhere); this
+module names no provider — ai/llm.py routes on VISION_PROVIDER and is the only file that knows.
 
 A farmer uploads a leaf/plant/fruit photo; we send it + light field context to the vision model and
 get a structured Azerbaijani diagnosis. SAFETY (spec Rule 7): NEVER a specific pesticide name or
@@ -60,7 +63,10 @@ async def diagnose_photo(conn, field_id: str, org_id: str, images: list[tuple[st
         await ai_usage.record_usage(
             conn, kind="photo", provider=usage["provider"], model=usage["model"],
             input_tokens=usage["input_tokens"], output_tokens=usage["output_tokens"],
-            org_id=org_id, user_id=None, field_id=field_id)
+            cache_read_tokens=usage.get("cache_read_tokens", 0),
+            org_id=org_id, user_id=None, field_id=field_id,
+            # A farmer uploaded a sick leaf and is waiting for the answer. Never batch it.
+            source="user")
     except Exception:  # noqa: BLE001 — usage accounting is best-effort
         pass
     return {"id": str(row["id"]), "created_at": row["created_at"].isoformat(), **payload}
