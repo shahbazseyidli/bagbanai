@@ -150,7 +150,12 @@ def _route(model: str) -> str:
 
 
 def _text_model(model: Optional[str]) -> str:
-    return (model or settings.llm_model or "claude-opus-4-8").strip()
+    """Per-call model wins, then LLM_MODEL. The last resort names the CONFIG DEFAULT rather than a
+    Claude id: settings.llm_model cannot actually be empty (config.py gives it a value), so the old
+    "claude-opus-4-8" here was dead — but a reader would have taken it as evidence that clearing
+    LLM_MODEL falls back to Anthropic, which after this migration would contradict both the config
+    and the privacy page."""
+    return (model or settings.llm_model or "deepseek-v4-flash").strip()
 
 
 def _vision_model(model: Optional[str]) -> str:
