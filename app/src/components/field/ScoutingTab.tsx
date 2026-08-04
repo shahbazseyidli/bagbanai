@@ -29,7 +29,12 @@ import type { Scouting } from "@/lib/types";
 const CATEGORIES = ["pest", "disease", "weed", "nutrient", "water", "damage", "other"] as const;
 
 function catLabel(c: string): string {
-  return t(`scout.cat.${c}` as I18nKey);
+  // t() echoes the key back when there is no translation, which put the literal string
+  // "scout.cat.growth" on screen for a category that exists in stored rows but never appeared in
+  // the picker. Fall back to the raw value: unpolished is still a word, a key path is not.
+  const key = `scout.cat.${c}`;
+  const label = t(key as I18nKey);
+  return label === key ? c : label;
 }
 
 export default function ScoutingTab({ fieldId }: { fieldId: string }) {

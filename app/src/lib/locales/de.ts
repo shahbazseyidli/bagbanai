@@ -207,6 +207,7 @@ export const de: Dict = {
   "scout.geo": "Aktuellen Standort hinzufügen",
   "scout.geoErr": "Standort konnte nicht ermittelt werden",
   "scout.empty": "Noch keine Beobachtungsnotizen.",
+  "scout.cat.growth": "Entwicklung",
   "scout.cat.pest": "Schädling",
   "scout.cat.disease": "Krankheit",
   "scout.cat.weed": "Unkraut",

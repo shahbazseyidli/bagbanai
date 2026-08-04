@@ -215,6 +215,7 @@ export const en: Dict = {
   "scout.geo": "Add current location",
   "scout.geoErr": "Could not get location",
   "scout.empty": "No scouting notes yet.",
+  "scout.cat.growth": "Growth",
   "scout.cat.pest": "Pest",
   "scout.cat.disease": "Disease",
   "scout.cat.weed": "Weed",

@@ -214,6 +214,7 @@ export const hu: Dict = {
   "scout.geo": "Jelenlegi hely hozzáadása",
   "scout.geoErr": "A hely nem határozható meg",
   "scout.empty": "Még nincs szemlézési jegyzet.",
+  "scout.cat.growth": "Fejlődés",
   "scout.cat.pest": "Kártevő",
   "scout.cat.disease": "Betegség",
   "scout.cat.weed": "Gyom",

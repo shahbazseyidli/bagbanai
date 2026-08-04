@@ -242,6 +242,7 @@ export const az = {
   "scout.geo": "Cari yeri əlavə et",
   "scout.geoErr": "Yer məlumatı alınmadı",
   "scout.empty": "Hələ skautinq qeydi yoxdur.",
+  "scout.cat.growth": "İnkişaf",
   "scout.cat.pest": "Zərərverici",
   "scout.cat.disease": "Xəstəlik",
   "scout.cat.weed": "Alaq otu",

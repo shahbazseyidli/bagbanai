@@ -219,6 +219,7 @@ export const pl: Dict = {
   "scout.geo": "Dodaj bieżącą lokalizację",
   "scout.geoErr": "Nie udało się uzyskać lokalizacji",
   "scout.empty": "Brak notatek ze zwiadu.",
+  "scout.cat.growth": "Rozwój",
   "scout.cat.pest": "Szkodnik",
   "scout.cat.disease": "Choroba",
   "scout.cat.weed": "Chwast",

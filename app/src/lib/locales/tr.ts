@@ -206,6 +206,7 @@ export const tr: Dict = {
   "scout.geo": "Mevcut konumu ekle",
   "scout.geoErr": "Konum alınamadı",
   "scout.empty": "Henüz gözlem notu yok.",
+  "scout.cat.growth": "Gelişim",
   "scout.cat.pest": "Zararlı",
   "scout.cat.disease": "Hastalık",
   "scout.cat.weed": "Yabani ot",

@@ -211,6 +211,7 @@ export const ru: Dict = {
   "scout.geo": "Добавить текущее местоположение",
   "scout.geoErr": "Не удалось определить местоположение",
   "scout.empty": "Записей скаутинга пока нет.",
+  "scout.cat.growth": "Развитие",
   "scout.cat.pest": "Вредитель",
   "scout.cat.disease": "Болезнь",
   "scout.cat.weed": "Сорняк",

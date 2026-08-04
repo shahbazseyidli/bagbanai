@@ -563,6 +563,7 @@ export const es: Dict = {
   "scout.geo": "Agregar ubicación actual",
   "scout.geoErr": "No se pudo obtener la ubicación",
   "scout.empty": "Aún no hay notas de recorrida.",
+  "scout.cat.growth": "Desarrollo",
   "scout.cat.pest": "Plaga",
   "scout.cat.disease": "Enfermedad",
   "scout.cat.weed": "Maleza",
