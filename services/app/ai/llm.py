@@ -297,8 +297,13 @@ async def _deepseek_chat(model: str, messages: list[dict], max_tokens: int, *,
             # came back HTTP 400 "Thinking mode does not support this tool_choice". A forced
             # function call and reasoning cannot coexist, and the whole structured path forces one.
             payload["thinking"] = {"type": "disabled"}
-    elif thinking:
-        payload["thinking"] = {"type": "enabled"}
+    else:
+        # Off unless asked for, on EVERY path — not just the forced-tool one. Reasoning is on by
+        # default here and its tokens are billed and budgeted as completion, so a plain chat answer
+        # spends part of max_tokens thinking before it writes anything: a one-sentence reply burned
+        # 81 reasoning tokens, and on the chat prompt (which carries the whole field context) that
+        # is what pushed finish_reason to "length" and turned a working answer into a 503.
+        payload["thinking"] = {"type": "enabled" if thinking else "disabled"}
     return await _post_json(f"{DEEPSEEK_BASE}/chat/completions", payload,
                             {"Authorization": f"Bearer {key}",
                              "Content-Type": "application/json"}, "deepseek chat")
