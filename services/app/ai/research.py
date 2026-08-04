@@ -74,6 +74,16 @@ async def _synthesize_zone(crop_type: str, zone_label: str) -> tuple[list[dict],
     text, citations, usage1 = await llm.web_research(
         "Sən kənd təsərrüfatı üzrə tədqiqatçısan. Mötəbər mənbələrdən dəqiq məlumat topla və "
         "mənbələri göstər.", research_prompt, max_uses=4)
+    # NO SOURCES MEANS NOT RESEARCHED, and this is the failure that looks like success. Measured on
+    # DeepSeek's Anthropic-compatible endpoint: it answers the research prompt fluently and returns
+    # ZERO search results and zero server_tool_use blocks — the model wrote from memory. The prose is
+    # indistinguishable from the sourced kind, so without this flag the passport would fill with
+    # unattributed claims about spray intervals and doses that read exactly like cited ones.
+    #
+    # It is recorded, not raised: the structured-API blocks (SoilGrids, FAOSTAT, EPPO, Open-Meteo)
+    # are real data and still worth storing, and refusing the whole job would throw them away too.
+    # The caller surfaces `degraded`, so this shows up where a human can see it.
+    unsourced = not citations
     synth_user = (
         f"Bitki: {crop_type}, Region: {zone_label}.\n"
         f"Veb axtarışdan toplanan məlumat:\n{text}\n\n"
@@ -84,7 +94,7 @@ async def _synthesize_zone(crop_type: str, zone_label: str) -> tuple[list[dict],
     usage = {"provider": usage2["provider"], "model": usage2["model"],
              "input_tokens": usage1["input_tokens"] + usage2["input_tokens"],
              "output_tokens": usage1["output_tokens"] + usage2["output_tokens"]}
-    return blocks, citations, usage
+    return blocks, citations, usage, unsourced
 
 
 # ===== T17: per-crop vegetation-index calibration (write-back to crop_thresholds.index_norms) =====
@@ -266,8 +276,13 @@ async def research_field(conn, field_id: str, blocks: Optional[list[str]] = None
         else:
             try:
                 season = _season(date.today())
-                syn_blocks, citations, usage = await _synthesize_zone(crop_type, zone_label)
+                syn_blocks, citations, usage, unsourced = await _synthesize_zone(
+                    crop_type, zone_label)
                 total_usage = usage
+                if unsourced:
+                    # The blocks are still written — see _synthesize_zone — but the operator has to
+                    # be able to tell a researched passport from a remembered one.
+                    degraded.append("synthesis:no_web_sources")
                 for b in syn_blocks:
                     if not wants(b["block_type"]):
                         continue
