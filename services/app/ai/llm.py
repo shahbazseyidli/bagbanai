@@ -292,7 +292,11 @@ async def _deepseek_chat(model: str, messages: list[dict], max_tokens: int, *,
         payload["tools"] = tools
         if tool_choice:
             payload["tool_choice"] = tool_choice
-        # Never both: a forced function call with reasoning on is an HTTP 400 from this API.
+            # EXPLICITLY OFF, not merely omitted. Reasoning is ON by default on these models, so
+            # leaving the key out is not the same as disabling it: the first live structured call
+            # came back HTTP 400 "Thinking mode does not support this tool_choice". A forced
+            # function call and reasoning cannot coexist, and the whole structured path forces one.
+            payload["thinking"] = {"type": "disabled"}
     elif thinking:
         payload["thinking"] = {"type": "enabled"}
     return await _post_json(f"{DEEPSEEK_BASE}/chat/completions", payload,
