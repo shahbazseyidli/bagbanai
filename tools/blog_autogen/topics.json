@@ -1,0 +1,34 @@
+{
+  "_readme": "Editorial queue for tools/blog_autogen/generate.py. Add entries anytime — the cron picks the first status:'pending' entry, all-or-nothing (every locale must succeed or the topic is marked 'failed' and skipped next run, never partially published). Every topic here MUST be a brand-new slug: the patcher only appends to blog/index.ts, it never edits an existing POSTS entry. Locale scope per topic is intentionally curated (1-4 of the 6 blog locales), not the full set — see SEO_PLAN.md 'Avtomatik kontent' note for why.",
+  "topics": [
+    {
+      "slug": "ndvi-values-explained",
+      "status": "pending",
+      "locales": ["az", "en", "tr", "ru"],
+      "keyword": {
+        "az": "NDVI dəyərləri",
+        "en": "NDVI values meaning",
+        "tr": "NDVI değerleri ne anlama gelir",
+        "ru": "что показывает NDVI"
+      },
+      "brief": "A value-interpretation guide: what NDVI ranges mean in practice (roughly <0.1 bare soil/water, 0.1-0.2 sparse/stressed vegetation, 0.2-0.4 moderate cover, 0.4-0.6 healthy crop, >0.6 dense healthy canopy — give the writer room to state realistic Sentinel-2 ranges, don't invent false precision). Include a table. Ground it in a real-field example (a value that looked alarming but had a mundane explanation, or vice versa) rather than only abstract ranges. SEO_PLAN.md §4-S2 Dalğa 1 item #2 (az) + item #10 (en) + Dalğa 2 tr/ru items.",
+      "related_hint": ["what-is-ndvi", "ndvi-ndmi-ndre"]
+    },
+    {
+      "slug": "soil-analysis-guide",
+      "status": "pending",
+      "locales": ["az"],
+      "keyword": { "az": "torpaq analizini necə oxumaq" },
+      "brief": "How to read a soil lab report: what the main figures mean (pH, N-P-K, organic matter, texture) and how they translate into a fertilizer/irrigation decision. Tie into Agradex's soil-photo-OCR feature (upload the lab sheet, it gets read into the field's passport) without turning the whole piece into a product pitch — most of it should be genuinely useful on its own even to a non-user.",
+      "related_hint": ["fertilizer-rates", "when-to-irrigate-wheat"]
+    },
+    {
+      "slug": "ndvi-hazelnut-orchard",
+      "status": "pending",
+      "locales": ["az"],
+      "keyword": { "az": "fındıq bağında NDVI" },
+      "brief": "NDVI specifically for hazelnut orchards: how canopy structure (rows, inter-row soil, mature vs young trees) makes hazelnut NDVI read differently from a wheat field, what a healthy seasonal NDVI curve looks like for hazelnut, and what a slow-to-green or declining zone within an orchard usually signals. Distinct angle from the existing general hazelnut-growing-guide — this one is satellite/index-specific, not a general agronomy guide.",
+      "related_hint": ["hazelnut-growing-guide", "what-is-ndvi", "ndvi-crop-disease"]
+    }
+  ]
+}

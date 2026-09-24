@@ -187,6 +187,8 @@ Hamısı ilkin mənbələrlə yoxlanıb (Search Central docs/blog, Search Status
 
 **Dil qaydası (scaled-content təhlükəsizliyi):** məqalə az + en (+ tr/ru relevantdırsa) **əl ilə**; qalan dillərə yalnız insan baxışından keçəndə. 8 dilə avtomatik püskürtmə YOX — bu, 2026 "scaled content abuse" tərifinə düşə bilər və Yandex-də tərcümə-qoxulu mətn onsuz da batır.
 
+> ⚠️ **Avtomatik kontent — QƏSDƏN, DAR ƏHATƏLİ İSTİSNA (sahibin qərarı, 2026-09-24):** yuxarıdakı "insan baxışı" qapısı `tools/blog_autogen/` üçün açıq şəkildə keçilib — sahib "tam avtomatik publish" seçdi (baxış/təsdiq addımı yoxdur, birbaşa `main`-ə push + deploy). Risk qəbul edilib, amma əhatə **dar** saxlanılıb ki, "scaled content abuse" naxışına düşməsin: (1) yalnız **yeni slug-lar** — nəşr olunmuş məqaləyə toxunulmur; (2) hər mövzu üçün **1-4 kurasiya olunmuş dil** (heç vaxt bütün 6-9 dil bir mövzuya avtomatik yayılmır); (3) həftədə **bir** mövzu; (4) mövzular `topics.json`-da əl ilə əlavə olunur — real kontent təqvimi bu sənədin §4-S2-sindən gəlir, model özü mövzu uydurmur; (5) hər dil ayrıca prompt-la **bazar adaptasiyası** kimi yazılır (tərcümə yox — `MARKET_NOTES` `generate.py`-də). Detal: `tools/blog_autogen/README.md`.
+
 ### S3 — Authority + paylanma (davamlı, ayda ~2 saat)
 
 | Kanal | Konkret hədəf | Dəyər |
