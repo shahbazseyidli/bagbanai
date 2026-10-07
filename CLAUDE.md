@@ -253,7 +253,7 @@ Bölmənin adı **hər yerdə «Mesajlar»**-dır (əvvəl «İcma»). ⚠️ **
 
 ## Deployment (LIVE — https://agradex.com ✅)
 - ⚠️ **PROD CONTABO-YA KÖÇÜB (2026-10-07-də doğrulandı):** Contabo Cloud VPS 4 `vmi3455918`, **169.58.53.17** (EU; reverse DNS `vmi3455918.contaboserver.net`). SSH **`admin@169.58.53.17`** — `root` YOX; `admin`-in `sudo`-su parolsuzdur. Layihə yenə `/opt/bagbanai`; eyni compose konteynerləri (`deploy-web/api/db/titiler/geoapi-1`) + `signal-cv-*` bu hostdadır və yenidən başlamadan sonra özləri qalxır. `app.agradex.com` A-record-u **birbaşa bu IP-yə** baxır (CF-proxied deyil → origin IP açıqdır); apex CF arxasındadır. Authorized açarlar: Mac mini (`macmini-m4`). ⚠️ **Contabo panelindəki `Reinstall`/`Rescue System` serveri silir** — parol üçün yalnız `Reset credentials` (server yenidən başlayır, ~1-2 dəq SSH bağlı olur). **Aşağıdakı Hetzner detalları (IP, nginx yolu, crontab) KÖÇÜRMƏDƏN ƏVVƏLKİ vəziyyətdir** və Contabo-da yenidən doğrulanmayıb — crontab-ı `sudo crontab -l` ilə yoxla.
-- (Köhnə) Hetzner server **bagban-ai** (CPX22, Helsinki), public IPv4 **95.216.208.82** (Primary IP recreate boyu qorunur), project AGRADEX-TEST. Operator Mac SSH açarı (`~/.ssh/id_ed25519`, comment `macbookpro`) `root@95.216.208.82`-də authorized (deploy/cloud-init.sh-də erkən əlavə edilib).
+- ⛔ **SİLİNİB (sahib, 2026-10):** (köhnə) Hetzner server **bagban-ai** (CPX22, Helsinki), public IPv4 **95.216.208.82** (Primary IP recreate boyu qorunur), project AGRADEX-TEST. Operator Mac SSH açarı (`~/.ssh/id_ed25519`, comment `macbookpro`) `root@95.216.208.82`-də authorized (deploy/cloud-init.sh-də erkən əlavə edilib).
 - DNS: agradex.com A @ + A www → 95.216.208.82 (Cloudflare, **proxied**).
 - **SSL:** origin-də Let's Encrypt (`/etc/letsencrypt/live/agradex.com/`, certbot auto-renew). nginx `/etc/nginx/sites-enabled/agradex.com`: iki server bloku — **:80** (məcburi redirect yox, CF Flexible altında loop-safe) + **:443** (LE cert). Hər blokda location-lar: `/titiler/` → `127.0.0.1:8001/`, `/api/` → `127.0.0.1:8000`, `/` → `127.0.0.1:3000`. Cloudflare SSL mode **Full (Strict)** ✅ (2026-07-16 CF panelində doğrulanıb — origin :443 LE cert ilə şifrələnir; nginx :80 bloku hələ məcburi redirect etmir — Flexible dövründən qalma, Full (Strict) altında zərərsiz). Repo nüsxələri `deploy/nginx-agradex.conf`, `deploy/nginx-agradex-http.conf`. (Leftover dublikat blokdan "conflicting server_name" xəbərdarlığı — təmizlik gözləyir.)
 
@@ -319,11 +319,12 @@ Bütün gələcək tasklar (E0–E12 + platform mühəndislik + istifadəçidə 
 
 **Data qeydi:** köhnə silmə bug-u (indi düzəlib) səbəbindən istifadəçi bəzi sahələrini silmişdi (02:30 backup-da qaldı, bərpa etmədi).
 
-## İnfrastruktur xəritəsi (2 Hetzner serveri — bax `[[agradex-infrastructure]]` memory)
+## İnfrastruktur xəritəsi (Contabo prod + 1 Hetzner — bax `[[agradex-infrastructure]]` memory)
 - **Prod indi Contabo-dadır** `vmi3455918` **169.58.53.17** (`admin` + sudo): agradex.com + signal-cv. Bax "Deployment".
-- **Server 1 (köhnə)** `bagban-ai` **95.216.208.82** (Helsinki): köçürmədən əvvəl agradex.com + signal-cv burada idi. 2026-10-07-də Mac mini-dən `Host key verification failed` verdi — hələ lazım olub-olmadığı açıqdır.
-- **Server 2** `ubuntu-4gb-fsn1-2` **91.99.157.161** (Falkenstein): findix.az + n8n (agent) + mcp + snaptoplate (stp-api) + mrz-api. DB backup buraya gəlir.
-- Bu Mac-ın SSH açarı hər iki serverdə authorized (köhnə MacBook Pro i5 vasitəsilə əlavə edildi). GitHub SSH işləyir.
+- ⛔ **Server 1** `bagban-ai` **95.216.208.82** (Helsinki) — **SİLİNİB** (sahib, 2026-10). Köçürmədən əvvəl agradex.com + signal-cv burada idi.
+- **Hetzner** `ubuntu-4gb-fsn1-2` **91.99.157.161** (Falkenstein) — **yeganə qalan Hetzner serveri**. `root` kimi açarla giriş Mac mini-dən **2026-10-07-də doğrulandı** (yazma OK, disk 52%). Konteynerlər: `snaptoplate-backend`, `n8n-n8n-1`, `n8n-postgres-1`, `n8n-mcp`. ⚠️ Əvvəlki siyahıdakı findix.az və mrz-api `docker ps`-də **görünmür** — harada işlədikləri yoxlanmayıb.
+  - **Agradex DB backup-ları hələ bura gəlir:** `/root/bagban-backups/bagban-YYYYMMDD-HHMMSS.sql.gz`, ən yenisi köçürmədən sonra (2026-10-07 00:30). ⚠️ Son 7 gündə yalnız **iki** fayl var (10-02, 10-07) — tezlik və göndərən host (Contabo crontab?) yoxlanmayıb. n8n-in öz Postgres dump-ları gündəlikdir: `/opt/n8n/backups/postgres_YYYY-MM-DD.sql`.
+- **SSH:** Mac mini (`macmini-m4` açarı) həm Contabo-ya (`admin` + sudo), həm Hetzner-ə (`root`) girir. MacBook Pro-da `~/.ssh/id_ed25519` yoxdur və Contabo-ya açarla girişi yoxdur. GitHub SSH Mac mini-dən işləyir.
 
 ## İstinad sahələr (canlı test üçün)
 - **"test lecet"** id `860891bd-912c-4ec3-9235-b7d4d0193190` (tam emal olunub: ~962 index_stats sətri + clipped COG-lar).
