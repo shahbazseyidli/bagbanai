@@ -12,6 +12,7 @@ by missing email config."""
 import hashlib
 import json
 import secrets
+import sys
 import time
 from datetime import datetime, timedelta, timezone
 
@@ -21,7 +22,7 @@ from .. import notify_prefs, ratelimit
 from ..ai import notify
 from ..config import settings
 from ..db import connection
-from ..deps import get_current_user_id
+from ..deps import get_current_user_id, get_optional_user_id
 from ..schemas import (LoginIn, MagicLinkIn, MagicLoginIn, ResendOtpIn, SignupIn, UserOut,
                        UserRole, VerifyOtpIn)
 from ..security import create_token, hash_password, verify_password
@@ -37,6 +38,34 @@ MIN_PASSWORD_LEN = 8
 # returns False for EVERY input — the account simply cannot be entered with a password, including by
 # a future collision. The account-close path (0052) writes the same sentinel for the same reason.
 NO_PASSWORD = "!"
+
+
+async def record_auth(conn, *, user_id, event: str, method: str | None = None,
+                      request: Request | None = None, email: str | None = None,
+                      detail: str | None = None) -> None:
+    """Write one row to the sign-in audit (0064). Best-effort — never breaks a login.
+
+    Called from every point that issues or ends a session, plus the failure branches, because the
+    row an admin actually needs when someone writes "I think another person is in my account" is
+    the one where the attempt FAILED.
+
+    Swallows everything: an audit that can refuse a legitimate sign-in is worse than a gap in the
+    audit. The exception is printed so a broken writer is still discoverable in the api log.
+    """
+    try:
+        ip = ua = None
+        if request is not None:
+            ip = ratelimit.client_ip(request)
+            # Truncated: a user agent is attacker-controlled free text and this column is read
+            # straight into an admin table.
+            ua = (request.headers.get("user-agent") or "")[:300] or None
+        await conn.execute(
+            """insert into public.auth_events (user_id, email, event, method, ip, user_agent, detail)
+               values ($1::uuid,$2,$3,$4,$5,$6,$7)""",
+            user_id, (email or "").strip().lower() or None, event, method, ip, ua,
+            (detail or None) and str(detail)[:200])
+    except Exception as exc:  # noqa: BLE001
+        print(f"[auth] audit write failed ({event}/{method}): {exc}", file=sys.stderr)
 
 
 def _cookie_secure() -> bool:
@@ -278,6 +307,8 @@ async def signup(body: SignupIn, request: Request, response: Response):
             return {"needs_verification": True, "email": row["email"]}
         # No email transport → auto-verified; still send the welcome (no-op if email is off).
         await _send_welcome(conn, uid, row["full_name"])
+        await record_auth(conn, user_id=uid, event="login", method="signup",
+                          request=request, email=email)
     _set_cookie(response, create_token(uid))
     return {"needs_verification": False, "user": UserOut(
         id=uid, email=row["email"], full_name=row["full_name"], locale=row["locale"],
@@ -285,7 +316,7 @@ async def signup(body: SignupIn, request: Request, response: Response):
 
 
 @router.post("/verify-otp")
-async def verify_otp(body: VerifyOtpIn, response: Response):
+async def verify_otp(body: VerifyOtpIn, request: Request, response: Response):
     """Confirm the emailed code → mark verified + log in. Reads and each write run in their own
     committed transaction so a failed-attempt counter persists (raising inside a tx would roll it
     back)."""
@@ -313,6 +344,8 @@ async def verify_otp(body: VerifyOtpIn, response: Response):
                 """update public.users set email_verified=true, otp_code=null,
                           otp_expires_at=null, otp_attempts=0 where id=$1::uuid""", row["id"])
             await _send_welcome(conn, str(row["id"]), row["full_name"])
+            await record_auth(conn, user_id=str(row["id"]), event="login", method="otp",
+                              request=request, email=row["email"])
     _set_cookie(response, create_token(str(row["id"])))
     return {"ok": True, "user": UserOut(id=str(row["id"]), email=row["email"],
             full_name=row["full_name"], locale=row["locale"], is_admin=row["is_admin"],
@@ -335,18 +368,29 @@ async def resend_otp(body: ResendOtpIn, request: Request):
 
 
 @router.post("/login", response_model=UserOut)
-async def login(body: LoginIn, response: Response):
+async def login(body: LoginIn, request: Request, response: Response):
     async with connection() as conn:
         row = await conn.fetchrow(
             "select id, email, password_hash, full_name, locale, is_admin, is_active, "
             "email_verified, role, country, region from public.users "
             "where lower(email)=lower($1)", body.email)
+    # Audited in its own connection: the read above has already closed, and a refusal below must
+    # still leave a row behind — a failed attempt is the most useful line in a sign-in log.
+    async def _audit(event, detail=None):
+        async with connection() as c:
+            await record_auth(c, user_id=(str(row["id"]) if row else None), event=event,
+                              method="password", request=request, email=body.email, detail=detail)
+
     if not row or not verify_password(body.password, row["password_hash"]):
+        await _audit("login_failed", "invalid_credentials")
         raise HTTPException(status_code=401, detail="invalid_credentials")
     if not row["is_active"]:
+        await _audit("login_failed", "account_disabled")
         raise HTTPException(status_code=403, detail="account_disabled")
     if not row["email_verified"] and notify.email_configured():
+        await _audit("login_failed", "email_not_verified")
         raise HTTPException(status_code=403, detail="email_not_verified")
+    await _audit("login")
     _set_cookie(response, create_token(str(row["id"])))
     return UserOut(id=str(row["id"]), email=row["email"], full_name=row["full_name"],
                    locale=row["locale"], is_admin=row["is_admin"],
@@ -354,7 +398,17 @@ async def login(body: LoginIn, response: Response):
 
 
 @router.post("/logout")
-async def logout(response: Response):
+async def logout(request: Request, response: Response,
+                 user_id: str | None = Depends(get_optional_user_id)):
+    """Clear the session cookie, and record who left.
+
+    get_OPTIONAL_user_id, not the required one: a logout arriving with an expired or missing cookie
+    is still a legitimate request — it must clear the cookie regardless. It simply has nobody to
+    attribute, and an audit row with a null user is more honest than a 401 on the way out.
+    """
+    if user_id:
+        async with connection() as conn:
+            await record_auth(conn, user_id=user_id, event="logout", request=request)
     response.delete_cookie(settings.cookie_name, path="/", domain=settings.cookie_domain or None)
     return {"ok": True}
 
@@ -590,7 +644,7 @@ async def magic_link(body: MagicLinkIn, request: Request):
 
 
 @router.post("/magic-login", response_model=UserOut)
-async def magic_login(body: MagicLoginIn, response: Response):
+async def magic_login(body: MagicLoginIn, request: Request, response: Response):
     """Redeem a sign-in link. Same response shape as /login, same cookie, same token lifetime."""
     async with connection() as conn:
         # Spend it ATOMICALLY. A returned row means WE are the ones who spent it, so two clicks on
@@ -636,6 +690,8 @@ async def magic_login(body: MagicLoginIn, response: Response):
         # not a first one sent at the wrong moment.
         if flipped:
             await _send_welcome(conn, uid, row["full_name"])
+        await record_auth(conn, user_id=uid, event="login", method="magic_link",
+                          request=request, email=row["email"])
 
     _set_cookie(response, create_token(uid))
     return UserOut(id=uid, email=row["email"], full_name=row["full_name"],
@@ -781,7 +837,7 @@ async def anonymise_account(conn, user_id: str) -> None:
 
 
 @router.post("/account/delete")
-async def delete_account(body: dict, response: Response,
+async def delete_account(body: dict, request: Request, response: Response,
                          user_id: str = Depends(get_current_user_id)):
     """Close the account. Irreversible.
 
@@ -814,6 +870,8 @@ async def delete_account(body: dict, response: Response,
 
         if await owns_org_with_other_members(conn, user_id):
             raise HTTPException(status_code=409, detail="transfer_ownership_first")
+        await record_auth(conn, user_id=user_id, event="logout", method="account_closed",
+                          request=request, email=row["email"])
         await anonymise_account(conn, user_id)
 
     response.delete_cookie(settings.cookie_name, path="/", domain=settings.cookie_domain or None)

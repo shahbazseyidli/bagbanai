@@ -36,7 +36,7 @@ from ..config import settings
 from ..db import connection
 from ..security import create_token
 from .auth import (NO_PASSWORD, SUPPORTED_LOCALES, _cookie_secure, _send_welcome,
-                   _set_cookie)
+                   _set_cookie, record_auth)
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -200,6 +200,10 @@ async def google_callback(request: Request,
     # An unverified Google address proves nothing, and we are about to treat a matching address as
     # proof of ownership of an existing account. Refuse rather than link on it.
     if not sub or not email or profile.get("email_verified") is not True:
+        if email:
+            async with connection() as c:
+                await record_auth(c, user_id=None, event="login_failed", method="google",
+                                  request=request, email=email, detail="unverified")
         return _fail(loc, "unverified")
     full_name = (profile.get("name") or "").strip() or None
 
@@ -241,6 +245,8 @@ async def google_callback(request: Request,
             created = True
         uid = str(row["id"])
         if not row["is_active"]:
+            await record_auth(conn, user_id=uid, event="login_failed", method="google",
+                              request=request, email=email, detail="account_disabled")
             return _fail(loc, "disabled")
         # ONLY on a real signup. The email_sends ledger makes this once-per-account-ever, but
         # "ever" is the wrong unit: welcome is a SIGNUP email, and an account that has been in use
@@ -249,6 +255,12 @@ async def google_callback(request: Request,
         # 2 August, its first Google sign-in, because this call was unconditional.
         if created or verified_now:
             await _send_welcome(conn, uid, full_name)
+        # `signup` when this request made the account, `google` when it signed an existing one in —
+        # the audit should say which, because "a brand-new account appeared from this address" and
+        # "an existing account was entered from this address" are different events to an admin.
+        await record_auth(conn, user_id=uid, event="login",
+                          method="signup" if created else "google",
+                          request=request, email=email)
 
     resp = RedirectResponse(f"{_app_origin()}{nxt}", status_code=302)
     _set_cookie(resp, create_token(uid))

@@ -16,9 +16,19 @@
 // they authored survive, unattached. The copy says so, because "delete" would be a lie about what
 // the button does.
 import { useCallback, useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { api, azError } from "@/lib/api";
+import type { Polygon } from "@/lib/types";
 import { ErrorNote, Spinner } from "@/components/ui";
 import { t, tf } from "@/lib/i18n";
+
+// Dynamic + ssr:false because MapLibre touches `window` at import time, and this drawer is rendered
+// from a client page that Next still prerenders. The map is also the one piece here that costs real
+// bytes — an admin who never opens a user should not pay for it.
+const FieldsOverviewMap = dynamic(() => import("@/components/FieldsOverviewMap"), {
+  ssr: false,
+  loading: () => <div className="h-full animate-pulse rounded-lg bg-slate-100" />,
+});
 
 export interface AdminUserDetail {
   user: {
@@ -35,13 +45,40 @@ export interface AdminUserDetail {
             org_name: string | null; crop_type: string | null; crop_cycle: string | null;
             region: string | null; data_status: string | null; scenes: number;
             last_scene: string | null; score: number | null; tone: string | null;
-            deleted: boolean; created_at: string | null }[];
+            deleted: boolean; created_at: string | null;
+            drawn_by_them: boolean; geom: Polygon | null;
+            lon: number | null; lat: number | null }[];
   usage: { calls: number; input_tokens: number; output_tokens: number; cost_usd: number;
            last_used: string | null; by_kind: { kind: string; calls: number; cost_usd: number }[] };
   events: { type: string; at: string }[];
   channels: { channel: string; verified: boolean; opt_in: boolean }[];
   push_devices: number;
   blocks_close: boolean;
+  auth: {
+    logins: number; failed: number; logouts: number; distinct_ips: number;
+    first_at: string | null; last_at: string | null;
+    events: { event: string; method: string | null; ip: string | null;
+              user_agent: string | null; detail: string | null; at: string }[];
+    magic_links: { issued: string; expires: string | null; used: string | null }[];
+  };
+  advice: { at: string; lang: string | null; field: string; summary: string }[];
+  chat: { role: string; content: string; at: string }[];
+  notifications: {
+    total: number; unread: number; critical: number; last_at: string | null;
+    recent: { severity: string | null; type: string | null; title: string | null;
+              read: boolean; at: string }[];
+  };
+  emails: { template: string; dedup: string | null; status: string;
+            locale: string | null; at: string }[];
+  scouting: { category: string | null; severity: string | null; note: string | null;
+              field: string; status: string | null; at: string }[];
+  seasons: { year: number; crop: string | null; status: string | null; field: string;
+             planted: string | null; harvested: string | null }[];
+  shares: { label: string | null; scope: string | null; views: number; field: string;
+            at: string; revoked: string | null; expires: string | null }[];
+  grants_out: { field: string; who: string; at: string; revoked: string | null }[];
+  grants_in: { field: string; who: string | null; at: string; revoked: string | null }[];
+  alerts: { total: number; open: number; resolved: number };
 }
 
 const d = (iso?: string | null) => (iso ? iso.slice(0, 10) : "—");
@@ -54,6 +91,32 @@ function Row({ k, v }: { k: string; v: React.ReactNode }) {
       <span className="shrink-0 text-slate-500">{k}</span>
       <span className="text-right font-medium text-slate-800">{v}</span>
     </div>
+  );
+}
+
+/** A dense list section. Everything below the map is "N rows of a thing", and writing nine
+ *  bespoke tables would be nine places for the empty state to be forgotten. */
+function Mini({ title, rows, empty }: {
+  title: string;
+  rows: { k: React.ReactNode; v: React.ReactNode }[];
+  empty: string;
+}) {
+  return (
+    <section>
+      <h3 className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">{title}</h3>
+      {rows.length === 0 ? (
+        <p className="text-sm text-slate-400">{empty}</p>
+      ) : (
+        <div className="max-h-56 overflow-y-auto">
+          {rows.map((r, i) => (
+            <div key={i} className="flex items-start justify-between gap-3 border-b border-slate-100 py-1 text-xs last:border-0">
+              <span className="min-w-0 flex-1 text-slate-700">{r.k}</span>
+              <span className="shrink-0 text-right text-slate-400">{r.v}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -259,6 +322,21 @@ export default function UserDetailModal({
               <h3 className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">
                 {tf("app.admin.ud.secFields", { n: data.fields.length })}
               </h3>
+              {/* The boundaries themselves, not a list of names. "Which area did they add" is a
+                  question about shape and place, and a table of hectares cannot answer it.
+                  Soft-deleted fields are excluded from the map (they would draw as live ground)
+                  but stay in the table below, greyed. */}
+              {data.fields.some((f) => !f.deleted && f.geom) && (
+                <div className="mb-2 h-64 overflow-hidden rounded-lg border border-slate-200">
+                  <FieldsOverviewMap
+                    fields={data.fields
+                      .filter((f) => !f.deleted && f.geom)
+                      .map((f) => ({ id: f.id, name: f.name, area_ha: f.area_ha,
+                                     data_status: f.data_status ?? undefined, geom: f.geom }))}
+                    heightClass="h-full"
+                  />
+                </div>
+              )}
               {data.fields.length === 0 ? (
                 <p className="text-sm text-slate-500">{t("app.admin.ud.noFields")}</p>
               ) : (
@@ -292,6 +370,12 @@ export default function UserDetailModal({
                                 {t("app.admin.ud.fDeleted")}
                               </span>
                             )}
+                            {/* Membership is not authorship — this star says THIS person drew it. */}
+                            {f.drawn_by_them && (
+                              <span className="ml-1 text-[10px] text-emerald-700" title={t("app.admin.ud.fDrawn")}>
+                                ★
+                              </span>
+                            )}
                             <span className="block text-[10px] text-slate-400">
                               {[f.farm_name, f.region].filter(Boolean).join(" · ") || "—"}
                             </span>
@@ -309,6 +393,154 @@ export default function UserDetailModal({
                 </div>
               )}
             </section>
+
+            {/* ---- alerts standing on their fields ---- */}
+            <section>
+              <h3 className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">
+                {t("app.admin.ud.secAlerts")}
+              </h3>
+              <Row k={t("app.admin.ud.alOpen")}
+                   v={<span className={data.alerts.open > 0 ? "font-semibold text-amber-700" : ""}>
+                        {data.alerts.open}
+                      </span>} />
+              <Row k={t("app.admin.ud.alResolved")} v={String(data.alerts.resolved)} />
+              <Row k={t("app.admin.ud.alTotal")} v={String(data.alerts.total)} />
+            </section>
+
+            {/* ---- sign-in audit ---- */}
+            <section>
+              <h3 className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">
+                {t("app.admin.ud.secAuth")}
+              </h3>
+              <Row k={t("app.admin.ud.aLogins")} v={String(data.auth.logins)} />
+              <Row k={t("app.admin.ud.aFailed")}
+                   v={<span className={data.auth.failed > 0 ? "text-red-600" : ""}>
+                        {data.auth.failed}
+                      </span>} />
+              <Row k={t("app.admin.ud.aLogouts")} v={String(data.auth.logouts)} />
+              <Row k={t("app.admin.ud.aIps")} v={String(data.auth.distinct_ips)} />
+              <Row k={t("app.admin.ud.aLast")} v={dt(data.auth.last_at)} />
+              {data.auth.events.length === 0 ? (
+                // The audit starts the day it shipped; an account with no rows is not an account
+                // that never signed in, and saying so stops the empty table reading as a fact.
+                <p className="mt-1 text-xs text-slate-400">{t("app.admin.ud.aEmpty")}</p>
+              ) : (
+                <div className="mt-1.5 max-h-56 overflow-y-auto">
+                  {data.auth.events.map((e, i) => (
+                    <div key={i} className="flex items-start justify-between gap-2 border-b border-slate-100 py-1 text-xs last:border-0">
+                      <span className="min-w-0 flex-1">
+                        <span className={e.event === "login_failed" ? "font-semibold text-red-600" : "text-slate-700"}>
+                          {e.event}
+                        </span>
+                        {e.method && <span className="text-slate-400"> · {e.method}</span>}
+                        {e.detail && <span className="text-red-500"> · {e.detail}</span>}
+                        <span className="block truncate text-[10px] text-slate-400">
+                          {[e.ip, e.user_agent].filter(Boolean).join(" · ") || "—"}
+                        </span>
+                      </span>
+                      <span className="shrink-0 text-slate-400">{dt(e.at)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <Mini
+                title={t("app.admin.ud.aMagic")}
+                empty={t("app.admin.ud.noneYet")}
+                rows={data.auth.magic_links.map((m) => ({
+                  k: m.used ? t("app.admin.ud.aUsed") : t("app.admin.ud.aUnused"),
+                  v: `${dt(m.issued)}${m.used ? " → " + dt(m.used) : ""}`,
+                }))}
+              />
+            </section>
+
+            {/* ---- records they authored, and what we sent them ---- */}
+            <Mini
+              title={t("app.admin.ud.secAdvice")}
+              empty={t("app.admin.ud.noneYet")}
+              rows={data.advice.map((a) => ({
+                k: <><b>{a.field}</b>{a.lang ? ` · ${a.lang}` : ""} — {a.summary}</>,
+                v: d(a.at),
+              }))}
+            />
+            <Mini
+              title={t("app.admin.ud.secChat")}
+              empty={t("app.admin.ud.noneYet")}
+              rows={data.chat.map((c) => ({
+                k: <><span className="text-slate-400">{c.role}:</span> {c.content}</>,
+                v: dt(c.at),
+              }))}
+            />
+            <section>
+              <h3 className="mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">
+                {t("app.admin.ud.secNotif")}
+              </h3>
+              <Row k={t("app.admin.ud.nTotal")}
+                   v={`${data.notifications.total} · ${data.notifications.unread} ${t("app.admin.ud.nUnread")}`} />
+              <Row k={t("app.admin.ud.nCritical")} v={String(data.notifications.critical)} />
+              <div className="mt-1 max-h-40 overflow-y-auto">
+                {data.notifications.recent.map((n, i) => (
+                  <div key={i} className="flex items-start justify-between gap-2 border-b border-slate-100 py-1 text-xs last:border-0">
+                    <span className={`min-w-0 flex-1 ${n.read ? "text-slate-500" : "font-medium text-slate-800"}`}>
+                      {n.severity === "critical" && <span className="text-red-600">● </span>}
+                      {n.title || n.type}
+                    </span>
+                    <span className="shrink-0 text-slate-400">{d(n.at)}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+            <Mini
+              title={t("app.admin.ud.secEmails")}
+              empty={t("app.admin.ud.noneYet")}
+              rows={data.emails.map((e) => ({
+                k: <>{e.template}{e.dedup ? <span className="text-slate-400"> · {e.dedup}</span> : null}
+                   {e.status !== "sent" && <span className="text-amber-600"> · {e.status}</span>}</>,
+                v: `${e.locale ?? ""} ${d(e.at)}`,
+              }))}
+            />
+            <Mini
+              title={t("app.admin.ud.secScouting")}
+              empty={t("app.admin.ud.noneYet")}
+              rows={data.scouting.map((sc) => ({
+                k: <><b>{sc.field}</b> · {sc.category}{sc.severity ? ` (${sc.severity})` : ""} — {sc.note}</>,
+                v: d(sc.at),
+              }))}
+            />
+            <Mini
+              title={t("app.admin.ud.secSeasons")}
+              empty={t("app.admin.ud.noneYet")}
+              rows={data.seasons.map((se) => ({
+                k: <><b>{se.field}</b> · {se.year} · {se.crop ?? "—"} ({se.status})</>,
+                v: se.harvested ? d(se.harvested) : d(se.planted),
+              }))}
+            />
+            <Mini
+              title={t("app.admin.ud.secShares")}
+              empty={t("app.admin.ud.noneYet")}
+              rows={data.shares.map((sh) => ({
+                k: <><b>{sh.field}</b>{sh.label ? ` · ${sh.label}` : ""}
+                   {sh.revoked && <span className="text-red-500"> · {t("app.admin.ud.revoked")}</span>}</>,
+                v: `${sh.views} ${t("app.admin.ud.views")} · ${d(sh.at)}`,
+              }))}
+            />
+            <Mini
+              title={t("app.admin.ud.secGrantsOut")}
+              empty={t("app.admin.ud.noneYet")}
+              rows={data.grants_out.map((g) => ({
+                k: <><b>{g.field}</b> → {g.who}
+                   {g.revoked && <span className="text-red-500"> · {t("app.admin.ud.revoked")}</span>}</>,
+                v: d(g.at),
+              }))}
+            />
+            <Mini
+              title={t("app.admin.ud.secGrantsIn")}
+              empty={t("app.admin.ud.noneYet")}
+              rows={data.grants_in.map((g) => ({
+                k: <>{g.who ?? "—"} → <b>{g.field}</b>
+                   {g.revoked && <span className="text-red-500"> · {t("app.admin.ud.revoked")}</span>}</>,
+                v: d(g.at),
+              }))}
+            />
 
             {/* ---- usage ---- */}
             <section>

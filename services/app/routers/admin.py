@@ -399,6 +399,12 @@ def _centroid_lonlat(centroid_json: str | None):
     return None
 
 
+def _iso(v):
+    """ISO string or None. The alternative is `x.isoformat() if x else None` forty times, and the
+    fortieth is where a None slips through as a crash."""
+    return v.isoformat() if v is not None else None
+
+
 def _field_row(r) -> dict:
     return {
         "id": str(r["id"]),
@@ -723,6 +729,9 @@ async def user_detail(user_id_target: str, user_id: str = Depends(get_current_us
         fields = await conn.fetch(
             """select f.id, f.name, f.area_ha, f.data_status, f.created_at, f.deleted_at,
                       fa.name as farm_name, o.name as org_name,
+                      (f.created_by = $1::uuid) as drawn_by_them,
+                      st_asgeojson(f.geom) as geom,
+                      st_x(f.centroid) as lon, st_y(f.centroid) as lat,
                       m.crop_type, m.crop_cycle, m.region as field_region,
                       (select max(acquired_at) from public.scenes sc where sc.field_id = f.id) as last_scene,
                       (select count(*) from public.scenes sc where sc.field_id = f.id) as scenes,
@@ -759,6 +768,99 @@ async def user_detail(user_id_target: str, user_id: str = Depends(get_current_us
                 where user_id=$1::uuid""", target)
         pushes = await conn.fetchval(
             "select count(*) from public.push_subscriptions where user_id=$1::uuid", target)
+
+        # ---- sign-in audit (0064) -------------------------------------------------------------
+        # The answer to "who got into this account, how, and from where". Capped at 60: this is a
+        # drawer, not a log viewer, and the newest rows are the ones anyone opens it for.
+        auth_events = await conn.fetch(
+            """select event, method, ip, user_agent, detail, created_at
+                 from public.auth_events
+                where user_id = $1::uuid or (user_id is null and lower(email) = lower($2))
+                order by created_at desc limit 60""", target, u["email"] or "")
+        auth_roll = await conn.fetchrow(
+            """select count(*) filter (where event='login')        as logins,
+                      count(*) filter (where event='login_failed') as failed,
+                      count(*) filter (where event='logout')       as logouts,
+                      count(distinct ip)                           as ips,
+                      min(created_at) as first_at, max(created_at) as last_at
+                 from public.auth_events
+                where user_id = $1::uuid or (user_id is null and lower(email) = lower($2))""",
+            target, u["email"] or "")
+        # Magic links live in their own table and predate the audit, so they are shown beside it
+        # rather than folded in — a link ISSUED is not a sign-in, and the gap between issued and
+        # used is itself the thing worth seeing.
+        magic = await conn.fetch(
+            """select created_at, expires_at, used_at from public.login_tokens
+                where user_id=$1::uuid order by created_at desc limit 10""", target)
+
+        # ---- what they wrote and what we wrote them -------------------------------------------
+        advice_rows = await conn.fetch(
+            """select a.generated_at, a.lang, left(coalesce(a.summary,''), 140) as summary,
+                      f.name as field_name
+                 from public.advice a join public.fields f on f.id = a.field_id
+                where f.org_id in (select org_id from public.organization_members
+                                    where user_id=$1::uuid)
+                order by a.generated_at desc limit 20""", target)
+        chat_rows = await conn.fetch(
+            """select role, left(content, 180) as content, created_at
+                 from public.ai_chat_messages where user_id=$1::uuid
+                order by created_at desc limit 20""", target)
+        notif_roll = await conn.fetchrow(
+            """select count(*) as total, count(*) filter (where read_at is null) as unread,
+                      count(*) filter (where severity='critical') as critical,
+                      max(created_at) as last_at
+                 from public.notifications where user_id=$1::uuid""", target)
+        notif_rows = await conn.fetch(
+            """select severity, type, left(coalesce(title,''),90) as title,
+                      read_at is not null as is_read, created_at
+                 from public.notifications where user_id=$1::uuid
+                order by created_at desc limit 20""", target)
+        emails = await conn.fetch(
+            """select template_id, dedup_key, status, locale, created_at
+                 from public.email_sends where user_id=$1::uuid
+                order by created_at desc limit 25""", target)
+        scouting = await conn.fetch(
+            """select s.category, s.severity, left(coalesce(s.note,''),120) as note,
+                      s.observed_at, s.status, f.name as field_name
+                 from public.scouting_observations s
+                 join public.fields f on f.id = s.field_id
+                where s.created_by=$1::uuid order by s.observed_at desc limit 20""", target)
+        seasons = await conn.fetch(
+            """select fs.season_year, fs.crop_type, fs.status, fs.planting_date,
+                      fs.actual_harvest_date, f.name as field_name
+                 from public.field_seasons fs join public.fields f on f.id = fs.field_id
+                where fs.created_by=$1::uuid
+                order by fs.season_year desc limit 15""", target)
+
+        # ---- what they handed to other people --------------------------------------------------
+        shares = await conn.fetch(
+            """select fs.label, fs.scope, fs.view_count, fs.created_at, fs.revoked_at,
+                      fs.expires_at, f.name as field_name
+                 from public.field_shares fs join public.fields f on f.id = fs.field_id
+                where fs.created_by=$1::uuid order by fs.created_at desc limit 15""", target)
+        grants_out = await conn.fetch(
+            """select g.created_at, g.revoked_at, f.name as field_name, u2.email as grantee
+                 from public.field_grants g
+                 join public.fields f on f.id = g.field_id
+                 join public.users u2 on u2.id = g.grantee_user_id
+                where g.created_by=$1::uuid order by g.created_at desc limit 15""", target)
+        grants_in = await conn.fetch(
+            """select g.created_at, g.revoked_at, f.name as field_name, u2.email as granter
+                 from public.field_grants g
+                 join public.fields f on f.id = g.field_id
+                 left join public.users u2 on u2.id = g.created_by
+                where g.grantee_user_id=$1::uuid order by g.created_at desc limit 15""", target)
+
+        # ---- alerts standing on their fields ---------------------------------------------------
+        alerts = await conn.fetchrow(
+            """select count(*) as total,
+                      count(*) filter (where a.resolved_at is null) as open,
+                      count(*) filter (where a.resolved_at is not null) as resolved
+                 from public.alert_state a
+                where a.field_id in (select f.id from public.fields f
+                                      where f.org_id in (select org_id
+                                                           from public.organization_members
+                                                          where user_id=$1::uuid))""", target)
 
         # Surfaced because it is the one thing that BLOCKS closing the account, and an admin should
         # see the reason before pressing the button rather than after.
@@ -797,6 +899,13 @@ async def user_detail(user_id_target: str, user_id: str = Depends(get_current_us
                     "score": int(f["score"]) if f["score"] is not None else None,
                     "tone": f["tone"],
                     "deleted": f["deleted_at"] is not None,
+                    # Whose hand drew this boundary. A field inside an org the person belongs to is
+                    # not necessarily a field THEY added, and "hansı ərazini əlavə edib" is a
+                    # question about authorship, not membership.
+                    "drawn_by_them": bool(f["drawn_by_them"]),
+                    "geom": json.loads(f["geom"]) if f["geom"] else None,
+                    "lon": float(f["lon"]) if f["lon"] is not None else None,
+                    "lat": float(f["lat"]) if f["lat"] is not None else None,
                     "created_at": f["created_at"].isoformat() if f["created_at"] else None}
                    for f in fields],
         "usage": {"calls": int(usage["calls"] or 0), "input_tokens": int(usage["inp"] or 0),
@@ -809,6 +918,50 @@ async def user_detail(user_id_target: str, user_id: str = Depends(get_current_us
                       "opt_in": bool(c["opt_in"])} for c in channels],
         "push_devices": int(pushes or 0),
         "blocks_close": bool(blocks_close),
+
+        # ---- sign-in audit --------------------------------------------------------------------
+        "auth": {
+            "logins": int(auth_roll["logins"] or 0),
+            "failed": int(auth_roll["failed"] or 0),
+            "logouts": int(auth_roll["logouts"] or 0),
+            "distinct_ips": int(auth_roll["ips"] or 0),
+            "first_at": _iso(auth_roll["first_at"]),
+            "last_at": _iso(auth_roll["last_at"]),
+            "events": [{"event": e["event"], "method": e["method"], "ip": e["ip"],
+                        "user_agent": e["user_agent"], "detail": e["detail"],
+                        "at": _iso(e["created_at"])} for e in auth_events],
+            "magic_links": [{"issued": _iso(m["created_at"]), "expires": _iso(m["expires_at"]),
+                             "used": _iso(m["used_at"])} for m in magic],
+        },
+        "advice": [{"at": _iso(a["generated_at"]), "lang": a["lang"],
+                    "field": a["field_name"], "summary": a["summary"]} for a in advice_rows],
+        "chat": [{"role": c["role"], "content": c["content"], "at": _iso(c["created_at"])}
+                 for c in chat_rows],
+        "notifications": {
+            "total": int(notif_roll["total"] or 0), "unread": int(notif_roll["unread"] or 0),
+            "critical": int(notif_roll["critical"] or 0), "last_at": _iso(notif_roll["last_at"]),
+            "recent": [{"severity": n["severity"], "type": n["type"], "title": n["title"],
+                        "read": bool(n["is_read"]), "at": _iso(n["created_at"])}
+                       for n in notif_rows],
+        },
+        "emails": [{"template": e["template_id"], "dedup": e["dedup_key"], "status": e["status"],
+                    "locale": e["locale"], "at": _iso(e["created_at"])} for e in emails],
+        "scouting": [{"category": sc["category"], "severity": sc["severity"], "note": sc["note"],
+                      "field": sc["field_name"], "status": sc["status"],
+                      "at": _iso(sc["observed_at"])} for sc in scouting],
+        "seasons": [{"year": se["season_year"], "crop": se["crop_type"], "status": se["status"],
+                     "field": se["field_name"], "planted": _iso(se["planting_date"]),
+                     "harvested": _iso(se["actual_harvest_date"])} for se in seasons],
+        "shares": [{"label": sh["label"], "scope": sh["scope"], "views": int(sh["view_count"] or 0),
+                    "field": sh["field_name"], "at": _iso(sh["created_at"]),
+                    "revoked": _iso(sh["revoked_at"]), "expires": _iso(sh["expires_at"])}
+                   for sh in shares],
+        "grants_out": [{"field": g["field_name"], "who": g["grantee"], "at": _iso(g["created_at"]),
+                        "revoked": _iso(g["revoked_at"])} for g in grants_out],
+        "grants_in": [{"field": g["field_name"], "who": g["granter"], "at": _iso(g["created_at"]),
+                       "revoked": _iso(g["revoked_at"])} for g in grants_in],
+        "alerts": {"total": int(alerts["total"] or 0), "open": int(alerts["open"] or 0),
+                   "resolved": int(alerts["resolved"] or 0)},
     }
 
 
