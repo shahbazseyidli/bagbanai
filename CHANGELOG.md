@@ -3,6 +3,56 @@
 Bütün əhəmiyyətli dəyişikliklər burada qeyd olunur. Format [Keep a Changelog](https://keepachangelog.com/),
 versiyalar [SemVer](https://semver.org/).
 
+## [1.20.0] — 2026-10-08 — Giriş auditi, admin istifadəçi profili + xəritə; iki səssiz nasazlıq tapıldı
+
+> Mənbə: `ce35767`. Miqrasiya **0064**. İki aylıq fasilədən (son iş 2026-08-04) sonrakı ilk dalğa.
+> ⚠️ **Prod artıq Contabo-dadır** (`169.58.53.17`) — köhnə Hetzner qutusu silinib. `/opt/bagbanai`
+> **root:root**-undur, ona görə serverdə git/deploy **`sudo` ilə** işlədilir.
+> ⚠️ **0064 əlavəedicidir və api image-dən ƏVVƏL** tətbiq olunmalıdır. `update.sh` miqrasiya işlətmir.
+
+### Added
+- **Giriş auditi (migration 0064 `auth_events`).** Əvvəl girişi **heç nə qeyd etmirdi**: `users.last_seen_at`
+  saatda bir dəfə yenilənir, `user_events` isə yalnız dörd klient huni adı saxlayır. «Kim, necə, haradan
+  girdi» sualının cavabı sistemdə yox idi. İndi sessiya verən və ya bitirən **hər nöqtə** yazır — auth.py-də
+  7, oauth.py-də 3. **Uğursuzluqlar əsas məsələdir:** `invalid_credentials`, `account_disabled`,
+  `email_not_verified` və Google-un kimlik daşıyan iki rəddi də sətir yazır; `user_id` **nullable**-dır,
+  çünki ən faydalı sətir hesabı olmayan ünvana qarşı cəhddir. Yazıcı **hər istisnanı udur** — girişi rədd
+  edə bilən audit, auditdəki boşluqdan pisdir. Canlı sınandı: metod, səbəb, IP, user-agent, cəhd edilən ünvan.
+- **Admin istifadəçi profili — 19 blok.** `GET /api/admin/users/{id}` artıq sahələrin **həndəsəsini**
+  (`geom` + `centroid` + **`drawn_by_them`**) qaytarır və drawer onları `FieldsOverviewMap` ilə çəkir —
+  «hansı ərazini əlavə edib» forma və yer sualıdır, hektar cədvəli ona cavab vermir. `drawn_by_them`
+  **üzvlükdən ayrıdır**: org-dakı sahə mütləq onun çəkdiyi deyil. Üstəlik doqquz qeyd bölməsi (advice,
+  chat, bildiriş, email defteri, skautinq, mövsüm, paylaşım linkləri, sahə icazələri **hər iki istiqamətdə**,
+  xəbərdarlıq sayı) — hamısı onsuz da datası olan, oxucusu olmayan cədvəllər.
+
+### Fixed
+- Yoxdur — bu dalğa **tapıntı** dalğasıdır; hər iki nasazlıq sənədləşdirildi, düzəlişləri ROADMAP-dadır.
+
+### ⛔ Tapılan iki səssiz nasazlıq
+- **HLS 40+ gündür ölüdür və log «21/21 OK» yazır** (ROADMAP **U14**). `EARTHDATA_TOKEN`-in JWT `exp`-i
+  **2026-08-30**; son S30/L30 sətri **2026-08-29**-da yazılıb. Axtarış granule tapır (`granules_found: 14`),
+  hər COG oxuması «not recognized as being in a supported file format» verir — GDAL `/vsicurl`-dan GeoTIFF
+  əvəzinə **401 HTML səhifəsi** alanda dediyi söz. ⚠️ **İyuldakı `exit 1` mühafizəsi ÇÖKMÜŞ run-ı tutur,
+  SIFIR YAZAN run-ı yox** — `run_field` `ok: True` qaytarır, runner yalnız exit koduna baxır. S2 tam
+  sağlamdır (son 14 gündə 190 səhnə), ona görə istifadəçi səthində görünmür; benchmark, A8 backfill və
+  uzun arxiv səssizcə köhnəlir.
+- **`es` beş server dil cədvəlindən düşüb** (ROADMAP **T37**). İspan 2026-08-02-də 9-cu dil kimi çıxdı,
+  frontend 2 824 açarla tam paritet aldı, **server cədvəlləri genişlənmədi**: `advice.py::LANG_NAMES` +
+  `DISCLAIMERS`, `chat.py::LANG_NAMES`, `fields.py::_FIELD_WORD`, `weekly.py::_LABELS`. Yalnız
+  `season_summary.py` **yerli yamaqla** həll edib. **İki rejim:** avtomatik yol `az`-a düşür və **düzgün
+  etiketlənir** (oxucu `lang_mismatch` görür — dürüst); əl ilə yol `es` etiketini saxlayır, amma
+  `_lang_directive()` naməlum dil üçün **boş sətir** qaytarır → model azərbaycanca yazır və sətir
+  `lang='es'` saxlanılır = **səssiz yalan**. Canlı: 19 sahədən 18-i düzgün dildədir; `lang='es'` etiketli
+  yeganə sətrin içi azərbaycancadır.
+
+### ⚠️ Qalan öhdəliklər
+- **T38** — məxfilik siyasəti 9 dildə `ip` + `user_agent`-i adlandırmalıdır (0064 yeni şəxsi məlumat toplayır).
+- **T39** — `auth_events` üçün saxlama müddəti yoxdur.
+
+### Ölçü (2026-10-08)
+31 istifadəçi · 19 sahə · 28 təşkilat · 30 513 `index_stats` · 60 məsləhət · 377 bildiriş · 130 email.
+Sahə sayı iyuldan **7 → 19**. Disk 22%, 8 konteyner, 13 cron — hamısının logu təzə.
+
 ## [1.19.0] — 2026-08-04 — AI mühərriki dəyişdi (DeepSeek + Gemini), sahə səhifəsinin ikinci kəsimi, mövsüm xülasəsi, xəbərdarlıq bağlana bilir
 
 > Miqrasiya: yalnız **0063** (`alert_state` həll sütunları). **Əlavəedicidir və api image-dən ƏVVƏL

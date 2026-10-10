@@ -775,7 +775,9 @@ superuser role and bypasses RLS, so these query across **all** orgs/users.
 | `GET /api/admin/billing` | AI cost vs. subscription revenue (`MARKUP_X = 3.0`) | — |
 | `GET /api/admin/fields` | **Every** field across all orgs — powers the admin list *and* map | — |
 | `GET /api/admin/fields/{field_id}` | Admin-scoped read of one field (bypasses org membership): field row + latest advice + recent index-stats summary | — |
-| `PATCH /api/admin/users/{user_id}` | Set `is_active` / `is_admin` / `email_verified` / `full_name` | An admin can **never** remove their own `is_admin` → 400 `cannot_self_demote`. |
+| `PATCH /api/admin/users/{user_id}` | Set `is_active` / `is_admin` / `email_verified` / `full_name` / `locale` / `role` / `country` / `region` | An admin can **never** remove their own `is_admin` → 400 `cannot_self_demote`. ⚠️ `email` and password are **deliberately absent**: email is the login identity and 0059's unique key, and an admin who can set a password can impersonate. |
+| `GET /api/admin/users/{user_id}` | **Everything about one account** — 19 blocks: profile (incl. `has_password`/`has_google`), orgs, fields (**with `geom` + `centroid` + `drawn_by_them`** for the drawer's map), AI usage, funnel events, channels, **`auth` sign-in log (0064)**, advice, chat, notifications, `email_sends` ledger, scouting, seasons, share links, `grants_out`/`grants_in`, alert counts. | `drawn_by_them` is authorship (`fields.created_by`), **not** membership. Soft-deleted fields are returned but the client keeps them off the map. |
+| `POST /api/admin/users/{user_id}/close` | Close someone else's account (body: `{email}` typed to confirm) | **POST, not DELETE** — the body carries the confirmation and `api.del()` sends none. Runs the SAME `auth.py::anonymise_account` the owner's own closure runs. Three refusals: `cannot_delete_self` · `demote_admin_first` · `transfer_ownership_first`. |
 | `GET /api/admin/export?kind=&format=` | Stream a dump of `orgs \| users \| fields \| usage` | `kind`(=`orgs`), `format`(=`csv`; `csv \| json`). 400 `unknown_kind` / `unknown_format`. |
 
 ---
