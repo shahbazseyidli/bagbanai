@@ -115,7 +115,7 @@ export const privacyEs: PrivacyDoc = {
           kind: "p",
           text:
             "Todo se almacena en un único servidor de Contabo dentro de la Unión " +
-            "Europea). La base de datos es nuestra propia instalación de Postgres 16 + PostGIS " +
+            "Europea. La base de datos es nuestra propia instalación de Postgres 16 + PostGIS " +
             "ejecutándose en Docker en esa máquina. Los archivos que usted sube residen en el " +
             "disco local de ese servidor, y los rásteres satelitales, en una carpeta separada " +
             "del mismo disco.",
