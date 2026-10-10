@@ -9,7 +9,7 @@ export const privacyDe: PrivacyDoc = {
     "es ist, was das System über Sie erfasst, wo es das speichert, an wen es geht und was " +
     "passiert, wenn Sie Ihr Konto schließen.",
   summary: [
-    "Alle Daten werden in der EU gespeichert — auf einem einzigen Server in Helsinki, Finnland, in einer Postgres-Datenbank, die wir selbst betreiben. Eine Ausnahme: Text und Bilder, die zur KI-Analyse gesendet werden, verlassen die EU während der Verarbeitung — siehe „Unterauftragsverarbeiter“ unten.",
+    "Alle Daten werden in der EU gespeichert — auf einem einzigen Contabo-Server, in einer Postgres-Datenbank, die wir selbst betreiben. Eine Ausnahme: Text und Bilder, die zur KI-Analyse gesendet werden, verlassen die EU während der Verarbeitung — siehe „Unterauftragsverarbeiter“ unten.",
     "Es gibt keinen Werbetracker, kein Analyse-Pixel und kein Drittanbieter-Cookie; deshalb gibt es auch kein Einwilligungsbanner.",
     "Zur KI gehen Felddaten, keine Kontodaten: Name, E-Mail und Passwort-Hash werden nie an den Modellanbieter übermittelt.",
     "Die einzige wiederkehrende E-Mail ist die Wochenübersicht (mittwochs); ein Klick genügt zum Abbestellen.",
@@ -65,6 +65,7 @@ export const privacyDe: PrivacyDoc = {
             "Die Antworten der kurzen Umfrage auf der Marketing-Seite (Kultur, Land, Region, Hauptproblem, Bedarf), falls Sie sie vor der Registrierung ausgefüllt haben.",
             "Status der E-Mail-Bestätigung und ein temporärer 6-stelliger Code — der Code wird direkt nach der Verwendung gelöscht.",
             "Zeitpunkt der letzten Aktivität — höchstens einmal pro Stunde geschrieben, nur um zu wissen, ob das Konto noch genutzt wird.",
+            "Jede Anmeldung, jeder fehlgeschlagene Anmeldeversuch und jede Abmeldung: Zeitpunkt, Methode (Passwort, Code, Link, Google), Ihre IP-Adresse und die User-Agent-Zeile Ihres Browsers. Damit sichtbar ist, wer sich von wo aus angemeldet hat; mit dem Konto werden diese Einträge gelöscht.",
           ],
         },
         {
@@ -112,7 +113,7 @@ export const privacyDe: PrivacyDoc = {
         {
           kind: "p",
           text:
-            "Alles liegt auf einem einzigen Hetzner-Server in Helsinki (Finnland, Europäische " +
+            "Alles liegt auf einem einzigen Contabo-Server innerhalb der Europäischen " +
             "Union). Die Datenbank ist unsere eigene Installation von Postgres 16 + PostGIS, die " +
             "auf dieser Maschine in Docker läuft. Hochgeladene Dateien liegen auf der lokalen " +
             "Platte desselben Servers, die Satellitenraster in einem eigenen Ordner auf " +
@@ -386,7 +387,10 @@ export const privacyDe: PrivacyDoc = {
         },
         {
           kind: "p",
-          text: "Für Satelliten- und abgeleitete Daten gibt es keinen automatischen Ablauf.",
+          text:
+            "Für Satelliten- und abgeleitete Daten gibt es keinen automatischen Ablauf. Für das " +
+            "Anmeldeprotokoll ebenfalls nicht: diese Einträge werden erst beim Schließen des " +
+            "Kontos gelöscht.",
         },
       ],
     },

@@ -9,7 +9,7 @@ export const privacyIt: PrivacyDoc = {
     "com'è, che cosa il sistema raccoglie su di te, dove lo conserva, a chi lo invia e che cosa " +
     "succede quando chiudi l'account.",
   summary: [
-    "Tutti i dati sono conservati nell'UE — su un unico server a Helsinki, Finlandia, in un database Postgres che gestiamo noi. Un'eccezione: il testo e le immagini inviati all'analisi AI escono dall'UE durante l'elaborazione — vedi “Subresponsabili” più sotto.",
+    "Tutti i dati sono conservati nell'UE — su un unico server Contabo, in un database Postgres che gestiamo noi. Un'eccezione: il testo e le immagini inviati all'analisi AI escono dall'UE durante l'elaborazione — vedi “Subresponsabili” più sotto.",
     "Non c'è alcun tracker pubblicitario, pixel di analisi o cookie di terze parti; per questo non c'è nemmeno il banner di consenso.",
     "All'IA vanno i dati del campo, non quelli dell'account: nome, email e hash della password non vengono mai inviati al fornitore del modello.",
     "L'unica email ricorrente è il riepilogo settimanale (il mercoledì); ti disiscrivi con un clic.",
@@ -65,6 +65,7 @@ export const privacyIt: PrivacyDoc = {
             "Le risposte al breve questionario del sito vetrina (coltura, paese, regione, problema principale, esigenze), se l'hai compilato prima di registrarti.",
             "Stato della verifica email e un codice temporaneo a 6 cifre — il codice viene cancellato nel momento in cui viene usato.",
             "Momento dell'ultima attività — scritto al massimo una volta all'ora, solo per sapere se l'account è ancora in uso.",
+            "Ogni accesso, tentativo di accesso fallito e disconnessione: l'ora, il metodo (password, codice, link, Google), il tuo indirizzo IP e la stringa user-agent del browser. Serve a rendere visibile chi è entrato nell'account e da dove; alla chiusura dell'account queste righe vengono eliminate.",
           ],
         },
         {
@@ -112,7 +113,7 @@ export const privacyIt: PrivacyDoc = {
         {
           kind: "p",
           text:
-            "Tutto è su un unico server Hetzner a Helsinki (Finlandia, Unione Europea). Il " +
+            "Tutto è su un unico server Contabo all'interno dell'Unione Europea. Il " +
             "database è la nostra installazione di Postgres 16 + PostGIS, che gira in Docker su " +
             "quella macchina. I file che carichi stanno sul disco locale dello stesso server e i " +
             "raster satellitari in una cartella separata sullo stesso disco.",
@@ -385,7 +386,9 @@ export const privacyIt: PrivacyDoc = {
         },
         {
           kind: "p",
-          text: "Per i dati satellitari e derivati non esiste una scadenza automatica.",
+          text:
+            "Per i dati satellitari e derivati non esiste una scadenza automatica. Nemmeno per il " +
+            "registro degli accessi: quelle righe vengono rimosse solo alla chiusura dell'account.",
         },
       ],
     },

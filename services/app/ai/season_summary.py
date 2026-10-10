@@ -63,9 +63,11 @@ from pydantic import BaseModel, Field
 from . import knowledge as kb, llm, usage as ai_usage
 
 log = logging.getLogger(__name__)
-# One table of language names for the whole product; advice.py owns it. Re-declaring it here is how
-# auth.py::_effective_area_unit came to be a duplicate that has to be edited twice — don't repeat it.
-from .advice import DISCLAIMERS, LANG_NAMES
+# One table of language names for the whole product; ..locales owns it (it used to be advice.py,
+# and this module's local patch below was the ONLY place that knew about Spanish). Re-declaring it
+# is how auth.py::_effective_area_unit came to be a duplicate that has to be edited twice.
+from ..locales import LANG_NAMES, normalize as normalize_locale
+from .advice import DISCLAIMERS
 
 BLOCK_TYPE = "season_summary"
 
@@ -82,13 +84,14 @@ MIN_SCENES = 4
 
 MODE_NONE, MODE_SINGLE, MODE_PAIR, MODE_MULTI = "none", "single", "pair", "multi"
 
-# es is missing from advice.LANG_NAMES (it was added as a partial marketing locale after that table
-# was written). Falling through would silently write Azerbaijani prose for a Spanish reader, so it is
-# filled in here rather than left to the fallback.
-_LANG_NAMES = {**LANG_NAMES, "es": "Spanish (Español)"}
+# The local es patch that used to sit here is gone — ..locales carries all nine languages now, and
+# this module was the only one of five that had noticed the gap. The disclaimer override stays, but
+# for a different reason than before: this summary compares the field with ITSELF across seasons,
+# so it says "del propio lote" where the advice disclaimer says "satellite and field data". It is a
+# better sentence here, not a missing one there.
 _DISCLAIMERS = {**DISCLAIMERS,
                 "es": ("Este resumen es un análisis automático basado en datos satelitales del "
-                       "propio campo; verifíquelo sobre el terreno antes de decidir.")}
+                       "propio lote; verifíquelo sobre el terreno antes de decidir.")}
 
 # Sensor families, preference order — identical to ai/season.py so the numbers here and the numbers
 # in the season chart come from the same pixels.
@@ -325,10 +328,10 @@ _MULTI_RULE = (
 
 
 def _lang_clause(lang: str) -> str:
-    if lang == "az" or lang not in _LANG_NAMES:
+    if lang == "az" or lang not in LANG_NAMES:
         return ""
     return ("\n\nDİL: Bütün mətni (headline, comparison, watch) "
-            f"{_LANG_NAMES[lang]} dilində yaz.")
+            f"{LANG_NAMES[lang]} dilində yaz.")
 
 
 async def generate_and_store(conn, field_id: str, org_id: str, lang: str = "az",
@@ -341,9 +344,15 @@ async def generate_and_store(conn, field_id: str, org_id: str, lang: str = "az",
 
     `not_comparable` is the single-season case and it is a REFUSAL, not an empty success: the caller
     must not be able to read it as "the model had nothing to say".
+
+    `lang` is normalized before use for the same reason as ai/advice.py: line 381 STORES it next to
+    the prose, while `_lang_clause()` silently returns "" for a language it has no name for — so an
+    unsupported value produces Azerbaijani text labelled as something else, and `lang_mismatch`
+    then tells the reader the text is fine. Normalizing keeps the label and the prose in step.
     """
     if not llm.is_configured():
         return {"ok": False, "reason": "not_configured"}
+    lang = normalize_locale(lang)
 
     facts = await collect(conn, field_id)
     if facts["mode"] in (MODE_NONE, MODE_SINGLE):

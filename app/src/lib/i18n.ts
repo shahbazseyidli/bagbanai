@@ -1,4 +1,5 @@
-// Azerbaijani (az) UI dictionary. Default and only locale for now.
+// Azerbaijani (az) UI dictionary. The DEFAULT locale and the source of `I18nKey` — the other
+// eight live in ./locales/*.ts and are typed against the keys declared here.
 // All user-facing strings live here. Keys are English identifiers.
 
 export const az = {
@@ -144,9 +145,6 @@ export const az = {
   "field.saved": "Sahə yadda saxlanıldı",
 
   // field detail tabs
-  "field.tab.overview": "İcmal",
-  "field.tab.sentinel2": "Peyk görüntüsü",
-  "field.tab.ai": "AI Məsləhət",
   "field.tab.metadata": "Sahə haqqında məlumat",
   "field.tab.scouting": "Skautinq",
   "field.tab.fertilizer": "Gübrə",
@@ -1954,9 +1952,6 @@ export const az = {
   "app.fieldDetail.editButton": "Redaktə",
   "app.fieldDetail.editHint": "Məhsul növü, torpaq və s. dəyişikliklər üçün “Sahə haqqında məlumat” tabına keçin.",
   "app.fieldDetail.fieldDeleted": "silindi.",
-  "app.fieldDetail.groupIsler": "İşlər",
-  "app.fieldDetail.groupMelumat": "Məlumat",
-  "app.fieldDetail.groupVaziyyet": "Vəziyyət",
   "app.field.workbench.mapAria": "Sahənin peyk xəritəsi",
   "app.field.workbench.railAria": "Sahənin vəziyyəti paneli",
   "app.field.workbench.indexGroupAria": "Xəritədəki göstərici",

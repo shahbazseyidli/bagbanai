@@ -605,8 +605,37 @@ if __name__ == "__main__":
     # sensor: 'hls' (default, backward-compatible) | 's2' | 'all' (HLS+S2, one lifecycle).
     sensor = sys.argv[4].lower() if len(sys.argv) > 4 else "hls"
     if sensor == "all":
-        print(run_field_all(fid, days_back=days, track_status=track))
+        _out = run_field_all(fid, days_back=days, track_status=track)
     elif sensor == "s2":
-        print(run_field_s2(fid, days_back=days, track_status=track))
+        _out = run_field_s2(fid, days_back=days, track_status=track)
     else:
-        print(run_field(fid, days_back=days, track_status=track))
+        _out = run_field(fid, days_back=days, track_status=track)
+    print(_out)
+    # Machine-readable last line, same contract as BACKFILL_RESULT above, for deploy/run-hls.sh and
+    # deploy/run-s2.sh. The exit code ALONE cannot express what went wrong here: every granule read
+    # can fail and `ok` is still True, because a single corrupt granule must not abort the whole
+    # field (deliberate, see run_field). That is how HLS died quietly on 2026-08-30 — the token
+    # expired, every /vsicurl read got a 401 HTML page instead of a GeoTIFF, and the nightly log
+    # printed "21/21 field(s) OK." for 40 days over a run that wrote nothing at all.
+    #
+    # Still exit 0: zero scenes written is NOT a per-field error. A small field under cloud
+    # legitimately finds granules and keeps none of them (Fmask drops its pixels). Only the RUNNER
+    # can tell weather from breakage, because weather is not uniform across every field at once.
+    #
+    # sensor='all' returns the two passes NESTED ({"hls": {...}, "s2": {...}}), so the totals are
+    # summed here and each pass is reported separately as well — that split is the whole point
+    # today: HLS writes nothing while S2 is healthy, and one combined number would hide it.
+    import json as _json_out
+    _parts = {k: _out[k] for k in ("hls", "s2") if isinstance(_out.get(k), dict)}
+    if _parts:
+        _res = {"sensor": sensor,
+                "granules_found": sum(int(v.get("granules_found") or 0) for v in _parts.values()),
+                "scenes_written": sum(int(v.get("scenes_written") or 0) for v in _parts.values()),
+                "by_sensor": {k: {"granules_found": int(v.get("granules_found") or 0),
+                                  "scenes_written": int(v.get("scenes_written") or 0)}
+                              for k, v in _parts.items()}}
+    else:
+        _res = {"sensor": sensor,
+                "granules_found": int(_out.get("granules_found") or 0),
+                "scenes_written": int(_out.get("scenes_written") or 0)}
+    print("RUN_RESULT " + _json_out.dumps(_res))

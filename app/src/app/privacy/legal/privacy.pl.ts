@@ -9,7 +9,7 @@ export const privacyPl: PrivacyDoc = {
     "jak jest, co system o Tobie zbiera, gdzie to przechowuje, komu przekazuje i co się dzieje, " +
     "gdy zamkniesz konto.",
   summary: [
-    "Wszystkie dane są w UE — na jednym serwerze w Helsinkach (Finlandia), w bazie Postgres, którą sami prowadzimy. Jeden wyjątek: tekst i zdjęcia wysyłane do analizy AI opuszczają UE na czas przetwarzania — zobacz „Podprzetwarzający” poniżej.",
+    "Wszystkie dane są w UE — na jednym serwerze Contabo, w bazie Postgres, którą sami prowadzimy. Jeden wyjątek: tekst i zdjęcia wysyłane do analizy AI opuszczają UE na czas przetwarzania — zobacz „Podprzetwarzający” poniżej.",
     "Nie ma trackerów reklamowych, pikseli analitycznych ani plików cookie stron trzecich; dlatego nie ma też banera zgody.",
     "Do SI trafiają dane pola, a nie dane konta: imię, e-mail i skrót hasła nigdy nie są wysyłane do dostawcy modelu.",
     "Jedyna cykliczna wiadomość to cotygodniowe podsumowanie (w środy); wypisujesz się jednym kliknięciem.",
@@ -65,6 +65,7 @@ export const privacyPl: PrivacyDoc = {
             "Odpowiedzi z krótkiej ankiety na stronie informacyjnej (uprawa, kraj, region, główny problem, potrzeby), jeśli wypełniłeś ją przed rejestracją.",
             "Stan weryfikacji e-maila oraz tymczasowy 6-cyfrowy kod — kod jest usuwany w chwili użycia.",
             "Czas ostatniej aktywności — zapisywany najwyżej raz na godzinę, tylko po to, by wiedzieć, czy konto jest używane.",
+            "Każde logowanie, nieudana próba logowania i wylogowanie: czas, sposób (hasło, kod, link, Google), Twój adres IP i ciąg user-agent przeglądarki. Zapisujemy to, by było widać, kto i skąd wszedł na konto; przy zamknięciu konta te wpisy są usuwane.",
           ],
         },
         {
@@ -111,8 +112,8 @@ export const privacyPl: PrivacyDoc = {
         {
           kind: "p",
           text:
-            "Wszystko znajduje się na jednym serwerze Hetzner w Helsinkach (Finlandia, Unia " +
-            "Europejska). Baza danych to nasza własna instalacja Postgres 16 + PostGIS działająca " +
+            "Wszystko znajduje się na jednym serwerze Contabo na terenie Unii " +
+            "Europejskiej. Baza danych to nasza własna instalacja Postgres 16 + PostGIS działająca " +
             "na tej maszynie w Dockerze. Przesłane pliki leżą na lokalnym dysku tego samego " +
             "serwera, a rastry satelitarne w osobnym katalogu na tym samym dysku.",
         },
@@ -379,7 +380,9 @@ export const privacyPl: PrivacyDoc = {
         },
         {
           kind: "p",
-          text: "Dla danych satelitarnych i pochodnych nie ma automatycznego wygasania.",
+          text:
+            "Dla danych satelitarnych i pochodnych nie ma automatycznego wygasania. Dla dziennika " +
+            "logowań również nie: te wpisy są usuwane dopiero przy zamknięciu konta.",
         },
       ],
     },

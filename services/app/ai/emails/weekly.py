@@ -20,7 +20,7 @@ ledger (public.email_sends, dedup_key = ISO week) and the unsubscribe footer. No
 COPY: the frame (subject / heading / intro / outro / signoff, per variant) lives in `catalog`; the
 data-shaped strings (section titles, "72/100 · NDVI 0.63 ↑0.04 · 24 iyl") live in `_LABELS` below,
 because they are interpolated from query results rather than authored per send. AZ and EN are
-hand-written for ALL EIGHT locales as of 2026-07-31 (they used to be az/en/ru only, so a
+hand-written for ALL NINE locales (eight on 2026-07-31, es on 2026-10-10) (they used to be az/en/ru only, so a
 Turkish reader got English headings over Azerbaijani stat tiles under a Turkish footer).
 
 FIELD ORDER: worst wellness score first (nulls last, then oldest field). The farmer should open the
@@ -299,6 +299,33 @@ _LABELS: dict[str, dict[str, str]] = {
         "alert_many": "{n} ostrzeżeń",
         "crop_missing_lead": "Uprawa nie jest ustawiona na: {fields}.",
         "months": "sty lut mar kwi maj cze lip sie wrz paź lis gru",
+    },
+    "es": {
+        "stat_fields": "lotes",
+        "stat_alerts": "alertas",
+        "stat_score": "salud media",
+        "sec_fields": "Sus lotes",
+        "sec_alerts": "Alertas de esta semana",
+        "sec_advice": "Del agrónomo con IA",
+        "cta_app": "Abrir el panel →",
+        "cta_add": "Agregue su primer lote →",
+        "cta_crop": "Elegir el cultivo →",
+        "cta_pricing": "Ver los planes →",
+        "img_alt": "Imagen satelital (NDVI) de “{field}”",
+        "img_caption": "“{field}” · {date} · imagen satelital (NDVI): verde oscuro = dosel vigoroso, amarillo-rojo = débil.",
+        "score_caption": "“{field}” — el lote que más atención necesita esta semana.",
+        "preparing": "se están preparando los datos satelitales",
+        "no_data": "todavía no hay datos satelitales",
+        "no_crop_tag": "cultivo sin elegir",
+        "trial_label": "Prueba de Pro",
+        "trial_text": "Quedan {days} días. Si no elige un plan, su cuenta pasa automáticamente al plan Gratis — sus lotes y sus datos se conservan.",
+        "more_alerts": "y {n} alertas más — puede verlas todas en el panel.",
+        "field_one": "{n} lote",
+        "field_many": "{n} lotes",
+        "alert_one": "{n} alerta",
+        "alert_many": "{n} alertas",
+        "crop_missing_lead": "Estos lotes no tienen cultivo elegido: {fields}.",
+        "months": "ene feb mar abr may jun jul ago sep oct nov dic",
     },
 }
 

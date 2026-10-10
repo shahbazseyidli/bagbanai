@@ -243,29 +243,63 @@ Bölmənin adı **hər yerdə «Mesajlar»**-dır (əvvəl «İcma»). ⚠️ **
 HLS run complete — 21/21 field(s) OK.
 ```
 Axtarış granule **tapır**, hər COG oxuması isə «not recognized as being in a supported file format» verir — GDAL `/vsicurl`-dan GeoTIFF əvəzinə **401 HTML səhifəsi** alanda məhz bunu deyir. Granule səhvləri döngənin içində tutulub atlanır (bir pis granule bütün run-ı öldürməsin deyə — qəsdli davranış), `run_field` `ok: True` qaytarır, runner isə **yalnız exit koduna** baxır.
-- ⚠️ **`exit 1` mühafizəsi ÇÖKMÜŞ run-ı tutur, SIFIR YAZAN run-ı yox.** Düzəliş: runner `scenes_written` cəmini oxumalı və 0-dırsa uğursuzluq saymalıdır.
+- ✅ **DÜZƏLDİLDİ 2026-10-10 — `exit 1` mühafizəsi ÇÖKMÜŞ run-ı tuturdu, SIFIR YAZAN run-ı yox.**
+  `geo_pipeline/pipeline.py` CLI indi **son sətir kimi** `RUN_RESULT {json}` yazır (`BACKFILL_RESULT`
+  ilə eyni müqavilə; `sensor=all` üçün `by_sensor` da daşıyır — məhz bugünkü vəziyyət: HLS sıfır,
+  S2 sağlam). `run-hls.sh`/`run-s2.sh` onu `process-backfill.sh` ilə eyni idiomla oxuyur.
+  - **«KOR RUN» = granule tapan HƏR sahə sıfır yazdı** → `exit 1`. Bir sahənin sıfır yazması
+    uğursuzluq DEYİL (kiçik sahə buludun altında qala bilər, Fmask piksellərini atır), ona görə
+    per-sahə exit kodu 0 qalır — **yalnız runner** havanı sınıqdan ayıra bilər, çünki bulud eyni
+    gecədə fərqli MGRS zolaqlarındaki bütün sahələrdə olmur.
+  - Qismən kor run **uğursuz saymır**, amma sayı yazır: «$blind of $with_granules … kept none».
+  - ⚠️ **Köhnə image geriyə uyğundur:** `RUN_RESULT` sətri olmayan çıxış sıfır sayılır və run-ı
+    uğursuz ETMİR — bu qəsdidir, çünki `update.sh` `geo` image-ini **rebuild etmir**, yəni skript
+    image-dən əvvəl canlıya düşür. Altı ssenari yerli sınandı.
 - **Təsiri:** istifadəçi səthində **görünmür** (`HLS_ENABLED=false`), amma regional benchmark, A8 backfill və uzun arxiv səssizcə köhnəlir.
 - **Sağalma:** sahibdən yeni EDL bearer (urs.earthdata.nasa.gov) → `.env` → **`bash deploy/update.sh`** (restart kifayət deyil).
 
-## Dil cədvəlləri — `es` BEŞ server yerində düşüb (tapıldı 2026-10-08)
-İspan 2026-08-02-də **9-cu dil** kimi çıxdı, frontend tam paritet aldı (2 824 açar) — **server tərəfdəki dil cədvəlləri isə genişlənmədi**:
+## Dil cədvəlləri — tək mənbə `app/locales.py` (HƏLL OLUNDU 2026-10-10)
+İspan 2026-08-02-də **9-cu dil** kimi çıxdı, frontend tam paritet aldı (2 824 açar) — **server isə
+genişlənmədi**. 2026-10-08-də «beş cədvəl» kimi qeyd olunmuşdu; 2026-10-10-da ölçüldü: **16 cədvəl,
+10 modul**. Hamısı dolduruldu, siyahı `services/app/locales.py`-ə toplandı.
 
-| Cədvəl | Dil | İspan istifadəçiyə nə olur |
-|---|---|---|
-| `ai/advice.py::LANG_NAMES` | 8 | məsləhət `az`-a düşür |
-| `ai/advice.py::DISCLAIMERS` | 8 | disclaimer `az` |
-| `ai/chat.py::LANG_NAMES` | 8 | modelə «qeyri-müəyyəndirsə **azərbaycanca** cavab ver» |
-| `routers/fields.py::_FIELD_WORD` | 8 | sahə avto-adı **«Sahə 1»** |
-| `ai/emails/weekly.py::_LABELS` | 8 | digest plitələri `en`-ə düşür |
+⚠️ **Ən kəskini qeydiyyat yolunda idi:** `auth.py::_OTP_EMAIL.get(locale, _OTP_EMAIL["az"])` —
+ispan fermer **təsdiq kodu məktubunu azərbaycanca** alırdı, yəni yazmalı olduğu kodun mətnini oxuya
+bilmirdi. Yanındakı `_MAGIC_EMAIL` də eyni.
 
-Yalnız `ai/season_summary.py:88` **yerli yamaqla** həll edib: `_LANG_NAMES = {**LANG_NAMES, "es": "Spanish (Español)"}`. Bir modul fərqinə varıb, dördü yox.
+Düşmüş 16 cədvəl: `advice.py` (LANG_NAMES · DISCLAIMERS · _NOTIFY_TITLE) · `chat.py` (LANG_NAMES ·
+_GATE_PAID · _GATE_LIMIT) · `emails/layout.py::_FOOTER` · `emails/weekly.py::_LABELS` ·
+`emails/catalog_i18n.py` (WELCOME_EXTRA · SIMPLE_EXTRA · WEEKLY_EXTRA) · `auth.py` (_OTP_EMAIL ·
+_MAGIC_EMAIL) · `email_prefs.py::_MSG` · `fields.py::_FIELD_WORD` · `rules/alert_copy.py` ·
+`demo.py::_LOCALES`. Yalnız `season_summary.py` **yerli yamaqla** fərqinə varmışdı.
 
-**İKİ NASAZLIQ REJİMİ — biri dürüst, biri səssiz yalan:**
-1. **Avtomatik** (`internal.py::run_advice`): `lang if lang in LANG_NAMES else "az"` → sətir **düzgün `az` etiketlənir**, oxucu `lang_mismatch` görür, `AdviceLangNote` yenidən generasiya təklif edir. Pisdir, amma özünü gizlətmir.
-2. ⚠️ **Əl ilə** (`routers/advice.py:133` → `lang=locale`, **validasiyasız**): `es` etiket kimi sağ qalır, amma `_lang_directive()` naməlum dil üçün **boş sətir** qaytarır → modelə **heç bir dil göstərişi getmir**, azərbaycanca yazır, sətir `lang='es'` saxlanılır. Oxucu-tərcihi onu «ispan sətir» sanır, `lang_mismatch` **false** olur, və yenidən generasiya **eyni şeyi** verir.
+**İKİ NASAZLIQ REJİMİ — biri dürüst, biri səssiz yalan (tarixi qeyd, hər ikisi bağlandı):**
+1. **Avtomatik** (`internal.py::run_advice`): sətir **düzgün `az` etiketlənirdi**, oxucu
+   `lang_mismatch` görürdü. Pis, amma özünü gizlətmirdi.
+2. ⚠️ **Əl ilə** (`routers/advice.py` → `lang=locale`): `es` etiketi sağ qalır, `_lang_clause()`
+   naməlum dil üçün **boş sətir** qaytarır → modelə **heç bir dil göstərişi getmir**, azərbaycanca
+   yazır, sətir `lang='es'` saxlanılır, `lang_mismatch` **false** olur, yenidən generasiya **eyni
+   şeyi** verir.
 
-**Canlı sübut (2026-10-08):** 19 sahədən 18-i düzgün dildədir; `lang='es'` etiketli yeganə sətrin içi azərbaycancadır («SANTA ANA sahəsi (97.44 ha, soya…)»). Təsirlənən: `aldahir7177@gmail.com` (rejim 1, sahəsi «Sahə 1»), `tincholopez.tl@gmail.com` (rejim 2 — saxta `es`), `hdisalvo@hotmail.com` (hələ sahəsiz).
-- ⚠️ **NAXIŞ, təkbaşına bug deyil:** dil siyahısı kodda **altı ayrı yerdə** yaşayır. Onuncu dil əlavə olunanda eyni şey təkrarlanacaq — əsl həll onları **tək mənbəyə** bağlamaq və ya `auth.py::SUPPORTED_LOCALES`-ə qarşı yoxlayan test qoymaqdır.
+**Həllin forması — «cədvəlləri doldurmaq» DEYİL:**
+- `services/app/locales.py` — `SUPPORTED_LOCALES` + `LANG_NAMES` + `normalize()`. **Heç nə import
+  etmir** (həm `routers/`, həm `ai/` onu çağırır), ona görə dövrə yarada bilməz.
+- **Tərcümə mətni öz modulunda qalır** — sahə sözü, e-poçt mövzusu, alert mətni *tərcümənin
+  özüdür*, axtarış nəticəsi deyil. Paylaşıla bilən yeganə şey dilin **adıdır**.
+- `normalize()` **etiketi YAZAN yerdə** çağırılır (`advice.generate_and_store`,
+  `season_summary.generate_and_store`) — çağıranda yox. İki çağıranın hər ikisi validasiya edirdi
+  və məhsul yenə yalan danışırdı: biri 9 dilə, o biri 8 dilə baxırdı.
+- `services/tests/test_locales.py` — **pytest/fastapi/DB tələb etmir** (cədvəllər `ast` ilə oxunur,
+  import olunmur). İki yoxlama: (1) hər bəyan edilmiş cədvəl bütün 9 dili saxlayır; (2) **kəşf** —
+  bütün backend-də dil cədvəlinə **oxşayan** (≥4 locale açarı) hər dict testdə bəyan olunmalıdır.
+  İkincisi əsasdır: birincisi 2026-08-02-də **keçərdi**, çünki problem deşikli cədvəl deyil, dil
+  siyahısına **bağlanmamış 16 cədvəl** idi. Hər iki uğursuzluq forması canlı sınandı.
+- ⚠️ `es` üçün mətn **uydurulmayıb, ÇIXARILIB**: `alert_copy.py` öz başlığında bunu tələb edir
+  (`app/src/lib/locales/es.ts`-dəki `alert.*` sətirləri), `_FIELD_WORD["es"] = "Lote"` isə
+  `es.ts::app.field.autoName.placeholder` («Lote 1, Lote 2 …») fermerə **artıq vəd etdiyi** sözdür.
+- ⚠️ **Sənəd səhvi düzəldildi:** `catalog_i18n.SIMPLE_EXTRA` **ölü data DEYİL** (CLAUDE.md və
+  ROADMAP əvvəl belə yazırdı). İçində tək `data_ready` var və o **canlı tranzaksiyalı məktubdur** —
+  yeni hesabın ilk real qazancı. Orada dil əskikdirsə məktub ingiliscə gedir.
 
 ## Giriş auditi (0064, CANLI 2026-10-08)
 **Əvvəl heç nə girişi qeyd etmirdi.** `users.last_seen_at` saatda bir dəfə yenilənir; `user_events` yalnız **dörd klient huni adı** saxlayır (`advice_viewed`, `field_created`, `crop_set`, `checklist_complete`). «Kim, necə, haradan girdi» sualının cavabı sistemdə **yox idi**.
@@ -274,8 +308,11 @@ Yalnız `ai/season_summary.py:88` **yerli yamaqla** həll edib: `_LANG_NAMES = {
 - Yazıcı: `routers/auth.py::record_auth()` — **hər istisnanı udur**. Girişi rədd edə bilən audit, auditdəki boşluqdan pisdir.
 - 10 çağırış yeri: auth.py-də 7 (signup · verify_otp · login + **3 uğursuzluq budağı** · logout · magic_login · delete_account), oauth.py-də 3 (google uğur + `unverified` + `disabled`). Google-un `cancelled`/`state`/`exchange`/`network` rəddləri **qəsdən yazılmır** — kimlik daşımırlar.
 - `ON DELETE CASCADE` (0052-nin 15 cədvəlindən fərqli olaraq) — audit müəllif qeydi deyil, hesab bağlananda getməlidir.
-- ⚠️ **`ip` + `user_agent` YENİ şəxsi məlumatdır** — məxfilik siyasəti **9 dildə** onları adlandırmalıdır (Google girişi ilə eyni öhdəlik). HƏLƏ EDİLMƏYİB.
-- ⚠️ **Saxlama müddəti yoxdur** — cədvəl yalnız böyüyür.
+- ✅ **2026-10-10: məxfilik siyasəti 9 dildə `ip` + `user_agent`-i adlandırır** (`account-data`
+  bölməsinə bir bənd: vaxt · üsul · IP · user-agent, və hesab bağlananda silindiyi).
+- ⚠️ **Saxlama müddəti yoxdur** — cədvəl yalnız böyüyür; sətirləri silən yeganə şey hesabın
+  bağlanmasıdır (`ON DELETE CASCADE`). **Bu, siyasətdə 9 dildə belə yazılıb** — prune job qoyulsa
+  həmin cümlə də dəyişməlidir. Pəncərəni (12 ay?) sahib seçməlidir — T39.
 
 ## Admin istifadəçi detalı (genişləndirildi 2026-10-08)
 `GET /api/admin/users/{id}` indi **19 blok** qaytarır. `UserDetailModal` sahənin e-poçtuna klikləməklə açılır.
@@ -307,6 +344,20 @@ Yalnız `ai/season_summary.py:88` **yerli yamaqla** həll edib: `_LANG_NAMES = {
 - ⚠️ **`/opt/bagbanai` `root:root`-undur** — `ubuntu`/`admin` kimi `git` çağırışı «dubious ownership» verir. Serverdə git/deploy **`sudo` ilə** işlədilməlidir (`sudo git …`, `sudo bash deploy/update.sh`).
 - **SSH iki istifadəçi ilə işləyir:** `ssh contabo` (config-də `User ubuntu`) və `admin@169.58.53.17` — ikisinin də parolsuz sudo-su var. `root` ilə birbaşa giriş **bağlıdır**. ⚠️ `~/.ssh/config`-dəki köhnə `hetzner` host-u **silinmiş** 95.216.208.82-yə baxır.
 - **Ölçü (2026-10-08):** disk 21G/96G (**22%**), RAM 2.0/7.8Gi, 8 konteyner (5 Agradex + 3 signal-cv).
+- ⚠️ **KÖÇÜRMƏ MƏXFİLİK SİYASƏTİNİ YANLIŞ ETMİŞDİ (düzəldildi 2026-10-10).** Sənəd **9 dildə, hər
+  birində iki yerdə** «Helsinkidəki (Finlandiya) tək **Hetzner** serveri» yazırdı — yəni istifadəçiyə
+  məlumatının harada olduğu barədə **yanlış hüquqi bəyan** verilirdi. İndi «Avropa İttifaqı
+  daxilində tək **Contabo** serveri». **Şəhər adı QƏSDƏN yazılmır** (sahibin qərarı): serverin saat
+  qurşağı `Europe/Berlin`-dir və whois yalnız RIPE ayırmasını (NL) göstərir — ikisi də datacenter-in
+  sübutu deyil, təxmini hüquqi mətnə yazmaq olmaz. Contabo panelində dəqiq şəhər görünür; yazmaq
+  istəsən əvvəl oradan oxu.
+  - Backup cümləsi **toxunulmadı** — «eyni komandanın idarə etdiyi server, Aİ daxilində» hələ
+    doğrudur (Hetzner Falkenstein, 91.99.157.161).
+  - `LEGAL_UPDATED` **2026-08-01 → 2026-10-10** (banner «bu tarixə dəqiqdir» deyir).
+- ✅ **logrotate (2026-10-10):** `deploy/logrotate-bagban.conf` — `weekly` + `maxsize 20M` +
+  `rotate 8` + `copytruncate`. 13 cron 27 MB yığmışdı (16 MB-ı `bagban-hls.log`). **Repoda saxlanılır,
+  serverə ƏL İLƏ quraşdırılır** (`sudo cp … /etc/logrotate.d/bagban`) — `backup-db.sh`-ın dərsi:
+  serverdə yaşayan və heç kimin yaddaşdan yaza bilmədiyi şey repoda olmalıdır.
 - ⛔ **SİLİNİB (sahib, 2026-10):** (köhnə) Hetzner server **bagban-ai** (CPX22, Helsinki), public IPv4 **95.216.208.82** (Primary IP recreate boyu qorunur), project AGRADEX-TEST. Operator Mac SSH açarı (`~/.ssh/id_ed25519`, comment `macbookpro`) `root@95.216.208.82`-də authorized (deploy/cloud-init.sh-də erkən əlavə edilib).
 - DNS: agradex.com A @ + A www → 95.216.208.82 (Cloudflare, **proxied**).
 - **SSL:** origin-də Let's Encrypt (`/etc/letsencrypt/live/agradex.com/`, certbot auto-renew). nginx `/etc/nginx/sites-enabled/agradex.com`: iki server bloku — **:80** (məcburi redirect yox, CF Flexible altında loop-safe) + **:443** (LE cert). Hər blokda location-lar: `/titiler/` → `127.0.0.1:8001/`, `/api/` → `127.0.0.1:8000`, `/` → `127.0.0.1:3000`. Cloudflare SSL mode **Full (Strict)** ✅ (2026-07-16 CF panelində doğrulanıb — origin :443 LE cert ilə şifrələnir; nginx :80 bloku hələ məcburi redirect etmir — Flexible dövründən qalma, Full (Strict) altında zərərsiz). Repo nüsxələri `deploy/nginx-agradex.conf`, `deploy/nginx-agradex-http.conf`. (Leftover dublikat blokdan "conflicting server_name" xəbərdarlığı — təmizlik gözləyir.)
@@ -388,5 +439,5 @@ Bütün gələcək tasklar (E0–E12 + platform mühəndislik + istifadəçidə 
 - Login: demo@agradex.com / AgradexDemo2026 (sahib hesabı seyidlimirshahbaz@gmail.com — parol bcrypt hash DB-də sıfırlanıb, fayllarda parol saxlanmır).
 
 ## Versiyalar
-`CHANGELOG.md` [1.0.0]..**[1.20.0]** (ən yeni — 2026-10-08: giriş auditi 0064, admin istifadəçi profili + xəritə, və **iki səssiz nasazlığın tapılması** — HLS 40 gündür ölüdür, `es` beş server cədvəlindən düşüb). Ondan əvvəlki [1.19.0] — 2026-08-04: DeepSeek/Gemini keçidi, sahə səhifəsinin kəsimi, mövsüm xülasəsi, Mesajlar, görmə kvotası, xəbərdarlığın həlli; miqrasiya **0063**). Ondan əvvəlki [1.18.0] — 2026-07-31, OneSoil korpus analizi dalğası (33 commit, miqrasiyalar 0057-0061). git tag-lar v1.0.0..v1.0.4 (tag vs changelog nömrələnməsi tarixən ayrılıb — **tag nömrələrinə güvənmə**).
+`CHANGELOG.md` [1.0.0]..**[1.21.0]** (ən yeni — 2026-10-10: **iki səssiz nasazlıq BAĞLANDI** — `es` 16 server cədvəlinə əlavə olundu + tək mənbə `locales.py` + kəşf testi, HLS runner «kor run»-ı tutur; **məxfilik siyasətindəki yanlış yer bəyanı** (Hetzner/Helsinki → Contabo/Aİ) və `ip`+`user_agent` 9 dildə; §F təmizlikləri. Miqrasiya YOXDUR). Ondan əvvəlki [1.20.0] — 2026-10-08: giriş auditi 0064, admin istifadəçi profili + xəritə, və **iki səssiz nasazlığın tapılması** — HLS 40 gündür ölüdür, `es` beş server cədvəlindən düşüb). Ondan əvvəlki [1.19.0] — 2026-08-04: DeepSeek/Gemini keçidi, sahə səhifəsinin kəsimi, mövsüm xülasəsi, Mesajlar, görmə kvotası, xəbərdarlığın həlli; miqrasiya **0063**). Ondan əvvəlki [1.18.0] — 2026-07-31, OneSoil korpus analizi dalğası (33 commit, miqrasiyalar 0057-0061). git tag-lar v1.0.0..v1.0.4 (tag vs changelog nömrələnməsi tarixən ayrılıb — **tag nömrələrinə güvənmə**).
 ⚠️ **[1.14.0]–[1.17.0] arasında 1.17.0-dan başqası yazılmayıb** — `90829eb..84e5f28` (20 commit) və 2026-07-27 dalğası (`81660df` sadələşdirmə, `a1b362e` UX, `31b6e58` toxunma hədəfləri) üçün mənbə **commit mesajlarıdır** + `docs/SESSION_2026-07-26.md`. Hər üçü uzun və səbəbi izah edir.

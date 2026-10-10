@@ -13,7 +13,7 @@ export const privacyAz: PrivacyDoc = {
     "topladığını, onu harada saxladığını, kimə ötürdüyünü və hesabınızı bağlayanda nə baş " +
     "verdiyini olduğu kimi izah edir.",
   summary: [
-    "Bütün məlumat Aİ daxilində — Helsinkidəki (Finlandiya) tək serverdə, öz idarə etdiyimiz Postgres bazasında saxlanılır. İstisna: AI təhlili üçün göndərilən mətn və şəkillər emal zamanı Aİ-dən kənara çıxır — ətraflı aşağıdakı «Subprosessorlar» bölməsində.",
+    "Bütün məlumat Aİ daxilində — Contabo-nun tək serverində, öz idarə etdiyimiz Postgres bazasında saxlanılır. İstisna: AI təhlili üçün göndərilən mətn və şəkillər emal zamanı Aİ-dən kənara çıxır — ətraflı aşağıdakı «Subprosessorlar» bölməsində.",
     "Reklam izləyicisi, analitika pikseli və üçüncü tərəf kuki yoxdur; ona görə razılıq banneri də yoxdur.",
     "AI təhlilinə sahə məlumatı gedir, hesab məlumatı yox: adınız, e-poçtunuz və parol hash-ınız model provayderinə heç vaxt ötürülmür.",
     "Təkrarlanan yeganə məktub həftəlik icmaldır (çərşənbə günü); ondan bir kliklə imtina edə bilərsiniz.",
@@ -69,6 +69,7 @@ export const privacyAz: PrivacyDoc = {
             "Tanıtım səhifəsindəki qısa sorğunun cavabları (məhsul, ölkə, rayon, əsas problem, ehtiyaclar), əgər qeydiyyatdan əvvəl onu doldurmusunuzsa.",
             "E-poçt təsdiqi vəziyyəti və müvəqqəti 6 rəqəmli təsdiq kodu — kod təsdiqdən sonra dərhal silinir.",
             "Sonuncu aktivlik vaxtı — saatda bir dəfədən çox yazılmır, məqsədi hesabın canlı olub-olmadığını bilməkdir.",
+            "Hər giriş, uğursuz giriş cəhdi və çıxış: vaxtı, üsulu (parol, kod, keçid linki, Google), IP ünvanınız və brauzerinizin user-agent sətri. Məqsəd hesaba kimin, haradan girdiyini görə bilməkdir; hesab bağlananda bu qeydlər də silinir.",
           ],
         },
         {
@@ -122,7 +123,7 @@ export const privacyAz: PrivacyDoc = {
         {
           kind: "p",
           text:
-            "Hər şey Helsinkidə (Finlandiya, Avropa İttifaqı) yerləşən tək Hetzner serverində " +
+            "Hər şey Avropa İttifaqı daxilində yerləşən tək Contabo serverində " +
             "saxlanılır. Verilənlər bazası — həmin maşında Docker içində işləyən öz Postgres 16 + " +
             "PostGIS quraşdırmamızdır. Yüklədiyiniz fayllar həmin serverin lokal diskində, peyk " +
             "rastrları isə eyni diskdəki ayrıca qovluqdadır.",
@@ -392,7 +393,7 @@ export const privacyAz: PrivacyDoc = {
         {
           kind: "p",
           text:
-            "Peyk və hesablanmış məlumat üçün avtomatik müddət bitmə mexanizmi yoxdur.",
+            "Peyk və hesablanmış məlumat üçün avtomatik müddət bitmə mexanizmi yoxdur. Giriş jurnalı üçün də yoxdur: o, yalnız hesab bağlananda silinir.",
         },
       ],
     },

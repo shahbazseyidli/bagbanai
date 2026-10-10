@@ -33,7 +33,14 @@ async def run_advice(field_id: str):
                  join public.users u on u.id = o.owner_id
                where f.id = $1::uuid""", field_id)
         result = await advice_svc.generate_and_store(
-            conn, field_id, lang=lang if lang in advice_svc.LANG_NAMES else "az")
+            conn, field_id, lang=lang)
+    # `generate_and_store` signals a spent quota by RETURNING a dict, not by raising — so the
+    # plain `result is not None` this used to end on reported a refusal as a successful run, and
+    # the nightly cron log said ok:true for every field that never got advice. Reading the flag
+    # here (rather than changing that function's contract, which routers/advice.py turns into a
+    # 429) is the smaller change.
+    if isinstance(result, dict) and result.get("quota_exceeded"):
+        return {"ok": False, "reason": "quota_exceeded", "tier": result.get("tier")}
     return {"ok": result is not None}
 
 

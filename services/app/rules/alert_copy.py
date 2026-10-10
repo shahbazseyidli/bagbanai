@@ -127,6 +127,20 @@ ALERT_COPY: dict[str, dict[str, str]] = {
         "alert.ndviNbr.body": "NDVI i NBR spadły razem gwałtownie — możliwe spalenie, zbiór lub szybkie wysychanie.",
         "alert.vegAnomaly.title": "⚠️ NDVI poniżej normy pola",
         "alert.vegAnomaly.body": "NDVI {latest} jest poniżej zwykłego poziomu tego pola w tym tygodniu (p10 {p10}) — anomalia."
+    },
+    "es": {
+        "alert.frost.title": "🥶 Alerta de helada",
+        "alert.heat.title": "🌡️ Estrés por calor",
+        "alert.wind.title": "💨 Viento fuerte",
+        "alert.weather.title": "Alerta meteorológica",
+        "alert.ndviDrop.title": "📉 La salud del cultivo está bajando",
+        "alert.ndviDrop.body": "NDVI {prior}→{latest}{pct} — estrés en el dosel. Revise el lote: agua, plagas, nutrición.",
+        "alert.ndmiLow.title": "💧 Estrés hídrico (humedad baja)",
+        "alert.ndmiLow.body": "Humedad del cultivo (NDMI) {ndmi} — baja. Verifique si se necesita riego.",
+        "alert.ndviNbr.title": "🔥 Cambio brusco (¿quema / senescencia?)",
+        "alert.ndviNbr.body": "El NDVI y el NBR cayeron bruscamente a la vez — puede ser quema, cosecha o secado rápido.",
+        "alert.vegAnomaly.title": "⚠️ NDVI por debajo de lo normal del lote",
+        "alert.vegAnomaly.body": "El NDVI {latest} está por debajo del nivel habitual de este lote para esta semana (p10 {p10}) — una anomalía."
     }
 }
 

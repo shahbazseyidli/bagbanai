@@ -8,6 +8,7 @@ import logging
 import json
 from typing import Optional
 
+from ..locales import LANG_NAMES
 from . import llm, usage as ai_usage
 from .context import build_field_context
 
@@ -22,13 +23,6 @@ SYSTEM = (
     "cavab ver. Bilmədiyini uydurma; məlumat çatışmırsa bunu de. Fermerə birbaşa müraciət et. "
     "Cavabı DÜZ MƏTN kimi yaz — Markdown işarələri (**qalın**, *kursiv*, # başlıq) istifadə etmə."
 )
-
-# Locale code → English language name the model reliably recognizes.
-LANG_NAMES = {
-    "az": "Azerbaijani (Azərbaycan dili)", "en": "English", "tr": "Turkish (Türkçe)",
-    "de": "German (Deutsch)", "hu": "Hungarian (Magyar)", "it": "Italian (Italiano)",
-    "pl": "Polish (Polski)", "ru": "Russian (Русский)",
-}
 
 
 def _lang_directive(locale: str) -> str:
@@ -48,6 +42,7 @@ _GATE_PAID = {
     "it": "La chat AI è nei piani Pro (10 AZN) e Business. Esegui l'upgrade.",
     "pl": "Czat AI jest w planach Pro (10 AZN) i Business. Przejdź na wyższy plan.",
     "ru": "AI-чат доступен в тарифах Pro (10 AZN) и Business. Перейдите на более высокий тариф.",
+    "es": "El chat con IA está en los planes Pro (10 AZN) y Business. Mejore su plan.",
 }
 _GATE_LIMIT = {
     "az": "Bu ay AI söhbət limitiniz ({n} mesaj) bitib. Növbəti ay yenilənir və ya paketi yüksəldin.",
@@ -58,6 +53,7 @@ _GATE_LIMIT = {
     "it": "Hai raggiunto il limite di chat AI di questo mese ({n} messaggi). Si azzera il mese prossimo — o esegui l'upgrade.",
     "pl": "Osiągnięto miesięczny limit czatu AI ({n} wiadomości). Zresetuje się w przyszłym miesiącu — lub przejdź na wyższy plan.",
     "ru": "Месячный лимит AI-чата исчерпан ({n} сообщений). Он обновится в следующем месяце — или перейдите на более высокий тариф.",
+    "es": "Alcanzó el límite de chat con IA de este mes ({n} mensajes). Se renueva el mes que viene — o mejore su plan.",
 }
 
 

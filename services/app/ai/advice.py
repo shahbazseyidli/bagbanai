@@ -14,6 +14,7 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
+from ..locales import LANG_NAMES, normalize as normalize_locale
 from . import llm, usage as ai_usage
 from .context import build_field_context
 
@@ -25,11 +26,11 @@ DISCLAIMER = ("Bu məsləhətlər peyk və sahə məlumatlarına əsaslanan avto
 # Phase 4 — advice can be generated in the caller's language. The severity CODES
 # (aşağı/orta/yüksək) always stay Azerbaijani (the frontend maps them to badges); only the
 # human-readable prose is written in the target language.
-LANG_NAMES = {
-    "az": "Azerbaijani (Azərbaycan dili)", "en": "English", "tr": "Turkish (Türkçe)",
-    "de": "German (Deutsch)", "hu": "Hungarian (Magyar)", "it": "Italian (Italiano)",
-    "pl": "Polish (Polski)", "ru": "Russian (Русский)",
-}
+#
+# The table moved to ..locales on 2026-10-10. It was declared here, re-declared in ai/chat.py, and
+# patched a third time in ai/season_summary.py — and only the third copy had Spanish, which is how
+# a Spanish reader came to be served Azerbaijani prose stored under lang='es'. Imported rather
+# than re-declared; `generate_and_store` normalizes `lang` against it before writing the label.
 DISCLAIMERS = {
     "az": DISCLAIMER,
     "en": "This advice is an automated analysis based on satellite and field data; verify on-site before deciding.",
@@ -39,6 +40,7 @@ DISCLAIMERS = {
     "it": "Questo consiglio è un'analisi automatica basata su dati satellitari e di campo; verifica sul posto prima di decidere.",
     "pl": "Ta porada to automatyczna analiza oparta na danych satelitarnych i polowych; przed decyzją sprawdź w terenie.",
     "ru": "Эта рекомендация — автоматический анализ по спутниковым и полевым данным; перед решением проверьте поле на месте.",
+    "es": "Este consejo es un análisis automático basado en datos satelitales y del lote; verifíquelo sobre el terreno antes de decidir.",
 }
 
 
@@ -110,9 +112,17 @@ async def generate_and_store(conn, field_id: str, force: bool = False,
     """Generate advice for a field, store it, and notify on material change.
     Returns the stored advice dict, or None if the LLM is not configured or the
     15-day throttle skips regeneration (unless force=True). `lang` decides the prose
-    language (severity codes stay Azerbaijani)."""
+    language (severity codes stay Azerbaijani).
+
+    `lang` is normalized HERE, at the one place that writes the label, rather than trusted from
+    the caller. Both callers validated it and the product still lied: routers/advice.py checked it
+    against nine locales, this module's table held eight, and `es` fell through the gap as an
+    empty language instruction — the model wrote Azerbaijani and the row was stored saying `es`.
+    Normalizing at the write means the stored label always names a language we can actually
+    instruct the model in."""
     if not llm.is_configured():
         return None
+    lang = normalize_locale(lang)
 
     # 15-day throttle: the auto-trigger fires after each new scene, but advice is
     # regenerated at most once per 15 days unless force=True (manual refresh).
@@ -223,6 +233,7 @@ _NOTIFY_TITLE = {
     "hu": ("„%s”: új MI-tanács", "„%s”: elkészült az első MI-elemzés"),
     "it": ("“%s”: nuovo consiglio IA", "“%s”: la prima analisi IA è pronta"),
     "pl": ("„%s”: nowa porada AI", "„%s”: pierwsza analiza AI jest gotowa"),
+    "es": ("“%s”: nuevo consejo de IA", "“%s”: el primer análisis de IA está listo"),
 }
 
 

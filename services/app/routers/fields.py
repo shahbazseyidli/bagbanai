@@ -44,15 +44,15 @@ async def _org_of_field(conn, field_id: str) -> str:
 # weekly digest and the advice notification title do the same), and PUT /{field_id} lets the farmer
 # overwrite it with a literal. One string for everybody, chosen once, at creation.
 #
-# Because it is stored, the SERVER has to hold the eight words — it cannot call t(). Same reason
-# ai/emails/weekly.py keeps `_LABELS` server-side. These are the eight dictionary "field.name"
+# Because it is stored, the SERVER has to hold the nine words — it cannot call t(). Same reason
+# ai/emails/weekly.py keeps `_LABELS` server-side. These are the nine dictionary "field.name"
 # values minus the possessive/genitive (az "Sahənin adı" → Sahə, ru "Название поля" → Поле, …), and
 # they must stay in step with the "app.field.autoName.placeholder" key in app/src/lib/i18n.ts +
 # app/src/lib/locales/*.ts — that placeholder PROMISES the farmer this exact word before the field
 # exists.
 _FIELD_WORD: dict[str, str] = {
     "az": "Sahə", "en": "Field", "ru": "Поле", "tr": "Tarla",
-    "de": "Feld", "hu": "Tábla", "it": "Campo", "pl": "Pole",
+    "de": "Feld", "hu": "Tábla", "it": "Campo", "pl": "Pole", "es": "Lote",
 }
 
 # Every word above is plain letters — no regex metacharacter — so joining them is safe. The digit
@@ -103,7 +103,7 @@ async def _generate_field_name(conn, org_id: str, locale: str) -> str:
     # via POST /{field_id}/restore, so a deleted row still occupies its name — reusing its number
     # would put two "Sahə 2" in one org. max()+1 rather than count(*) for the same reason: delete
     # "Sahə 2" out of 1..4 and the next field is "Sahə 5", never a second "Sahə 4". One counter is
-    # shared across all eight words, so a farmer who switches language gets "Sahə 1" then "Field 2".
+    # shared across all nine words, so a farmer who switches language gets "Sahə 1" then "Field 2".
     n = await conn.fetchval(
         """select coalesce(max((regexp_match(name, $2::text))[1]::int), 0) + 1
              from public.fields
@@ -118,7 +118,7 @@ async def next_field_name(farm_id: str, request: Request,
     """The name this org's next field WOULD get — so the wizard can show it before it exists.
 
     WHY THE CLIENT MUST ASK RATHER THAN COUNT. The number comes from max()+1 over names matching
-    the auto-name pattern INCLUDING soft-deleted rows, in any of eight language words, under an
+    the auto-name pattern INCLUDING soft-deleted rows, in any of nine language words, under an
     advisory lock. A browser holding a list of visible fields cannot reproduce that, and a guess
     that lands one low puts two "Sahə 2" in one org.
 

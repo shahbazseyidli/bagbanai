@@ -96,6 +96,8 @@ _FOOTER: dict[str, dict[str, str]] = {
            "unsub": "Zrezygnuj z takich wiadomości", "addr": "Agradex · Baku, Azerbejdżan"},
     "ru": {"reason": "Вы получаете это письмо, потому что у вас есть аккаунт Agradex.",
            "unsub": "Отказаться от таких писем", "addr": "Agradex · Баку, Азербайджан"},
+    "es": {"reason": "Recibe este correo porque tiene una cuenta de Agradex.",
+           "unsub": "Cancelar la suscripción a correos como este", "addr": "Agradex · Bakú, Azerbaiyán"},
 }
 
 # Progressive enhancement only. Gmail keeps embedded <style> (it strips <head>, so this rides in the

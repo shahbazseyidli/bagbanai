@@ -9,7 +9,7 @@ export const privacyTr: PrivacyDoc = {
     "nerede sakladığını, kime gönderdiğini ve hesabınızı kapattığınızda ne olduğunu olduğu gibi " +
     "anlatır.",
   summary: [
-    "Tüm veriler AB içinde — Helsinki'deki (Finlandiya) tek sunucuda, kendi işlettiğimiz Postgres veritabanında saklanır. Bir istisna: AI analizi için gönderilen metin ve görseller işlenirken AB dışına çıkar — ayrıntı aşağıdaki “Alt işleyiciler” bölümünde.",
+    "Tüm veriler AB içinde — tek bir Contabo sunucusunda, kendi işlettiğimiz Postgres veritabanında saklanır. Bir istisna: AI analizi için gönderilen metin ve görseller işlenirken AB dışına çıkar — ayrıntı aşağıdaki “Alt işleyiciler” bölümünde.",
     "Reklam izleyicisi, analitik pikseli ve üçüncü taraf çerezi yoktur; bu yüzden onay bandı da yoktur.",
     "Yapay zekâya tarla verisi gider, hesap verisi gitmez: adınız, e-postanız ve parola özetiniz model sağlayıcısına asla gönderilmez.",
     "Tekrarlayan tek e-posta haftalık özettir (çarşamba günleri); tek tıkla çıkabilirsiniz.",
@@ -63,6 +63,7 @@ export const privacyTr: PrivacyDoc = {
             "Tanıtım sayfasındaki kısa anketin yanıtları (ürün, ülke, bölge, temel sorun, ihtiyaçlar), kayıttan önce doldurduysanız.",
             "E-posta doğrulama durumu ve geçici 6 haneli kod — kod kullanıldığı anda silinir.",
             "Son görülme zamanı — saatte en fazla bir kez yazılır, yalnızca hesabın kullanımda olup olmadığını bilmek için.",
+            "Her giriş, başarısız giriş denemesi ve çıkış: zamanı, yöntemi (parola, kod, bağlantı, Google), IP adresiniz ve tarayıcınızın user-agent dizesi. Hesaba kimin, nereden girdiğinin görülebilmesi için tutulur; hesap kapatıldığında bu kayıtlar da silinir.",
           ],
         },
         {
@@ -109,7 +110,7 @@ export const privacyTr: PrivacyDoc = {
         {
           kind: "p",
           text:
-            "Her şey Helsinki'deki (Finlandiya, Avrupa Birliği) tek bir Hetzner sunucusunda " +
+            "Her şey Avrupa Birliği içindeki tek bir Contabo sunucusunda " +
             "saklanır. Veritabanı, o makinede Docker içinde çalışan kendi Postgres 16 + PostGIS " +
             "kurulumumuzdur. Yüklediğiniz dosyalar aynı sunucunun yerel diskinde, uydu " +
             "rasterları ise aynı diskteki ayrı bir klasördedir.",
@@ -371,7 +372,9 @@ export const privacyTr: PrivacyDoc = {
         },
         {
           kind: "p",
-          text: "Uydu ve türetilmiş veriler için otomatik bir sona erme mekanizması yoktur.",
+          text:
+            "Uydu ve türetilmiş veriler için otomatik bir sona erme mekanizması yoktur. Giriş " +
+            "kaydı için de yoktur: bu satırlar yalnızca hesap kapatıldığında silinir.",
         },
       ],
     },

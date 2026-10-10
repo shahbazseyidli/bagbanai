@@ -1,8 +1,16 @@
 # Auto-generated email translations (ru/tr/de/hu/it/pl). Source: email i18n workflow.
 # az/en live in catalog.py; these merge into COPY there. Do not hand-edit — regenerate.
 #
+# EXCEPT es, added by hand on 2026-10-10. Spanish shipped as the ninth UI locale on 2026-08-02
+# and this file was never regenerated for it, so a Spanish farmer's welcome and weekly digest
+# fell through to English. A REGENERATION MUST KEEP es — dropping it is a silent regression of
+# exactly the kind services/tests/test_locales.py now fails on.
+#
 # SIMPLE_EXTRA holds ONE template id, data_ready, and it can never hold more than catalog.py's
-# `_SIMPLE_AZ` does — the merge loop iterates that dict. Eleven other ids (no_field_d1/d3/d7,
+# `_SIMPLE_AZ` does — the merge loop iterates that dict. That ONE id is LIVE, though: data_ready
+# is the transactional "your field is visible from space" letter, the first real payoff a new
+# account gets. Read elsewhere as "inert copy" it is not; a locale missing here sends that
+# letter in English. Eleven other ids (no_field_d1/d3/d7,
 # no_crop, inactive_10d/30d, trial_ending, edu_ndvi, edu_ledger, edu_invite, digest_weekly) were
 # carried here long after E15 folded them into the weekly digest; they were removed on 2026-08-02
 # because several still described the farm ledger, productivity zones and VRA in five languages,
@@ -650,6 +658,113 @@ WELCOME_EXTRA = {
       ],
       "signoff": "Марина Ковалева — Agradex"
     }
+  },
+  "es": {
+    "farmer": {
+      "subject": "Bienvenido a Agradex 🌱",
+      "preheader": "Observe su lote desde el espacio — empiece en 2 pasos.",
+      "heading": "¡Bienvenido, {name}! 🌱",
+      "intro": [
+        "Soy Ülkər, del equipo de Agradex. Agradex es su <b>asistente satelital y de inteligencia artificial</b>: vea cada lote desde el espacio, detecte el estrés a tiempo y pregunte al agrónomo con IA cuál es el siguiente paso.",
+        "Empecemos en dos pasos:"
+      ],
+      "steps": [
+        {
+          "n": 1,
+          "text": "<b>Agregue su primer lote</b> — trace el límite en el mapa en 2 minutos."
+        },
+        {
+          "n": 2,
+          "text": "<b>Elija el cultivo</b> — habilita umbrales de salud y recomendaciones propias de ese cultivo."
+        }
+      ],
+      "cta": {
+        "label": "Agregar mi lote →",
+        "url": "{add_field_url}"
+      },
+      "outro": [
+        "¿Tiene dudas? Responda a este correo — leo todos los mensajes."
+      ],
+      "signoff": "Ülkər Nəsirova — Agradex"
+    },
+    "consultant": {
+      "subject": "Agradex — su espacio de trabajo de agrónomo está listo",
+      "preheader": "Administre todos los lotes de sus clientes en un solo mapa.",
+      "heading": "Administre todos los lotes de sus clientes en un solo mapa",
+      "intro": [
+        "Bienvenido, {name}. Como agrónomo recibe un <b>espacio de trabajo multi-lote</b>: tendencias de NDVI · NDMI · NDRE, líneas de base por temporada y el análisis con IA de todas las explotaciones que atiende."
+      ],
+      "steps": [
+        {
+          "n": 1,
+          "text": "<b>Agregue o importe los lotes</b> (se admite shapefile .zip)."
+        },
+        {
+          "n": 2,
+          "text": "<b>Invite a sus clientes</b> — cada uno en su propia organización; el control sigue siendo suyo."
+        }
+      ],
+      "cta": {
+        "label": "Abrir el espacio de trabajo →",
+        "url": "{app_url}"
+      },
+      "outro": [
+        "Si tiene alguna duda, responda directamente a este correo."
+      ],
+      "signoff": "Ülkər Nəsirova — Agradex"
+    },
+    "lab": {
+      "subject": "Agradex — su perfil de laboratorio está listo",
+      "preheader": "Reciba pedidos de análisis de suelo en Agradex.",
+      "heading": "Reciba pedidos de análisis de los productores",
+      "intro": [
+        "Bienvenido, {name}. Agradex conecta su laboratorio con los productores: reciba <b>pedidos de análisis de suelo y de hoja</b> directamente en la plataforma."
+      ],
+      "steps": [
+        {
+          "n": 1,
+          "text": "<b>Complete el perfil del laboratorio</b> — servicios, precios, zona de cobertura."
+        },
+        {
+          "n": 2,
+          "text": "<b>Acepte los pedidos</b> — comparta los resultados directamente con el productor."
+        }
+      ],
+      "cta": {
+        "label": "Completar mi perfil →",
+        "url": "{app_url}"
+      },
+      "outro": [
+        "Si necesita ayuda, responda a este correo."
+      ],
+      "signoff": "Ülkər Nəsirova — Agradex"
+    },
+    "supplier": {
+      "subject": "Agradex — su cuenta de proveedor está lista",
+      "preheader": "Llegue a los productores y publique sus productos.",
+      "heading": "Llegue a los productores y publique sus productos",
+      "intro": [
+        "Bienvenido, {name}. Agradex lo conecta con los productores de su zona: publique en el catálogo sus <b>fertilizantes, semillas y servicios</b> y reciba consultas."
+      ],
+      "steps": [
+        {
+          "n": 1,
+          "text": "<b>Publique su catálogo</b> — productos, precios, zona."
+        },
+        {
+          "n": 2,
+          "text": "<b>Reciba las consultas</b> — contacto directo con los productores interesados."
+        }
+      ],
+      "cta": {
+        "label": "Abrir mi catálogo →",
+        "url": "{app_url}"
+      },
+      "outro": [
+        "¿Tiene dudas? Responda a este correo."
+      ],
+      "signoff": "Ülkər Nəsirova — Agradex"
+    }
   }
 }
 
@@ -760,6 +875,24 @@ SIMPLE_EXTRA = {
         "Amikor megérkezik a következő műholdas felvétel, az AI agronómus automatikusan tanácsot készít."
       ],
       "signoff": "Réka Tóth — Agradex"
+    }
+  },
+  "es": {
+    "data_ready": {
+      "subject": "El mapa satelital de su lote «{field}» está listo 🛰️",
+      "preheader": "Vea ahora su primer mapa NDVI y el puntaje de salud.",
+      "heading": "Su lote ya se ve desde el espacio 🛰️",
+      "intro": [
+        "El análisis satelital de <b>«{field}»</b> ({area} ha) está listo. Vea ahora su primer mapa NDVI y el puntaje de salud del cultivo."
+      ],
+      "cta": {
+        "label": "Abrir el lote →",
+        "url": "{field_url}"
+      },
+      "outro": [
+        "Cuando llegue la próxima escena satelital, el agrónomo con IA preparará un consejo automáticamente."
+      ],
+      "signoff": "Ülkər Nəsirova — Agradex"
     }
   }
 }
@@ -1102,6 +1235,62 @@ WEEKLY_EXTRA = {
         "Как только вы добавите поле, вместо этого письма будет приходить сводка по вашим полям."
       ],
       "signoff": "Марина Ковалева — Agradex"
+    }
+  },
+  "es": {
+    "calm": {
+      "subject": "Su semana: {fields_label}, todo en orden",
+      "preheader": "Puntaje de salud, tendencia del NDVI y consejo de la IA — de un vistazo.",
+      "heading": "Esta semana en sus lotes",
+      "intro": [
+        "¡Hola{name_suffix}! Esta semana no pasó nada urgente en sus lotes — aquí va el resumen breve."
+      ],
+      "outro": [
+        "Las alertas urgentes llegan a la aplicación al instante; el correo llega una vez por semana, el miércoles por la mañana.",
+        "¿Alguna pregunta? Responda a este correo — los leo todos."
+      ],
+      "signoff": "Ülkər Nəsirova — Agradex"
+    },
+    "alerts": {
+      "subject": "⚠️ {alerts_label} — su resumen semanal",
+      "preheader": "El lote que más atención necesita: «{field}».",
+      "heading": "Qué necesita su atención esta semana",
+      "intro": [
+        "¡Hola{name_suffix}! Esta semana se registró en sus lotes: <b>{alerts_label}</b>. El lote que más atención necesita es <b>«{field}»</b>.",
+        "Lo tiene todo más abajo. Vale un minuto antes de salir al campo."
+      ],
+      "outro": [
+        "Las alertas urgentes llegan a la aplicación al instante; el correo llega una vez por semana, el miércoles por la mañana.",
+        "¿Alguna pregunta? Responda a este correo — los leo todos."
+      ],
+      "signoff": "Ülkər Nəsirova — Agradex"
+    },
+    "no_crop": {
+      "subject": "Falta un paso: elija el cultivo de «{field}»",
+      "preheader": "Elegir el cultivo activa los umbrales propios de ese cultivo.",
+      "heading": "Falta un paso: elija el cultivo",
+      "intro": [
+        "¡Hola{name_suffix}! Sus lotes ya se ven desde el espacio, pero todavía no eligió el cultivo. En cuanto lo haga, Agradex puede aplicar <b>umbrales de salud propios del cultivo</b>, normas de fertilización y recomendaciones más precisas.",
+        "Toma un minuto. El resumen de la semana está más abajo."
+      ],
+      "outro": [
+        "Este correo llega una vez por semana, el miércoles por la mañana."
+      ],
+      "signoff": "Ülkər Nəsirova — Agradex"
+    },
+    "no_fields": {
+      "subject": "Agregue su primer lote en 2 minutos",
+      "preheader": "Al satélite solo le hace falta un límite para ver su lote.",
+      "heading": "Un lote lo cambia todo",
+      "intro": [
+        "¡Hola{name_suffix}! Su cuenta está lista, pero todavía no agregó ningún lote. <b>Al satélite solo le hace falta un límite para “ver” su lote.</b>",
+        "¿No quiere dibujarlo? <b>Toque</b> el lote en el mapa — Agradex detecta el límite por usted."
+      ],
+      "outro": [
+        "Si algo no funcionó, responda con una línea y lo ayudo.",
+        "En cuanto agregue un lote, este correo pasa a ser su resumen semanal del lote."
+      ],
+      "signoff": "Ülkər Nəsirova — Agradex"
     }
   }
 }

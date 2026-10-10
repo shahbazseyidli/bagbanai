@@ -9,7 +9,7 @@ export const privacyEn: PrivacyDoc = {
     "system collects about you, where it keeps it, who it is sent to, and what happens when you " +
     "close your account.",
   summary: [
-    "All data is stored inside the EU — on a single server in Helsinki, Finland, in a Postgres database we run ourselves. One exception: the text and images sent for AI analysis leave the EU while they are processed — see “Subprocessors” below.",
+    "All data is stored inside the EU — on a single Contabo server, in a Postgres database we run ourselves. One exception: the text and images sent for AI analysis leave the EU while they are processed — see “Subprocessors” below.",
     "There is no advertising tracker, no analytics pixel and no third-party cookie; that is why there is no consent banner.",
     "Field data goes to the AI, account data does not: your name, email and password hash are never sent to the model provider.",
     "The only recurring email is a weekly digest (Wednesdays); one click unsubscribes you.",
@@ -64,6 +64,7 @@ export const privacyEn: PrivacyDoc = {
             "The answers to the short quiz on the marketing page (crop, country, region, main problem, needs), if you filled it in before signing up.",
             "Email verification state and a temporary 6-digit code — the code is deleted the moment it is used.",
             "Last-seen time — written at most once an hour, only to know whether the account is still in use.",
+            "Every sign-in, failed sign-in attempt and sign-out: the time, the method (password, code, magic link, Google), your IP address and your browser's user-agent string. It is kept so that who entered the account, and from where, can be seen; these rows are deleted with the account.",
           ],
         },
         {
@@ -110,8 +111,8 @@ export const privacyEn: PrivacyDoc = {
         {
           kind: "p",
           text:
-            "Everything is stored on a single Hetzner server in Helsinki, Finland (European " +
-            "Union). The database is our own Postgres 16 + PostGIS installation running in Docker " +
+            "Everything is stored on a single Contabo server inside the European " +
+            "Union. The database is our own Postgres 16 + PostGIS installation running in Docker " +
             "on that machine. Files you upload sit on that server's local disk, and the satellite " +
             "rasters in a separate folder on the same disk.",
         },
@@ -376,7 +377,9 @@ export const privacyEn: PrivacyDoc = {
         },
         {
           kind: "p",
-          text: "There is no automatic expiry for satellite or derived data.",
+          text:
+            "There is no automatic expiry for satellite or derived data. There is none for the " +
+            "sign-in log either: those rows are removed only when the account is closed.",
         },
       ],
     },

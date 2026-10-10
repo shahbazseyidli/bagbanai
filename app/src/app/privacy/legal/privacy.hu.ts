@@ -8,7 +8,7 @@ export const privacyHu: PrivacyDoc = {
     "figyeli a táblákat. Ez az oldal nem jogi sablon — úgy, ahogy van, elmondja, mit gyűjt " +
     "önről a rendszer, hol tárolja, kinek adja tovább, és mi történik, ha bezárja a fiókját.",
   summary: [
-    "Minden adat az EU-n belül van — egyetlen helsinki (Finnország) szerveren, saját üzemeltetésű Postgres adatbázisban. Egy kivétel: az MI-elemzésre küldött szöveg és képek a feldolgozás idejére elhagyják az EU-t — lásd lent az „Alfeldolgozók” részt.",
+    "Minden adat az EU-n belül van — egyetlen Contabo-szerveren, saját üzemeltetésű Postgres adatbázisban. Egy kivétel: az MI-elemzésre küldött szöveg és képek a feldolgozás idejére elhagyják az EU-t — lásd lent az „Alfeldolgozók” részt.",
     "Nincs hirdetési nyomkövető, analitikai pixel és harmadik féltől származó süti; ezért nincs hozzájárulási sáv sem.",
     "Az MI-hez tábla-adatok jutnak el, fiókadatok nem: a nevét, e-mail-címét és jelszókivonatát soha nem küldjük el a modell szolgáltatójának.",
     "Az egyetlen ismétlődő levél a heti összefoglaló (szerdánként); egy kattintással leiratkozhat.",
@@ -64,6 +64,7 @@ export const privacyHu: PrivacyDoc = {
             "A bemutató oldal rövid kérdőívének válaszai (kultúra, ország, régió, fő probléma, igények), ha regisztráció előtt kitöltötte.",
             "Az e-mail-megerősítés állapota és egy ideiglenes 6 jegyű kód — a kód a felhasználás pillanatában törlődik.",
             "Utolsó aktivitás időpontja — óránként legfeljebb egyszer íródik, csak azért, hogy tudjuk, él-e a fiók.",
+            "Minden bejelentkezés, sikertelen bejelentkezési kísérlet és kijelentkezés: ideje, módja (jelszó, kód, link, Google), az Ön IP-címe és a böngésző user-agent sora. Azért tároljuk, hogy látható legyen, ki és honnan lépett be a fiókba; a fiók lezárásakor ezek a sorok is törlődnek.",
           ],
         },
         {
@@ -110,7 +111,7 @@ export const privacyHu: PrivacyDoc = {
         {
           kind: "p",
           text:
-            "Minden egyetlen Hetzner-szerveren van Helsinkiben (Finnország, Európai Unió). Az " +
+            "Minden egyetlen Contabo-szerveren van, az Európai Unión belül. Az " +
             "adatbázis a saját Postgres 16 + PostGIS telepítésünk, amely azon a gépen Dockerben " +
             "fut. A feltöltött fájlok ugyanennek a szervernek a helyi lemezén, a műholdas " +
             "raszterek pedig ugyanazon a lemezen külön mappában vannak.",
@@ -375,7 +376,9 @@ export const privacyHu: PrivacyDoc = {
         },
         {
           kind: "p",
-          text: "A műholdas és a számított adatokra nincs automatikus lejárat.",
+          text:
+            "A műholdas és a számított adatokra nincs automatikus lejárat. A bejelentkezési " +
+            "naplóra sincs: azok a sorok csak a fiók lezárásakor törlődnek.",
         },
       ],
     },

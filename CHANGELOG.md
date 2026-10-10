@@ -3,6 +3,67 @@
 Bütün əhəmiyyətli dəyişikliklər burada qeyd olunur. Format [Keep a Changelog](https://keepachangelog.com/),
 versiyalar [SemVer](https://semver.org/).
 
+## [1.21.0] — 2026-10-10 — İki səssiz nasazlıq BAĞLANDI; yanlış hüquqi yer bəyanı düzəldildi
+
+> **Miqrasiya YOXDUR.** Sırf kod + mətn; `update.sh` kifayətdir.
+> ⚠️ Bu dalğa 2026-10-08 sənədindəki **üç ölçmə səhvini** də düzəldir — hər biri aşağıda adlanır.
+
+### Düzəldildi — `es` server dil cədvəllərində (T37)
+- Yeni **`services/app/locales.py`**: `SUPPORTED_LOCALES` + `LANG_NAMES` + `normalize()`. **Heç nə
+  import etmir**, ona görə həm `routers/`, həm `ai/` onu çağıra bilər və dövrə yaranmır.
+- ⚠️ **Qeyd «beş cədvəl» deyirdi — ölçüldü: 16 cədvəl, 10 modul.** Ən kəskini qeydiyyat yolunda idi:
+  `auth.py::_OTP_EMAIL` ispan fermerə **təsdiq kodu məktubunu azərbaycanca** göndərirdi.
+- Dolduruldu: `advice.py` (LANG_NAMES·DISCLAIMERS·_NOTIFY_TITLE) · `chat.py` (LANG_NAMES·_GATE_PAID·
+  _GATE_LIMIT) · `emails/layout.py` · `emails/weekly.py` · `emails/catalog_i18n.py` (WELCOME·SIMPLE·
+  WEEKLY) · `auth.py` (OTP·MAGIC) · `email_prefs.py` · `fields.py::_FIELD_WORD` · `rules/alert_copy.py`
+  · `demo.py::_LOCALES`.
+- Mətn **uydurulmadı, ÇIXARILDI**: `alert.*` sətirləri `app/src/lib/locales/es.ts`-dən (həmin faylın
+  başlığının tələbi), `_FIELD_WORD["es"] = "Lote"` isə `es.ts`-in fermerə **artıq vəd etdiyi** söz.
+- `normalize()` **etiketi YAZAN yerdə** çağırılır (`advice`/`season_summary::generate_and_store`),
+  çağıranda yox. Səbəb: iki çağıranın **ikisi də** validasiya edirdi — biri 9, biri 8 dilə baxırdı,
+  və hasil azərbaycanca mətni `lang='es'` etiketi ilə yazırdı (`lang_mismatch` **false**).
+- `services/tests/test_locales.py` — **pytest/DB/fastapi tələb etmir** (`ast`, import yox). İkinci
+  yoxlaması əsasdır: dil cədvəlinə **oxşayan** hər bəyan olunmamış dict uğursuzluq verir, çünki
+  birinci yoxlama 2026-08-02-də keçərdi. Hər iki uğursuzluq forması yerli sınandı.
+- `season_summary.py`-nin yerli `_LANG_NAMES` yamağı silindi (o, **tək** fərqinə varan modul idi).
+- ⚠️ **SƏNƏD SƏHVİ 1:** `catalog_i18n.SIMPLE_EXTRA` «ölü data» deyil — içindəki `data_ready` canlı
+  tranzaksiyalı məktubdur, ona görə `es` orada da əskik idi.
+
+### Düzəldildi — HLS-in yalançı yaşıl logu (U14 kod yarısı)
+- `geo_pipeline/pipeline.py` CLI **son sətir kimi** `RUN_RESULT {json}` yazır (`BACKFILL_RESULT` ilə
+  eyni müqavilə). `sensor=all` üçün `by_sensor` da gəlir — məhz bugünkü vəziyyət budur: HLS sıfır
+  yazır, S2 sağlamdır, və tək birləşmiş rəqəm bunu gizlədərdi.
+- `run-hls.sh` / `run-s2.sh`: **«kor run» = granule tapan HƏR sahə sıfır yazdı → `exit 1`.** Bir
+  sahənin sıfır yazması uğursuzluq deyil (bulud Fmask piksellərini atır) — ona görə per-sahə exit
+  kodu 0 qalır; havanı sınıqdan **yalnız runner** ayıra bilər.
+- ⚠️ **Geriyə uyğun:** `RUN_RESULT` sətri olmayan köhnə image run-ı uğursuz etmir — `update.sh`
+  `geo` image-ini rebuild etmir, yəni skript image-dən əvvəl canlıya düşür.
+- ⏳ **Token hələ sizdən** (U14) — bu dəyişiklik HLS-i diriltmir, susmasına son qoyur.
+
+### Düzəldildi — məxfilik siyasəti (T38 + hüquqi yer)
+- 9 dildə `account-data` bölməsinə bir bənd: hər giriş/uğursuz giriş/çıxış üçün **vaxt · üsul · IP ·
+  user-agent**, və hesab bağlananda silindiyi (0064 `ON DELETE CASCADE`).
+- `retention` bölməsi 9 dildə açıq yazır ki, **giriş jurnalı üçün də avtomatik müddət yoxdur** (T39
+  gizli boşluq olmaqdan çıxdı; pəncərə seçimi sahibdədir).
+- ⚠️ **SƏNƏD SƏHVİ 2 — və bu, hüquqi mətndə idi:** sənəd 9 dildə, hər birində **iki yerdə**,
+  «Helsinkidəki (Finlandiya) **Hetzner** serveri» yazırdı. Prod oktyabrda **Contabo**-ya köçmüşdü.
+  İndi «Avropa İttifaqı daxilində Contabo serveri»; **şəhər qəsdən yazılmır** — `Europe/Berlin` saat
+  qurşağı və RIPE-in NL ayırması datacenter sübutu deyil, təxmini belə mətnə yazmaq olmaz.
+  Backup cümləsi toxunulmadı (Hetzner Falkenstein, Aİ — hələ doğru). `LEGAL_UPDATED` → 2026-10-10.
+
+### Təmizlik (§F)
+- **54 sətir yetim i18n açarı silindi** (6 açar × 9 lüğət). Siyahıdaki 7-dən `field.tab.nasa` onsuz
+  da yox idi. Hər silinən sətrin tək sətirlik və vergüllə bitdiyi doğrulandı.
+- `internal.py::run_advice` artıq kvota rəddini **uğur saymır** (`ok:false` + `reason`). Əvvəl
+  avtomatik generasiya kvotaya dəyəndə cron logu `ok: true` yazırdı.
+- `deploy/logrotate-bagban.conf` — 13 cron 27 MB yığmışdı, rotasiya yoxdu. Repoda saxlanılır;
+  serverə əl ilə quraşdırılır.
+- Köhnəlmiş şərhlər: `i18n.ts` «Default and only locale for now» (fayl 9 lüğətin mənbəyidir),
+  `weekly.py` «ALL EIGHT locales».
+- ⚠️ **SƏNƏD SƏHVİ 3 ×2:** `routers/mgmt.py`-nin kəsilmiş quyruğu — **fayl artıq yoxdur** (2026-08-04
+  kəsimi apardı). `advice_field_lang_idx` «heç bir sorğu istifadə etmir» — **istifadə olunur**:
+  oxucu-tərcihi (`_ADVICE_IN_LANG_SQL`, `weekly._advice()`) o bənddən sonra gəldi. İndeksi silmə.
+
 ## [1.20.0] — 2026-10-08 — Giriş auditi, admin istifadəçi profili + xəritə; iki səssiz nasazlıq tapıldı
 
 > Mənbə: `ce35767`. Miqrasiya **0064**. İki aylıq fasilədən (son iş 2026-08-04) sonrakı ilk dalğa.

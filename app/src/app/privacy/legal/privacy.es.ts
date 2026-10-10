@@ -10,7 +10,7 @@ export const privacyEs: PrivacyDoc = {
     "explica, tal como es, qué recopila el sistema sobre usted, dónde lo guarda, a quién se " +
     "envía y qué ocurre cuando usted cierra su cuenta.",
   summary: [
-    "Todos los datos se almacenan dentro de la UE — en un único servidor en Helsinki, Finlandia, en una base Postgres que gestionamos nosotros. Una excepción: el texto y las imágenes enviados al análisis de IA salen de la UE mientras se procesan — vea “Subencargados” más abajo.",
+    "Todos los datos se almacenan dentro de la UE — en un único servidor de Contabo, en una base Postgres que gestionamos nosotros. Una excepción: el texto y las imágenes enviados al análisis de IA salen de la UE mientras se procesan — vea “Subencargados” más abajo.",
     "No hay ningún rastreador publicitario, ningún píxel de analítica ni cookies de terceros; por eso no hay banner de consentimiento.",
     "Los datos del campo van a la IA, los datos de la cuenta no: su nombre, su correo electrónico y el hash de su contraseña nunca se envían al proveedor del modelo.",
     "El único correo recurrente es un resumen semanal (los miércoles); un clic basta para darse de baja.",
@@ -66,6 +66,7 @@ export const privacyEs: PrivacyDoc = {
             "Las respuestas del breve cuestionario de la página de marketing (cultivo, país, región, problema principal, necesidades), si usted lo completó antes de registrarse.",
             "El estado de verificación del correo y un código temporal de 6 dígitos; el código se elimina en cuanto se usa.",
             "La hora de última visita, escrita como máximo una vez por hora, solo para saber si la cuenta sigue en uso.",
+            "Cada inicio de sesión, intento fallido y cierre de sesión: la hora, el método (contraseña, código, enlace, Google), su dirección IP y la cadena user-agent de su navegador. Se guarda para que pueda verse quién entró en la cuenta y desde dónde; al cerrar la cuenta estos registros también se eliminan.",
           ],
         },
         {
@@ -113,7 +114,7 @@ export const privacyEs: PrivacyDoc = {
         {
           kind: "p",
           text:
-            "Todo se almacena en un único servidor de Hetzner en Helsinki, Finlandia (Unión " +
+            "Todo se almacena en un único servidor de Contabo dentro de la Unión " +
             "Europea). La base de datos es nuestra propia instalación de Postgres 16 + PostGIS " +
             "ejecutándose en Docker en esa máquina. Los archivos que usted sube residen en el " +
             "disco local de ese servidor, y los rásteres satelitales, en una carpeta separada " +
@@ -398,7 +399,10 @@ export const privacyEs: PrivacyDoc = {
         },
         {
           kind: "p",
-          text: "No hay caducidad automática para los datos satelitales ni para los derivados.",
+          text:
+            "No hay caducidad automática para los datos satelitales ni para los derivados. " +
+            "Tampoco para el registro de inicios de sesión: esas filas se eliminan solo al cerrar " +
+            "la cuenta.",
         },
       ],
     },

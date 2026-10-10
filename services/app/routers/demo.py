@@ -47,6 +47,7 @@ from .. import tiers
 from ..ai import wellness as wellness_mod
 from ..config import settings
 from ..db import connection
+from ..locales import SUPPORTED_LOCALES
 
 router = APIRouter(prefix="/api", tags=["demo"])
 
@@ -78,7 +79,7 @@ FORECAST_DAYS = 5
 # this tuple (instead of passing `extra` through) is what keeps a future backend field from leaking.
 _DETAIL_KEYS = ("reason_code", "reason_params", "calibrated", "crop", "baseline", "delta")
 
-_LOCALES = {"az", "en", "ru", "tr", "de", "hu", "it", "pl"}
+_LOCALES = set(SUPPORTED_LOCALES)
 
 
 def _f(v) -> Optional[float]:

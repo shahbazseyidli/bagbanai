@@ -23,6 +23,7 @@ from ..ai import notify
 from ..config import settings
 from ..db import connection
 from ..deps import get_current_user_id, get_optional_user_id
+from ..locales import SUPPORTED_LOCALES  # re-exported: routers/oauth.py imports it from here
 from ..schemas import (LoginIn, MagicLinkIn, MagicLoginIn, ResendOtpIn, SignupIn, UserOut,
                        UserRole, VerifyOtpIn)
 from ..security import create_token, hash_password, verify_password
@@ -124,6 +125,9 @@ _OTP_EMAIL: dict[str, tuple[str, str]] = {
     "ru": ("Agradex — код подтверждения",
            "Код для подтверждения вашего аккаунта Agradex: {code}\n\n"
            "Код действителен {ttl} мин. Если вы не запрашивали его, просто проигнорируйте это письмо."),
+    "es": ("Agradex — código de verificación",
+           "Su código para verificar su cuenta de Agradex: {code}\n\n"
+           "El código es válido durante {ttl} minutos. Si no lo solicitó, ignore este mensaje."),
 }
 
 
@@ -482,6 +486,10 @@ _MAGIC_EMAIL: dict[str, tuple[str, str]] = {
            "Ваша ссылка для входа в Agradex:\n\n{url}\n\n"
            "Ссылка действительна {ttl} мин. и может быть использована один раз. "
            "Если вы не запрашивали её, просто проигнорируйте это письмо."),
+    "es": ("Agradex — su enlace de acceso",
+           "Su enlace para entrar en Agradex:\n\n{url}\n\n"
+           "El enlace es válido durante {ttl} minutos y puede usarse una sola vez. "
+           "Si no lo solicitó, ignore este mensaje."),
 }
 
 
@@ -999,7 +1007,9 @@ async def set_area_unit(body: dict, user_id: str = Depends(get_current_user_id))
 # digest email and the advice the geo pipeline generates after each new scene both read
 # users.locale. Before this the column only ever held whatever was picked at signup, so a farmer
 # who switched to Russian kept getting Azerbaijani analysis and Azerbaijani mail forever.
-SUPPORTED_LOCALES = ("az", "en", "ru", "tr", "de", "hu", "it", "pl", "es")
+#
+# SUPPORTED_LOCALES itself is imported at the top of this file now. It used to be a literal here,
+# while six other modules each kept their own idea of the language list — see ..locales.
 
 
 @router.post("/locale")
