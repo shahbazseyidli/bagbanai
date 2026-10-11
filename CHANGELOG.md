@@ -3,6 +3,52 @@
 Bütün əhəmiyyətli dəyişikliklər burada qeyd olunur. Format [Keep a Changelog](https://keepachangelog.com/),
 versiyalar [SemVer](https://semver.org/).
 
+## [1.22.0] — 2026-10-11 — nginx bərpası, i18n qalığı, və 18 yatmış cədvəlin arxiv+drop-u
+
+> **Miqrasiya 0065** — `db/migrate.sh` ilə ayrıca tətbiq olunur. ⚠️ **Geri qaytarma yolu yalnız
+> arxivdir:** `/root/archive-dormant-tables-20261011.sql.gz` (Contabo) + eyni ad backup host-da.
+
+### nginx — köçürmədə itən üç şey (T40/T41/T42)
+- **T40 tile keşi.** ⚠️ İlk tətbiq **işləmirdi**: TiTiler özü `max-age=3600` göndərir və `add_header`
+  **əvəz etmir, əlavə edir** → bir cavabda iki `Cache-Control`. `proxy_hide_header` ilə həll olundu;
+  indi 200-lük tile-da tək başlıq (`max-age=604800`), 422-də **heç biri**.
+- **T41 http2.** ⚠️ `listen 443 ssl http2;` — nginx **1.24.0**-da `http2 on;` `nginx -t`-ni sındırır.
+  ⚠️ **Yan təsir:** `http2` listen **ünvanı** üzrədir və `agradex.com` əlifbada birincidir, ona görə
+  bu paylaşılan qutudakı **bütün vhost-lar** http/2 danışır. Beşi də yoxlanıldı, sınmadı.
+- **T42 www→apex.** ⚠️ Roadmap-dakı təsvir **yanlış idi** («dublikat kontent») — Cloudflare artıq
+  301 edirdi. Real boşluq: `Host: www` ilə **origin 200 qaytarırdı**. İndi hər iki qat razılaşır.
+  ⚠️ `nginx -t` səhvimi tutdu: eyni ad iki blokda → `conflicting server name … ignored`, yəni
+  yönləndirmə heç işləməyəcəkdi. **Dəqiq-vs-dəqiq ad üstünlük deyil, münaqişədir.**
+
+### T18 — lokalizasiya qalığı (ölçüldü, kopyalanmadı)
+- Qeyddəki üç fayl **artıq bitmişdi**. Bütün `app/src` tarandı (blok şərhləri ayırd edilərək):
+  real qalıq **üç yer** idi — `Skeleton.tsx` `aria-label` (+ faylda `"use client"` yox idi),
+  `ProfileForm.tsx` placeholder, `provider/page.tsx`-in 16 ixtisas etiketi. **18 açar × 9 dil.**
+- ⚠️ İxtisasda **dəyər azərbaycanca qalır** — `provider_profiles.specializations` düz mətndir və
+  kataloq filtrləri onu belə müqayisə edir (`countries.ts` ilə eyni müqavilə).
+
+### T35+T36 — 18 cədvəl arxivləşdirildi və drop olundu (0065)
+- **83 → 65 cədvəl.** Arxiv iki hostda; fayl adı **qəsdən `bagban-` ilə başlamır** (`backup-db.sh`
+  `bagban-*.sql.gz`-i 14-ə rotasiya edir və arxivi iki həftəyə silərdi).
+- ⚠️ **Siyahı koddan çıxarıldı, qeyddən yox — qeyd dörd cədvəldə yanılırdı.** SAXLANILDI:
+  `tasks` (`admin.py` oxuyur) · `field_zones` (`zones.py` yazır) · **`field_operations` (İKİ canlı
+  oxucu: çap hesabatı + AI konteksti; 5 sətri hələ modelə gedir)** · `field_weather_daily`.
+- ⚠️ «Diskdə yüklənmiş fayllar var» xəbərdarlığı da **yanlış** idi: 0 sənəd, 0 foto, boş həcm.
+- ⚠️ `subsidy_modifiers` heç bir qeyddə yox idi və `subsidy_years`-i bloklayardı — **FK qrafiki
+  tapdı.** `subsidy_regions` isə **saxlanıldı**: kalkulyatordan sağ çıxıb, `geo.py` onu rayon→
+  iqtisadi region üçün oxuyur.
+- **CASCADE yoxdur** (naməlum asılılıq səssizcə getməkdənsə səs salmalıdır) + əvvəlcə tranzaksiya
+  daxilində `rollback` ilə məşq edildi.
+- ⚠️ **Əsl tələ aşağıda idi:** `load_seeds.py` üç subsidiya cədvəlinə yazır və CLAUDE.md onu hər
+  miqrasiyadan sonra işlətməyi deyir → drop növbəti seed run-ını `UndefinedTable`-a çevirirdi və
+  **`crop_thresholds`-u da özü ilə aparırdı**. Serverdə reproduksiya edildi, sonra `table_exists()`
+  probu qoyuldu (try/except yox — uğursuz ifadə beş seeder-in paylaşdığı tranzaksiyanı pozur).
+
+### Ölçmələr
+- **U7 riski köhnəlmişdi:** `hectare_cap` **tətbiq OLUNUR** (`fields.py` → 402 `hectare_cap_reached`).
+- **U8:** Contabo-da UFW aktiv (22/80/443), fail2ban aktiv, `permitrootlogin no`. ⚠️ **`PasswordAuthentication yes`** — sahibin qərarı ilə toxunulmadı.
+- **T32 genişdir:** apex-də **nə MX, nə SPF, nə DMARC** var (DKIM var). Sahibin seçimi: Cloudflare Email Routing.
+
 ## [1.21.0] — 2026-10-10/11 — İki səssiz nasazlıq BAĞLANDI; yanlış hüquqi yer bəyanı; saxtalaşdırıla bilən müştəri IP-si
 
 > **Miqrasiya YOXDUR.** Sırf kod + mətn; `update.sh` kifayətdir.
