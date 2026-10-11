@@ -178,7 +178,7 @@ yazır, nə oxuyur. Default-lar sabitdir → cədvəl yenidən yazılmır, yazı
 
 | # | Task | İstifadəçi nə edir | Mən nə edirəm | Prioritet | Status |
 |---|---|---|---|---|---|
-| U1 | **EARTHDATA_TOKEN yenilə** (2026-08-30 bitir ⚠️) | urs.earthdata.nasa.gov → yeni bearer → `.env`+`.bak` → restart | Swap sonrası HLS COG 200 yoxla | **Yüksək** | ⏳ |
+| U1 | ~~**EARTHDATA_TOKEN yenilə**~~ — ⛔ **DUBLİKAT: bax U14.** Bu sətir iyulda «2026-08-30-da bitir» kimi yazıldı, U14 isə oktyabrda «bitib» kimi — **eyni iş, iki nömrə**. Birləşdirildi 2026-10-11; U14 canlı sübutu, kod yarısının vəziyyətini və sensor üzrə yoxlama addımını daşıyır | — | — | — | ❌ |
 | U2 | **Köhnə Anthropic açarını LƏĞV ET** (bir dəfə açıq görünüb) ⚠️ **task dəyişdi:** §A.3-dən sonra məhsul artıq o açarı işlətmir (DeepSeek + Gemini), yəni **rotate lazım deyil — ləğv lazımdır**; açar hələ etibarlıdır və heç nəyi qorumur | console.anthropic.com → köhnə açarı revoke; `.env`-dən `LLM_API_KEY` sətrini təmizlə → `bash deploy/update.sh` (restart KİFAYƏT DEYİL) | — | **Yüksək** | ⏳ |
 | U3 | ~~**Email/OTP (Resend)**~~ — **BİTDİ 2026-07-25** | `RESEND_API_KEY` + `EMAIL_FROM` `.env`-dədir, agradex.com Resend-də verified | Email AKTİV: OTP + welcome + data_ready + həftəlik digest (E15). ⚠️ `.env`-də boşluqlu dəyər **dırnaqda** olmalıdır — `update.sh` faylı source edir | **Yüksək** | ✅ |
 | U4 | **Telegram bot token** (→ T22) | @BotFather → `TELEGRAM_BOT_TOKEN`/`_USERNAME`/`_WEBHOOK_SECRET` → sonra `POST /api/internal/telegram/setup` | **✅ KOD HAZIR (f71d1b8):** 0024 messaging_channels/message_log; telegram.py; /messaging/telegram + /telegram/webhook; dispatcher delivery; TelegramConnect kartı. Tokensiz dormant. | **Yüksək** | ⏳ token gözləyir |
@@ -508,7 +508,9 @@ grep ilə yenidən yoxlanıb; bağlananlar üstündən xətt çəkilib, silinmə
   (`where field_id=$1 and lang=$2 order by generated_at desc`) və `emails/weekly.py::_advice()`
   (`order by field_id, (lang=$3) desc, generated_at desc`) ikisi də `lang` süzür. İndeksi silmə.
 - `first_advice` — `send.py::TRANSACTIONAL`-dan çıxarıldı; şablonu və istinadı yoxdur. Kənar çağıran (n8n/skript) hələ `template_id='first_advice'` göndərirsə `catalog.build` None qaytarır və `send_template` səssizcə `False` verir — nə xəta, nə email, nə ledger sətri.
-- **Köhnəlmiş kod şərhləri:** `i18n.ts` 1-ci sətri hələ "Default and only locale for now" yazır (fayl 8 lüğətlidir); `weekly.py` şərhi hələ "AZ and EN are hand-written" deyir (76abcb5-dən sonra ru da var).
+- ~~**Köhnəlmiş kod şərhləri**~~ ✅ **2026-10-10.** `i18n.ts` 1-ci sətri («Default and only
+  locale for now» — fayl **doqquz** lüğətin mənbəyidir) və `weekly.py`-nin «ALL EIGHT locales»-i
+  düzəldildi.
 - ~~**Kvota dicti istisna deyil**~~ — ✅ **2026-10-10.** `routers/internal.py::run_advice` artıq
   bayrağı oxuyur və `{"ok": false, "reason": "quota_exceeded", "tier": …}` qaytarır.
   `generate_and_store`-un müqaviləsi **qəsdən dəyişməyib** (onu `routers/advice.py` 429-a çevirir) —
