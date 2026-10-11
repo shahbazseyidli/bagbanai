@@ -17,9 +17,15 @@ What it cannot do, stated plainly so nobody over-trusts it:
   * nginx sets X-Real-IP $remote_addr, but agradex.com is Cloudflare-PROXIED, so that address is
     a CF edge shared by many farmers. Hence CF-Connecting-IP first, and deliberately generous
     caps — throttling a whole CF edge would be worse than the abuse it prevents.
-  * CF-Connecting-IP is forgeable by anyone hitting the origin directly: neither nginx conf in
-    deploy/ sets `set_real_ip_from <CF ranges>` + `real_ip_header CF-Connecting-IP`. Until that
-    lands, this stops scripted abuse and does not stop a determined attacker.
+  * CF-Connecting-IP USED TO BE forgeable by anyone hitting the origin directly. Closed on
+    2026-10-11: deploy/nginx-agradex.conf sets `set_real_ip_from <CF ranges>` +
+    `real_ip_header CF-Connecting-IP`, and then `proxy_set_header CF-Connecting-IP $remote_addr`
+    OVERWRITES whatever the caller sent with the address nginx resolved. Verified end to end
+    against app.agradex.com — which is not CF-proxied, so it was the exposed host — by sending
+    `CF-Connecting-IP: 203.0.113.99` with a bad password: public.auth_events recorded the real
+    peer address instead. ⚠️ The guarantee lives in nginx, not here, and the live config had
+    silently lost it once already during the Contabo migration. If this limiter ever starts
+    counting Cloudflare edge addresses again, diff the server's vhost against deploy/.
 
 Buckets are namespaced per limiter, so the landing map cannot spend the login allowance.
 """

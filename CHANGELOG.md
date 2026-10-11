@@ -3,7 +3,7 @@
 Bütün əhəmiyyətli dəyişikliklər burada qeyd olunur. Format [Keep a Changelog](https://keepachangelog.com/),
 versiyalar [SemVer](https://semver.org/).
 
-## [1.21.0] — 2026-10-10 — İki səssiz nasazlıq BAĞLANDI; yanlış hüquqi yer bəyanı düzəldildi
+## [1.21.0] — 2026-10-10/11 — İki səssiz nasazlıq BAĞLANDI; yanlış hüquqi yer bəyanı; saxtalaşdırıla bilən müştəri IP-si
 
 > **Miqrasiya YOXDUR.** Sırf kod + mətn; `update.sh` kifayətdir.
 > ⚠️ Bu dalğa 2026-10-08 sənədindəki **üç ölçmə səhvini** də düzəldir — hər biri aşağıda adlanır.
@@ -50,6 +50,36 @@ versiyalar [SemVer](https://semver.org/).
   İndi «Avropa İttifaqı daxilində Contabo serveri»; **şəhər qəsdən yazılmır** — `Europe/Berlin` saat
   qurşağı və RIPE-in NL ayırması datacenter sübutu deyil, təxmini belə mətnə yazmaq olmaz.
   Backup cümləsi toxunulmadı (Hetzner Falkenstein, Aİ — hələ doğru). `LEGAL_UPDATED` → 2026-10-10.
+
+### Düzəldildi — saxtalaşdırıla bilən müştəri IP-si (2026-10-11)
+- Contabo köçürməsi nginx vhost-unu **əl ilə yenidən yazmışdı** və Cloudflare real-IP bloku
+  itmişdi. `app.agradex.com` CF arxasında **deyil** (A-record birbaşa origin-ə), yəni oraya gələn
+  hər kəs `CF-Connecting-IP` başlığını **özü seçə bilirdi** — `ratelimit.client_ip()` onu birinci
+  oxuyur, ona görə magic-link/login limiti **bir fırlanan başlıqla** keçilirdi. 0064 bunu
+  ciddiləşdirmişdi: `auth_events.ip` həmin saxta dəyəri «IP» kimi saxlayırdı.
+- Bərpa olundu: `set_real_ip_from` (22 CF aralığı) + `real_ip_header CF-Connecting-IP` +
+  `real_ip_recursive on`, və hər proxy location-da `proxy_set_header CF-Connecting-IP $remote_addr`
+  — bu sonuncu müştərinin göndərdiyini **üzərinə yazır**.
+- **Uçdan-uca doğrulandı:** `CF-Connecting-IP: 203.0.113.99` (+ saxta XFF/X-Real-IP) və səhv parol →
+  `auth_events` **real peer ünvanını** yazdı. Test sətri silindi.
+- ⚠️ **Drift iki istiqamətli idi, və repo tərəfi daha təhlükəli:** `deploy/nginx-agradex.conf`
+  yalnız `agradex.com www.agradex.com` elan edirdi — ondan bərpa **`app.agradex.com`-u xidmətsiz
+  qoyardı**, yəni tətbiqi tamamilə söndürərdi, məhz bu faylı kiminsə oxuduğu tək gündə. Repo nüsxəsi
+  indi canlı ilə eynidir.
+- Təxirə salındı (sahibin qərarı, faylın başında işarələnib): **T40** tile keş başlığı · **T41**
+  http2 (⚠️ nginx 1.24.0 → `listen 443 ssl http2;`, `http2 on;` DEYİL — təcrid olunmuş testdə
+  tutuldu) · **T42** www→apex 301.
+- ✅ Sənəd səhvi: `ratelimit.py` «deploy/-dəki heç bir nginx konfiqurasiyası real-IP qurmur» yazırdı
+  — repoda qurulmuşdu, serverdə yox.
+
+### Ölçmələr (iddia deyil)
+- **HLS/S2 ayırıcısı 453 real sahə-run-ında kalibrləndi** (rotasiya olunmuş cron logları):
+  **S2 453/453 səhnə yazıb · HLS 0/453, halbuki 453-ü granule tapıb.** Üst-üstə düşmə yoxdur, yəni
+  «kor run» yoxlaması S2-də yalan həyəcan verməyəcək və HLS-də hər gecə işə düşəcək.
+- `run-s2.sh` canlıda 22 sahə üzərində işlədildi: `22/22 OK, 5 scene(s) written (3 of 7 field(s)
+  found granules but kept none)`, **EXIT=0** — qismən kor run uğursuz sayılmır.
+- `run-hls.sh`-in girişi canlıda doğrulandı: `RUN_RESULT {"sensor":"hls","granules_found":4,"scenes_written":0}`.
+- Digest peyk şəkli riski **bağlandı**: `app.agradex.com/titiler/cog/preview.png` anonim həll olunur.
 
 ### Təmizlik (§F)
 - **54 sətir yetim i18n açarı silindi** (6 açar × 9 lüğət). Siyahıdaki 7-dən `field.tab.nasa` onsuz

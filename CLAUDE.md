@@ -354,6 +354,32 @@ _MAGIC_EMAIL) · `email_prefs.py::_MSG` · `fields.py::_FIELD_WORD` · `rules/al
   - Backup cümləsi **toxunulmadı** — «eyni komandanın idarə etdiyi server, Aİ daxilində» hələ
     doğrudur (Hetzner Falkenstein, 91.99.157.161).
   - `LEGAL_UPDATED` **2026-08-01 → 2026-10-10** (banner «bu tarixə dəqiqdir» deyir).
+- ⛔⚠️ **KÖÇÜRMƏ NGINX-İ DƏ GERİYƏ APARMIŞDI — təhlükəsizlik hissəsi 2026-10-11-də bərpa olundu.**
+  Contabo-da vhost **əl ilə, yeni yazılıb** və repodaki nüsxənin dörd xüsusiyyətini itirmişdi. Drift
+  **iki istiqamətli** idi — ən təhlükəli forma: repo nüsxəsi yalnız `agradex.com www.agradex.com`
+  elan edirdi, yəni **fəlakət bərpası tətbiqi tamamilə söndürərdi** (`app.agradex.com` xidmətsiz).
+  - ✅ **Bərpa olundu: Cloudflare real-IP bloku.** Onsuz `CF-Connecting-IP` **saxtalaşdırıla bilirdi**
+    (`app.agradex.com` CF arxasında DEYİL, A-record birbaşa origin-ə baxır), yəni magic-link
+    limiti bir fırlanan başlıqla keçilirdi — **və 0064 auditi həmin saxta dəyəri `ip` kimi yazırdı.**
+    `set_real_ip_from` (22 CF aralığı) + `real_ip_header CF-Connecting-IP` + hər proxy location-da
+    `proxy_set_header CF-Connecting-IP $remote_addr`.
+    - **Uçdan-uca doğrulandı:** `CF-Connecting-IP: 203.0.113.99` + səhv parol → `auth_events`-ə
+      **real peer ünvanı** düşdü, saxta dəyil. Test sətri silindi.
+  - ⬜ **Təxirə salındı (sahibin qərarı):** `/titiler/` üçün `Cache-Control: public, max-age=604800`
+    (tile baytları səhnə+parametr üzrə dəyişməz; onsuz brauzer hər pan-da yenidən çəkir) · `http2`
+    (⚠️ bu qutuda nginx **1.24.0** — sintaksis `listen 443 ssl http2;`, **`http2 on;` DEYİL**, o
+    1.25.1-dən gəlib və burada `nginx -t`-ni sındırır) · www→apex 301 (təklif olunmadı — davranış
+    dəyişikliyidir).
+  - **`deploy/nginx-agradex.conf` indi canlı ilə EYNİDİR**, təxirə salınanlar faylın başında açıq
+    işarələnib ki, növbəti `diff` onları drift kimi oxumasın:
+    `sudo diff /etc/nginx/sites-available/agradex.com deploy/nginx-agradex.conf`
+  - Backup: `/root/agradex.com.nginx.bak-20261010-1229`. ⚠️ **Təhlükəsiz tətbiq ardıcıllığı:** faylı
+    yaz → `nginx -t` → yalnız keçsə `reload`. nginx **reload-a qədər köhnə konfiqurasiya ilə xidmət
+    edir**, ona görə diskdəki pis fayl heç nəyi sındırmır.
+  - ✅ **Sənəd səhvi:** `ratelimit.py` başlığı «deploy/-dəki heç bir nginx konfiqurasiyası real-IP
+    qurmur» yazırdı — repoda qurulmuşdu, serverdə yox. İkisi də düzəldi.
+  - ✅ **§F «nginx dublikat server_name» maddəsi predmetsizdir** — `nginx -t` təmizdir, köhnə
+    dublikat blok Hetzner qutusu ilə getdi.
 - ✅ **logrotate (2026-10-10):** `deploy/logrotate-bagban.conf` — `weekly` + `maxsize 20M` +
   `rotate 8` + `copytruncate`. 13 cron 27 MB yığmışdı (16 MB-ı `bagban-hls.log`). **Repoda saxlanılır,
   serverə ƏL İLƏ quraşdırılır** (`sudo cp … /etc/logrotate.d/bagban`) — `backup-db.sh`-ın dərsi:
@@ -439,5 +465,5 @@ Bütün gələcək tasklar (E0–E12 + platform mühəndislik + istifadəçidə 
 - Login: demo@agradex.com / AgradexDemo2026 (sahib hesabı seyidlimirshahbaz@gmail.com — parol bcrypt hash DB-də sıfırlanıb, fayllarda parol saxlanmır).
 
 ## Versiyalar
-`CHANGELOG.md` [1.0.0]..**[1.21.0]** (ən yeni — 2026-10-10: **iki səssiz nasazlıq BAĞLANDI** — `es` 16 server cədvəlinə əlavə olundu + tək mənbə `locales.py` + kəşf testi, HLS runner «kor run»-ı tutur; **məxfilik siyasətindəki yanlış yer bəyanı** (Hetzner/Helsinki → Contabo/Aİ) və `ip`+`user_agent` 9 dildə; §F təmizlikləri. Miqrasiya YOXDUR). Ondan əvvəlki [1.20.0] — 2026-10-08: giriş auditi 0064, admin istifadəçi profili + xəritə, və **iki səssiz nasazlığın tapılması** — HLS 40 gündür ölüdür, `es` beş server cədvəlindən düşüb). Ondan əvvəlki [1.19.0] — 2026-08-04: DeepSeek/Gemini keçidi, sahə səhifəsinin kəsimi, mövsüm xülasəsi, Mesajlar, görmə kvotası, xəbərdarlığın həlli; miqrasiya **0063**). Ondan əvvəlki [1.18.0] — 2026-07-31, OneSoil korpus analizi dalğası (33 commit, miqrasiyalar 0057-0061). git tag-lar v1.0.0..v1.0.4 (tag vs changelog nömrələnməsi tarixən ayrılıb — **tag nömrələrinə güvənmə**).
+`CHANGELOG.md` [1.0.0]..**[1.21.0]** (ən yeni — 2026-10-10/11: **iki səssiz nasazlıq BAĞLANDI** — `es` 16 server cədvəlinə əlavə olundu + tək mənbə `locales.py` + kəşf testi, HLS runner «kor run»-ı tutur; **məxfilik siyasətindəki yanlış yer bəyanı** (Hetzner/Helsinki → Contabo/Aİ) və `ip`+`user_agent` 9 dildə; **saxtalaşdırıla bilən müştəri IP-si** (nginx CF real-IP bloku köçürmədə itmişdi — limiter və 0064 auditi saxta başlığa inanırdı); §F təmizlikləri. Miqrasiya YOXDUR). Ondan əvvəlki [1.20.0] — 2026-10-08: giriş auditi 0064, admin istifadəçi profili + xəritə, və **iki səssiz nasazlığın tapılması** — HLS 40 gündür ölüdür, `es` beş server cədvəlindən düşüb). Ondan əvvəlki [1.19.0] — 2026-08-04: DeepSeek/Gemini keçidi, sahə səhifəsinin kəsimi, mövsüm xülasəsi, Mesajlar, görmə kvotası, xəbərdarlığın həlli; miqrasiya **0063**). Ondan əvvəlki [1.18.0] — 2026-07-31, OneSoil korpus analizi dalğası (33 commit, miqrasiyalar 0057-0061). git tag-lar v1.0.0..v1.0.4 (tag vs changelog nömrələnməsi tarixən ayrılıb — **tag nömrələrinə güvənmə**).
 ⚠️ **[1.14.0]–[1.17.0] arasında 1.17.0-dan başqası yazılmayıb** — `90829eb..84e5f28` (20 commit) və 2026-07-27 dalğası (`81660df` sadələşdirmə, `a1b362e` UX, `31b6e58` toxunma hədəfləri) üçün mənbə **commit mesajlarıdır** + `docs/SESSION_2026-07-26.md`. Hər üçü uzun və səbəbi izah edir.

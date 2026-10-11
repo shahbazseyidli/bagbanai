@@ -241,6 +241,9 @@ yazır, nə oxuyur. Default-lar sabitdir → cədvəl yenidən yazılmır, yazı
 | **T37** | ~~`es` server dil cədvəllərindən düşüb~~ — ✅ **2026-10-10.** Qeyd «BEŞ cədvəl» deyirdi; ölçüldü: **16 cədvəl, 10 modul**. Ən kəskini qeydiyyat yolunda idi — `auth.py::_OTP_EMAIL` ispan fermerə **təsdiq kodunu azərbaycanca** göndərirdi. Həll: (1) yeni `services/app/locales.py` — `SUPPORTED_LOCALES` + `LANG_NAMES` + `normalize()`, heç nə import etmir; (2) 16 cədvəl dolduruldu, mətn **uydurulmayıb — `locales/es.ts`-dən çıxarılıb** (`alert.*` sətirləri, `_FIELD_WORD["es"]="Lote"` isə fermerə vəd edilmiş söz); (3) `normalize()` **etiketi yazan yerdə** (`advice`/`season_summary` `generate_and_store`), çağıranda yox — iki çağıranın ikisi də validasiya edirdi, biri 9, biri 8 dilə; (4) `services/tests/test_locales.py` — pytest/DB/fastapi-siz, `ast` ilə oxuyur, **kəşf yoxlaması** dil cədvəlinə oxşayan hər bəyan olunmamış dict-i tutur (hər iki uğursuzluq forması sınandı). ⚠️ `season_summary.py`-nin yerli yamağı silindi; `SIMPLE_EXTRA`-nın «ölü data» olduğu iddiası **səhv idi** — `data_ready` canlı tranzaksiyalı məktubdur | i18n/AI | backend | M | 🔴 | yox | ✅ |
 | **T38** | ~~Məxfilik siyasəti `ip` + `user_agent`-i adlandırmalıdır (9 dildə)~~ — ✅ **2026-10-10.** `account-data` bölməsinə 9 dildə bir bənd (vaxt · üsul · IP · user-agent · hesabla birlikdə silinir) + `retention` bölməsində saxlama cümləsi. ⚠️ **Yanında daha böyük bir şey tapıldı və düzəldildi:** sənəd 9 dildə, hər birində **iki yerdə**, «Helsinkidəki (Finlandiya) **Hetzner** serveri» yazırdı — prod oktyabrda Contabo-ya köçmüşdü, yəni **yanlış hüquqi yer bəyanı**. İndi «Avropa İttifaqı daxilində Contabo serveri», **şəhər qəsdən yazılmır** (sahibin qərarı — `Europe/Berlin` saat qurşağı datacenter sübutu deyil). `LEGAL_UPDATED` 2026-08-01 → 2026-10-10 | hüquqi | frontend | S | 🔴 | yox | ✅ |
 | **T39** | **`auth_events` saxlama müddəti** — cədvəl yalnız böyüyür; sətirləri silən yeganə şey hesabın bağlanmasıdır (`ON DELETE CASCADE`). 2026-10-10: bu **dürüst şəkildə 9 dildə siyasətə yazıldı** («giriş jurnalı üçün də avtomatik müddət yoxdur: yalnız hesab bağlananda silinir»), yəni boşluq artıq gizli deyil. Qalan iş **pəncərə seçimidir** (12 ay?) — prune job qoyulanda həmin cümlə də dəyişməlidir. Sahib qərarı; kod tərəfi bir cron sətri + bir `delete`. 31 istifadəçidə həcm problemi deyil | platform | db | S | ⚪ | sahib qərarı | ⬜ |
+| **T40** | **TiTiler tile keş başlığı** — `/titiler/` location-da `add_header Cache-Control "public, max-age=604800"`. Tile URL-i səhnə id-si + sabit render parametrləri adlandırır, yəni baytları **dəyişə bilməz**; başlıq olmadan brauzer eyni tarixin hər pan-ında tile-ları yenidən çəkir və TiTiler COG-u yenidən oxuyur. Köçürmədən əvvəl repodaki konfiqurasiyada **var idi**, canlıda itmişdi (2026-10-11 ölçüldü). Bir sətir; `deploy/nginx-agradex.conf` başlığında işarələnib | performans | infra | S | 🟡 | yox | ⬜ |
+| **T41** | **http2** — canlı `listen 443 ssl;`-dir. ⚠️ **Sintaksis qutuya bağlıdır:** nginx **1.24.0**, ona görə `listen 443 ssl http2;` yazılmalıdır; `http2 on;` 1.25.1-dən gəlib və burada `nginx -t`-ni **sındırır** (bu dəfə təcrid olunmuş testdə tutuldu, canlı fayla toxunulmadan). Köçürmədən əvvəl var idi | performans | infra | S | 🟡 | yox | ⬜ |
+| **T42** | **www → apex 301** — `www.agradex.com` hazırda bütün saytı verir, yəni iki host-da **dublikat kontent**. SEO dalğasının canonical teqləri birləşdirir, 301 isə daha qəti edərdi. **Davranış dəyişikliyidir**, ona görə öz qərarını istəyir | SEO | infra | S | ⚪ | sahib qərarı | ⬜ |
 
 ### C.1 Task detalları (niyə / harada — kod ilə yoxlanmış)
 
@@ -462,16 +465,25 @@ Tam plan və sübutlar: sessiya jurnalı. Aşağıda yalnız **status**.
 - **Digest 5 dildə ingiliscə gedir** (T28) və **AZ məsləhət mətnini sitat gətirir** (T30) — ilk göndərişdən əvvəl düzəlt.
 - **Köhnə `?tab=` linkləri səssizcə "Sahənin vəziyyəti"nə açılır** — alias cədvəli **QƏSDƏN** yoxdur (`fieldSections.ts:8-13`: məhsulun yalnız test istifadəçiləri var, bütün daxili link qurucular yeniləndi). `resolveSection()` naməlum dəyəri default-a çevirir: nə 404, nə redirect, nə xəbərdarlıq. Email/Telegram/skrinşotda köhnə link qalıbsa, işləyirmiş kimi görünür. Bərpa lazım olsa `fieldSections.ts:96-98`-də 5 sətirdir — amma əvvəl fayl başlığındakı qərarı oxu.
 - **Wellness balı proxy səbəbindən aşağı düşəndə QƏSDƏN düzəldilmir** — yalnız ton (`warn`-da dayanır) və "ən pis komponent" adı düzəlir. Ona görə sahə `40/100` + `warn` göstərə bilər, halbuki `_WARN_MIN = 45`. Bu **niyyətlidir** ("balı dürüst saxlayırıq") — clamp ilə "düzəltmə".
-- **Digest peyk şəkli PUBLIC TiTiler URL-i ilə gəlir** (`weekly.raster_png_url()` → `{app_url()}/titiler/cog/preview.png`), çünki Gmail şəkilləri proxy edir. TiTiler-in public çıxışı bağlanarsa **hər həftəlik email-də şəkil səssizcə sınır** (digest bunu nəzərə alıb: rəqəmlər mətn kimi də təkrarlanır). Repo-dakı `deploy/nginx-agradex.conf` yalnız `agradex.com`/`www` üçün `server_name` elan edir — `https://app.agradex.com/titiler/cog/preview.png`-in anonim həll olunduğu **repo-dan sübut oluna bilmir**, ilk göndərişdən əvvəl curl ilə yoxla.
+- **Digest peyk şəkli PUBLIC TiTiler URL-i ilə gəlir** (`weekly.raster_png_url()` → `{app_url()}/titiler/cog/preview.png`), çünki Gmail şəkilləri proxy edir. TiTiler-in public çıxışı bağlanarsa **hər həftəlik email-də şəkil səssizcə sınır** (digest bunu nəzərə alıb: rəqəmlər mətn kimi də təkrarlanır). ✅ **BAĞLANDI 2026-10-11 — curl ilə ölçüldü:** `https://app.agradex.com/titiler/cog/preview.png`
+  **anonim həll olunur** (parametrsiz 422 = TiTiler-ə çatır, 404 deyil); apex-də də eynidir. Canlı
+  vhost `server_name`-də `app.agradex.com`-u saxlayır. ⚠️ Riskin **səbəbi** düzgün idi — repo nüsxəsi
+  həmin host-u elan etmirdi — amma nəticəsi tərsinə çıxdı: təhlükə digest şəklinin sınması deyil,
+  **repodan bərpanın tətbiqi tamamilə söndürməsi** idi. Repo nüsxəsi 2026-10-11-də canlıya
+  uyğunlaşdırıldı.
 
 ---
 
 ## F. Kiçik follow-up (tez təmizliklər)
 
-- nginx dublikat/conflicting `server_name` təmizliyi (canlı vhost yoxla).
+- ~~nginx dublikat/conflicting `server_name` təmizliyi~~ — ❌ **predmetsiz (yoxlandı 2026-10-11):**
+  `nginx -t` təmizdir, köhnə dublikat blok silinmiş Hetzner qutusu ilə getdi. **Əvəzinə daha ciddi
+  bir şey tapıldı** — bax aşağıdaki T40/T41 və CLAUDE.md «KÖÇÜRMƏ NGINX-İ DƏ GERİYƏ APARMIŞDI».
 - FieldMap-ə `maplibregl.ScaleControl` (§6.2, bir sətir — T19 ilə birlikdə).
 
-- `/indices/benchmark` endpoint-ini tier flag-ına gate et (hazırda gate-siz).
+- `/indices/benchmark` endpoint-ini tier flag-ına gate et (hazırda gate-siz). ⚠️ **2026-10-11-də
+  qəsdən edilmədi:** bu, pulsuz istifadəçidən funksiya ALMAQdır, yəni məhsul qərarıdır — və qiymət
+  səhifəsi onu artıq canlı kimi göstərir (v1.19 düzəlişi). Əvvəl qiymət mətni ilə birlikdə qərar ver.
 - Gate olunan səthlərdə (chat/passport/alert) açıq upsell UI (UpgradeCta yalnız field-limit üçün).
 - ~~`/var/log/bagban-*.log` üçün logrotate config.~~ ✅ **2026-10-10** — `deploy/logrotate-bagban.conf`
   (`weekly` + `maxsize 20M` + `rotate 8` + `copytruncate`). 13 cron 27 MB yığmışdı. ⚠️ **Repoda,
