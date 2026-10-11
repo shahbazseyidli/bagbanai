@@ -2,10 +2,11 @@
 """Load reference/seed data (spec §12 + §30.4/30.5).
 
 - crop_thresholds  (rule-engine defaults, §12)
-- subsidy_years    (2026 base_unit_rate = 200 AZN)
-- subsidy_regions  (wizard dropdown + eligibility)
-- subsidy_rates    (117 rows; amount_per_unit = coefficient × base_unit_rate, verified)
-- subsidy_modifiers(§30.5)
+- subsidy_regions  (50 rayons → economic region). NOT a subsidy seed any more: the calculator is
+  gone but routers/geo.py still reads this table when reverse-geocoding a new field, so 0065 kept
+  it and it is always loaded.
+- subsidy_years / subsidy_rates / subsidy_modifiers — SKIPPED on a current database: 0065 dropped
+  those three. Loaders and JSON stay so restoring the archive revives them without a code change.
 
 Idempotent: reference tables are upserted; subsidy rates/modifiers for the target
 year are replaced. Run after migrations:
@@ -25,6 +26,22 @@ YEAR = 2026
 BASE_UNIT_RATE = 200
 SOURCE_URL = "https://www.agro.gov.az/az/news/010920254"
 PUBLISHED_AT = "2025-09-01"
+
+
+def table_exists(cur, name: str) -> bool:
+    """Is `public.<name>` present?
+
+    Migration 0065 dropped the subsidy tables (the calculator left the product in v1.12.0 and the
+    schema followed on 2026-10-11), so the four subsidy seeders below have nothing to write into on
+    any database that is up to date. Without this guard the very next run of this script — which
+    CLAUDE.md tells the operator to run after migrations — would die on "relation does not exist",
+    and take crop_thresholds, the one seeder that still matters, down with it.
+
+    Probed rather than caught: a failed statement aborts the surrounding transaction, and main()
+    commits all five seeders together.
+    """
+    cur.execute("select to_regclass(%s) is not null", (f"public.{name}",))
+    return bool(cur.fetchone()[0])
 
 
 def load_json(name: str):
@@ -139,10 +156,21 @@ def main():
     with psycopg.connect(dsn) as conn:
         with conn.cursor() as cur:
             seed_crop_thresholds(cur)
-            seed_year(cur)
+            # ⚠️ subsidy_regions OUTLIVED the calculator and is NOT a subsidy seed any more:
+            # routers/geo.py reads it to turn a reverse-geocoded rayon into an economic region
+            # when a farmer draws a field. It was deliberately kept by 0065, so it is seeded
+            # unconditionally — folding it in with the three below would leave a fresh database
+            # with an empty lookup and a silently blank region on every new field.
             seed_regions(cur)
-            seed_rates(cur)
-            seed_modifiers(cur)
+            # The calculator itself is out of the product and its tables are gone (0065). The JSON
+            # files stay — researched 2026 rates nobody wants to rebuild — so restoring the
+            # archive makes these three work again with no code change.
+            if table_exists(cur, "subsidy_years"):
+                seed_year(cur)
+                seed_rates(cur)
+                seed_modifiers(cur)
+            else:
+                print("subsidy rate tables absent (dropped in 0065) — skipping those three seeds")
         conn.commit()
     print("seeds loaded.")
 
