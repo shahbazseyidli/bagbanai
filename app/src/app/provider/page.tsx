@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
 import { api, azError } from "@/lib/api";
-import { t } from "@/lib/i18n";
+import { t, type I18nKey } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { ErrorNote, Spinner } from "@/components/ui";
 import type { UserRole } from "@/lib/types";
@@ -14,10 +14,33 @@ import type { UserRole } from "@/lib/types";
 interface Provider { id: string; kind: string; company: string; bio?: string | null; specializations: string[]; country?: string | null; region?: string | null; address?: string | null; coverage?: string | null; phone?: string | null; }
 interface Item { id: string; name: string; category?: string | null; unit?: string | null; price?: number | null; currency: string; description?: string | null; }
 
-const SPECS: Record<string, string[]> = {
-  supplier: ["Toxum", "Gübrə", "Dərman (pestisid)", "Texnika", "Suvarma avadanlığı", "Xidmət"],
-  lab: ["Torpaq analizi", "NPK", "pH", "Su analizi", "Yarpaq analizi"],
-  consultant: ["Bağçılıq", "Fındıq", "Taxıl", "Üzümçülük", "Tərəvəz"],
+// Specializations. The VALUE stays the canonical Azerbaijani string and the label is translated
+// beside it — the same contract as account/countries.ts, and for the same reason:
+// provider_profiles.specializations is plain text and the catalog filters compare it as such, so
+// localizing the stored value would quietly unmatch every row already saved.
+const SPECS: Record<string, { value: string; labelKey: I18nKey }[]> = {
+  supplier: [
+    { value: "Toxum", labelKey: "app.provider.spec.seed" },
+    { value: "Gübrə", labelKey: "app.provider.spec.fertilizer" },
+    { value: "Dərman (pestisid)", labelKey: "app.provider.spec.pesticide" },
+    { value: "Texnika", labelKey: "app.provider.spec.machinery" },
+    { value: "Suvarma avadanlığı", labelKey: "app.provider.spec.irrigation" },
+    { value: "Xidmət", labelKey: "app.provider.spec.service" },
+  ],
+  lab: [
+    { value: "Torpaq analizi", labelKey: "app.provider.spec.soilTest" },
+    { value: "NPK", labelKey: "app.provider.spec.npk" },
+    { value: "pH", labelKey: "app.provider.spec.ph" },
+    { value: "Su analizi", labelKey: "app.provider.spec.waterTest" },
+    { value: "Yarpaq analizi", labelKey: "app.provider.spec.leafTest" },
+  ],
+  consultant: [
+    { value: "Bağçılıq", labelKey: "app.provider.spec.horticulture" },
+    { value: "Fındıq", labelKey: "app.provider.spec.hazelnut" },
+    { value: "Taxıl", labelKey: "app.provider.spec.cereals" },
+    { value: "Üzümçülük", labelKey: "app.provider.spec.viticulture" },
+    { value: "Tərəvəz", labelKey: "app.provider.spec.vegetables" },
+  ],
 };
 
 export default function ProviderPage() {
@@ -82,8 +105,8 @@ export default function ProviderPage() {
         <div><label className="label">{t("app.provider.bioLabel")}</label><textarea className="input" rows={2} value={p.bio || ""} onChange={(e) => setP({ ...p, bio: e.target.value })} /></div>
         <div><label className="label">{t("app.provider.specializationsLabel")}</label>
           <div className="mt-1 flex flex-wrap gap-2">
-            {(SPECS[kind] || []).map((s) => (
-              <button key={s} type="button" onClick={() => toggleSpec(s)} className={`rounded-full border-[1.5px] px-3 py-1.5 text-sm font-medium ${p.specializations.includes(s) ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-slate-300 text-slate-600"}`}>{s}</button>
+            {(SPECS[kind] || []).map(({ value: s, labelKey }) => (
+              <button key={s} type="button" onClick={() => toggleSpec(s)} className={`rounded-full border-[1.5px] px-3 py-1.5 text-sm font-medium ${p.specializations.includes(s) ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-slate-300 text-slate-600"}`}>{t(labelKey)}</button>
             ))}
           </div>
         </div>

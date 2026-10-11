@@ -127,7 +127,7 @@ export default function ProfileForm() {
               className="input"
               value={region}
               onChange={(e) => setRegion(e.target.value)}
-              placeholder="Xaçmaz"
+              placeholder={t("app.account.regionPlaceholder")}
             />
           </div>
         </div>
