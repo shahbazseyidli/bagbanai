@@ -965,6 +965,118 @@ async def user_detail(user_id_target: str, user_id: str = Depends(get_current_us
     }
 
 
+# ─────────────────────────────────────────────────────────────────────────────────────────────
+# ONE TIMELINE. The drawer above answers "what does this account HAVE" in nineteen blocks; it
+# cannot answer "what did this person DO, in order", which is the question an admin actually
+# arrives with — why did they stop, what did they try before they stopped, did the email go out
+# before or after they gave up. Nineteen lists sorted nineteen ways cannot be read that way.
+#
+# ONE STATEMENT, not nineteen round trips: every source is a small indexed read keyed on the user
+# (or on a field they own), and `union all` lets Postgres sort the merged set once and apply the
+# limit once. Assembling it in Python would mean fetching N rows from each source to be sure of
+# the newest N overall.
+#
+# `kind` is a STABLE CODE, never prose — the frontend groups, colours and filters on it, and the
+# same contract as notifications (0057) and severity: the server names the thing, the client says
+# it in the reader's language. `title`/`detail` carry the data that has no key (a field name, a
+# model name, an IP) and are deliberately short.
+_TIMELINE_SQL = """
+with mine as (select id from public.fields where created_by = $1::uuid)
+select * from (
+    select e.created_at as at, 'auth.' || e.event as kind,
+           coalesce(e.method, '') as title,
+           concat_ws(' · ', nullif(e.ip, ''), nullif(e.detail, '')) as detail
+      from public.auth_events e where e.user_id = $1::uuid
+    union all
+    select v.created_at, 'funnel.' || v.name, '', coalesce(v.meta::text, '')
+      from public.user_events v where v.user_id = $1::uuid
+    union all
+    select f.created_at, 'field.created', f.name,
+           concat(round(f.area_ha::numeric, 2)::text, ' ha')
+      from public.fields f where f.created_by = $1::uuid
+    union all
+    select f.deleted_at, 'field.deleted', f.name, ''
+      from public.fields f where f.created_by = $1::uuid and f.deleted_at is not null
+    union all
+    select a.generated_at, 'ai.advice', f.name, a.lang
+      from public.advice a join public.fields f on f.id = a.field_id
+     where a.field_id in (select id from mine)
+    union all
+    select m.created_at, 'ai.chat', coalesce(f.name, ''), left(m.content, 120)
+      from public.ai_chat_messages m left join public.fields f on f.id = m.field_id
+     where m.user_id = $1::uuid and m.role = 'user'
+    union all
+    select u.created_at, 'ai.spend', u.kind,
+           concat(u.model, ' · $', round(u.cost_usd::numeric, 5)::text)
+      from public.ai_usage u where u.user_id = $1::uuid
+    union all
+    select s.created_at, 'email.' || s.status, s.template_id, s.locale
+      from public.email_sends s where s.user_id = $1::uuid
+    union all
+    select n.created_at, 'notify.' || coalesce(n.severity, 'info'), coalesce(n.title, n.type), ''
+      from public.notifications n where n.user_id = $1::uuid
+    union all
+    select o.observed_at, 'scouting', coalesce(f.name, ''),
+           concat_ws(' · ', o.category, o.severity)
+      from public.scouting_observations o left join public.fields f on f.id = o.field_id
+     where o.created_by = $1::uuid
+    union all
+    select sh.created_at, 'share.created', coalesce(sh.label, ''), sh.scope
+      from public.field_shares sh where sh.created_by = $1::uuid
+    union all
+    select g.created_at, 'grant.given', coalesce(f.name, ''), ''
+      from public.field_grants g left join public.fields f on f.id = g.field_id
+     where g.created_by = $1::uuid
+    union all
+    select msg.created_at, 'message.sent', '', left(msg.body, 120)
+      from public.messages msg where msg.sender_id = $1::uuid
+    union all
+    select t.created_at, 'auth.magic_requested', '',
+           case when t.used_at is not null then 'used' else 'unused' end
+      from public.login_tokens t where t.user_id = $1::uuid
+    union all
+    select p.created_at, 'push.subscribed', '', left(coalesce(p.user_agent, ''), 60)
+      from public.push_subscriptions p where p.user_id = $1::uuid
+    union all
+    select sp.created_at, 'soil.profile', coalesce(f.name, ''), sp.source
+      from public.soil_profiles sp left join public.fields f on f.id = sp.field_id
+     where sp.field_id in (select id from mine)
+    union all
+    select pd.created_at, 'photo.diagnosis', coalesce(f.name, ''), coalesce(pd.model_name, '')
+      from public.photo_diagnoses pd left join public.fields f on f.id = pd.field_id
+     where pd.field_id in (select id from mine)
+) t
+where t.at is not null
+order by t.at desc
+limit $2
+"""
+
+
+@router.get("/users/{user_id_target}/timeline")
+async def user_timeline(user_id_target: str, limit: int = Query(300, ge=1, le=2000),
+                        user_id: str = Depends(get_current_user_id)):
+    """Everything this account DID, newest first, as one stream.
+
+    Sixteen sources merged in SQL — see _TIMELINE_SQL for why one statement rather than sixteen
+    reads. Separate from the drawer's own endpoint on purpose: it is the only part of the panel
+    that can return thousands of rows, so it carries its own limit and is fetched when the admin
+    opens the tab rather than on every drawer open.
+
+    ADMIN-SCOPED and READ-ONLY, like the detail endpoint beside it.
+    """
+    target = _admin_uid(user_id_target, "user_not_found")
+    async with connection(user_id) as conn:
+        await require_platform_admin(conn, user_id)
+        rows = await conn.fetch(_TIMELINE_SQL, target, limit)
+    return {
+        "items": [{"at": _iso(r["at"]), "kind": r["kind"],
+                   "title": r["title"] or None, "detail": r["detail"] or None} for r in rows],
+        "limit": limit,
+        # So the drawer can say "showing the newest 300 of more" instead of implying this is all.
+        "truncated": len(rows) >= limit,
+    }
+
+
 class UserDelete(BaseModel):
     # The target's own address, typed by the admin. Not a checkbox: the point is to make it
     # impossible to close the wrong account by clicking the wrong row.

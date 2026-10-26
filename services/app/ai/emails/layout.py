@@ -13,7 +13,7 @@ A content dict (produced by `catalog`) looks like:
       "blocks": [ {...}, ... ],                  # optional, ordered — see BLOCKS below
       "cta": {"label": str, "url": str},         # optional
       "outro": [str, ...],                        # optional paragraphs
-      "signoff": str,                             # e.g. "Ülkər Nəsirova — Agradex"
+      "signoff": str,                             # the brand; build() forces it
     }
 
 Render order: heading → intro → blocks → steps → stats → cta → outro → signoff.

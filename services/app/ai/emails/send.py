@@ -28,6 +28,16 @@ from . import catalog, layout
 # here because it never goes through this module (routers/auth.py calls notify.send_email directly).
 TRANSACTIONAL = {"welcome", "data_ready"}
 
+# WHICH MAILBOX A TEMPLATE SPEAKS FROM (2026-10-26). Two senders, split by what the mail is ABOUT,
+# not by how it is triggered — which is why this is a second set rather than a reuse of
+# TRANSACTIONAL: `data_ready` is transactional AND it is about a crop, so the two sets overlap by
+# design. Anything not listed here is account mail and goes from the system address.
+#   FIELD  → info about a specific crop: "your field is visible from space", the Wednesday digest.
+#   SYSTEM → the account: verification code, sign-in link, welcome. (OTP and the magic link do not
+#            pass through here at all — routers/auth.py calls notify.send_email directly and gets
+#            the system sender by default.)
+FIELD_TEMPLATES = {"data_ready", "weekly"}
+
 # Rolling window, not a calendar day: a calendar boundary would let a burst spanning midnight
 # through, which is exactly the case ("five fields in one afternoon") the cap exists to stop.
 TRANSACTIONAL_CAP_HOURS = 24
@@ -135,7 +145,8 @@ async def send_template(conn, user_id, template_id: str, ctx: dict | None = None
         html, text = layout.render(
             content, locale=row["locale"], unsub_url=full_ctx["unsub_url"], show_unsub=not transactional)
         ok = await send_email(row["email"], content.get("subject", "Agradex"), text,
-                              locale=row["locale"], html=html)
+                              locale=row["locale"], html=html,
+                              field_mail=template_id in FIELD_TEMPLATES)
         await _record(conn, user_id, template_id, dedup_key, row["locale"], "sent" if ok else "failed")
         return ok
     except Exception as exc:  # noqa: BLE001 — email is best-effort, must never break the caller

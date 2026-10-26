@@ -85,6 +85,8 @@ const d = (iso?: string | null) => (iso ? iso.slice(0, 10) : "—");
 const dt = (iso?: string | null) => (iso ? `${iso.slice(0, 10)} ${iso.slice(11, 16)}` : "—");
 const usd = (n: number) => `$${(n ?? 0).toFixed(n < 1 ? 4 : 2)}`;
 
+interface TimelineItem { at: string | null; kind: string; title: string | null; detail: string | null }
+
 function Row({ k, v }: { k: string; v: React.ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-3 border-b border-slate-100 py-1.5 text-sm last:border-0">
@@ -115,6 +117,118 @@ function Mini({ title, rows, empty }: {
             </div>
           ))}
         </div>
+      )}
+    </section>
+  );
+}
+
+/** One chronological stream of everything the account did.
+ *
+ * Loaded on demand rather than with the drawer: it is the only part of the panel that can return
+ * thousands of rows, and most of the time an admin opens the drawer to read a profile, not a log.
+ *
+ * `kind` arrives as a STABLE CODE from the server ("auth.login", "email.sent", "ai.advice"), the
+ * same contract notifications and severity follow — the server names the thing, the client says
+ * it. The family before the dot drives the colour, so a new kind the client has never seen still
+ * renders in a sensible group instead of disappearing.
+ */
+const TL_FAMILY: Record<string, string> = {
+  auth: "bg-sky-100 text-sky-700",
+  funnel: "bg-violet-100 text-violet-700",
+  field: "bg-emerald-100 text-emerald-700",
+  ai: "bg-amber-100 text-amber-700",
+  email: "bg-slate-200 text-slate-700",
+  notify: "bg-rose-100 text-rose-700",
+  scouting: "bg-lime-100 text-lime-700",
+  share: "bg-indigo-100 text-indigo-700",
+  grant: "bg-indigo-100 text-indigo-700",
+  message: "bg-cyan-100 text-cyan-700",
+  push: "bg-slate-200 text-slate-700",
+  soil: "bg-stone-200 text-stone-700",
+  photo: "bg-fuchsia-100 text-fuchsia-700",
+};
+
+function Timeline({ userId }: { userId: string }) {
+  const [items, setItems] = useState<TimelineItem[] | null>(null);
+  const [truncated, setTruncated] = useState(false);
+  const [err, setErr] = useState("");
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open || items) return;
+    let alive = true;
+    void api
+      .get<{ items: TimelineItem[]; truncated: boolean }>(`/api/admin/users/${userId}/timeline`)
+      .then((r) => {
+        if (!alive) return;
+        setItems(r.items || []);
+        setTruncated(Boolean(r.truncated));
+      })
+      .catch((e) => alive && setErr(azError(e)));
+    return () => {
+      alive = false;
+    };
+  }, [open, items, userId]);
+
+  // Group by calendar day — the gaps between days are the part an admin reads.
+  const byDay: { day: string; rows: TimelineItem[] }[] = [];
+  for (const it of items || []) {
+    const day = (it.at || "").slice(0, 10);
+    const last = byDay[byDay.length - 1];
+    if (last && last.day === day) last.rows.push(it);
+    else byDay.push({ day, rows: [it] });
+  }
+
+  return (
+    <section>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="mb-1.5 flex w-full items-center justify-between text-xs font-bold uppercase tracking-wide text-slate-500 hover:text-slate-700"
+      >
+        <span>{t("app.admin.timeline")}</span>
+        <span className="text-slate-400">{open ? "−" : "+"}</span>
+      </button>
+      {open && (
+        <>
+          {err && <p className="text-sm text-rose-600">{err}</p>}
+          {!items && !err && <p className="text-sm text-slate-400">{t("app.admin.timelineLoading")}</p>}
+          {items && items.length === 0 && (
+            <p className="text-sm text-slate-400">{t("app.admin.timelineEmpty")}</p>
+          )}
+          {items && items.length > 0 && (
+            <div className="max-h-96 overflow-y-auto pr-1">
+              {byDay.map((g) => (
+                <div key={g.day} className="mb-2">
+                  <div className="sticky top-0 bg-white py-0.5 text-[11px] font-semibold text-slate-400">
+                    {g.day}
+                  </div>
+                  {g.rows.map((it, i) => (
+                    <div key={i} className="flex items-start gap-2 border-b border-slate-100 py-1 last:border-0">
+                      <span className="w-10 shrink-0 pt-0.5 text-[11px] tabular-nums text-slate-400">
+                        {(it.at || "").slice(11, 16)}
+                      </span>
+                      <span
+                        className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+                          TL_FAMILY[(it.kind || "").split(".")[0]] || "bg-slate-100 text-slate-600"
+                        }`}
+                      >
+                        {it.kind}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-xs text-slate-700">
+                        {it.title}
+                        {it.detail ? <span className="text-slate-400"> · {it.detail}</span> : null}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+              {truncated && (
+                <p className="pt-1 text-[11px] text-slate-400">{t("app.admin.timelineTruncated")}</p>
+              )}
+            </div>
+          )}
+        </>
       )}
     </section>
   );
@@ -443,6 +557,7 @@ export default function UserDetailModal({
                   ))}
                 </div>
               )}
+              <Timeline userId={userId} />
               <Mini
                 title={t("app.admin.ud.aMagic")}
                 empty={t("app.admin.ud.noneYet")}

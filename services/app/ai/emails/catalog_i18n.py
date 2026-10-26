@@ -23,7 +23,7 @@ WELCOME_EXTRA = {
       "preheader": "Tarlanızı uzaydan izleyin — 2 adımda başlayın.",
       "heading": "Hoş geldiniz, {name}! 🌱",
       "intro": [
-        "Ben Agradex ekibinden Ülker'im. Agradex sizin <b>uydu ve yapay zeka yardımcınızdır</b> — her tarlayı uzaydan görün, stresi erken yakalayın ve bir sonraki adımı AI agronomdan alın.",
+        "Agradex sizin <b>uydu ve yapay zeka yardımcınızdır</b> — her tarlayı uzaydan görün, stresi erken yakalayın ve bir sonraki adımı AI agronomdan alın.",
         "İki adımda başlayalım:"
       ],
       "steps": [
@@ -130,7 +130,7 @@ WELCOME_EXTRA = {
       "preheader": "Monitora il tuo campo dallo spazio — inizia in 2 passi.",
       "heading": "Benvenuto, {name}! 🌱",
       "intro": [
-        "Sono Ülkər, del team Agradex. Agradex è il tuo <b>assistente satellitare e di intelligenza artificiale</b> — osserva ogni campo dallo spazio, individua lo stress in anticipo e chiedi all'agronomo AI la prossima mossa.",
+        "Agradex è il tuo <b>assistente satellitare e di intelligenza artificiale</b> — osserva ogni campo dallo spazio, individua lo stress in anticipo e chiedi all'agronomo AI la prossima mossa.",
         "Iniziamo in due passi:"
       ],
       "steps": [
@@ -237,7 +237,7 @@ WELCOME_EXTRA = {
       "preheader": "Beobachten Sie Ihr Feld aus dem All — in 2 Schritten loslegen.",
       "heading": "Willkommen, {name}! 🌱",
       "intro": [
-        "Ich bin Ülkər vom Agradex-Team. Agradex ist Ihr <b>Satelliten- und KI-Assistent</b> — sehen Sie jedes Feld aus dem All, erkennen Sie Stress früh und holen Sie sich den nächsten Schritt vom KI-Agronomen.",
+        "Agradex ist Ihr <b>Satelliten- und KI-Assistent</b> — sehen Sie jedes Feld aus dem All, erkennen Sie Stress früh und holen Sie sich den nächsten Schritt vom KI-Agronomen.",
         "Starten wir in zwei Schritten:"
       ],
       "steps": [
@@ -344,7 +344,7 @@ WELCOME_EXTRA = {
       "preheader": "Obserwuj swoje pole z kosmosu — zacznij w 2 krokach.",
       "heading": "Witaj, {name}! 🌱",
       "intro": [
-        "Jestem Ülkər z zespołu Agradex. Agradex to Twój <b>asystent satelitarny i oparty na sztucznej inteligencji</b> — zobacz każde pole z kosmosu, wychwyć stres wcześnie i poproś agronoma AI o kolejny krok.",
+        "Agradex to Twój <b>asystent satelitarny i oparty na sztucznej inteligencji</b> — zobacz każde pole z kosmosu, wychwyć stres wcześnie i poproś agronoma AI o kolejny krok.",
         "Zacznijmy w dwóch krokach:"
       ],
       "steps": [
@@ -451,7 +451,7 @@ WELCOME_EXTRA = {
       "preheader": "Kövesse a tábláját az űrből — kezdje 2 lépésben.",
       "heading": "Üdvözöljük, {name}! 🌱",
       "intro": [
-        "Ülkər vagyok az Agradex csapatából. Az Agradex az Ön <b>műholdas és mesterséges intelligencia asszisztense</b> — lássa minden tábláját az űrből, észlelje időben a stresszt, és kérje a következő lépést az AI agronómustól.",
+        "Az Agradex az Ön <b>műholdas és mesterséges intelligencia asszisztense</b> — lássa minden tábláját az űrből, észlelje időben a stresszt, és kérje a következő lépést az AI agronómustól.",
         "Kezdjük két lépésben:"
       ],
       "steps": [
@@ -558,7 +558,7 @@ WELCOME_EXTRA = {
       "preheader": "Смотрите на свои поля из космоса — начните за 2 шага.",
       "heading": "Добро пожаловать, {name}! 🌱",
       "intro": [
-        "Меня зовут Ülkər, я из команды Agradex. Agradex — ваш <b>помощник на базе спутников и AI</b>: видеть каждое поле из космоса, вовремя замечать стресс и получать следующий шаг от AI-агронома.",
+        "Agradex — ваш <b>помощник на базе спутников и AI</b>: видеть каждое поле из космоса, вовремя замечать стресс и получать следующий шаг от AI-агронома.",
         "Начнём за два шага:"
       ],
       "steps": [
@@ -665,7 +665,7 @@ WELCOME_EXTRA = {
       "preheader": "Observe su lote desde el espacio — empiece en 2 pasos.",
       "heading": "¡Bienvenido, {name}! 🌱",
       "intro": [
-        "Soy Ülkər, del equipo de Agradex. Agradex es su <b>asistente satelital y de inteligencia artificial</b>: vea cada lote desde el espacio, detecte el estrés a tiempo y pregunte al agrónomo con IA cuál es el siguiente paso.",
+        "Agradex es su <b>asistente satelital y de inteligencia artificial</b>: vea cada lote desde el espacio, detecte el estrés a tiempo y pregunte al agrónomo con IA cuál es el siguiente paso.",
         "Empecemos en dos pasos:"
       ],
       "steps": [

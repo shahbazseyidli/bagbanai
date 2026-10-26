@@ -43,7 +43,7 @@ export default function LanguageSwitcher({ className = "" }: { className?: strin
       void fetch("/api/auth/locale", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ locale: l }),
+        body: JSON.stringify({ locale: l, deliberate: true }),
         credentials: "include",
         keepalive: true,
       }).catch(() => {});

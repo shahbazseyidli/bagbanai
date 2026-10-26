@@ -39,18 +39,25 @@ let localeSynced = false;
  * written in a language the reader had stopped using. That is the same defect 0049 was added to fix,
  * arriving through a different door.
  *
- * ONLY reconciles from an EXPLICIT signal — a route prefix or a stored cookie. detectLocale() also
- * falls back to `navigator.language`, and letting a browser guess overwrite a language the account
- * deliberately chose would trade this bug for a worse one.
+ * ONLY reconciles from a URL LOCALE PREFIX, and only while users.locale_explicit is false (0066).
+ * It used to accept a stored cookie as a second signal; see the comment inside for what that cost.
+ * detectLocale() also falls back to `navigator.language`, and letting a browser guess overwrite a
+ * language the account deliberately chose would trade this bug for a worse one.
  */
 function reconcileLocale(me: User) {
   if (localeSynced || typeof window === "undefined") return;
   localeSynced = true;
   try {
+    // ONLY the URL prefix counts. The old test also accepted "a bagban_locale cookie exists",
+    // which every signed-in browser has — so an UNPREFIXED page load passed it, and an unprefixed
+    // path is exactly what `az` looks like (the default locale carries no prefix). The account
+    // therefore flipped to az on any visit to /fields and back to en on the next /en/ link, and
+    // because users.locale is the only language the Wednesday digest and the post-scene advice can
+    // read, the farmer's mail changed language with the last URL they opened. Measured 2026-10-26:
+    // one account, eleven weekly digests, three languages, and 13 English analyses under an
+    // Azerbaijani profile. A path with no prefix carries no language information; it must not write.
     const prefixed = /^\/([a-z]{2})(?=\/|$)/.exec(window.location.pathname)?.[1];
-    const explicit =
-      (prefixed && (LOCALES as readonly string[]).includes(prefixed)) ||
-      document.cookie.includes("bagban_locale=");
+    const fromPrefix = Boolean(prefixed && (LOCALES as readonly string[]).includes(prefixed));
     const shown = getLocale();
     // Expire a leftover HOST-ONLY bagban_locale. LanguageSwitcher writes a domain-scoped cookie and
     // now clears this one too, but only for people who switch language again — everyone carrying a
@@ -62,8 +69,11 @@ function reconcileLocale(me: User) {
     if (document.cookie.split("; ").filter((c) => c.startsWith("bagban_locale=")).length > 1) {
       document.cookie = "bagban_locale=; path=/; max-age=0; samesite=lax";
     }
-    if (!explicit || me.locale === shown) return;
-    void api.post("/api/auth/locale", { locale: shown }).catch(() => {});
+    if (!fromPrefix || me.locale === shown) return;
+    // `deliberate: false` — browsing is evidence, not a decision. The server applies this only
+    // while users.locale_explicit is false (0066), so it can never override a language the person
+    // actually picked in the switcher.
+    void api.post("/api/auth/locale", { locale: shown, deliberate: false }).catch(() => {});
   } catch {
     // private mode / exotic URL — never let a preference repair break sign-in
   }

@@ -2,20 +2,18 @@
 stdlib SMTP, else no-ops (logs) — so web/in-app notifications and signup work regardless of email
 configuration.
 
-ONE SENDER, ONE MAILBOX. Every Agradex email goes out from the same person in every language.
-Until now there were eight personas at eight @agradex.com addresses, and that was not a cosmetic
-problem: agradex.com publishes no MX record, so NOT ONE of those addresses could receive mail.
-Every "reply to this email — I read every one" in the catalog was an invitation into a black hole.
-Collapsing to one address is what makes a real mailbox affordable, and the owner is opening one on
-the Hetzner webhosting package that already serves findix.az (MX www747.your-server.de). The
-Azerbaijani persona is the one that survives — deliberately, because Azerbaijani farmers are the
-core audience.
+NO PERSON SENDS THIS MAIL. The history is worth keeping because it ran in both wrong directions:
+first eight invented personas, one per locale, at eight @agradex.com addresses; then a single
+invented person, "Ülkər Nəsirova", in every language. Collapsing to one was an improvement and
+still left a farmer replying to someone who does not exist. Since 2026-10-26 the brand sends,
+from two addresses split by what the mail is ABOUT — see the constants below.
 
-⚠️ AS OF THIS COMMIT THE HOLE IS STILL OPEN. This change makes the address singular; it does not
-make it reachable. agradex.com still publishes no MX record, so a reply to ulkar@agradex.com still
-bounces. Two things have to land outside this repo before the catalog's "reply to this email" line
-becomes true: the mailbox created in konsoleH, and an MX record on the apex. Verify with
-`dig MX agradex.com` before trusting that sentence — do not soften this warning until it returns a
+⚠️ THE MAILBOX HOLE IS STILL OPEN, and it is older than either persona. agradex.com publishes no
+MX record (re-checked 2026-10-26: no MX, no SPF, no DMARC on the apex — only the DKIM key and the
+send.agradex.com subdomain Resend sends through). Replies to info@ and agro@ bounce exactly as
+replies to ulkar@ did, so every "reply to this email" line still in the catalog is still untrue.
+Fixing it is DNS, not code — ROADMAP T32, Cloudflare Email Routing. Verify with
+`dig MX agradex.com` before trusting that sentence; do not soften this warning until it returns a
 host.
 """
 from __future__ import annotations
@@ -31,28 +29,44 @@ import httpx
 from ..config import settings
 
 
-# The one sender. Kept as name + address separately (rather than a single literal) because
-# emails/catalog.py needs the bare display name for the signoff line and must not re-type it —
-# a second copy of the name is how the signoff and the From header drift apart again.
-SENDER_NAME = "Ülkər Nəsirova"
-SENDER_ADDRESS = "ulkar@agradex.com"
-SENDER = f"{SENDER_NAME} <{SENDER_ADDRESS}>"
+# NO PERSON IN THE FROM LINE (owner's decision, 2026-10-26). Mail used to come from a single
+# invented colleague, "Ülkər Nəsirova <ulkar@agradex.com>", in every language. Two reasons it had
+# to go: a farmer answering a named human who does not exist is being misled, and the name made
+# the "just reply to me" lines in the copy read as a personal promise. The brand sends the mail now.
+#
+# TWO ADDRESSES, because these are two different conversations and a farmer should be able to tell
+# them apart in an inbox and filter on them:
+#   · SYSTEM — the account itself: verification code, sign-in link, welcome. Nothing about a field.
+#   · FIELD  — the crop: "your field is visible from space", the Wednesday digest.
+# The display NAME is the brand in both, deliberately untranslated: a localized sender name would
+# be a tenth per-locale table (see app/locales.py for how the last sixteen went), and "Agradex" is
+# the one word every farmer already recognises.
+BRAND = "Agradex"
+SYSTEM_SENDER_ADDRESS = "info@agradex.com"
+FIELD_SENDER_ADDRESS = "agro@agradex.com"
+SYSTEM_SENDER = f"{BRAND} <{SYSTEM_SENDER_ADDRESS}>"
+FIELD_SENDER = f"{BRAND} <{FIELD_SENDER_ADDRESS}>"
+
+# ⚠️ NEITHER ADDRESS RECEIVES MAIL TODAY. agradex.com publishes no MX record (checked again
+# 2026-10-26: no MX, no SPF, no DMARC on the apex — only the DKIM key and the send.agradex.com
+# subdomain Resend uses). Replies bounce, exactly as they did for the old persona. That is ROADMAP
+# T32 and it is a DNS task, not a code one; the copy still invites replies in several locales and
+# those lines stay wrong until the mailbox exists.
 
 
-def sender_for(locale: str | None = None) -> str:
-    """The From header. One persona for every locale now, so `locale` is ignored.
+def sender_for(locale: str | None = None, *, field_mail: bool = False) -> str:
+    """The From header. `field_mail=True` for anything about a crop; the default is the account.
 
-    The parameter stays because every call site passes it and they live in files owned elsewhere;
-    it costs nothing and keeps this a drop-in change.
+    `locale` is ignored — kept because every call site passes it positionally and the files are
+    owned elsewhere. It would only come back if the brand ever needed a localized display name,
+    which is precisely the per-locale table this comment argues against.
 
-    Honest note on the EMAIL_FROM fallback: it used to be *reachable* — an unknown or NULL
-    `users.locale` missed the per-locale dict and fell through to settings.email_from. It is no
-    longer reached that way, because folding exactly those recipients onto the one persona is the
-    point of this change. It survives only for the case where SENDER is emptied (domain migration,
-    mailbox handover), so the send path degrades to the configured address instead of an empty
-    From header.
+    Honest note on the EMAIL_FROM fallback: it survives for the case where the constants are
+    emptied (domain migration, mailbox handover), so the send path degrades to the configured
+    address instead of an empty From header.
     """
-    return SENDER or settings.email_from
+    chosen = FIELD_SENDER if field_mail else SYSTEM_SENDER
+    return chosen or settings.email_from
 
 
 def email_configured() -> bool:
@@ -104,8 +118,9 @@ def _send_sync(to: str, subject: str, body: str, sender: str, html: str | None =
 
 
 async def send_email(to: str, subject: str, body: str, locale: str | None = None,
-                     html: str | None = None) -> bool:
-    """Returns True if sent. From = the single Agradex persona (sender_for). `html` (optional) is
+                     html: str | None = None, field_mail: bool = False) -> bool:
+    """Returns True if sent. From = the brand (sender_for); `field_mail=True` picks the crop
+    address instead of the account one. `html` (optional) is
     the rich part with `body` as the plain-text fallback. Prefers Resend, falls back to SMTP, else
     logs + returns False.
 
@@ -115,7 +130,7 @@ async def send_email(to: str, subject: str, body: str, locale: str | None = None
     exist. A monitored From with an unset — or later independently changed — Reply-To would reopen
     the exact hole this change closes.
     """
-    sender = sender_for(locale)
+    sender = sender_for(locale, field_mail=field_mail)
     reply_to = parseaddr(sender)[1] or None
     if settings.resend_api_key:
         if await _send_resend(to, subject, body, sender, html=html, reply_to=reply_to):

@@ -19,23 +19,25 @@ allowed in copy. WARNING: `_fmt` swallows KeyError, so a placeholder the caller 
 ships to the farmer as the literal "{field}" — every key a template references must be defaulted by
 its caller.
 
-ONE PERSONA IN EVERY LANGUAGE. The copy used to be signed by whichever of eight personas matched
-the locale; all eight mailboxes were unreachable (agradex.com has no MX record), so the emails
-invited replies into a black hole. Every email is now from — and signed by — the one person with a
-real mailbox. The name is NOT written down here: it lives once in `ai/notify.py` as `SENDER_NAME`,
-next to the From header it has to agree with, and reaches this file through `SIGNOFF` below.
+SIGNED BY THE BRAND, NOT BY A PERSON (2026-10-26). The copy was signed by eight invented personas,
+then by one; both invited a farmer to answer a colleague who does not exist, at a mailbox that
+does not receive (agradex.com still publishes no MX). The signoff is the brand, taken from the
+same constant as the From header so the letter cannot be signed by someone other than its sender.
+
+⚠️ catalog_i18n.py still holds ~34 `"signoff"` lines naming the retired personas. They are DEAD —
+`build()` overwrites the key — and they are left alone on purpose: that file says "do not
+hand-edit, regenerate", and overriding at build time makes a stale regeneration harmless.
 """
 from __future__ import annotations
 
 from typing import Any
 
-from ..notify import SENDER_NAME
+from ..notify import BRAND
 
-# The single signoff, built from the same constant as the From header so the letter cannot be
-# signed by someone other than its sender. Import direction is safe: notify.py imports only
-# stdlib + httpx + ..config and never reaches back into this package, so there is no cycle — and
-# on the live path emails/__init__ → .send → ..notify loads notify first anyway.
-SIGNOFF = f"{SENDER_NAME} — Agradex"
+# Import direction is safe: notify.py imports only stdlib + httpx + ..config and never reaches
+# back into this package, so there is no cycle — and on the live path emails/__init__ → .send →
+# ..notify loads notify first anyway.
+SIGNOFF = BRAND
 
 # Roles that get a bespoke welcome voice. Anything else → "farmer".
 ROLES = ("farmer", "consultant", "lab", "supplier")
@@ -63,7 +65,7 @@ _WELCOME_AZ = {
         "preheader": "Sahənizi kosmosdan izləyin — 2 addımda başlayın.",
         "heading": "Xoş gəldiniz, {name}! 🌱",
         "intro": [
-            "Mən Agradex komandasından Ülkərəm. Agradex sizin <b>peyk və süni intellekt köməkçinizdir</b> — hər sahəni kosmosdan görün, stresi erkən tutun və növbəti addımı AI aqronomdan alın.",
+            "Agradex sizin <b>peyk və süni intellekt köməkçinizdir</b> — hər sahəni kosmosdan görün, stresi erkən tutun və növbəti addımı AI aqronomdan alın.",
             "İki addımda başlayaq:",
         ],
         "steps": [
@@ -126,7 +128,7 @@ _WELCOME_EN = {
         "preheader": "See your fields from space — get started in 2 steps.",
         "heading": "Welcome, {name}! 🌱",
         "intro": [
-            "I'm Ülkər from Agradex. Agradex is your <b>satellite + AI co-pilot</b> — see every field from space, catch stress early, and get an AI agronomist's read on what to do next.",
+            "Agradex is your <b>satellite + AI co-pilot</b> — see every field from space, catch stress early, and get an AI agronomist's read on what to do next.",
             "Let's get started in 2 steps:",
         ],
         "steps": [

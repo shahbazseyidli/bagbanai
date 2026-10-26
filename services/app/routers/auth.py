@@ -1014,13 +1014,40 @@ async def set_area_unit(body: dict, user_id: str = Depends(get_current_user_id))
 
 @router.post("/locale")
 async def set_locale(body: dict, user_id: str = Depends(get_current_user_id)):
+    """Set the account language.
+
+    `deliberate` (default TRUE) separates a CHOICE from a PAGE LOAD. LanguageSwitcher sends true;
+    lib/auth.tsx::reconcileLocale — which only follows the locale prefix in the URL — sends false.
+    A deliberate call also raises users.locale_explicit (0066), after which a non-deliberate call
+    can no longer move the column: `and locale_explicit = false` in the passive branch is the whole
+    guarantee, enforced in SQL rather than by the caller.
+
+    Why it matters, measured 2026-10-26: this column is the only language signal the two
+    request-less surfaces can read — the Wednesday digest and the post-scene advice — and before
+    0066 a stray /en/ link moved it. One account received eleven weekly digests in three languages
+    and holds 13 English analyses under an Azerbaijani profile.
+
+    The default is TRUE rather than false so that an unknown future caller is treated as a real
+    choice; only the one passive caller we know about opts out.
+    """
     raw = body.get("locale") if isinstance(body, dict) else None
     locale = raw.strip().lower() if isinstance(raw, str) else ""
     if locale not in SUPPORTED_LOCALES:
         raise HTTPException(status_code=400, detail="invalid_locale")
+    deliberate = (body.get("deliberate") is not False) if isinstance(body, dict) else True
     async with connection(user_id) as conn:
-        await conn.execute("update public.users set locale=$2 where id=$1::uuid", user_id, locale)
-    return {"locale": locale}
+        if deliberate:
+            stored = await conn.fetchval(
+                "update public.users set locale=$2, locale_explicit=true "
+                "where id=$1::uuid returning locale", user_id, locale)
+        else:
+            stored = await conn.fetchval(
+                "update public.users set locale=$2 "
+                "where id=$1::uuid and locale_explicit = false returning locale", user_id, locale)
+            if stored is None:   # the person has chosen; their choice stands
+                stored = await conn.fetchval(
+                    "select locale from public.users where id=$1::uuid", user_id)
+    return {"locale": stored or locale, "deliberate": deliberate}
 
 
 @router.get("/name-public")
