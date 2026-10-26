@@ -3,6 +3,25 @@
 Bütün əhəmiyyətli dəyişikliklər burada qeyd olunur. Format [Keep a Changelog](https://keepachangelog.com/),
 versiyalar [SemVer](https://semver.org/).
 
+## [1.24.0] — 2026-10-26 — Elan məktubu 30 nəfərə 8 dildə · blog 9 dilə açıldı
+
+### Elan — `product_update_locale`
+- **30 alıcı, 8 dil, 0 uğursuzluq.** Hər kəsə `users.locale`-indən — «diliniz düzəldildi» məktubu
+  oxucunun dilində gəlməlidir, yoxsa özünü təkzib edir.
+- ⚠️ Mətn «tam həll olundu» demir: `locale_explicit` hələ hamıda `false`, ona görə **bir dəfə dil
+  seçmək** çağırışa çevrildi. Cavab dəvəti yoxdur (MX yoxdur). Tranzaksiyalı deyil → opt-out + unsub.
+- `POST /api/internal/emails/announce` **default `dry_run=true`** — bazanı bir çağırışla mailləyən
+  yeganə endpoint, elan isə geri alınmır.
+
+### Blog — hu/it/pl-də sıfır yazı vardı
+- `BLOG_LOCALES` 6 → **9**. Hub onlara ingilis məqaləni verirdi: nə macarca sıralanır, nə oxunur.
+- `satellite-subsidy-check` indi **5 bazarda**, hər biri ayrı agentlikdən araşdırılıb: ARiMR
+  (`eWniosekPlus`, sarı/qırmızı, 2-5 geo-foto) · AGEA (**MSP** müraciətdən əvvəl + AMS sonra,
+  verde/giallo/rosso/bianco, eko-sxem pəncərələri) · MÁK (**TMR**, *egyeztető levél*, mobilGAZDA).
+- ⚠️ **Keçmiş tarixlər keçmiş kimi yazılıb** — PL 15 sentyabr və HU 30 sentyabr arxada qalıb;
+  HU-nun ikinci əkin tarixi (15 yanvar 2027) hələ açıqdır və belə işarələnib.
+- Canlı yoxlandı: hreflang klasteri **5 variant**, 9 yox. Sitemap 231 → 234.
+
 ## [1.23.0] — 2026-10-26 — Dil sürüşməsi bağlandı · göndərən brend oldu · admin xronologiyası · SEO sxemləri
 
 > **Miqrasiya 0066** (`users.locale_explicit`) — əlavəedicidir, **image-dən ƏVVƏL** tətbiq olunmalıdır.
