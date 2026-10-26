@@ -3,6 +3,44 @@
 Bütün əhəmiyyətli dəyişikliklər burada qeyd olunur. Format [Keep a Changelog](https://keepachangelog.com/),
 versiyalar [SemVer](https://semver.org/).
 
+## [1.23.0] — 2026-10-26 — Dil sürüşməsi bağlandı · göndərən brend oldu · admin xronologiyası · SEO sxemləri
+
+> **Miqrasiya 0066** (`users.locale_explicit`) — əlavəedicidir, **image-dən ƏVVƏL** tətbiq olunmalıdır.
+> Canlıda tətbiq edildi və doğrulandı 2026-10-26; deploy `9f109d1`.
+
+### Düzəldildi — `users.locale` son açılan URL-i izləyirdi
+- **Canlı sübut:** sahib hesabı (`locale=az`) on bir həftədə **üç dildə** digest aldı (en/az/tr), və
+  eyni sütunun sürdüyü avtomatik məsləhətdən **13-ü `en`**, ən yenisi 10-25, `az` profilin altında.
+- Səbəb: `reconcileLocale` «açıq siqnal» kimi **cookie-nin mövcudluğunu** da qəbul edirdi — hər
+  girişli brauzerdə var, ona görə **prefiksiz** səhifə (yəni `az`) hesabı yazırdı.
+- Həll: **0066 `locale_explicit`**. Switcher `deliberate: true`, reconcile yalnız prefiksdən və
+  yalnız bayraq false ikən. ⚠️ Qayda **SQL-dədir** (`and locale_explicit = false`), çağıranda yox.
+- ⚠️ Signup bayrağı qaldırmır; backfill qəsdən `false` (41 hesab).
+- Tranzaksiya ilə canlıda sübut olundu: bayraqsız UPDATE 1, seçimdən sonra **UPDATE 0**.
+
+### Dəyişdi — e-poçtu artıq uydurma adam göndərmir
+- `Agradex <info@agradex.com>` hesab poçtu · `Agradex <agro@agradex.com>` əkin poçtu.
+  ⚠️ Bölgü **mövzuya** görədir, trigger-ə yox — `data_ready` həm tranzaksiyalı, həm əkin haqqındadır,
+  ona görə `FIELD_TEMPLATES` ayrı çoxluqdur.
+- `SIGNOFF` → brend; «Mən Ülkərəm» cümləsi **9 dildə** yenidən yazıldı. ~34 ölü `signoff` sətri
+  qəsdən toxunulmadı (`build()` onları əvəz edir).
+- ⛔ **Cavablar hələ bounce olur** — apex-də MX/SPF/DMARC yoxdur. T32, DNS işi.
+
+### Əlavə olundu — admin aktivlik xronologiyası
+- `GET /api/admin/users/{id}/timeline` — **16 mənbə bir `union all`-da**, günlərə bölünmüş lent,
+  tələb olunduqda yüklənir. `kind` stabil koddur.
+- ⚠️ `py_compile` SQL oxumur: 16 mənbə canlı sxemə qarşı yoxlandı, **ikisi səhv idi**
+  (`field_grants.granted_by`, `scouting_observations.user_id` → hər ikisi `created_by`).
+
+### SEO
+- Sitemap: **`lastmod` yalnız bloglara** (real `dateModified`); marketinq route-larında qəsdən yox.
+- `BreadcrumbList` hər məqalədə · **`FAQPage` yalnız başlığı sualla bitən bölmələrdən** — 49
+  yazıdan 33-ü uyğun gəlir, 16-sı heç nə yaymır (Google görünən məzmun tələb edir).
+- Yeni slug **`satellite-subsidy-check`** (az + en). az: bu ayın AZ xəbəri (313 mindən ~39 min
+  fermer, avans 30%, **şumlanma peyklə yoxlanılır**, buğda 400/200 ₼/ha). en: AB-nin **CAP Area
+  Monitoring System**-i — tərcümə deyil, ayrı hüquqi rejim. ⚠️ «2026-da AMS əsas nəzarət üsulu oldu»
+  iddiası **qəsdən yazılmadı** — yalnız kommersiya bloqunda var, rəsmi mənbə tapılmadı.
+
 ## [1.22.0] — 2026-10-11 — nginx bərpası, i18n qalığı, və 18 yatmış cədvəlin arxiv+drop-u
 
 > **Miqrasiya 0065** — `db/migrate.sh` ilə ayrıca tətbiq olunur. ⚠️ **Geri qaytarma yolu yalnız
