@@ -190,6 +190,35 @@ _WELCOME_EN = {
 # TRANSACTIONAL (role-agnostic)
 # ─────────────────────────────────────────────────────────────────────────────
 _SIMPLE_AZ: dict[str, dict] = {
+    # ONE-OFF product announcement, 2026-10-26. NOT transactional — it respects email_lifecycle
+    # and carries an unsubscribe link, because it is news about the product rather than something
+    # the account asked for.
+    #
+    # ⚠️ THE COPY DELIBERATELY DOES NOT SAY "FULLY SOLVED, NOTHING TO DO". The drift is fixed for
+    # anyone who picks a language, but users.locale_explicit is false for every existing account
+    # (0066 backfills false on purpose — we cannot tell in hindsight which stored value was a real
+    # choice). Until someone chooses once, a locale-prefixed link can still steer their account.
+    # Promising more than that and then delivering a German digest would be worse than silence.
+    #
+    # ⚠️ AND IT DOES NOT INVITE A REPLY. agradex.com publishes no MX; info@ and agro@ bounce.
+    "product_update_locale": {
+        "subject": "Dil düzəlişi: məktublarınız artıq seçdiyiniz dildə gələcək",
+        "preheader": "Bir dəfə dili seçin — hesabınız onu yadda saxlayacaq.",
+        "heading": "Dil məsələsi həll olundu",
+        "intro": [
+            "Bəzi istifadəçilərin həftəlik icmalı və AI təhlili gözlədiyi dildən fərqli dildə gəlirdi — bəzən həftədən-həftəyə dəyişirdi. Səbəbini tapdıq: hesabınızın dili açdığınız son səhifənin ünvanına görə yenidən yazılırdı.",
+            "Düzəldildi. İndi hesabınızın dilini yalnız <b>sizin açıq seçiminiz</b> dəyişə bilər.",
+        ],
+        "steps": [
+            {"n": 1, "text": "Tətbiqə girin və yuxarıdakı dil seçicisindən dilinizi <b>bir dəfə</b> seçin."},
+            {"n": 2, "text": "Bundan sonra həftəlik icmal, sahə bildirişləri və AI aqronom təhlili həmin dildə gələcək."},
+        ],
+        "cta": {"label": "Dili seçmək üçün daxil ol →", "url": "{app_url}"},
+        "outro": [
+            "Köhnə təhlillər yazıldıqları dildə qalır — onlar mətn kimi saxlanılır, oxunuşda tərcümə olunmur. Sahə səhifəsindəki qeyddən bir toxunuşla yenidən yaratmaq olar.",
+        ],
+        "signoff": SIGNOFF,
+    },
     "data_ready": {
         "subject": "“{field}” sahənizin peyk xəritəsi hazırdır 🛰️",
         "preheader": "İlk NDVI xəritəsini və sağlamlıq qiymətini indi görün.",
@@ -201,6 +230,24 @@ _SIMPLE_AZ: dict[str, dict] = {
     },
 }
 _SIMPLE_EN: dict[str, dict] = {
+    "product_update_locale": {
+        "subject": "Language fix: your mail now stays in the language you chose",
+        "preheader": "Pick your language once and the account will remember it.",
+        "heading": "The language problem is fixed",
+        "intro": [
+            "Some accounts were receiving the weekly digest and the AI analysis in a different language than expected — sometimes a different one each week. We found the cause: the account's language was being rewritten from the address of whatever page was opened last.",
+            "That is fixed. Your account language can now only be changed by <b>your own explicit choice</b>.",
+        ],
+        "steps": [
+            {"n": 1, "text": "Sign in and pick your language <b>once</b> from the language selector at the top."},
+            {"n": 2, "text": "From then on the weekly digest, field notifications and the AI agronomist's analysis all follow it."},
+        ],
+        "cta": {"label": "Sign in and set your language →", "url": "{app_url}"},
+        "outro": [
+            "Older analyses stay in the language they were written in — they are stored as text, not translated on read. The note on the field page regenerates one in your language in a single tap.",
+        ],
+        "signoff": SIGNOFF,
+    },
     "data_ready": {
         "subject": "Your field “{field}” is ready 🛰️",
         "preheader": "See your first NDVI map and health score now.",

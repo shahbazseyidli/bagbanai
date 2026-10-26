@@ -770,6 +770,33 @@ WELCOME_EXTRA = {
 
 SIMPLE_EXTRA = {
   "ru": {
+      "product_update_locale": {
+        "subject": "Исправление языка: письма снова приходят на выбранном вами языке",
+        "preheader": "Выберите язык один раз — аккаунт его запомнит.",
+        "heading": "Проблема с языком решена",
+        "intro": [
+          "У части пользователей еженедельная сводка и AI-анализ приходили не на том языке, которого они ждали, — иногда каждую неделю на разном. Мы нашли причину: язык аккаунта перезаписывался по адресу последней открытой страницы.",
+          "Это исправлено. Теперь язык аккаунта меняется только <b>вашим явным выбором</b>."
+        ],
+        "steps": [
+          {
+            "n": 1,
+            "text": "Войдите и выберите язык <b>один раз</b> в переключателе языка наверху."
+          },
+          {
+            "n": 2,
+            "text": "После этого еженедельная сводка, оповещения по полям и анализ AI-агронома будут приходить на нём."
+          }
+        ],
+        "cta": {
+          "label": "Войти и выбрать язык →",
+          "url": "{app_url}"
+        },
+        "outro": [
+          "Прежние анализы остаются на том языке, на котором были написаны, — они хранятся как текст и не переводятся при чтении. Заметка на странице поля создаёт новый на вашем языке в одно касание."
+        ],
+        "signoff": "Ülkər Nəsirova — Agradex"
+      },
     "data_ready": {
       "subject": "Спутниковая карта поля «{field}» готова 🛰️",
       "preheader": "Посмотрите первую карту NDVI и оценку состояния посевов.",
@@ -788,6 +815,33 @@ SIMPLE_EXTRA = {
     }
   },
   "tr": {
+      "product_update_locale": {
+        "subject": "Dil düzeltmesi: e-postalarınız artık seçtiğiniz dilde geliyor",
+        "preheader": "Dili bir kez seçin, hesabınız hatırlasın.",
+        "heading": "Dil sorunu çözüldü",
+        "intro": [
+          "Bazı kullanıcıların haftalık özeti ve yapay zekâ analizi bekledikleri dilden farklı bir dilde geliyordu — kimi zaman her hafta başka bir dilde. Nedenini bulduk: hesabın dili, en son açılan sayfanın adresine göre yeniden yazılıyordu.",
+          "Düzeltildi. Artık hesabınızın dilini yalnızca <b>kendi açık seçiminiz</b> değiştirebilir."
+        ],
+        "steps": [
+          {
+            "n": 1,
+            "text": "Giriş yapın ve üstteki dil seçiciden dilinizi <b>bir kez</b> seçin."
+          },
+          {
+            "n": 2,
+            "text": "Bundan sonra haftalık özet, tarla bildirimleri ve yapay zekâ agronomun analizi o dilde gelir."
+          }
+        ],
+        "cta": {
+          "label": "Giriş yap ve dili seç →",
+          "url": "{app_url}"
+        },
+        "outro": [
+          "Eski analizler yazıldıkları dilde kalır — metin olarak saklanırlar, okunurken çevrilmezler. Tarla sayfasındaki not, tek dokunuşla sizin dilinizde yenisini üretir."
+        ],
+        "signoff": "Ülkər Nəsirova — Agradex"
+      },
     "data_ready": {
       "subject": "“{field}” tarlanızın uydu haritası hazır 🛰️",
       "preheader": "İlk NDVI haritasını ve sağlık puanını şimdi görün.",
@@ -806,6 +860,33 @@ SIMPLE_EXTRA = {
     }
   },
   "it": {
+      "product_update_locale": {
+        "subject": "Correzione lingua: le email tornano nella lingua che hai scelto",
+        "preheader": "Scegli la lingua una volta e l'account la ricorda.",
+        "heading": "Il problema della lingua è risolto",
+        "intro": [
+          "Per alcuni account il riepilogo settimanale e l'analisi IA arrivavano in una lingua diversa da quella attesa — a volte ogni settimana in una lingua diversa. Ne abbiamo trovato la causa: la lingua dell'account veniva riscritta dall'indirizzo dell'ultima pagina aperta.",
+          "Ora è corretto. La lingua del tuo account può essere cambiata solo dalla <b>tua scelta esplicita</b>."
+        ],
+        "steps": [
+          {
+            "n": 1,
+            "text": "Accedi e scegli la tua lingua <b>una volta</b> dal selettore in alto."
+          },
+          {
+            "n": 2,
+            "text": "Da quel momento riepilogo settimanale, notifiche sui campi e analisi dell'agronomo IA seguono quella lingua."
+          }
+        ],
+        "cta": {
+          "label": "Accedi e imposta la lingua →",
+          "url": "{app_url}"
+        },
+        "outro": [
+          "Le analisi precedenti restano nella lingua in cui sono state scritte: sono salvate come testo e non tradotte alla lettura. La nota sulla pagina del campo ne rigenera una nella tua lingua con un tocco."
+        ],
+        "signoff": "Ülkər Nəsirova — Agradex"
+      },
     "data_ready": {
       "subject": "La mappa satellitare del campo «{field}» è pronta 🛰️",
       "preheader": "Guarda subito la prima mappa NDVI e il punteggio di salute.",
@@ -824,6 +905,33 @@ SIMPLE_EXTRA = {
     }
   },
   "de": {
+      "product_update_locale": {
+        "subject": "Sprachkorrektur: Ihre E-Mails kommen wieder in Ihrer Sprache",
+        "preheader": "Sprache einmal wählen — das Konto merkt sie sich.",
+        "heading": "Das Sprachproblem ist behoben",
+        "intro": [
+          "Bei einigen Konten kamen die Wochenübersicht und die KI-Analyse in einer anderen Sprache als erwartet — manchmal jede Woche in einer anderen. Die Ursache: Die Kontosprache wurde aus der Adresse der zuletzt geöffneten Seite überschrieben.",
+          "Das ist behoben. Die Sprache Ihres Kontos ändert jetzt nur noch <b>Ihre ausdrückliche Wahl</b>."
+        ],
+        "steps": [
+          {
+            "n": 1,
+            "text": "Melden Sie sich an und wählen Sie Ihre Sprache <b>einmal</b> oben im Sprachumschalter."
+          },
+          {
+            "n": 2,
+            "text": "Danach folgen Wochenübersicht, Feldbenachrichtigungen und die Analyse des KI-Agronomen dieser Sprache."
+          }
+        ],
+        "cta": {
+          "label": "Anmelden und Sprache wählen →",
+          "url": "{app_url}"
+        },
+        "outro": [
+          "Ältere Analysen bleiben in der Sprache, in der sie geschrieben wurden — sie werden als Text gespeichert und beim Lesen nicht übersetzt. Der Hinweis auf der Feldseite erzeugt mit einem Tippen eine neue in Ihrer Sprache."
+        ],
+        "signoff": "Ülkər Nəsirova — Agradex"
+      },
     "data_ready": {
       "subject": "Die Satellitenkarte Ihres Feldes „{field}“ ist bereit 🛰️",
       "preheader": "Sehen Sie jetzt die erste NDVI-Karte und den Gesundheitswert.",
@@ -842,6 +950,33 @@ SIMPLE_EXTRA = {
     }
   },
   "pl": {
+      "product_update_locale": {
+        "subject": "Poprawka języka: wiadomości znów przychodzą w wybranym języku",
+        "preheader": "Wybierz język raz — konto go zapamięta.",
+        "heading": "Problem z językiem rozwiązany",
+        "intro": [
+          "U części kont cotygodniowe podsumowanie i analiza AI przychodziły w innym języku niż oczekiwany — czasem co tydzień w innym. Znaleźliśmy przyczynę: język konta był nadpisywany na podstawie adresu ostatnio otwartej strony.",
+          "To zostało naprawione. Język konta zmienia teraz wyłącznie <b>Twój świadomy wybór</b>."
+        ],
+        "steps": [
+          {
+            "n": 1,
+            "text": "Zaloguj się i wybierz język <b>raz</b> w przełączniku na górze."
+          },
+          {
+            "n": 2,
+            "text": "Od tej pory cotygodniowe podsumowanie, powiadomienia o polach i analiza agronoma AI będą w tym języku."
+          }
+        ],
+        "cta": {
+          "label": "Zaloguj się i ustaw język →",
+          "url": "{app_url}"
+        },
+        "outro": [
+          "Starsze analizy pozostają w języku, w którym powstały — są zapisane jako tekst i nie są tłumaczone przy odczycie. Notatka na stronie pola tworzy nową w Twoim języku jednym dotknięciem."
+        ],
+        "signoff": "Ülkər Nəsirova — Agradex"
+      },
     "data_ready": {
       "subject": "Mapa satelitarna Twojego pola „{field}” jest gotowa 🛰️",
       "preheader": "Zobacz teraz pierwszą mapę NDVI i ocenę zdrowia.",
@@ -860,6 +995,33 @@ SIMPLE_EXTRA = {
     }
   },
   "hu": {
+      "product_update_locale": {
+        "subject": "Nyelvi javítás: a levelek újra az Ön nyelvén érkeznek",
+        "preheader": "Válassza ki a nyelvet egyszer — a fiók megjegyzi.",
+        "heading": "A nyelvi hiba megoldva",
+        "intro": [
+          "Néhány fióknál a heti összefoglaló és az MI-elemzés nem a várt nyelven érkezett — olykor hetente másikon. Megtaláltuk az okát: a fiók nyelvét a legutóbb megnyitott oldal címe írta felül.",
+          "Ez javítva. A fiók nyelvét mostantól csak <b>az Ön kifejezett választása</b> módosíthatja."
+        ],
+        "steps": [
+          {
+            "n": 1,
+            "text": "Jelentkezzen be, és válassza ki a nyelvét <b>egyszer</b> a felül található nyelvváltóban."
+          },
+          {
+            "n": 2,
+            "text": "Ezután a heti összefoglaló, a tábla-értesítések és az MI agronómus elemzése is ezen a nyelven érkezik."
+          }
+        ],
+        "cta": {
+          "label": "Bejelentkezés és nyelvválasztás →",
+          "url": "{app_url}"
+        },
+        "outro": [
+          "A korábbi elemzések azon a nyelven maradnak, amelyen készültek — szövegként tároljuk őket, olvasáskor nem fordítjuk. A tábla oldalán lévő jelzés egy érintéssel újat készít az Ön nyelvén."
+        ],
+        "signoff": "Ülkər Nəsirova — Agradex"
+      },
     "data_ready": {
       "subject": "A(z) „{field}” tábla műholdas térképe készen áll 🛰️",
       "preheader": "Nézze meg most az első NDVI-térképet és az egészségi értéket.",
@@ -878,6 +1040,33 @@ SIMPLE_EXTRA = {
     }
   },
   "es": {
+      "product_update_locale": {
+        "subject": "Corrección de idioma: sus correos vuelven a llegar en el idioma que eligió",
+        "preheader": "Elija el idioma una vez y la cuenta lo recordará.",
+        "heading": "El problema del idioma está resuelto",
+        "intro": [
+          "En algunas cuentas el resumen semanal y el análisis de IA llegaban en un idioma distinto al esperado — a veces uno diferente cada semana. Encontramos la causa: el idioma de la cuenta se reescribía a partir de la dirección de la última página abierta.",
+          "Ya está corregido. El idioma de su cuenta solo puede cambiarlo <b>su elección explícita</b>."
+        ],
+        "steps": [
+          {
+            "n": 1,
+            "text": "Inicie sesión y elija su idioma <b>una vez</b> en el selector de la parte superior."
+          },
+          {
+            "n": 2,
+            "text": "A partir de ahí, el resumen semanal, los avisos de los lotes y el análisis del agrónomo con IA seguirán ese idioma."
+          }
+        ],
+        "cta": {
+          "label": "Iniciar sesión y elegir idioma →",
+          "url": "{app_url}"
+        },
+        "outro": [
+          "Los análisis anteriores se mantienen en el idioma en que se escribieron: se guardan como texto y no se traducen al leerlos. La nota en la página del lote genera uno nuevo en su idioma con un solo toque."
+        ],
+        "signoff": "Ülkər Nəsirova — Agradex"
+      },
     "data_ready": {
       "subject": "El mapa satelital de su lote «{field}» está listo 🛰️",
       "preheader": "Vea ahora su primer mapa NDVI y el puntaje de salud.",

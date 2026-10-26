@@ -63,6 +63,70 @@ async def email_data_ready(field_id: str):
     return {"ok": ok}
 
 
+@router.post("/emails/announce")
+async def emails_announce(template_id: str = "product_update_locale",
+                          dedup_key: str = "", dry_run: bool = True,
+                          limit: int = 500):
+    """One-off announcement to every eligible account, each in their OWN language.
+
+    ⚠️ DRY RUN BY DEFAULT. This is the only endpoint in the codebase that mails the entire user
+    base on one call, and an announcement cannot be unsent. `dry_run=true` resolves exactly the
+    same recipient list and reports it — address, locale, and whether the ledger already holds a
+    row — without dispatching anything.
+
+    LANGUAGE COMES FROM users.locale, read per recipient inside send_template. That is the whole
+    point of announcing this particular fix in this particular way: the mail that says "your
+    language is fixed" has to arrive in the reader's language, or it refutes itself.
+
+    NOT TRANSACTIONAL. `product_update_locale` is absent from send.TRANSACTIONAL, so send_template
+    honours users.email_lifecycle and attaches the unsubscribe link. Product news is not something
+    the account asked for, and the one standing promise this product makes about email is that the
+    weekly digest is the only thing that arrives unbidden.
+
+    IDEMPOTENT. `dedup_key` defaults to the template id, so the send ledger makes this
+    once-per-account-ever: calling twice mails nobody twice. Pass a different key only to send a
+    genuinely different announcement under the same template.
+    """
+    from ..ai import notify
+    if not notify.email_configured():
+        return {"ok": False, "reason": "email_not_configured"}
+    from ..ai.emails.send import send_template
+    key = dedup_key or template_id
+    async with connection(None) as conn:
+        rows = await conn.fetch(
+            """select u.id, u.email, u.locale, u.full_name,
+                      exists(select 1 from public.email_sends s
+                              where s.user_id = u.id and s.template_id = $1
+                                and s.dedup_key = $2) as already
+                 from public.users u
+                where u.email is not null and u.email <> ''
+                  and u.deleted_at is null
+                  and coalesce(u.is_active, true)
+                  and coalesce(u.email_verified, true)
+                  and coalesce(u.email_lifecycle, true)
+                order by u.created_at
+                limit $3""", template_id, key, limit)
+        if dry_run:
+            return {"ok": True, "dry_run": True, "template": template_id, "dedup_key": key,
+                    "eligible": len(rows),
+                    "by_locale": {loc: sum(1 for r in rows if (r["locale"] or "az") == loc)
+                                  for loc in sorted({(r["locale"] or "az") for r in rows})},
+                    "already_sent": sum(1 for r in rows if r["already"]),
+                    "recipients": [{"email": r["email"], "locale": r["locale"],
+                                    "already": bool(r["already"])} for r in rows]}
+        sent = failed = 0
+        for r in rows:
+            # One short transaction per recipient, like run_lifecycle: a single transaction held
+            # across the whole blast would keep a connection busy for the duration and lose every
+            # send if one row raised.
+            ok = await send_template(conn, str(r["id"]), template_id,
+                                     {"name": r["full_name"] or ""}, key)
+            sent += 1 if ok else 0
+            failed += 0 if ok else 1
+    return {"ok": True, "dry_run": False, "template": template_id, "dedup_key": key,
+            "eligible": len(rows), "sent": sent, "skipped_or_failed": failed}
+
+
 @router.post("/emails/lifecycle/drain")
 async def emails_lifecycle_drain():
     """Send this ISO week's digest to every eligible user (E15) — the ONE recurring email.
