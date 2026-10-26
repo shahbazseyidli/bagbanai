@@ -56,6 +56,36 @@ export default async function BlogPostPage({
     mainEntityOfPage: localeUrl(`/blog/${slug}`, served as Locale),
   };
 
+  // BREADCRUMBS. Three levels, matching the links the page actually renders (the "← Blog" link
+  // above and the site root), so the markup describes the page rather than decorating it. Google
+  // draws the trail in place of the bare URL in the result.
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Agradex", item: localeUrl("/", served as Locale) },
+      { "@type": "ListItem", position: 2, name: t("mkt.blog.title"),
+        item: localeUrl("/blog", served as Locale) },
+      { "@type": "ListItem", position: 3, name: post.title },
+    ],
+  };
+
+  // FAQ. ONLY sections whose heading is literally a question and that carry prose beneath it —
+  // the posts are written answer-first, so those pairs are real Q&A a reader sees on the page.
+  // That restraint is the point: Google requires FAQ markup to match VISIBLE content, and marking
+  // up a statement heading as a question is the kind of thing that costs a site its rich results
+  // rather than earning them. A post with no interrogative headings emits no FAQ block at all.
+  const faqs = post.sections
+    .filter((sec) => sec.heading?.trim().endsWith("?") && (sec.paragraphs?.length ?? 0) > 0)
+    .map((sec) => ({
+      "@type": "Question",
+      name: sec.heading as string,
+      acceptedAnswer: { "@type": "Answer", text: (sec.paragraphs as string[]).join(" ") },
+    }));
+  const faqLd = faqs.length
+    ? { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: faqs }
+    : null;
+
   const fmtDate = new Intl.DateTimeFormat(served, { dateStyle: "medium" });
 
   return (
@@ -64,6 +94,16 @@ export default async function BlogPostPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleLd).replace(/</g, "\\u003c") }}
       />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd).replace(/</g, "\\u003c") }}
+      />
+      {faqLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd).replace(/</g, "\\u003c") }}
+        />
+      )}
       <article className="mx-auto max-w-[720px]">
         <Link
           href="/blog"

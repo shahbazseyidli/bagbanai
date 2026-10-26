@@ -7,7 +7,7 @@
 import type { MetadataRoute } from "next";
 import { PUBLIC_ROUTES, SITEMAP_LOCALES, urlFor } from "@/lib/publicRoutes";
 import { GUIDE_ORDER } from "@/components/guide/content";
-import { BLOG_SLUGS, availableLocales } from "@/components/blog";
+import { BLOG_SLUGS, availableLocales, getPost } from "@/components/blog";
 
 // Marketing lives on the apex regardless of which host renders this — same derivation as
 // app/layout.tsx, for the same reason: a sitemap pointing at app.agradex.com would list URLs that
@@ -24,11 +24,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
       ...Object.fromEntries(locales.map((l) => [l, urlFor(SITE, l, route)])),
       "x-default": urlFor(SITE, locales.includes("az") ? "az" : locales[0], route),
     };
-    return locales.map((locale) => ({
-      url: urlFor(SITE, locale, route),
-      alternates: { languages },
-      changeFrequency: "weekly" as const,
-    }));
+    return locales.map((locale) => {
+      // lastModified ONLY here, and only because it is REAL: every post carries dateModified in
+      // its own file. The blanket ban further down is right for marketing pages, where nothing
+      // tracks the last change and a date would be invented — but a post's date is tracked, and
+      // withholding it is what makes a crawler recheck an article that has not moved in months.
+      const modified = getPost(slug, locale)?.post.dateModified;
+      return {
+        url: urlFor(SITE, locale, route),
+        alternates: { languages },
+        ...(modified ? { lastModified: new Date(modified) } : {}),
+        changeFrequency: "weekly" as const,
+      };
+    });
   });
   // Static marketing routes + the guide articles (from the same registry the pages render from, so
   // a new article can never be published and missing from the sitemap at the same time).
@@ -45,9 +53,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
           "x-default": urlFor(SITE, "az", route),
         },
       },
-      // No lastModified and no priority, deliberately. Both would be invented — nothing here
-      // tracks when a marketing page last changed, and a made-up date teaches a crawler to ignore
-      // the field. Absent is honest; wrong is worse than missing.
+      // No lastModified and no priority on MARKETING routes, deliberately. Both would be
+      // invented — nothing here tracks when /pricing last changed, and a made-up date teaches a
+      // crawler to ignore the field. Absent is honest; wrong is worse than missing. Blog entries
+      // above DO carry one, because there the date is a fact rather than a guess.
       changeFrequency: "weekly" as const,
     })),
   ));
