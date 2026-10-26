@@ -52,9 +52,12 @@ import { post as fertilizerRatesAz } from "./posts/fertilizer-rates.az";
 import { post as wheatGuideAz } from "./posts/wheat-growing-guide.az";
 import { post as hazelnutGuideAz } from "./posts/hazelnut-growing-guide.az";
 import { post as grapeDiseasesAz } from "./posts/grape-diseases.az";
+import { post as subsidyCheckAz } from "./posts/satellite-subsidy-check.az";
+import { post as subsidyCheckEn } from "./posts/satellite-subsidy-check.en";
 
 /** Publication order of the hub page (editorial priority). */
 export const BLOG_SLUGS = [
+  "satellite-subsidy-check",
   "what-is-ndvi",
   "ndvi-ndmi-ndre",
   "satellite-pass-frequency",
@@ -72,6 +75,11 @@ export const BLOG_SLUGS = [
 ] as const;
 
 const POSTS: Record<string, Partial<Record<BlogLocale, BlogPost>>> = {
+  // az and en are NOT the same article. Azerbaijan's check runs through the Agricultural Subsidy
+  // Council's own scoring and rates; the EU's runs through the CAP Area Monitoring System inside
+  // IACS. Same question, two legal regimes, two sets of numbers — which is the market-adaptation
+  // rule in types.ts doing its job rather than being worked around.
+  "satellite-subsidy-check": { az: subsidyCheckAz, en: subsidyCheckEn },
   "what-is-ndvi": {
     az: whatIsNdviAz, en: whatIsNdviEn, ru: whatIsNdviRu, de: whatIsNdviDe, es: whatIsNdviEs, tr: whatIsNdviTr,
   },
