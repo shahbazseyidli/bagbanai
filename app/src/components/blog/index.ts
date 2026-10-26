@@ -54,6 +54,9 @@ import { post as hazelnutGuideAz } from "./posts/hazelnut-growing-guide.az";
 import { post as grapeDiseasesAz } from "./posts/grape-diseases.az";
 import { post as subsidyCheckAz } from "./posts/satellite-subsidy-check.az";
 import { post as subsidyCheckEn } from "./posts/satellite-subsidy-check.en";
+import { post as subsidyCheckHu } from "./posts/satellite-subsidy-check.hu";
+import { post as subsidyCheckIt } from "./posts/satellite-subsidy-check.it";
+import { post as subsidyCheckPl } from "./posts/satellite-subsidy-check.pl";
 
 /** Publication order of the hub page (editorial priority). */
 export const BLOG_SLUGS = [
@@ -75,11 +78,23 @@ export const BLOG_SLUGS = [
 ] as const;
 
 const POSTS: Record<string, Partial<Record<BlogLocale, BlogPost>>> = {
-  // az and en are NOT the same article. Azerbaijan's check runs through the Agricultural Subsidy
-  // Council's own scoring and rates; the EU's runs through the CAP Area Monitoring System inside
-  // IACS. Same question, two legal regimes, two sets of numbers — which is the market-adaptation
-  // rule in types.ts doing its job rather than being worked around.
-  "satellite-subsidy-check": { az: subsidyCheckAz, en: subsidyCheckEn },
+  // FIVE ARTICLES, NOT ONE TRANSLATED FIVE TIMES. Each market's farmer meets this through a
+  // different agency, a different screen and a different procedure, so the only thing the
+  // variants share is the question:
+  //   az — Aqrar Subsidiya Şurası: points-based assessment, 2026 per-hectare rates, ploughing
+  //        confirmed from orbit.
+  //   en — the EU-level CAP Area Monitoring System inside IACS, for readers outside those states.
+  //   pl — ARiMR: results in eWniosekPlus under "Wyniki monitoringu satelitarnego", yellow/red
+  //        parcels, 2-5 geotagged photos to resolve.
+  //   it — AGEA: MSP runs on the Piano Colturale Grafico BEFORE submission and AMS after, with
+  //        verde/giallo/rosso/bianco alerts and eco-scheme observation windows.
+  //   hu — Magyar Államkincstár's TMR: the egyeztető levél, mobilGAZDA photos, and the monthly
+  //        imagery already visible inside the Egységes Kérelem map.
+  // This is the market-adaptation rule in types.ts doing its job, not being worked around.
+  "satellite-subsidy-check": {
+    az: subsidyCheckAz, en: subsidyCheckEn, pl: subsidyCheckPl, it: subsidyCheckIt,
+    hu: subsidyCheckHu,
+  },
   "what-is-ndvi": {
     az: whatIsNdviAz, en: whatIsNdviEn, ru: whatIsNdviRu, de: whatIsNdviDe, es: whatIsNdviEs, tr: whatIsNdviTr,
   },

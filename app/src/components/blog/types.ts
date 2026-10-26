@@ -6,7 +6,12 @@
 // as scaled machine output — see SEO_PLAN.md §4-S2 "Dil qaydası"). Slugs are English and identical
 // across locales so the variants form one hreflang cluster, like /solutions/farmer.
 
-export const BLOG_LOCALES = ["az", "en", "ru", "de", "es", "tr"] as const;
+// hu, it and pl joined on 2026-10-26. They were full UI locales with full dictionary parity and
+// ZERO blog posts — the hub simply served them the English article, which is the worst of both
+// worlds: an English page ranking for nothing in Hungarian, Italian or Polish, and a reader who
+// has to switch languages to read it. Adding a locale here only widens what a slug MAY have;
+// `availableLocales()` still reports what a slug actually has, so hreflang stays honest.
+export const BLOG_LOCALES = ["az", "en", "ru", "de", "es", "tr", "hu", "it", "pl"] as const;
 export type BlogLocale = (typeof BLOG_LOCALES)[number];
 
 export interface BlogTable {
