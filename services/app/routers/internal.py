@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/internal", tags=["internal"], dependencies=[Depe
 
 
 @router.post("/advice/run")
-async def run_advice(field_id: str):
+async def run_advice(field_id: str, force: bool = False):
     """Regenerate AI advice for a field (called by the geo pipeline after new scenes,
     or by n8n). Notifies the farmer on material change. No-op if AI isn't configured.
 
@@ -32,8 +32,12 @@ async def run_advice(field_id: str):
                  join public.organizations o on o.id = f.org_id
                  join public.users u on u.id = o.owner_id
                where f.id = $1::uuid""", field_id)
+        # `force` bypasses the 15-day throttle. Added 2026-11-03 to replace advice that was
+        # STORED UNDER THE WRONG LANGUAGE — six rows across six accounts, written in Azerbaijani
+        # and labelled es or tr. Without it the only way to fix such a row is to wait out the
+        # throttle or make the farmer press regenerate, which spends their own quota on our bug.
         result = await advice_svc.generate_and_store(
-            conn, field_id, lang=lang)
+            conn, field_id, lang=lang, force=force)
     # `generate_and_store` signals a spent quota by RETURNING a dict, not by raising — so the
     # plain `result is not None` this used to end on reported a refusal as a successful run, and
     # the nightly cron log said ok:true for every field that never got advice. Reading the flag

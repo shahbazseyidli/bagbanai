@@ -45,16 +45,30 @@ DISCLAIMERS = {
 
 
 def _lang_clause(lang: str) -> str:
-    if lang == "az" or lang not in LANG_NAMES:
-        return ""
-    name = LANG_NAMES[lang]
-    return ("\n\nDİL: Bütün oxunaqlı mətni (summary, risk title/detail, recommendations, next_steps) "
-            f"{name} dilində yaz. LAKİN hər riskin `severity` dəyərini DƏYİŞMƏ — o, kod kimi qalır: "
-            "yalnız aşağı, orta və ya yüksək.")
+    """The ONE place that tells the model which language to write in.
+
+    ALWAYS emits, `az` included. It used to return "" for az and rely on SYSTEM saying "write in
+    Azerbaijani" — which meant SYSTEM named a language, which meant every non-az request carried
+    two contradictory instructions. Measured on production 2026-11-03: a Spanish account's advice
+    generated 2026-11-01 was stored `lang='es'` with a Spanish disclaimer (a table lookup) and
+    Azerbaijani prose (the model's output), because the rules list and the Risk.title schema
+    description both said Azerbaijani and this clause was appended after them.
+
+    The "context may be in another language" sentence is not padding. The pull was real: the field
+    is named "Sahə 1", its crop and notes are Azerbaijani, and the whole system prompt is
+    Azerbaijani. Without saying so explicitly, the model reads the surrounding language as the
+    intended one and quietly matches it.
+    """
+    name = LANG_NAMES.get(lang) or LANG_NAMES["az"]
+    return ("\n\nDİL — ƏN YÜKSƏK PRİORİTETLİ QAYDA: Bütün oxunaqlı mətni (summary, risk "
+            f"title/detail, recommendations, next_steps) MÜTLƏQ {name} dilində yaz. "
+            "Kontekstdəki sahə adı, məhsul adı, qeydlər və bu təlimatın özü başqa dildə ola bilər "
+            "— bu, yazı dilini DƏYİŞMİR. LAKİN hər riskin `severity` dəyərini DƏYİŞMƏ — o, kod "
+            "kimi qalır: yalnız aşağı, orta və ya yüksək.")
 
 
 class Risk(BaseModel):
-    title: str = Field(description="Riskin qısa adı (Azərbaycanca)")
+    title: str = Field(description="Riskin qısa adı")
     severity: Literal["aşağı", "orta", "yüksək"]
     detail: str = Field(description="Riskin izahı və nəyə əsaslandığı")
 
@@ -72,7 +86,7 @@ class AdviceResult(BaseModel):
 
 
 SYSTEM = (
-    "Sən Azərbaycan fermerləri üçün təcrübəli aqronomsan. Sənə bir sahənin NASA/Sentinel peyk "
+    "Sən fermerlər üçün təcrübəli aqronomsan. Sənə bir sahənin NASA/Sentinel peyk "
     "indeksləri (NDVI bitki sağlamlığı, NDMI bitki nəmliyi, NDWI su, EVI, SAVI, NBR), məhsul "
     "metadatası, görülmüş işlər (skautinq, varsa əməliyyatlar) və `knowledge_passport` "
     "(bitki-spesifik normalar, fenologiya, zərərvericilər, torpaq profili, fermer cavabları) "
@@ -90,7 +104,10 @@ SYSTEM = (
     "- `knowledge_passport` varsa, indeksi bitki-spesifik normalarla müqayisə et (universal həddlə yox); "
     "  fenoloji mərhələ və zona zərərvericilərini nəzərə al. Passport boşdursa peyk datasına əsaslan.\n"
     "- Konkret rəqəm (doza, gün) yalnız passport/dataya əsaslanırsa yaz; yoxsa ümumi tövsiyə ver.\n"
-    "- Qısa, aydın, Azərbaycan dilində yaz. Fermerə birbaşa müraciət et.\n"
+    # NO LANGUAGE NAMED HERE, deliberately. _lang_clause() is appended to this string and is the
+    # ONLY place that names one; a second mention here contradicted it and won, because a rule
+    # inside the prompt body outranks a line bolted on at the end.
+    "- Qısa və aydın yaz. Fermerə birbaşa müraciət et.\n"
     "- ÇOXİLLİK SAHƏ (crop_cycle='perennial' — bağ, plantasiya, üzümlük, zeytunluq): poliqonun "
     "  ORTA NDVI-si ağac çətiri ilə sıra-arası çılpaq torpağı birlikdə ortalayır, ona görə MÜTLƏQ "
     "  rəqəm əkin həndəsəsindən asılıdır. Belə sahədə TRENDƏ və sahənin öz tarixçəsinə əsaslan, "
